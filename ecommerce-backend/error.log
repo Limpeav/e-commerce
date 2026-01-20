@@ -1,0 +1,6 @@
+2026-01-11T06:36:56.490Z - Error: TypeError: Cannot read properties of null (reading '_id')
+    at addToCart (file:///Users/macbookair/Desktop/ecommerce-website%20copy/ecommerce-backend/controllers/cartController.js:16:52)
+    at Layer.handleRequest (/Users/macbookair/Desktop/ecommerce-website copy/ecommerce-backend/node_modules/router/lib/layer.js:152:17)
+    at next (/Users/macbookair/Desktop/ecommerce-website copy/ecommerce-backend/node_modules/router/lib/route.js:157:13)
+    at protect (file:///Users/macbookair/Desktop/ecommerce-website%20copy/ecommerce-backend/middleware/authMiddleware.js:18:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
