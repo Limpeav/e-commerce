@@ -7,6 +7,7 @@ import "./assets/styles/App.css";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -14,11 +15,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <BrowserRouter>
         <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <App />
-            </WishlistProvider>
-          </CartProvider>
+          <ToastProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <App />
+              </WishlistProvider>
+            </CartProvider>
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>

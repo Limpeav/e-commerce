@@ -18,7 +18,12 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -27,7 +32,7 @@ const AdminLogin = () => {
 
     try {
       const response = await adminService.login({ email, password });
-      
+
       // Handle both response.data and direct data
       const data = response.data || response;
 
@@ -51,86 +56,83 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4 py-12">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div
-          className="absolute top-40 right-10 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        <div
-          className="absolute bottom-20 left-1/2 w-72 h-72 bg-red-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
-          style={{ animationDelay: "4s" }}
-        ></div>
-      </div>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Subtle Static Background with Deep Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40"></div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo/Brand Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-red-600 via-orange-600 to-yellow-600 rounded-2xl shadow-2xl mb-4 transform hover:scale-110 transition-transform duration-300">
-            <ShieldCheck className="w-8 h-8 text-white" />
+      {/* Very Subtle Ambient Glows - Static or extremely slow */}
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div
+        className={`w-full max-w-lg relative z-10 transition-all duration-700 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+      >
+
+        {/* Main Glass Card */}
+        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
+
+          {/* Header Section */}
+          <div className="px-8 pt-12 pb-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800 mb-6 shadow-md ring-1 ring-slate-700/50">
+              <ShieldCheck className="w-8 h-8 text-indigo-500" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">
+              Admin Portal
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Sign in to your administrative account
+            </p>
           </div>
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent mb-2">
-            Admin Portal
-          </h1>
-          <p className="text-gray-400 text-lg">Sign in to access admin dashboard</p>
-        </div>
 
-        {/* Login Card */}
-        <div className="bg-gray-800/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-gray-700/50 p-8">
-          <form onSubmit={submitHandler} className="space-y-6">
-            {/* Error Message */}
+          <form onSubmit={submitHandler} className="px-8 pb-10 space-y-5">
+            {/* Error Display */}
             {error && (
-              <div className="bg-red-900/80 backdrop-blur-sm border-2 border-red-700 rounded-2xl p-4 flex items-start gap-3 animate-shake">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-red-300 text-sm font-medium">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/10 rounded-lg p-3 flex gap-3 items-start animate-fade-in">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-red-400 text-sm leading-snug">{error}</p>
               </div>
             )}
 
-            {/* Email Input */}
-            <div className="group">
-              <label className="block text-sm font-bold text-gray-300 mb-2 flex items-center gap-2">
-                <Mail className="w-4 h-4 text-blue-400" />
-                Admin Email
-              </label>
-              <div className="relative">
+            {/* Email Field */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                  <Mail className="w-5 h-5" />
+                </div>
                 <input
                   type="email"
-                  placeholder="admin@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-200 placeholder-slate-600 transition-all shadow-sm"
+                  placeholder="name@company.com"
                   required
-                  className="w-full px-4 py-3.5 bg-gray-700/50 border-2 border-gray-600 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-200 placeholder-gray-400 group-hover:border-gray-500"
                 />
               </div>
             </div>
 
-            {/* Password Input */}
-            <div className="group">
-              <label className="block text-sm font-bold text-gray-300 mb-2 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-purple-400" />
-                Admin Password
-              </label>
-              <div className="relative">
+            {/* Password Field */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter admin password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 bg-slate-950/50 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-200 placeholder-slate-600 transition-all shadow-sm"
+                  placeholder="••••••••"
                   required
-                  className="w-full px-4 py-3.5 pr-12 bg-gray-700/50 border-2 border-gray-600 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-200 placeholder-gray-400 group-hover:border-gray-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -139,69 +141,42 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-xl font-bold shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 text-lg ${
-                loading
-                  ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white hover:shadow-2xl hover:scale-105 active:scale-95"
-              }`}
+              className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-lg hover:shadow-indigo-500/25 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
-                  <Loader className="w-6 h-6 animate-spin" />
-                  Authenticating...
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span>Verifying...</span>
                 </>
               ) : (
                 <>
-                  <LogIn className="w-6 h-6" />
-                  Admin Sign In
+                  <span>Sign In</span>
+                  <LogIn className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t-2 border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-gray-800 text-gray-400 font-medium">
-                Secure Admin Access
-              </span>
-            </div>
-          </div>
-
-          {/* User Login Link */}
-          <div className="text-center">
+          {/* Footer Section */}
+          <div className="bg-slate-950/30 px-8 py-5 border-t border-slate-800 flex items-center justify-center">
             <a
               href="/login"
-              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold text-lg transition-colors group"
+              className="text-sm text-slate-500 hover:text-indigo-400 transition-colors flex items-center gap-2 font-medium"
             >
-              User Login
-              <span className="transform group-hover:translate-x-1 transition-transform">
-                →
-              </span>
+              Back to Customer Login
             </a>
           </div>
+
         </div>
 
-        {/* Security Badge */}
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-2 text-xs text-gray-500">
-            <ShieldCheck className="w-4 h-4 text-green-500" />
-            <span>Protected by enterprise-grade security</span>
-          </div>
+        {/* Footer info - simple */}
+        <div className="mt-8 text-center opacity-70">
+          <p className="text-slate-600 text-xs flex items-center justify-center gap-2 font-medium uppercase tracking-wider">
+            <ShieldCheck className="w-3 h-3" />
+            Secure Admin Environment
+          </p>
         </div>
 
-        {/* Warning */}
-        <div className="mt-4 bg-yellow-900/30 border border-yellow-700/50 rounded-xl p-4">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-yellow-300 text-xs">
-              This is a restricted area. Unauthorized access attempts will be logged and may result in account suspension.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

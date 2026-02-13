@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   Camera,
   Save,
-  X,
   AlertCircle,
   ShoppingBag,
   Heart,
@@ -15,21 +14,28 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Package
+  Package,
+  Shield,
+  CreditCard,
+  MapPin,
+  Clock,
+  Settings
 } from "lucide-react";
 import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
 
 // UI Components
 import { AlertMessage, StatCard, FormInput } from "../../components";
+import ProfileSidebar from "../../components/user/ProfileSidebar"; // Make sure to import the new sidebar
 
 const API_URL = "http://localhost:4000/api";
 
 const Profile = () => {
   const { user, login } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [stats, setStats] = useState({
@@ -176,8 +182,6 @@ const Profile = () => {
         updateData.newPassword = formData.newPassword;
       }
 
-      console.log("Sending update request with data:", updateData);
-
       const response = await axios.put(
         `${API_URL}/users/profile`,
         updateData,
@@ -188,8 +192,6 @@ const Profile = () => {
           },
         }
       );
-
-      console.log("Update response:", response.data);
 
       // Preserve all user data including createdAt
       const updatedUser = {
@@ -207,7 +209,6 @@ const Profile = () => {
       login(updatedUser);
 
       setSuccess("Profile updated successfully!");
-      setIsEditing(false);
       setFormData((prev) => ({
         ...prev,
         currentPassword: "",
@@ -215,33 +216,14 @@ const Profile = () => {
         confirmPassword: "",
       }));
 
-      // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      console.error("Profile update error:", err);
-      console.error("Error response:", err.response?.data);
       setError(
         err.response?.data?.message || err.message || "Failed to update profile"
       );
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setFormData({
-      name: user.name || "",
-      email: user.email || "",
-      phone: user.phone || "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      avatar: null,
-    });
-    setAvatarPreview(null);
-    setError("");
-    setSuccess("");
   };
 
   if (!user) {
@@ -261,347 +243,288 @@ const Profile = () => {
     );
   }
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, x: -20, transition: { duration: 0.2 } }
+  };
+
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 px-6 font-sans">
+    <div className="min-h-screen bg-bg-base py-12 pt-32 px-4 md:px-8 font-sans">
       <div className="max-w-7xl mx-auto">
-        {/* Success/Error Messages - Fixed at top */}
-        {success && (
-          <AlertMessage
-            type="success"
-            message={success}
-            title="Profile Updated"
-            onClose={() => setSuccess("")}
-          />
-        )}
 
-        {error && (
-          <AlertMessage
-            type="error"
-            message={error}
-            title="Error"
-            onClose={() => setError("")}
-          />
-        )}
+        {/* Messages */}
+        <AnimatePresence>
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-8"
+            >
+              <AlertMessage type="success" message={success} title="Success" onClose={() => setSuccess("")} />
+            </motion.div>
+          )}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-8"
+            >
+              <AlertMessage type="error" message={error} title="Error" onClose={() => setError("")} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <StatCard
-            to="/orders"
-            label="Orders"
-            value={stats.totalOrders}
-            icon={ShoppingBag}
-          />
-          <StatCard
-            to="/wishlist"
-            label="Wishlist"
-            value={stats.wishlistItems}
-            icon={Heart}
-          />
-          <StatCard
-            to="/cart"
-            label="Cart"
-            value={stats.cartItems}
-            icon={ShoppingCart}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <ProfileSidebar />
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Main Profile Section */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-[2rem] border border-stone-100 overflow-hidden shadow-sm transition-all">
-              {/* Header with Avatar */}
-              <div className="relative p-10 bg-stone-50 border-b border-stone-100">
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10 text-center md:text-left">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0 group">
-                    <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-4 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
-                      {avatarPreview ? (
-                        <img
-                          src={avatarPreview}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-text-main flex items-center justify-center text-white text-3xl font-bold">
-                          {user.name?.charAt(0) || "U"}
-                        </div>
-                      )}
-                    </div>
-                    {isEditing && (
-                      <label className="absolute -bottom-2 -right-2 bg-primary text-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-primary-light transition-all active:scale-95 border-2 border-white">
-                        <Camera className="w-4 h-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Header Tabs */}
+            <div className="bg-white rounded-3xl p-2 shadow-sm border border-stone-100 flex flex-wrap gap-2">
+              {[
+                { id: "overview", label: "Overview", icon: User },
+                { id: "edit", label: "Edit Profile", icon: Settings },
+                { id: "security", label: "Security", icon: Shield },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-2xl transition-all font-bold text-sm ${activeTab === tab.id
+                    ? "bg-text-main text-white shadow-lg"
+                    : "text-text-muted hover:bg-stone-50 hover:text-text-main"
+                    }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <AnimatePresence mode="wait">
+              {activeTab === "overview" && (
+                <motion.div
+                  key="overview"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-8"
+                >
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatCard to="/orders" label="Total Orders" value={stats.totalOrders} icon={ShoppingBag} />
+                    <StatCard to="/wishlist" label="Wishlist" value={stats.wishlistItems} icon={Heart} />
+                    <StatCard to="/cart" label="In Cart" value={stats.cartItems} icon={ShoppingCart} />
                   </div>
 
-                  {/* User Info */}
-                  <div className="flex-1 min-w-0 pt-2">
-                    <h1 className="text-3xl font-bold text-text-main mb-2 tracking-tight">
-                      {user.name}
-                    </h1>
-                    <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                      <span className="px-3 py-1 bg-text-main text-white rounded-full text-xs font-medium">
-                        {user.role === "admin" ? "Admin" : "Customer"}
-                      </span>
-                      {user.createdAt && (
-                        <span className="px-3 py-1 bg-white text-text-muted rounded-full text-xs font-medium border border-stone-200">
-                          Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleUpdateProfile} className="p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Name */}
-                  <FormInput
-                    label="Full Name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    required
-                    icon={User}
-                  />
-
-                  {/* Email */}
-                  <FormInput
-                    label="Email Address"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    required
-                    icon={Mail}
-                  />
-
-                  {/* Phone */}
-                  <FormInput
-                    label="Phone Number"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    required
-                    icon={Phone}
-                  />
-
-                  {/* Empty space for grid on desktop */}
-                  <div></div>
-
-                  {/* Password Section - Full width */}
-                  {isEditing && (
-                    <div className="md:col-span-2 pt-8 border-t border-stone-100">
-                      <h3 className="text-sm font-bold text-text-main mb-6 flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-primary" />
-                        Change Password
-                      </h3>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Current Password */}
-                        <div>
-                          <label className="block text-xs font-bold text-text-muted mb-2 ml-1">
-                            Current Password
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showCurrentPassword ? "text" : "password"}
-                              name="currentPassword"
-                              value={formData.currentPassword}
-                              onChange={handleInputChange}
-                              placeholder="Enter current password"
-                              className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-primary transition-all font-medium text-text-main pr-12"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowCurrentPassword(!showCurrentPassword)
-                              }
-                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors"
-                            >
-                              {showCurrentPassword ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
+                  {/* Quick Info & Recent Activity */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Personal Info Card */}
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-stone-100 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-text-main">Personal Info</h3>
+                        <button onClick={() => setActiveTab("edit")} className="text-primary text-xs font-black uppercase tracking-widest hover:underline">Edit</button>
+                      </div>
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
+                            <User className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Full Name</p>
+                            <p className="text-text-main font-bold">{user.name}</p>
                           </div>
                         </div>
-
-                        {/* New Password */}
-                        <div>
-                          <label className="block text-xs font-bold text-text-muted mb-2 ml-1">
-                            New Password
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              name="newPassword"
-                              value={formData.newPassword}
-                              onChange={handleInputChange}
-                              placeholder="Enter new password"
-                              className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-primary transition-all font-medium text-text-main pr-12"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
+                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
+                            <Mail className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Email Address</p>
+                            <p className="text-text-main font-bold truncate max-w-[200px]">{user.email}</p>
                           </div>
                         </div>
-
-                        {/* Confirm Password */}
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-text-muted mb-2 ml-1">
-                            Confirm New Password
-                          </label>
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleInputChange}
-                            placeholder="Confirm new password"
-                            className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-primary transition-all font-medium text-text-main"
-                          />
+                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
+                            <Phone className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Phone Number</p>
+                            <p className="text-text-main font-bold">{user.phone || "Not set"}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Action Buttons */}
-                <div className="mt-10 flex gap-4">
-                  {!isEditing ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(true)}
-                      className="bg-primary text-white py-3 px-8 rounded-xl hover:bg-primary-dark transition-all font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-95"
-                    >
-                      <User className="w-4 h-4" />
-                      Edit Profile
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        disabled={loading}
-                        className="bg-white text-text-muted border border-stone-200 py-3 px-8 rounded-xl hover:bg-stone-50 transition-all font-bold text-sm active:scale-95"
-                      >
-                        Cancel
-                      </button>
+                    {/* Recent Orders Preview */}
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-stone-100 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-text-main">Recent Orders</h3>
+                        <Link to="/orders" className="text-primary text-xs font-black uppercase tracking-widest hover:underline">View All</Link>
+                      </div>
+                      <div className="space-y-4">
+                        {recentOrders.length > 0 ? (
+                          recentOrders.map((order) => (
+                            <Link key={order._id} to={`/orders/${order._id}`} className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl hover:bg-white hover:shadow-sm border border-transparent hover:border-stone-100 transition-all group">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-text-muted font-bold text-xs border border-stone-100 group-hover:border-primary/20 group-hover:text-primary transition-colors">
+                                  #{order._id.slice(-4).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="text-text-main font-bold text-sm">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                  <p className="text-text-muted text-xs font-medium">{order.orderItems?.length} Items • ${order.totalPrice?.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              <div className={`w-2 h-2 rounded-full ${order.orderStatus === 'delivered' ? 'bg-green-500' :
+                                order.orderStatus === 'shipped' ? 'bg-blue-500' :
+                                  'bg-yellow-500'
+                                }`} />
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <Package className="w-12 h-12 text-stone-200 mx-auto mb-2" />
+                            <p className="text-text-muted font-bold text-sm">No recent orders</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {(activeTab === "edit" || activeTab === "security") && (
+                <motion.div
+                  key="form"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-stone-100 shadow-sm"
+                >
+                  <form onSubmit={handleUpdateProfile} className="space-y-8">
+                    {activeTab === "edit" && (
+                      <div className="space-y-8">
+                        <div className="flex items-center gap-6 mb-8 pb-8 border-b border-stone-100">
+                          <div className="relative group">
+                            <div className="w-24 h-24 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
+                              {avatarPreview ? (
+                                <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="w-10 h-10 text-stone-300" />
+                              )}
+                            </div>
+                            <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary-dark transition-colors shadow-lg">
+                              <Camera className="w-4 h-4" />
+                              <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
+                            </label>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-text-main">Profile Photo</h3>
+                            <p className="text-text-muted text-xs font-medium max-w-xs">Upload a new avatar. Larger images will be resized automatically. Maximum upload size is 5MB.</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormInput label="Full Name" name="name" value={formData.name} onChange={handleInputChange} required icon={User} />
+                          <FormInput label="Email Address" name="email" value={formData.email} onChange={handleInputChange} required icon={Mail} />
+                          <FormInput label="Phone Number" name="phone" value={formData.phone} onChange={handleInputChange} required icon={Phone} />
+                          <div className="hidden md:block"></div> {/* Spacer */}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "security" && (
+                      <div className="space-y-6 max-w-2xl mx-auto">
+                        <div className="text-center mb-8">
+                          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                            <Lock className="w-8 h-8" />
+                          </div>
+                          <h3 className="text-xl font-bold text-text-main">Change Password</h3>
+                          <p className="text-text-muted text-sm font-medium">Ensure your account is secure by using a strong password.</p>
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="group">
+                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Current Password</label>
+                            <div className="relative">
+                              <input
+                                type={showCurrentPassword ? "text" : "password"}
+                                name="currentPassword"
+                                value={formData.currentPassword}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
+                                placeholder="Enter current password"
+                              />
+                              <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary transition-colors">
+                                {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="group">
+                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">New Password</label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                name="newPassword"
+                                value={formData.newPassword}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
+                                placeholder="Enter new password"
+                              />
+                              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary transition-colors">
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="group">
+                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Confirm New Password</label>
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              name="confirmPassword"
+                              value={formData.confirmPassword}
+                              onChange={handleInputChange}
+                              className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
+                              placeholder="Confirm new password"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-8 border-t border-stone-100 flex justify-end">
                       <button
                         type="submit"
                         disabled={loading}
-                        className="bg-primary text-white py-3 px-8 rounded-xl hover:bg-primary-dark shadow-sm transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                        className="bg-primary text-white py-4 px-10 rounded-2xl hover:bg-primary-dark shadow-xl hover:shadow-primary/20 transition-all font-black text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95"
                       >
                         {loading ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            Updating...
+                            Saving Changes...
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4" />
+                            <Save className="w-5 h-5" />
                             Save Changes
                           </>
                         )}
                       </button>
-                    </>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* Recent Orders Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-[2rem] border border-stone-100 p-6 sticky top-24 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-text-main flex items-center gap-2">
-                  <Package className="w-5 h-5 text-primary" />
-                  Recent Orders
-                </h2>
-                {stats.totalOrders > 0 && (
-                  <Link
-                    to="/orders"
-                    className="text-xs font-bold text-primary bg-primary/5 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white transition-all"
-                  >
-                    View All
-                  </Link>
-                )}
-              </div>
-
-              {recentOrders.length > 0 ? (
-                <div className="space-y-4">
-                  {recentOrders.map((order) => (
-                    <Link
-                      key={order._id}
-                      to={`/orders/${order._id}`}
-                      className="block p-4 bg-stone-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-stone-100 group"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-xs font-medium text-text-muted font-mono bg-white px-2 py-1 rounded border border-stone-100">
-                          #{order._id.slice(-6).toUpperCase()}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide border ${order.orderStatus === "delivered"
-                            ? "bg-green-50 text-green-600 border-green-100"
-                            : order.orderStatus === "shipped"
-                              ? "bg-blue-50 text-blue-600 border-blue-100"
-                              : order.orderStatus === "cancelled"
-                                ? "bg-red-50 text-red-600 border-red-100"
-                                : "bg-primary/5 text-primary border-primary/10"
-                            }`}
-                        >
-                          {order.orderStatus}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-text-muted font-medium">
-                          {order.orderItems?.length || 0} items
-                        </p>
-                        <p className="text-base font-bold text-text-main">
-                          ${order.totalPrice?.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-stone-200/50 flex items-center gap-2 text-text-muted opacity-80">
-                        <div className="w-1.5 h-1.5 bg-primary/30 rounded-full"></div>
-                        <span className="text-[10px] font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-100">
-                  <Package className="w-10 h-10 mx-auto mb-3 text-stone-300" />
-                  <p className="text-xs font-medium text-stone-400 mb-4">No orders found</p>
-                  <Link
-                    to="/"
-                    className="inline-flex items-center gap-2 text-xs text-white bg-primary px-6 py-3 rounded-xl hover:bg-primary-dark transition-all font-bold shadow-sm active:scale-95"
-                  >
-                    Start Shopping
-                  </Link>
-                </div>
+                    </div>
+                  </form>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

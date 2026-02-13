@@ -18,15 +18,15 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
 };
 
-const ProductsGrid = ({ 
-  filteredProducts, 
-  onAddToCart, 
-  onWishlistToggle, 
-  isInWishlist, 
+const ProductsGrid = ({
+  filteredProducts,
+  onAddToCart,
+  onWishlistToggle,
+  isInWishlist,
   user,
   searchQuery,
   selectedCategory,
-  onClearFilters 
+  onClearFilters
 }) => {
   return (
     <AnimatePresence mode="wait">
@@ -36,7 +36,7 @@ const ProductsGrid = ({
           initial="hidden"
           animate="show"
           key={selectedCategory + searchQuery}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16"
+          className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-x-8 md:gap-y-16"
         >
           {filteredProducts.map((product) => (
             <ProductCard

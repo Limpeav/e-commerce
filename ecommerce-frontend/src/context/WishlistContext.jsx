@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
+import { useToast } from "./ToastContext";
 import {
   fetchWishlist,
   addItemToWishlist,
@@ -12,6 +13,7 @@ export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { success, error: toastError, info } = useToast();
 
   // Load wishlist from backend when user logs in
   useEffect(() => {
@@ -19,7 +21,7 @@ export const WishlistProvider = ({ children }) => {
       if (user) {
         try {
           const wishlistData = await fetchWishlist();
-          setWishlist(wishlistData.products || []);
+          setWishlist(Array.isArray(wishlistData) ? wishlistData : wishlistData.products || []);
         } catch (error) {
           console.error("Error loading wishlist:", error);
           setWishlist([]);
@@ -37,7 +39,7 @@ export const WishlistProvider = ({ children }) => {
   // Add to wishlist
   const addToWishlist = async (product) => {
     if (!user) {
-      alert("Please login to add items to wishlist");
+      info("Login Required", "Please login to add items to your wishlist");
       return;
     }
 
@@ -46,9 +48,10 @@ export const WishlistProvider = ({ children }) => {
 
       const updatedWishlist = await fetchWishlist();
       setWishlist(updatedWishlist.products || []);
+      success("Saved to Wishlist", `${product.name} has been saved.`);
     } catch (error) {
       console.error("Error adding to wishlist:", error);
-      alert("Failed to add item to wishlist");
+      toastError("Action Failed", "Could not add item to wishlist.");
     }
   };
 
@@ -61,9 +64,10 @@ export const WishlistProvider = ({ children }) => {
 
       const updatedWishlist = await fetchWishlist();
       setWishlist(updatedWishlist.products || []);
+      info("Removed from Wishlist", "Item has been removed from your wishlist.");
     } catch (error) {
       console.error("Error removing from wishlist:", error);
-      alert("Failed to remove item from wishlist");
+      toastError("Remove Failed", "Could not remove item from wishlist.");
     }
   };
 
@@ -75,7 +79,7 @@ export const WishlistProvider = ({ children }) => {
   // Toggle wishlist (add if not present, remove if present)
   const toggleWishlist = async (product) => {
     if (!user) {
-      alert("Please login to manage wishlist");
+      info("Login Required", "Please login to manage your wishlist");
       return;
     }
 

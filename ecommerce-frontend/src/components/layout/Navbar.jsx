@@ -62,10 +62,10 @@ export default function Navbar() {
           {/* Navigation Links */}
           <div className="flex items-center gap-2">
             {/* Main Nav */}
-            <div className="hidden md:flex items-center gap-1 mr-4">
+            <div className="flex items-center gap-1 mr-2 md:mr-4">
               <Link
                 to="/"
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isActive("/")
+                className={`hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isActive("/")
                   ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-text-muted hover:text-primary hover:bg-stone-50"
                   }`}
@@ -76,38 +76,56 @@ export default function Navbar() {
 
               <Link
                 to="/wishlist"
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/wishlist")
+                className={`flex items-center gap-2 px-3 md:px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/wishlist")
                   ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-text-muted hover:text-primary hover:bg-primary-light/10"
                   }`}
               >
                 <div className="relative">
-                  <Heart className="w-4 h-4" />
-                  {wishlistItemCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-white text-secondary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm ring-1 ring-secondary/20">
-                      {wishlistItemCount}
-                    </span>
-                  )}
+                  <Heart className="w-5 h-5" />
+                  <AnimatePresence mode="wait">
+                    {wishlistItemCount > 0 && (
+                      <motion.span
+                        key={wishlistItemCount}
+                        initial={{ scale: 0, opacity: 0, filter: "blur(10px)" }}
+                        animate={{ scale: [0, 1.3, 1], opacity: 1, filter: "blur(0px)" }}
+                        exit={{ scale: 0, opacity: 0, filter: "blur(10px)" }}
+                        transition={{ duration: 0.4, ease: "backOut" }}
+                        className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-white"
+                      >
+                        {wishlistItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <span>Wishlist</span>
+                <span className="hidden md:inline">Wishlist</span>
               </Link>
 
               <Link
                 to="/cart"
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/cart")
+                className={`flex items-center gap-2 px-3 md:px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/cart")
                   ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-text-muted hover:text-primary hover:bg-primary-light/10"
                   }`}
               >
                 <div className="relative">
-                  <ShoppingCart className="w-4 h-4" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-white text-primary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm ring-1 ring-primary/20">
-                      {cartItemCount}
-                    </span>
-                  )}
+                  <ShoppingCart className="w-5 h-5" />
+                  <AnimatePresence mode="wait">
+                    {cartItemCount > 0 && (
+                      <motion.span
+                        key={cartItemCount}
+                        initial={{ scale: 0, opacity: 0, filter: "blur(10px)" }}
+                        animate={{ scale: [0, 1.3, 1], opacity: 1, filter: "blur(0px)" }}
+                        exit={{ scale: 0, opacity: 0, filter: "blur(10px)" }}
+                        transition={{ duration: 0.4, ease: "backOut" }}
+                        className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-indigo-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-white"
+                      >
+                        {cartItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <span>Cart</span>
+                <span className="hidden md:inline">Cart</span>
               </Link>
             </div>
 

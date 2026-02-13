@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
+import { useToast } from "./ToastContext";
 import {
   fetchCart,
   addItemToCart,
@@ -14,6 +15,7 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { success, error: toastError, info } = useToast();
 
   // Load cart from backend when user logs in
   useEffect(() => {
@@ -39,7 +41,7 @@ export const CartProvider = ({ children }) => {
   // Add to cart
   const addToCart = async (product, quantity = 1) => {
     if (!user) {
-      alert("Please login to add items to cart");
+      info("Login Required", "Please login to add items to your cart");
       return;
     }
 
@@ -53,9 +55,11 @@ export const CartProvider = ({ children }) => {
 
       const updatedCart = await fetchCart();
       setCart(updatedCart.items || []);
+
+      success("Added to Cart", `${product.name} has been added to your cart.`);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add item to cart");
+      toastError("Action Failed", "Could not add item to cart. Please try again.");
     }
   };
 
@@ -68,7 +72,7 @@ export const CartProvider = ({ children }) => {
       setCart(updatedCart.items || []);
     } catch (error) {
       console.error("Error updating quantity:", error);
-      alert("Failed to update quantity");
+      toastError("Update Failed", "Could not update item quantity.");
     }
   };
 
@@ -79,9 +83,10 @@ export const CartProvider = ({ children }) => {
     try {
       const updatedCart = await removeItemFromCart(productId);
       setCart(updatedCart.items || []);
+      info("Item Removed", "Item has been removed from your cart.");
     } catch (error) {
       console.error("Error removing item:", error);
-      alert("Failed to remove item");
+      toastError("Remove Failed", "Could not remove item from cart.");
     }
   };
 
@@ -92,9 +97,10 @@ export const CartProvider = ({ children }) => {
     try {
       await clearUserCart();
       setCart([]);
+      info("Cart Cleared", "All items have been removed from your cart.");
     } catch (error) {
       console.error("Error clearing cart:", error);
-      alert("Failed to clear cart");
+      toastError("Clear Failed", "Could not clear cart.");
     }
   };
 

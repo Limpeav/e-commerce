@@ -8,8 +8,7 @@ import {
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
 import Product from '../models/Product.js';
-import { protect } from "../middleware/authMiddleware.js";
-
+import { protect, optionalAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -23,7 +22,7 @@ router.route("/:id/reviews").post(protect, createProductReview);
 router.get("/", getProducts);
 
 // READ ONE (🔥 THIS FIXES YOUR ERROR)
-router.get("/:id", protect, getProductById);
+router.get("/:id", optionalAuth, getProductById);
 
 // UPDATE (🔥 FIXED WITH CLOUDINARY)
 router.put("/:id", upload.single("image"), updateProduct);

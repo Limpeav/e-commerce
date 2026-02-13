@@ -8,9 +8,7 @@ const createTransporter = async () => {
   } catch (error) {
     throw new Error("Nodemailer is not installed. Please run: npm install nodemailer");
   }
-  // For Gmail, you can use OAuth2 or App Password
-  // For development, you can use Ethereal Email (https://ethereal.email) for testing
-  
+
   // Option 1: Gmail with App Password (Recommended for production)
   if (process.env.EMAIL_SERVICE === "gmail") {
     return nodemailer.createTransport({
@@ -27,7 +25,7 @@ const createTransporter = async () => {
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT || 587,
-      secure: process.env.EMAIL_SECURE === "true", // true for 465, false for other ports
+      secure: process.env.EMAIL_SECURE === "true",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
@@ -36,8 +34,7 @@ const createTransporter = async () => {
   }
 
   // Option 3: Development - Ethereal Email (for testing without real email)
-  // This creates a test account automatically
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: "smtp.ethereal.email",
     port: 587,
     auth: {
@@ -47,10 +44,9 @@ const createTransporter = async () => {
   });
 };
 
-// Send password reset email
-export const sendPasswordResetEmail = async (email, resetToken) => {
+// Send password reset code email (Facebook-style 6-digit code)
+export const sendPasswordResetCode = async (email, userName, resetCode) => {
   try {
-    // Dynamic import nodemailer for getTestMessageUrl
     let nodemailer;
     try {
       const nodemailerModule = await import("nodemailer");
@@ -58,80 +54,85 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
     } catch (e) {
       nodemailer = null;
     }
-    
+
     const transporter = await createTransporter();
-    
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
 
     const mailOptions = {
       from: `"${process.env.EMAIL_FROM_NAME || "Ecommerce Store"}" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Password Reset Request",
+      subject: `${resetCode} is your password reset code`,
       html: `
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
-          <meta charset="utf-8">
+          <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Password Reset</title>
+          <title>Verification Code</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5; color: #18181b; }
+            .container { max-width: 480px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); border: 1px solid #e4e4e7; }
+            .header { background-color: #ffffff; padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #f4f4f5; }
+            .logo-text { font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: -0.5px; margin: 0; text-transform: uppercase; }
+            .content { padding: 40px 32px; text-align: center; }
+            .h1 { font-size: 24px; font-weight: 700; color: #18181b; margin: 0 0 16px; letter-spacing: -0.5px; }
+            .p { font-size: 15px; line-height: 1.6; color: #52525b; margin: 0 0 32px; }
+            .code-box { background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 16px; padding: 24px; margin: 0 0 32px; display: inline-block; min-width: 200px; }
+            .code { font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #4f46e5; letter-spacing: 8px; margin: 0; line-height: 1; display: block; }
+            .code-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 12px; display: block; letter-spacing: 1px; }
+            .expiry { font-size: 13px; color: #71717a; background-color: #fafafa; padding: 12px; border-radius: 8px; display: inline-block; }
+            .footer { background-color: #fafafa; padding: 24px 32px; text-align: center; border-top: 1px solid #f4f4f5; }
+            .footer-text { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin: 0; }
+            .warning { color: #f59e0b; font-weight: 500; }
+          </style>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">Password Reset Request</h1>
-          </div>
-          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px;">Hello,</p>
-            <p style="font-size: 16px;">You requested to reset your password. Click the button below to reset it:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" 
-                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; 
-                        padding: 15px 30px; 
-                        text-decoration: none; 
-                        border-radius: 5px; 
-                        display: inline-block; 
-                        font-weight: bold;
-                        font-size: 16px;">
-                Reset Password
-              </a>
+        <body>
+          <div class="container">
+            <div class="header">
+              <p class="logo-text">Baby Product Website</p>
             </div>
-            <p style="font-size: 14px; color: #666;">Or copy and paste this link into your browser:</p>
-            <p style="font-size: 12px; color: #999; word-break: break-all; background: #fff; padding: 10px; border-radius: 5px;">
-              ${resetUrl}
-            </p>
-            <p style="font-size: 14px; color: #666; margin-top: 30px;">
-              This link will expire in <strong>1 hour</strong>.
-            </p>
-            <p style="font-size: 14px; color: #666;">
-              If you didn't request this password reset, please ignore this email.
-            </p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="font-size: 12px; color: #999; text-align: center;">
-              This is an automated message, please do not reply to this email.
-            </p>
+            <div class="content">
+              <h1 class="h1">Password Reset Request</h1>
+              <p class="p">Hello ${userName || "there"},<br>We received a request to reset your password. Use the code below to verify your identity.</p>
+              
+              <div class="code-box">
+                <span class="code-label">Verification Code</span>
+                <span class="code">${resetCode}</span>
+              </div>
+
+              <div class="expiry">
+                This code expires in <strong>10 minutes</strong>.
+              </div>
+            </div>
+            <div class="footer">
+              <p class="footer-text">
+                If you didn't request this code, you can safely ignore this email.<br>
+                &copy; ${new Date().getFullYear()} Baby Product Website. All rights reserved.
+              </p>
+            </div>
           </div>
         </body>
         </html>
       `,
       text: `
-        Password Reset Request
+        VERIFICATION CODE: ${resetCode}
         
-        You requested to reset your password. Click the link below to reset it:
+        Hello ${userName || "there"},
         
-        ${resetUrl}
+        We received a request to reset your password. Use the code above to verify your identity.
+        This code expires in 10 minutes.
         
-        This link will expire in 1 hour.
+        If you didn't request this code, please ignore this email.
         
-        If you didn't request this password reset, please ignore this email.
+        Baby Product Website
       `,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
-    console.log("✅ Password reset email sent successfully!");
+
+    console.log("✅ Password reset code email sent successfully!");
     console.log("   Message ID:", info.messageId);
     console.log("   To:", email);
-    
+
     // If using Ethereal Email, log the preview URL
     if (process.env.EMAIL_SERVICE !== "gmail" && !process.env.EMAIL_HOST && nodemailer) {
       try {
@@ -143,22 +144,17 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
         // Ignore if getTestMessageUrl is not available
       }
     }
-    
+
     return info;
   } catch (error) {
     console.error("❌ Error sending email:", error.message);
-    console.error("   Full error:", error);
-    
-    // Provide helpful error messages
+
     if (error.message.includes("Invalid login")) {
-      console.error("   ⚠️  Gmail authentication failed. Check your EMAIL_USER and EMAIL_PASSWORD in .env");
-      console.error("   ⚠️  Make sure you're using an App Password, not your regular Gmail password!");
-    } else if (error.message.includes("self signed certificate")) {
-      console.error("   ⚠️  SSL certificate issue. Try setting EMAIL_SECURE=false");
+      console.error("   ⚠️  Email authentication failed. Check your EMAIL_USER and EMAIL_PASSWORD in .env");
     } else if (error.code === "EAUTH") {
       console.error("   ⚠️  Authentication failed. Verify your email credentials in .env");
     }
-    
+
     throw error;
   }
 };

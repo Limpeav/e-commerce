@@ -26,6 +26,7 @@ export const lazyComponents = {
   AdminLogin: () => import("../views/auth/pages/AdminLogin"),
   ForgotPassword: () => import("../views/auth/pages/ForgotPassword"),
   ResetPassword: () => import("../views/auth/pages/ResetPassword"),
+  CompleteProfile: () => import("../views/auth/pages/CompleteProfile"),
 
   // Admin routes
   AdminDashboard: () => import("../views/admin/Dashboard"),
@@ -48,18 +49,19 @@ export const publicRoutes = [
   { path: "/admin/login", component: "AdminLogin" },
   { path: "/forgot-password", component: "ForgotPassword" },
   { path: "/reset-password", component: "ResetPassword" },
-];
-
-export const protectedRoutes = [
   { path: "/", component: "Home" },
   { path: "/products/:id", component: "ProductDetail" },
   { path: "/cart", component: "Cart" },
+];
+
+export const protectedRoutes = [
   { path: "/checkout", component: "Checkout" },
   { path: "/wishlist", component: "Wishlist" },
   { path: "/profile", component: "Profile" },
   { path: "/orders", component: "Orders" },
   { path: "/orders/:id", component: "OrderDetail" },
   { path: "/payment/bakong/:orderId", component: "BakongPayment" },
+  { path: "/complete-profile", component: "CompleteProfile" },
 ];
 
 export const adminRoutes = [
@@ -92,5 +94,6 @@ export const hideNavFooterPaths = [
   "/register",
   "/admin/login",
   "/forgot-password",
-  "/reset-password"
+  "/reset-password",
+  "/complete-profile"
 ];

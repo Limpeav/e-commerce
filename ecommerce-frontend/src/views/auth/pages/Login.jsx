@@ -3,6 +3,7 @@ import { loginUser, googleAuth } from "../../../services/authApi";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
+import { motion } from "framer-motion";
 import axios from "axios";
 import {
   Mail,
@@ -28,9 +29,13 @@ const Login = () => {
 
   // Add this useEffect
   useEffect(() => {
-    // If user is already logged in, redirect to home
+    // If user is already logged in, redirect appropriately
     if (user) {
-      navigate("/", { replace: true }); // replace: true prevents going back
+      if (!user.phone) {
+        navigate("/complete-profile", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     }
   }, [user, navigate]);
 
@@ -70,7 +75,12 @@ const Login = () => {
       }
 
       login(data);
-      navigate("/");
+      // Redirect to complete-profile if phone is missing
+      if (!data.phone) {
+        navigate("/complete-profile");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(
         err.response?.data?.message || "Login failed. Please try again."
@@ -113,7 +123,12 @@ const Login = () => {
         }
 
         login(data);
-        navigate("/");
+        // Redirect to complete-profile if phone is missing (Google users)
+        if (!data.phone) {
+          navigate("/complete-profile");
+        } else {
+          navigate("/");
+        }
       } catch (err) {
         setError(
           err.response?.data?.message || "Google login failed. Please try again."
@@ -131,15 +146,21 @@ const Login = () => {
     <div className="min-h-screen bg-bg-base flex items-center justify-center px-4 py-12 relative overflow-hidden font-sans">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div
-          className="absolute top-40 right-10 w-72 h-72 bg-primary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        <div
-          className="absolute bottom-20 left-1/2 w-72 h-72 bg-secondary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"
-          style={{ animationDelay: "4s" }}
-        ></div>
+        <motion.div
+          animate={{ x: [0, 10, 0], y: [0, -10, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+        />
+        <motion.div
+          animate={{ x: [0, -20, 0], y: [0, 20, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute top-40 right-10 w-72 h-72 bg-primary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-40"
+        />
+        <motion.div
+          animate={{ x: [0, 15, 0], y: [0, 15, 0], scale: [1, 0.9, 1] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-20 left-1/2 w-72 h-72 bg-secondary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10">

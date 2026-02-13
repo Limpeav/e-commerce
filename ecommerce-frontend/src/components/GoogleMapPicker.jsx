@@ -278,6 +278,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser.");
+      window.alert("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -321,21 +322,20 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       },
       (error) => {
         setDetectingLocation(false);
+        let errorMessage = "Could not detect location.";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError(
-              "Permission denied. Please enable location access."
-            );
+            errorMessage = "Permission denied. Please enable location access in your browser settings to use this feature.";
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError("Location unavailable. Please try again.");
+            errorMessage = "Location unavailable. Please try again.";
             break;
           case error.TIMEOUT:
-            setLocationError("Request timed out. Please try again.");
+            errorMessage = "Request timed out. Please try again.";
             break;
-          default:
-            setLocationError("Could not detect location.");
         }
+        setLocationError(errorMessage);
+        window.alert(errorMessage);
       },
       {
         enableHighAccuracy: true,

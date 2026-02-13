@@ -17,7 +17,7 @@ import { useProducts, useProductFilters } from "../../hooks/useProducts";
 
 export default function Home() {
     const { addToCart } = useCart();
-    const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+    const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
 
     // Custom hooks
@@ -34,15 +34,6 @@ export default function Home() {
     const handleAddToCart = (product) => {
         if (!user) return;
         addToCart(product, 1);
-    };
-
-    const handleWishlistToggle = (product) => {
-        if (!user) return;
-        if (isInWishlist(product._id)) {
-            removeFromWishlist(product._id);
-        } else {
-            addToWishlist(product);
-        }
     };
 
     const handleRetry = () => {
@@ -81,7 +72,7 @@ export default function Home() {
 
                 <div className="max-w-7xl mx-auto px-6 pb-24">
                     {/* Section Header */}
-                    <SectionHeader 
+                    <SectionHeader
                         searchQuery={searchQuery}
                         filteredProductsLength={filteredProducts.length}
                     />
@@ -90,7 +81,7 @@ export default function Home() {
                     <ProductsGrid
                         filteredProducts={filteredProducts}
                         onAddToCart={handleAddToCart}
-                        onWishlistToggle={handleWishlistToggle}
+                        onWishlistToggle={toggleWishlist}
                         isInWishlist={isInWishlist}
                         user={user}
                         searchQuery={searchQuery}

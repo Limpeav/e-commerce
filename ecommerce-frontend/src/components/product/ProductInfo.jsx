@@ -6,7 +6,6 @@ const ProductInfo = ({
   quantity,
   setQuantity,
   onAddToCart,
-  addedToCart,
   user
 }) => {
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
@@ -102,28 +101,18 @@ const ProductInfo = ({
           {/* Add to Cart Button */}
           <button
             onClick={onAddToCart}
-            disabled={addedToCart}
-            className={`flex-1 py-4 px-8 rounded-xl font-bold text-sm shadow-lg transform transition-all duration-300 flex items-center justify-center gap-2 ${addedToCart
-              ? "bg-green-600 text-white"
-              : user
-                ? "bg-primary text-white hover:bg-primary-dark hover:-translate-y-0.5"
-                : "bg-stone-200 text-stone-500 cursor-not-allowed"
-              }`}
+            className={`flex-1 py-4 px-8 rounded-xl font-bold text-sm shadow-xl shadow-primary/20 transform transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 bg-gradient-to-r from-primary to-primary-light text-white overflow-hidden relative group`}
           >
-            {addedToCart ? (
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            {user ? (
               <>
-                <Check className="w-5 h-5" />
-                Added to Cart
-              </>
-            ) : user ? (
-              <>
-                <ShoppingCart className="w-5 h-5" />
-                Add to Cart
+                <ShoppingCart className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                <span>Add to Cart</span>
               </>
             ) : (
               <>
                 <Lock className="w-5 h-5" />
-                Log in to Buy
+                <span>Log in to Buy</span>
               </>
             )}
           </button>

@@ -26,6 +26,27 @@
     /* Stone 600 */
 }
 
+/* Responsive Typography Base */
+html {
+    font-size: 14px;
+    /* Mobile base */
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 640px) {
+    html {
+        font-size: 15px;
+        /* Tablet / Large Phone */
+    }
+}
+
+@media (min-width: 1024px) {
+    html {
+        font-size: 16px;
+        /* Desktop / Laptop */
+    }
+}
+
 /* Base Styles */
 body {
     font-family: var(--font-sans);
@@ -49,7 +70,7 @@ h6 {
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
     }
 
     to {
@@ -59,13 +80,13 @@ h6 {
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes scaleIn {
     from {
         opacity: 0;
-        transform: scale(0.9);
+        transform: scale(0.95);
     }
 
     to {
@@ -75,7 +96,39 @@ h6 {
 }
 
 .animate-scale-in {
-    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    15% {
+        transform: translateX(-4px) rotate(-1deg);
+    }
+
+    30% {
+        transform: translateX(4px) rotate(1deg);
+    }
+
+    45% {
+        transform: translateX(-2px);
+    }
+
+    60% {
+        transform: translateX(2px);
+    }
+
+    75% {
+        transform: translateX(-1px);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 /* Global Interactive Pointers */

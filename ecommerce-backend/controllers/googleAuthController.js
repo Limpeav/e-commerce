@@ -37,7 +37,7 @@ export const googleAuth = async (req, res) => {
       user = await User.create({
         name,
         email,
-        phone: "", // Optional for Google OAuth users
+        // phone is intentionally omitted for Google OAuth users (sparse unique index)
         password: sub + Date.now() + Math.random(), // Random password (won't be used for Google auth)
         role: "user",
         googleId: sub, // Store Google ID
