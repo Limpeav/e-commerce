@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -11,12 +11,15 @@ import {
   XCircle,
   Truck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Ban
 } from "lucide-react";
 import axios from "axios";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "../../services/http";
+import { subscribeRealtimeEvent } from "../../services/realtime";
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = API_BASE_URL;
 
 const Orders = () => {
   const { user } = useAuth();
@@ -26,33 +29,51 @@ const Orders = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) {
-      fetchOrders();
+    if (!user) {
+      return undefined;
     }
+
+    const unsubscribeOrderUpdate = subscribeRealtimeEvent("order:updated", (payload) => {
+      if (!payload?.orderId) {
+        return;
+      }
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === payload.orderId
+            ? {
+                ...order,
+                orderStatus: payload.orderStatus ?? order.orderStatus,
+                paymentStatus: payload.paymentStatus ?? order.paymentStatus,
+                isPaid: payload.isPaid ?? order.isPaid,
+                isDelivered: payload.isDelivered ?? order.isDelivered,
+                updatedAt: payload.updatedAt || order.updatedAt,
+              }
+            : order
+        )
+      );
+    });
+
+    return () => {
+      unsubscribeOrderUpdate();
+    };
   }, [user]);
 
   const getAuthToken = () => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      return userData.token;
-    }
-    return null;
+    return getUserToken();
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const token = getAuthToken();
+      const token = getUserToken();
       if (!token) {
         throw new Error("Not authenticated");
       }
 
       const response = await axios.get(`${API_URL}/orders/myorders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: withAuthHeaders(token),
       });
 
       setOrders(response.data);
@@ -63,7 +84,13 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, fetchOrders]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -96,6 +123,45 @@ const Orders = () => {
     }).format(amount || 0);
   };
 
+  const canCancelOrder = (order) => {
+    if (!order) {
+      return false;
+    }
+    return order.orderStatus === "Pending" || order.orderStatus === "Processing";
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    const token = getAuthToken();
+    if (!token) {
+      setError("Not authenticated");
+      return;
+    }
+
+    const confirmed = window.confirm("Cancel this order? You can only cancel before shipping.");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError("");
+      const response = await axios.put(
+        `${API_URL}/orders/${orderId}/cancel`,
+        {},
+        {
+          headers: withAuthHeaders(token),
+        }
+      );
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === orderId ? { ...order, ...response.data } : order
+        )
+      );
+    } catch (cancelError) {
+      setError(cancelError.response?.data?.message || "Failed to cancel order");
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-base font-sans">
@@ -105,7 +171,7 @@ const Orders = () => {
             Identity Needed
           </h2>
           <p className="text-text-muted font-bold text-sm mb-8">Please enter your credentials to view history.</p>
-          <button onClick={() => navigate("/login")} className="bg-text-main text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-primary transition-all">
+          <button onClick={() => navigate("/login")} className="bg-text-main text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-primary-hover hover:text-text-main transition-all">
             Enter Vault
           </button>
         </div>
@@ -158,6 +224,12 @@ const Orders = () => {
             </div>
 
             {/* Orders List */}
+            {error && (
+              <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {error}
+              </div>
+            )}
+
             {orders.length === 0 ? (
               <div className="bg-white rounded-[3rem] border border-stone-100 p-16 text-center shadow-md">
                 <div className="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100">
@@ -171,7 +243,7 @@ const Orders = () => {
                 </p>
                 <button
                   onClick={() => navigate("/")}
-                  className="px-8 py-4 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all font-bold text-sm shadow-md active:scale-95"
+                  className="px-8 py-4 bg-primary text-text-main rounded-xl hover:bg-primary-hover hover:text-text-main transition-all font-bold text-sm shadow-md active:scale-95"
                 >
                   Start Shopping
                 </button>
@@ -281,13 +353,24 @@ const Orders = () => {
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => navigate(`/orders/${order._id}`)}
-                          className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-stone-200 text-text-main rounded-xl hover:border-primary hover:text-primary transition-all font-bold text-xs shadow-sm active:scale-95"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Details
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {canCancelOrder(order) && (
+                            <button
+                              onClick={() => handleCancelOrder(order._id)}
+                              className="flex items-center justify-center gap-2 px-5 py-3 bg-red-50 border border-red-100 text-red-600 rounded-xl hover:bg-red-100 transition-all font-bold text-xs shadow-sm active:scale-95"
+                            >
+                              <Ban className="w-4 h-4" />
+                              Cancel
+                            </button>
+                          )}
+                          <button
+                            onClick={() => navigate(`/orders/${order._id}`)}
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-stone-200 text-text-main rounded-xl hover:border-primary hover:text-primary transition-all font-bold text-xs shadow-sm active:scale-95"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

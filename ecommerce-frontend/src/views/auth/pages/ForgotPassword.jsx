@@ -20,6 +20,7 @@ import {
   Search,
   RotateCcw,
 } from "lucide-react";
+import PastelCloudBackdrop from "../../../components/ui/PastelCloudBackdrop";
 
 const STEPS = {
   FIND_ACCOUNT: 1,
@@ -206,13 +207,13 @@ const ForgotPassword = () => {
     if (step === STEPS.SUCCESS) return null;
 
     return (
-      <div className="flex items-center justify-center gap-2 mb-8">
+      <div className="mb-6 flex items-center justify-center gap-2">
         {steps.map((s, i) => (
           <div key={s.num} className="flex items-center gap-2">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 ${step >= s.num
-                ? "bg-primary text-white shadow-lg shadow-primary/30"
-                : "bg-stone-100 text-stone-400"
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold transition-all duration-500 ${step >= s.num
+                ? "bg-primary text-text-main shadow-sm"
+                : "bg-primary/10 text-text-muted"
                 }`}
             >
               {step > s.num ? (
@@ -223,7 +224,7 @@ const ForgotPassword = () => {
             </div>
             {i < steps.length - 1 && (
               <div
-                className={`w-10 h-0.5 rounded-full transition-all duration-500 ${step > s.num ? "bg-primary" : "bg-stone-100"
+                className={`h-0.5 w-9 rounded-full transition-all duration-500 ${step > s.num ? "bg-primary" : "bg-primary/10"
                   }`}
               />
             )}
@@ -268,30 +269,19 @@ const ForgotPassword = () => {
   const config = getStepConfig();
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center px-4 py-12 relative overflow-hidden font-sans">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div
-          className="absolute top-40 right-10 w-72 h-72 bg-primary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        <div
-          className="absolute bottom-20 left-1/2 w-72 h-72 bg-secondary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"
-          style={{ animationDelay: "4s" }}
-        ></div>
-      </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-4 py-10 font-sans">
+      <PastelCloudBackdrop />
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="relative z-10 w-full max-w-md">
         {/* Logo/Brand Section */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-8 transform hover:scale-105 transition-transform duration-300">
+        <div className="mb-8 text-center">
+          <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/15 bg-white shadow-sm">
             {config.icon}
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-text-main mb-3 font-display tracking-tight leading-none">
+          <h1 className="text-3xl font-bold text-text-main md:text-4xl">
             {config.title}
           </h1>
-          <p className="text-text-muted font-medium text-lg">
+          <p className="mt-1 text-sm text-text-muted">
             {config.subtitle}
           </p>
         </div>
@@ -300,19 +290,19 @@ const ForgotPassword = () => {
         <StepIndicator />
 
         {/* Card */}
-        <div className="bg-white/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white p-10">
+        <div className="rounded-2xl border border-primary/15 bg-white/95 p-6 shadow-sm backdrop-blur md:p-7">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake mb-6">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm font-bold">{error}</p>
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 animate-shake">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+              <p className="text-sm font-medium text-red-700">{error}</p>
             </div>
           )}
 
           {/* ===== STEP 1: Find Account ===== */}
           {step === STEPS.FIND_ACCOUNT && (
-            <form onSubmit={handleFindAccount} className="space-y-6">
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10">
+            <form onSubmit={handleFindAccount} className="space-y-4">
+              <div className="rounded-xl border border-primary/12 bg-blue-soft/25 p-4">
                 <p className="text-sm text-text-muted leading-relaxed">
                   Please enter your email address to search for your account.
                   We'll send you a 6-digit code to verify your identity.
@@ -320,13 +310,11 @@ const ForgotPassword = () => {
               </div>
 
               {/* Email Input */}
-              <div className="group">
-                <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                  Email Address
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-main">Email Address</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
-                    <Mail className="w-5 h-5" />
+                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/45">
+                    <Mail className="h-4 w-4" />
                   </div>
                   <input
                     type="email"
@@ -335,7 +323,7 @@ const ForgotPassword = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoFocus
-                    className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full rounded-xl border border-primary/20 bg-white py-3 pl-11 pr-4 text-sm text-text-main placeholder:text-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                   />
                 </div>
               </div>
@@ -344,27 +332,27 @@ const ForgotPassword = () => {
               <div className="flex gap-3">
                 <Link
                   to="/login"
-                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 py-3 text-xs font-semibold text-text-muted transition-colors hover:bg-blue-soft/25"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="h-4 w-4" />
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`flex-[2] py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 ${loading
-                    ? "bg-stone-200 text-stone-500 cursor-not-allowed"
-                    : "bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95"
+                  className={`flex flex-[2] items-center justify-center gap-2 rounded-xl py-3 text-xs font-semibold transition-colors ${loading
+                    ? "cursor-not-allowed bg-primary/15 text-primary/60"
+                    : "bg-primary text-text-main hover:bg-primary-hover"
                     }`}
                 >
                   {loading ? (
                     <>
-                      <Loader className="w-4 h-4 animate-spin" />
+                      <Loader className="h-4 w-4 animate-spin" />
                       Searching...
                     </>
                   ) : (
                     <>
-                      <Search className="w-4 h-4" />
+                      <Search className="h-4 w-4" />
                       Search
                     </>
                   )}
@@ -375,10 +363,10 @@ const ForgotPassword = () => {
 
           {/* ===== STEP 2: Verify Code ===== */}
           {step === STEPS.VERIFY_CODE && (
-            <form onSubmit={handleVerifyCode} className="space-y-6">
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
-                  <Mail className="w-6 h-6 text-primary" />
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div className="rounded-xl border border-primary/12 bg-blue-soft/25 p-4 text-center">
+                <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/12">
+                  <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <p className="text-sm text-text-muted leading-relaxed">
                   We sent a <strong className="text-text-main">6-digit code</strong> to{" "}
@@ -389,9 +377,7 @@ const ForgotPassword = () => {
 
               {/* 6-Digit Code Input */}
               <div>
-                <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-4 ml-1 text-center">
-                  Verification Code
-                </label>
+                <label className="mb-3 block text-center text-xs font-semibold text-text-main">Verification Code</label>
                 <div className="flex gap-2 sm:gap-3 justify-center">
                   {code.map((digit, index) => (
                     <input
@@ -416,9 +402,9 @@ const ForgotPassword = () => {
                           handleCodeChange(0, pastedData);
                         }
                       }}
-                      className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black border-2 rounded-xl transition-all focus:outline-none ${digit
+                      className={`h-12 w-10 rounded-lg border text-center text-lg font-semibold transition-all focus:outline-none sm:h-14 sm:w-12 sm:text-xl ${digit
                         ? "border-primary bg-primary/5 text-primary"
-                        : "border-stone-200 bg-stone-50/50 text-text-main focus:border-primary focus:ring-4 focus:ring-primary/5"
+                        : "border-primary/20 bg-white text-text-main focus:border-primary focus:ring-2 focus:ring-primary/15"
                         }`}
                     />
                   ))}
@@ -428,9 +414,9 @@ const ForgotPassword = () => {
               {/* Resend Code */}
               <div className="text-center">
                 {resendCooldown > 0 ? (
-                  <p className="text-xs text-stone-400 font-bold">
+                  <p className="text-xs text-text-muted">
                     Resend code in{" "}
-                    <span className="text-primary font-black">
+                    <span className="font-semibold text-primary">
                       {resendCooldown}s
                     </span>
                   </p>
@@ -439,12 +425,12 @@ const ForgotPassword = () => {
                     type="button"
                     onClick={handleResendCode}
                     disabled={resendLoading}
-                    className="inline-flex items-center gap-2 text-xs font-black text-primary hover:text-primary-dark transition-colors uppercase tracking-wider"
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-primary transition-colors hover:text-primary-hover"
                   >
                     {resendLoading ? (
-                      <Loader className="w-3.5 h-3.5 animate-spin" />
+                      <Loader className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <RotateCcw className="w-3.5 h-3.5" />
+                      <RotateCcw className="h-3.5 w-3.5" />
                     )}
                     Didn't get a code? Resend
                   </button>
@@ -460,27 +446,27 @@ const ForgotPassword = () => {
                     setError("");
                     setCode(["", "", "", "", "", ""]);
                   }}
-                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 py-3 text-xs font-semibold text-text-muted transition-colors hover:bg-blue-soft/25"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="h-4 w-4" />
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={loading || code.join("").length !== 6}
-                  className={`flex-[2] py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 ${loading || code.join("").length !== 6
-                    ? "bg-stone-200 text-stone-500 cursor-not-allowed"
-                    : "bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95"
+                  className={`flex flex-[2] items-center justify-center gap-2 rounded-xl py-3 text-xs font-semibold transition-colors ${loading || code.join("").length !== 6
+                    ? "cursor-not-allowed bg-primary/15 text-primary/60"
+                    : "bg-primary text-text-main hover:bg-primary-hover"
                     }`}
                 >
                   {loading ? (
                     <>
-                      <Loader className="w-4 h-4 animate-spin" />
+                      <Loader className="h-4 w-4 animate-spin" />
                       Verifying...
                     </>
                   ) : (
                     <>
-                      <ShieldCheck className="w-4 h-4" />
+                      <ShieldCheck className="h-4 w-4" />
                       Continue
                     </>
                   )}
@@ -491,22 +477,20 @@ const ForgotPassword = () => {
 
           {/* ===== STEP 3: New Password ===== */}
           {step === STEPS.NEW_PASSWORD && (
-            <form onSubmit={handleResetPassword} className="space-y-6">
-              <div className="bg-green-50 rounded-2xl p-4 border border-green-100 flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                <p className="text-sm text-green-800 font-bold">
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="flex items-center gap-3 rounded-xl border border-green-100 bg-green-50 p-3">
+                <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
+                <p className="text-sm font-medium text-green-800">
                   Identity verified! Now create your new password.
                 </p>
               </div>
 
               {/* New Password */}
-              <div className="group">
-                <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                  New Password
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-main">New Password</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
-                    <Lock className="w-5 h-5" />
+                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/45">
+                    <Lock className="h-4 w-4" />
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -516,33 +500,29 @@ const ForgotPassword = () => {
                     required
                     minLength={6}
                     autoFocus
-                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full rounded-xl border border-primary/20 bg-white py-3 pl-11 pr-11 text-sm text-text-main placeholder:text-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors focus:outline-none"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-primary focus:outline-none"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
-                <p className="mt-2 text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">
-                  Min. 6 characters
-                </p>
+                <p className="text-[11px] text-text-muted">Minimum 6 characters</p>
               </div>
 
               {/* Confirm Password */}
-              <div className="group">
-                <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                  Confirm Password
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-main">Confirm Password</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
-                    <Lock className="w-5 h-5" />
+                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/45">
+                    <Lock className="h-4 w-4" />
                   </div>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
@@ -551,35 +531,35 @@ const ForgotPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full rounded-xl border border-primary/20 bg-white py-3 pl-11 pr-11 text-sm text-text-main placeholder:text-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors focus:outline-none"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-primary focus:outline-none"
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
 
                 {/* Password match indicator */}
                 {confirmPassword && (
-                  <div className="mt-2 flex items-center gap-2 pl-1">
+                  <div className="flex items-center gap-2">
                     {password === confirmPassword ? (
                       <>
-                        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                        <span className="text-[10px] text-green-600 font-bold uppercase tracking-widest">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                        <span className="text-[11px] font-medium text-green-600">
                           Passwords match
                         </span>
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                        <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">
+                        <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                        <span className="text-[11px] font-medium text-red-500">
                           Passwords don't match
                         </span>
                       </>
@@ -592,19 +572,19 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading || !password || !confirmPassword}
-                className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading || !password || !confirmPassword
-                  ? "bg-stone-200 text-stone-500 cursor-not-allowed"
-                  : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95"
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-colors ${loading || !password || !confirmPassword
+                  ? "cursor-not-allowed bg-primary/15 text-primary/60"
+                  : "bg-primary text-text-main hover:bg-primary-hover"
                   }`}
               >
                 {loading ? (
                   <>
-                    <Loader className="w-5 h-5 animate-spin" />
+                    <Loader className="h-4 w-4 animate-spin" />
                     Resetting...
                   </>
                 ) : (
                   <>
-                    <Lock className="w-5 h-5" />
+                    <Lock className="h-4 w-4" />
                     Reset Password
                   </>
                 )}
@@ -614,12 +594,12 @@ const ForgotPassword = () => {
 
           {/* ===== STEP 4: Success ===== */}
           {step === STEPS.SUCCESS && (
-            <div className="space-y-6 text-center">
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-5">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="space-y-4 text-center">
+              <div className="rounded-xl border border-green-100 bg-green-50 p-6">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-green-100">
+                  <CheckCircle className="h-7 w-7 text-green-500" />
                 </div>
-                <h3 className="text-lg font-black text-green-800 mb-2">
+                <h3 className="mb-1 text-lg font-semibold text-green-800">
                   All Set!
                 </h3>
                 <p className="text-sm text-green-700 leading-relaxed">
@@ -630,9 +610,9 @@ const ForgotPassword = () => {
 
               <button
                 onClick={() => navigate("/login")}
-                className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-text-main transition-colors hover:bg-primary-hover"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="h-4 w-4" />
                 Back to Sign In
               </button>
             </div>
@@ -640,9 +620,9 @@ const ForgotPassword = () => {
         </div>
 
         {/* Security Badge */}
-        <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] bg-white/50 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm">
-            <ShieldCheck className="w-4 h-4 text-primary" />
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/70 px-4 py-2 text-[11px] font-medium text-text-muted">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             <span>Secure SSL Encryption</span>
           </div>
         </div>

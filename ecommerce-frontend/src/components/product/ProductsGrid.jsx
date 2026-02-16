@@ -1,21 +1,21 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
-import ProductCard from './ProductCard';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search } from "lucide-react";
+import ProductCard from "./ProductCard";
 
 const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1
-    }
-  }
+      staggerChildren: 0.06,
+    },
+  },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28 } },
 };
 
 const ProductsGrid = ({
@@ -26,7 +26,7 @@ const ProductsGrid = ({
   user,
   searchQuery,
   selectedCategory,
-  onClearFilters
+  onClearFilters,
 }) => {
   return (
     <AnimatePresence mode="wait">
@@ -35,8 +35,8 @@ const ProductsGrid = ({
           variants={container}
           initial="hidden"
           animate="show"
-          key={selectedCategory + searchQuery}
-          className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-x-8 md:gap-y-16"
+          key={`${selectedCategory}-${searchQuery}`}
+          className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4"
         >
           {filteredProducts.map((product) => (
             <ProductCard
@@ -52,20 +52,23 @@ const ProductsGrid = ({
         </motion.div>
       ) : (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-40 bg-white rounded-[3rem] shadow-sm border border-stone-100"
+          className="rounded-2xl border border-primary/12 bg-white px-6 py-16 text-center shadow-sm md:py-20"
         >
-          <div className="w-24 h-24 bg-stone-50 text-stone-200 rounded-full flex items-center justify-center mx-auto mb-8">
-            <Search className="w-10 h-10" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-soft text-primary/70">
+            <Search className="w-6 h-6" />
           </div>
-          <h3 className="text-3xl font-bold text-text-main mb-3 font-display">No results found</h3>
-          <p className="text-text-muted text-lg max-w-sm mx-auto">We couldn't find any products matching your current filters.</p>
+          <h3 className="text-xl font-semibold text-text-main mb-2">No products found</h3>
+          <p className="mx-auto max-w-md text-sm text-text-muted md:text-base">
+            Try a different keyword or reset your filters to see more products.
+          </p>
           <button
+            type="button"
             onClick={onClearFilters}
-            className="mt-10 px-10 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary-dark transition-all hover:shadow-xl active:scale-95"
+            className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-text-main transition-colors hover:bg-primary-hover"
           >
-            Explore Everything
+            Reset Filters
           </button>
         </motion.div>
       )}

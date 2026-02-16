@@ -34,7 +34,7 @@ export default function Wishlist() {
 
           <Link
             to="/"
-            className="inline-flex items-center gap-3 bg-text-main text-white px-10 py-4 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 hover:bg-primary transform hover:-translate-y-1 transition-all duration-300 active:scale-95"
+            className="inline-flex items-center gap-3 bg-text-main text-white px-10 py-4 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 hover:bg-primary-hover hover:text-text-main transform hover:-translate-y-1 transition-all duration-300 active:scale-95"
           >
             <ShoppingBag className="w-5 h-5" />
             Start Shopping
@@ -131,7 +131,7 @@ export default function Wishlist() {
                   onClick={() => handleAddToCart(product)}
                   disabled={product.stock === 0}
                   className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm shadow-sm transition-all duration-300 group/btn ${product.stock > 0
-                    ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95"
+                    ? "bg-primary text-text-main hover:bg-primary-hover hover:text-text-main hover:shadow-md active:scale-95"
                     : "bg-stone-50 text-stone-300 cursor-not-allowed border border-stone-100"
                     }`}
                 >

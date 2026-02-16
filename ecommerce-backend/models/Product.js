@@ -5,10 +5,35 @@ const reviewSchema = mongoose.Schema(
     name: { type: String, required: true },
     rating: { type: Number, required: true },
     comment: { type: String, required: false },
+    sentimentLabel: {
+      type: String,
+      enum: ["Positive", "Neutral", "Negative"],
+      default: "Neutral",
+    },
+    sentimentScore: {
+      type: Number,
+      default: 0,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
+    },
+    moderationStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+    moderationNote: {
+      type: String,
+      default: "",
+    },
+    moderatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    moderatedAt: {
+      type: Date,
     },
   },
   {
@@ -34,6 +59,16 @@ const productSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    brand: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    type: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     image: {
       type: String,
       required: true,
@@ -57,9 +92,29 @@ const productSchema = mongoose.Schema(
       required: true,
       default: 0,
     },
+    sentimentSummary: {
+      positive: { type: Number, default: 0 },
+      neutral: { type: Number, default: 0 },
+      negative: { type: Number, default: 0 },
+      total: { type: Number, default: 0 },
+      averageScore: { type: Number, default: 0 },
+      label: {
+        type: String,
+        enum: ["Positive", "Neutral", "Negative"],
+        default: "Neutral",
+      },
+    },
   },
   { timestamps: true }
 );
+
+productSchema.index({
+  title: "text",
+  description: "text",
+  category: "text",
+  brand: "text",
+  type: "text",
+});
 
 const Product = mongoose.model("Product", productSchema);
 

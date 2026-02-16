@@ -1,69 +1,44 @@
 import React from "react";
-import { ArrowRight, Timer, Tag } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, BadgePercent, Clock3 } from "lucide-react";
 
 export default function DiscountBanner() {
-    return (
-        <div className="relative w-full max-w-7xl mx-auto px-6 mb-16">
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-primary-dark shadow-2xl shadow-primary/20">
-                {/* Abstract Background Shapes */}
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary rounded-full blur-[100px] opacity-20"></div>
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-secondary rounded-full blur-[80px] opacity-20"></div>
+  return (
+    <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
+      <div className="relative overflow-hidden rounded-[2rem] border border-primary/14 bg-gradient-to-br from-yellow-soft/65 via-white to-blue-soft/45 p-4 shadow-[0_12px_26px_rgba(255,176,92,0.16)] md:p-5">
+        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-soft/65 blur-2xl" />
 
-                {/* Content Container */}
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
+        <div className="relative z-10 grid grid-cols-1 items-center gap-4 lg:grid-cols-[1fr_auto]">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+              <BadgePercent className="h-4 w-4" />
+              This Week's Baby Savings
+            </p>
 
-                    {/* Left Content */}
-                    <div className="flex-1 space-y-6 text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-primary-light text-sm font-bold uppercase tracking-wider">
-                            <Tag className="w-4 h-4" />
-                            <span>Limited Time Offer</span>
-                        </div>
+            <h2 className="mt-3 text-2xl font-bold leading-tight text-text-main md:text-3xl">
+              Gentle Care Deals Up to <span className="text-primary">35% Off</span>
+            </h2>
 
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white font-display leading-[1.1]">
-                            Summer Sale <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light to-secondary-light">
-                                Up to 50% OFF
-                            </span>
-                        </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted md:text-base">
+              Save on diapers, feeding essentials, and daily baby care. Clear prices and easy returns, so shopping
+              stays relaxing.
+            </p>
+          </div>
 
-                        <p className="text-white/80 text-lg max-w-lg font-medium">
-                            Grab your favorites before they're gone! Premium baby essentials at unbeatable prices.
-                        </p>
-
-                        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                            <Link
-                                to="/products?sort=sale"
-                                className="px-8 py-4 bg-white text-primary-dark rounded-2xl font-bold text-lg hover:bg-stone-50 transition-all transform hover:scale-105 hover:shadow-lg flex items-center gap-2 group"
-                            >
-                                Shop Sale
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-
-                            <div className="flex items-center gap-2 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                <Timer className="w-5 h-5 text-secondary" />
-                                <span className="text-white font-mono font-bold">Ends in 24h</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Image/Graphic area */}
-                    <div className="flex-1 w-full max-w-md md:max-w-none flex items-center justify-center relative">
-                        <div className="relative z-10 w-full aspect-square md:aspect-[4/3] flex items-center justify-center">
-                            {/* Decorative circles */}
-                            <div className="absolute inset-0 border border-white/10 rounded-full scale-90 animate-[spin_10s_linear_infinite]"></div>
-                            <div className="absolute inset-0 border border-white/10 rounded-full scale-75 animate-[spin_15s_linear_infinite_reverse]"></div>
-
-                            <div className="bg-gradient-to-br from-white to-stone-50 text-primary-dark rounded-full w-48 h-48 flex flex-col items-center justify-center shadow-2xl animate-bounce duration-[2000ms]">
-                                <span className="text-xl font-bold uppercase tracking-widest opacity-90">Save</span>
-                                <span className="text-6xl font-black font-display">50%</span>
-                                <span className="text-sm font-bold opacity-90">On Selected Items</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+          <div className="flex flex-col gap-2.5 sm:flex-row lg:flex-col lg:items-end">
+            <a
+              href="#products"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-text-main hover:bg-primary-hover"
+            >
+              Shop Deals
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/15 bg-white px-4 py-2.5 text-sm font-semibold text-text-muted">
+              <Clock3 className="h-4 w-4 text-primary" />
+              Ends in 2 days
             </div>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

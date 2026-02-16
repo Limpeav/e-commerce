@@ -1,16 +1,16 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
-import { ArrowLeft, Baby } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 // Components
 import ProductImage from "../../components/product/ProductImage";
 import ProductInfo from "../../components/product/ProductInfo";
 import ReviewSection from "../../components/product/ReviewSection";
-import LoginPrompt from "../../components/product/LoginPrompt";
 import RelatedProducts from "../../components/product/RelatedProducts";
+import PastelCloudBackdrop from "../../components/ui/PastelCloudBackdrop";
 
 // Hooks
 import { useProductDetail, useProductReview } from "../../hooks/useProductDetail";
@@ -28,8 +28,30 @@ export default function ProductDetail() {
   // Custom hooks
   const { product, loading, error, refetch } = useProductDetail(id, user);
   const reviewData = useProductReview(id, user);
+  const imageRef = useRef(null);
+
+  useEffect(() => {
+    const availableStock = Number(product?.stock || 0);
+    if (availableStock <= 0) {
+      setQuantity(1);
+      return;
+    }
+
+    if (quantity > availableStock) {
+      setQuantity(availableStock);
+    }
+  }, [product?.stock, quantity]);
 
   const handleAddToCart = () => {
+    if (!product) {
+      return;
+    }
+
+    const availableStock = Number(product.stock || 0);
+    if (availableStock <= 0) {
+      return;
+    }
+
     addToCart(product, quantity);
   };
 
@@ -52,8 +74,9 @@ export default function ProductDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base">
+        <PastelCloudBackdrop />
+        <div className="relative z-10 rounded-xl border border-primary/15 bg-white/95 p-8 text-center shadow-sm">
           <div className="w-16 h-16 border-4 border-primary/10 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
           <p className="text-text-muted font-medium text-sm animate-pulse">
             Loading product...
@@ -65,8 +88,9 @@ export default function ProductDetail() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base">
+        <PastelCloudBackdrop />
+        <div className="relative z-10 rounded-xl border border-primary/15 bg-white/95 p-8 text-center shadow-sm">
           <p className="text-red-500 font-bold text-lg mb-4">Error loading product</p>
           <p className="text-text-muted">{error}</p>
         </div>
@@ -76,8 +100,9 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base">
+        <PastelCloudBackdrop />
+        <div className="relative z-10 rounded-xl border border-primary/15 bg-white/95 p-8 text-center shadow-sm">
           <p className="text-text-muted font-bold text-lg">Product not found</p>
         </div>
       </div>
@@ -85,56 +110,57 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base pt-28 font-sans">
+    <div className="relative min-h-screen overflow-hidden bg-bg-base pt-24 font-sans">
+      <PastelCloudBackdrop />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 md:px-6">
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <span>Home</span>
+            <ChevronRight className="w-4 h-4" />
+            <span>Products</span>
+            <ChevronRight className="w-4 h-4" />
+            <span className="text-text-main font-medium line-clamp-1">{product.title || product.name}</span>
+          </div>
 
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Back Button */}
-        {/* Back Button */}
-        <div className="mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-110 active:scale-95 transition-all duration-300 group"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted hover:text-primary"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-stone-600 group-hover:text-primary transition-colors stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-16 mb-20">
-          {/* Product Image Section */}
+        <div className="mb-10 grid gap-6 lg:grid-cols-2 lg:gap-8">
           <ProductImage
             product={product}
             onWishlist={handleWishlist}
             isInWishlist={isInWishlist(product._id)}
+            imageRef={imageRef}
           />
 
-          {/* Product Details Section */}
           <ProductInfo
             product={product}
             quantity={quantity}
             setQuantity={setQuantity}
             onAddToCart={handleAddToCart}
             user={user}
+            imageRef={imageRef}
           />
         </div>
 
-        <ReviewSection
-          product={product}
-          user={user}
-          reviewData={reviewData}
-          onSubmitReview={handleReviewSubmit}
-        />
+        <div className="mb-10 rounded-2xl border border-primary/15 bg-white/96 p-3.5 shadow-sm md:p-4">
+          <ReviewSection
+            product={product}
+            user={user}
+            reviewData={reviewData}
+            onSubmitReview={handleReviewSubmit}
+          />
+        </div>
 
-        {/* Related Products Section */}
         <RelatedProducts currentProduct={product} />
-
       </div>
-
-      <style>{`
-        @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .animate-slideDown { animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-      `}</style>
     </div>
   );
 }

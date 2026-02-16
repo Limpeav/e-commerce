@@ -1,17 +1,16 @@
 import axios from "axios";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "./http";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_URL = API_BASE_URL;
 
 // Generate BAKONG KHQR code
 export const generateBakongQR = async (orderId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.post(
         `${API_URL}/payments/bakong/generate`,
         { orderId },
         {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: withAuthHeaders(token),
         }
     );
     return response.data;
@@ -19,13 +18,11 @@ export const generateBakongQR = async (orderId) => {
 
 // Get payment status
 export const getPaymentStatus = async (paymentId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.get(
         `${API_URL}/payments/${paymentId}/status`,
         {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: withAuthHeaders(token),
         }
     );
     return response.data;
@@ -33,13 +30,11 @@ export const getPaymentStatus = async (paymentId) => {
 
 // Get payment by order ID
 export const getPaymentByOrderId = async (orderId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.get(
         `${API_URL}/payments/order/${orderId}`,
         {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: withAuthHeaders(token),
         }
     );
     return response.data;
@@ -47,14 +42,12 @@ export const getPaymentByOrderId = async (orderId) => {
 
 // Cancel payment
 export const cancelPayment = async (paymentId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.put(
         `${API_URL}/payments/${paymentId}/cancel`,
         {},
         {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: withAuthHeaders(token),
         }
     );
     return response.data;

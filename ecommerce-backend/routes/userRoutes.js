@@ -10,6 +10,11 @@ import {
   startPhoneVerification,
   verifyPhone,
   savePhoneNumber,
+  getUserAddresses,
+  addUserAddress,
+  updateUserAddress,
+  setDefaultAddress,
+  deleteUserAddress,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -25,5 +30,10 @@ router.put("/profile", protect, updateUserProfile);
 router.post("/start-phone-verification", protect, startPhoneVerification);
 router.post("/verify-phone", protect, verifyPhone);
 router.post("/save-phone", protect, savePhoneNumber);
+router.get("/addresses", protect, getUserAddresses);
+router.post("/addresses", protect, addUserAddress);
+router.put("/addresses/:addressId", protect, updateUserAddress);
+router.put("/addresses/:addressId/default", protect, setDefaultAddress);
+router.delete("/addresses/:addressId", protect, deleteUserAddress);
 
 export default router;

@@ -36,6 +36,11 @@ const orderSchema = new mongoose.Schema(
             enum: ["BAKONG_KHQR", "Credit Card", "PayPal", "Cash on Delivery", "Bank Transfer"],
             default: "Cash on Delivery",
         },
+        shippingCarrier: {
+            type: String,
+            enum: ["J&T Express", "Vireak Buntham Express"],
+            default: "J&T Express",
+        },
         paymentResult: {
             id: { type: String },
             status: { type: String },
@@ -84,6 +89,11 @@ const orderSchema = new mongoose.Schema(
         },
         deliveredAt: {
             type: Date,
+        },
+        stockRestored: {
+            type: Boolean,
+            required: true,
+            default: false,
         },
     },
     {

@@ -1,7 +1,20 @@
 // App Configuration
+const normalizeApiBaseUrl = (rawUrl) => {
+  const trimmed = (rawUrl || "/api").trim();
+
+  if (trimmed === "/api") {
+    return "/api";
+  }
+
+  const withoutTrailingSlash = trimmed.replace(/\/+$/, "");
+  return withoutTrailingSlash.endsWith("/api")
+    ? withoutTrailingSlash
+    : `${withoutTrailingSlash}/api`;
+};
+
 export const config = {
   // API Configuration
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  API_BASE_URL: normalizeApiBaseUrl(import.meta.env.VITE_API_URL),
   
   // App Configuration
   APP_NAME: 'E-Commerce Platform',

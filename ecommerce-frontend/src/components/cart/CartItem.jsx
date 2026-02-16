@@ -1,58 +1,45 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Trash2, Plus, Minus } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Trash2, Plus, Minus } from "lucide-react";
 
-const CartItem = ({
-  item,
-  onRemove,
-  onUpdateQuantity,
-  getEffectivePrice
-}) => {
+const CartItem = ({ item, onRemove, onUpdateQuantity, getEffectivePrice }) => {
+  const availableStock = Number(item?.product?.stock || 0);
+  const inStock = availableStock > 0;
+  const atStockLimit = item.quantity >= availableStock;
+
   return (
-    <div className="bg-white rounded-[2.5rem] border border-stone-100 p-6 flex flex-col md:flex-row gap-8 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 group">
-      {/* Product Image */}
-      <div className="bg-stone-50 rounded-[2rem] p-4 flex items-center justify-center md:w-40 md:h-40 flex-shrink-0 relative overflow-hidden">
-        <img
-          src={item.product.image}
-          alt={item.product.title}
-          className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
-        />
-      </div>
+    <div className="bg-white rounded-xl border border-primary/15 p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link
+          to={`/products/${item.product._id}`}
+          className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg bg-blue-soft/35 border border-primary/10 p-2 flex-shrink-0"
+        >
+          <img
+            src={item.product.image}
+            alt={item.product.title}
+            className="w-full h-full object-contain"
+          />
+        </Link>
 
-      {/* Product Details */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <div className="flex justify-between items-start mb-2 group/title">
-          <Link to={`/products/${item.product._id}`} className="font-bold text-xl text-text-main hover:text-primary line-clamp-1 transition-colors tracking-tight">
-            {item.product.title}
-          </Link>
-          <p className="font-bold text-xl text-text-main ml-4 tracking-tight">
-            ${(getEffectivePrice(item.product) * item.quantity).toFixed(2)}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 mb-6 text-xs font-medium text-stone-500">
-          <span>{item.product.category}</span>
-          <div className="h-1 w-1 bg-stone-300 rounded-full"></div>
-          <span className="text-green-600 font-bold">In Stock</span>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          {/* Price Per Item */}
-          <div className="inline-flex items-center px-3 py-1.5 bg-stone-50 rounded-lg border border-stone-100">
-            {item.product.discountPrice && item.product.discountPrice < item.product.price ? (
-              <div className="flex items-center gap-2">
-                <span className="text-secondary font-bold text-sm">${item.product.discountPrice.toFixed(2)}</span>
-                <span className="line-through text-stone-400 text-xs">${item.product.price.toFixed(2)}</span>
-              </div>
-            ) : (
-              <span className="text-stone-500 font-medium text-sm">${item.product.price.toFixed(2)}</span>
-            )}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap justify-between gap-2 mb-2">
+            <Link
+              to={`/products/${item.product._id}`}
+              className="font-semibold text-base md:text-lg text-text-main hover:text-primary line-clamp-2"
+            >
+              {item.product.title}
+            </Link>
+            <p className="font-semibold text-text-main">
+              ${(getEffectivePrice(item.product) * item.quantity).toFixed(2)}
+            </p>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-4 bg-stone-50 p-1.5 rounded-xl border border-stone-100">
-            {/* Quantity */}
-            <div className="flex items-center gap-3">
+          <p className="text-xs text-text-muted mb-4">
+            {item.product.category} • {inStock ? `${availableStock} in stock` : "Out of stock"}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-1 border border-primary/15 rounded-lg p-1">
               <button
                 onClick={() => {
                   if (item.quantity - 1 === 0) {
@@ -61,29 +48,34 @@ const CartItem = ({
                     onUpdateQuantity(item.product._id, item.quantity - 1);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white text-stone-500 hover:text-red-500 shadow-sm border border-stone-200 transition-all hover:scale-105 active:scale-95"
-                aria-label="Decrease"
+                className="w-8 h-8 rounded-md text-text-main hover:bg-primary/10 transition-colors flex items-center justify-center"
+                aria-label="Decrease quantity"
               >
                 {item.quantity === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
               </button>
-              <span className="w-6 text-center font-bold text-base text-text-main">{item.quantity}</span>
+
+              <span className="w-8 text-center font-semibold text-text-main">{item.quantity}</span>
+
               <button
-                onClick={() => onUpdateQuantity(item.product._id, item.quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white shadow-md transition-all hover:scale-105 active:scale-95"
-                aria-label="Increase"
+                onClick={() => {
+                  if (!atStockLimit) {
+                    onUpdateQuantity(item.product._id, item.quantity + 1);
+                  }
+                }}
+                disabled={!inStock || atStockLimit}
+                className="w-8 h-8 rounded-md text-text-main hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+                aria-label="Increase quantity"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="w-px h-5 bg-stone-200"></div>
-
             <button
               onClick={() => onRemove(item.product._id)}
-              className="text-stone-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg"
-              title="Remove Item"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-red-600"
             >
               <Trash2 className="w-4 h-4" />
+              Remove
             </button>
           </div>
         </div>

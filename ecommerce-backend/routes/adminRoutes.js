@@ -1,5 +1,12 @@
 import express from "express";
-import { getDashboardData } from "../controllers/adminController.js";
+import {
+    getDashboardData,
+    getSentimentReport,
+    getFeedbackTrends,
+    getInventoryReport,
+    getReviewModerationQueue,
+    moderateReview,
+} from "../controllers/adminController.js";
 import { registerAdmin, loginAdmin } from "../controllers/adminAuthController.js";
 import {
     getAllUsers,
@@ -14,11 +21,16 @@ import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 const router = express.Router();
 
 // Auth routes
-router.post("/register", registerAdmin);
+router.post("/register", protect, admin, registerAdmin);
 router.post("/login", loginAdmin);
 
 // Dashboard
 router.get("/dashboard", protect, admin, getDashboardData);
+router.get("/reports/sentiment", protect, admin, getSentimentReport);
+router.get("/reports/feedback-trends", protect, admin, getFeedbackTrends);
+router.get("/reports/inventory", protect, admin, getInventoryReport);
+router.get("/reviews", protect, admin, getReviewModerationQueue);
+router.patch("/reviews/:productId/:reviewId", protect, admin, moderateReview);
 
 // User management routes
 router.get("/users", protect, admin, getAllUsers);

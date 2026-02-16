@@ -6,6 +6,7 @@ export const lazyComponents = {
   Cart: () => import("../views/cart/Cart"),
   Wishlist: () => import("../views/wishlist/Wishlist"),
   Profile: () => import("../views/user/Profile"),
+  Addresses: () => import("../views/user/Addresses"),
   Settings: () => import("../views/user/Settings"),
   Orders: () => import("../views/orders/Orders"),
   OrderDetail: () => import("../views/orders/OrderDetail"),
@@ -37,6 +38,7 @@ export const lazyComponents = {
   AdminOrdersList: () => import("../views/admin/Orders/List"),
   AdminOrderDetails: () => import("../views/admin/Orders/Details"),
   AdminReports: () => import("../views/admin/Reports"),
+  AdminReviews: () => import("../views/admin/Reviews"),
 
   // Error routes
   NotFound: () => import("../views/errors/NotFound"),
@@ -58,6 +60,7 @@ export const protectedRoutes = [
   { path: "/checkout", component: "Checkout" },
   { path: "/wishlist", component: "Wishlist" },
   { path: "/profile", component: "Profile" },
+  { path: "/addresses", component: "Addresses" },
   { path: "/orders", component: "Orders" },
   { path: "/orders/:id", component: "OrderDetail" },
   { path: "/payment/bakong/:orderId", component: "BakongPayment" },
@@ -73,6 +76,7 @@ export const adminRoutes = [
   { path: "/admin/orders", component: "AdminOrdersList" },
   { path: "/admin/orders/:id", component: "AdminOrderDetails" },
   { path: "/admin/reports", component: "AdminReports" },
+  { path: "/admin/reviews", component: "AdminReviews" },
 ];
 
 export const additionalRoutes = [

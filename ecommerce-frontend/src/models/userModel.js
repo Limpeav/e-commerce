@@ -39,7 +39,7 @@ export class UserModel {
       },
       phone: {
         required: true,
-        pattern: /^\+?[\d\s\-\(\)]+$/,
+        pattern: /^\+?[\d\s-()]+$/,
         minLength: 10,
         maxLength: 20,
         message: 'Please enter a valid phone number'

@@ -2,17 +2,13 @@ import React from 'react';
 
 const CartHeader = ({ itemCount }) => {
   return (
-    <div className="mb-12">
-      <h2 className="text-4xl font-bold text-text-main mb-3 tracking-tight">
+    <div className="mb-8">
+      <h2 className="text-3xl md:text-4xl font-bold text-text-main mb-2 tracking-tight">
         Shopping Cart
       </h2>
-      <div className="flex items-center gap-3">
-        <span className="text-text-muted font-medium text-lg">
-          You have <span className="text-secondary font-bold">{itemCount}</span> {itemCount === 1 ? "item" : "items"}
-        </span>
-        <div className="h-1 w-1 bg-stone-300 rounded-full"></div>
-        <span className="text-primary font-bold text-xs uppercase tracking-wide">Secure Checkout</span>
-      </div>
+      <p className="text-text-muted text-sm md:text-base">
+        You have <span className="font-semibold text-text-main">{itemCount}</span> {itemCount === 1 ? "item" : "items"} in your cart.
+      </p>
     </div>
   );
 };

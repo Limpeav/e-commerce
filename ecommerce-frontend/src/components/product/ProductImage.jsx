@@ -1,31 +1,26 @@
-import React from 'react';
-import { Heart } from 'lucide-react';
+import React from "react";
+import { Heart } from "lucide-react";
 
-const ProductImage = ({ product, onWishlist, isInWishlist }) => {
+const ProductImage = ({ product, onWishlist, isInWishlist, imageRef }) => {
+  const imageSrc = product.image || product.images?.[0] || "https://via.placeholder.com/600x600?text=No+Image";
+  const imageAlt = product.title || product.name || "Product image";
+
   return (
-    <div className="relative">
-      <div className="bg-white rounded-[4rem] shadow-2xl shadow-primary/5 p-8 lg:p-16 border border-stone-100 sticky top-32 overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+    <div className="sticky top-28 rounded-2xl border border-primary/15 bg-white/96 p-3 shadow-sm md:p-4">
+      <div className="relative aspect-square overflow-hidden rounded-2xl border border-primary/12 bg-gradient-to-b from-white via-blue-soft/28 to-secondary-light/26">
+        <img ref={imageRef} src={imageSrc} alt={imageAlt} className="h-full w-full object-contain p-3 md:p-4" />
 
-        <div className="relative z-10 flex items-center justify-center bg-stone-50 rounded-[3rem] p-10 h-[500px]">
-          <img
-            src={product.image}
-            alt={product.title}
-            className="w-full h-full object-contain transform hover:scale-110 transition-transform duration-700 drop-shadow-2xl"
-          />
-        </div>
-
-        {/* Wishlist Button Overlay */}
         <button
+          type="button"
           onClick={onWishlist}
-          className="absolute top-12 right-12 w-14 h-14 rounded-2xl bg-white shadow-xl border border-stone-100 flex items-center justify-center group/btn transition-all hover:scale-110 active:scale-95 z-20"
+          className={`absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${
+            isInWishlist
+              ? "border-secondary bg-secondary text-white"
+              : "border-primary/15 bg-white text-text-muted hover:border-secondary hover:text-secondary"
+          }`}
+          aria-label="Toggle wishlist"
         >
-          <Heart
-            className={`w-6 h-6 transition-all ${isInWishlist
-              ? "text-secondary fill-secondary"
-              : "text-stone-300 group-hover/btn:text-secondary"
-              }`}
-          />
+          <Heart className={`h-4 w-4 ${isInWishlist ? "fill-current" : ""}`} />
         </button>
       </div>
     </div>

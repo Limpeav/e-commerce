@@ -14,9 +14,11 @@ import {
     markAllAsRead,
     deleteNotification,
 } from "../services/notificationApi.js";
+import { subscribeRealtimeEvent } from "../services/realtime.js";
 
 const NotificationPanel = () => {
     const navigate = useNavigate();
+    const isAdmin = Boolean(localStorage.getItem("adminToken"));
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -42,17 +44,15 @@ const NotificationPanel = () => {
         loadNotifications();
         // Poll for new notifications every 30 seconds
         const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
-    }, []);
+        const unsubscribe = subscribeRealtimeEvent("notification:created", () => {
+            loadNotifications();
+        });
 
-    const handleMarkAsRead = async (notificationId) => {
-        try {
-            await markAsRead(notificationId);
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error marking notification as read:", error);
-        }
-    };
+        return () => {
+            clearInterval(interval);
+            unsubscribe();
+        };
+    }, []);
 
     const handleMarkAllAsRead = async () => {
         try {
@@ -77,19 +77,22 @@ const NotificationPanel = () => {
         // Close panel immediately for better UX
         setIsOpen(false);
 
-        // Navigate to order details
-        if (notification.orderId) {
-            navigate(`/admin/orders/${notification.orderId}`);
+        // Mark this notification as read
+        if (!notification.isRead) {
+            try {
+                await markAsRead(notification._id);
+            } catch (error) {
+                console.error("Error marking notification as read:", error);
+            }
         }
 
-        // Auto-delete the notification after viewing (runs in background)
-        try {
-            await deleteNotification(notification._id);
-            // Reload notifications to update the list and count
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error auto-deleting notification:", error);
+        // Navigate to order details
+        if (notification.orderId) {
+            navigate(isAdmin ? `/admin/orders/${notification.orderId}` : `/orders/${notification.orderId}`);
         }
+
+        // Reload notifications to update visual state and count
+        await loadNotifications();
     };
 
     const formatTime = (timestamp) => {

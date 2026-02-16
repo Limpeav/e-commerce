@@ -106,6 +106,53 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {/* Sentiment Summary */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="col-span-1 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Customer Sentiment</h3>
+                <p className="text-3xl font-bold text-blue-700 mb-1">
+                  {((stats.sentiment?.distribution?.positiveRate || 0) * 100).toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-500">Positive share of all reviews</p>
+              </div>
+              <div className="col-span-1 bg-gradient-to-br from-green-50 via-white to-blue-50 p-6 rounded-2xl shadow-lg border border-primary/10">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Totals</p>
+                <div className="flex items-center justify-between text-sm text-gray-700">
+                  <span>Reviews</span>
+                  <span className="font-semibold">{stats.sentiment?.totals?.reviews || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
+                  <span>Positive</span>
+                  <span className="font-semibold">{stats.sentiment?.totals?.positive || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
+                  <span>Neutral</span>
+                  <span className="font-semibold">{stats.sentiment?.totals?.neutral || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
+                  <span>Negative</span>
+                  <span className="font-semibold">{stats.sentiment?.totals?.negative || 0}</span>
+                </div>
+              </div>
+              <div className="col-span-1 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Quick Actions</p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => navigate("/admin/reports")}
+                    className="w-full px-4 py-2 rounded-xl border border-primary/20 bg-primary/10 text-primary font-semibold text-sm hover:border-primary"
+                  >
+                    View Full Sentiment Report
+                  </button>
+                  <button
+                    onClick={() => navigate("/admin/reviews")}
+                    className="w-full px-4 py-2 rounded-xl border border-primary/20 bg-white text-text-main font-semibold text-sm hover:border-primary"
+                  >
+                    Moderate Reviews
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Payment Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl shadow-lg border-2 border-green-200">

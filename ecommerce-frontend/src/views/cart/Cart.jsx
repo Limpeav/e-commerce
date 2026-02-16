@@ -33,14 +33,12 @@ export default function Cart() {
 
   // Cart with Items
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 font-sans">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
+    <div className="min-h-screen bg-bg-base py-8 pt-24 font-sans">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
         <CartHeader itemCount={itemCount} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="lg:col-span-2 space-y-3">
             {validCartItems.map((item) => (
               <CartItem
                 key={item._id || item.product._id}
@@ -52,7 +50,6 @@ export default function Cart() {
             ))}
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <OrderSummary total={total} itemCount={itemCount} />
           </div>

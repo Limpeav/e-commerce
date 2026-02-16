@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Bell, Shield, Globe, Palette } from 'lucide-react';
+import { User, Bell, Shield, Globe, Palette, Mail } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 
 // UI Components

@@ -46,9 +46,19 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
+      const availableStock = Number(product?.stock ?? Infinity);
+      const safeQuantity = Number.isFinite(availableStock)
+        ? Math.min(Number(quantity || 1), Math.max(availableStock, 0))
+        : Number(quantity || 1);
+
+      if (safeQuantity < 1) {
+        toastError("Out of Stock", "This product is currently out of stock.");
+        return;
+      }
+
       const productData = {
         productId: product._id,
-        quantity: quantity,
+        quantity: safeQuantity,
       };
 
       await addItemToCart(productData);
@@ -56,10 +66,13 @@ export const CartProvider = ({ children }) => {
       const updatedCart = await fetchCart();
       setCart(updatedCart.items || []);
 
-      success("Added to Cart", `${product.name} has been added to your cart.`);
+      success("Added to Cart", `${product.title || product.name} has been added to your cart.`);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toastError("Action Failed", "Could not add item to cart. Please try again.");
+      toastError(
+        "Action Failed",
+        error?.response?.data?.message || "Could not add item to cart. Please try again."
+      );
     }
   };
 
@@ -68,11 +81,24 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      const updatedCart = await updateCartItemQuantity(productId, newQuantity);
+      const cartItem = cart.find((item) => item.product?._id === productId);
+      const availableStock = Number(cartItem?.product?.stock ?? Infinity);
+      const cappedQuantity = Number.isFinite(availableStock)
+        ? Math.min(newQuantity, Math.max(availableStock, 1))
+        : newQuantity;
+
+      if (Number.isFinite(availableStock) && newQuantity > availableStock) {
+        info("Stock Limit", `Only ${availableStock} item(s) currently available.`);
+      }
+
+      const updatedCart = await updateCartItemQuantity(productId, cappedQuantity);
       setCart(updatedCart.items || []);
     } catch (error) {
       console.error("Error updating quantity:", error);
-      toastError("Update Failed", "Could not update item quantity.");
+      toastError(
+        "Update Failed",
+        error?.response?.data?.message || "Could not update item quantity."
+      );
     }
   };
 

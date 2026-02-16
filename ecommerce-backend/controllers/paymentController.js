@@ -1,8 +1,56 @@
 import asyncHandler from "express-async-handler";
 import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
+import Notification from "../models/notificationModel.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
+import {
+    emitNotificationCreated,
+    emitOrderUpdated,
+} from "../realtime/socket.js";
+
+const normalizeSignature = (signature = "") =>
+    signature.replace(/^sha256=/i, "").trim().toLowerCase();
+
+const verifyWebhookSignature = (req) => {
+    const secret = process.env.BAKONG_WEBHOOK_SECRET;
+    if (!secret) {
+        throw new Error("BAKONG webhook secret is not configured");
+    }
+
+    const providedSignature = normalizeSignature(
+        req.get("x-bakong-signature") || req.get("x-signature") || ""
+    );
+
+    if (!providedSignature) {
+        return false;
+    }
+
+    const payload = req.rawBody || JSON.stringify(req.body || {});
+    const expectedSignature = normalizeSignature(
+        crypto.createHmac("sha256", secret).update(payload).digest("hex")
+    );
+
+    const providedBuffer = Buffer.from(providedSignature, "hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+    if (providedBuffer.length !== expectedBuffer.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+};
+
+const buildOrderCode = (orderId) => orderId.toString().slice(-8).toUpperCase();
+
+const createNotificationSafely = async (payload) => {
+    try {
+        const notification = await Notification.create(payload);
+        emitNotificationCreated(notification);
+    } catch (error) {
+        console.error("Notification creation failed:", error.message);
+    }
+};
 
 // @desc    Generate BAKONG KHQR code for payment
 // @route   POST /api/payments/bakong/generate
@@ -142,7 +190,16 @@ function generateKHQRString(data) {
 // @route   POST /api/payments/bakong/verify
 // @access  Public (but should be validated with signature)
 export const verifyBakongPayment = asyncHandler(async (req, res) => {
+    if (!verifyWebhookSignature(req)) {
+        res.status(401);
+        throw new Error("Invalid webhook signature");
+    }
+
     const { transactionId, ackId, status, payerName, payerAccount, responseCode } = req.body;
+    if (!transactionId) {
+        res.status(400);
+        throw new Error("Transaction ID is required");
+    }
 
     // Find payment by transaction ID
     const payment = await Payment.findOne({
@@ -154,15 +211,16 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
         throw new Error("Payment not found");
     }
 
-    // Verify webhook signature (in production)
-    // const isValid = verifyWebhookSignature(req.headers, req.body);
-    // if (!isValid) {
-    //     res.status(401);
-    //     throw new Error("Invalid webhook signature");
-    // }
+    const normalizedStatus = String(status || "").toUpperCase();
+    const isSuccess = normalizedStatus === "SUCCESS" || responseCode === "00";
+
+    // Idempotent success handling for duplicate callbacks
+    if (payment.status === "Completed" && isSuccess) {
+        return res.json({ success: true, payment });
+    }
 
     // Update payment status
-    if (status === "SUCCESS" || responseCode === "00") {
+    if (isSuccess) {
         payment.status = "Completed";
         payment.completedAt = new Date();
         payment.paymentResult = {
@@ -176,7 +234,7 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
         };
 
         // Update order payment status
-        const order = await Order.findById(payment.order);
+        const order = await Order.findById(payment.order?._id || payment.order);
         if (order) {
             order.isPaid = true;
             order.paidAt = new Date();
@@ -187,6 +245,18 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
                 update_time: new Date().toISOString(),
             };
             await order.save();
+            emitOrderUpdated(order, { reason: "payment_verified" });
+
+            await createNotificationSafely({
+                type: "payment",
+                audience: "user",
+                recipient: order.user,
+                userId: order.user,
+                orderId: order._id,
+                title: "Payment Confirmed",
+                message: `Payment for order #${buildOrderCode(order._id)} was received successfully.`,
+                link: `/orders/${order._id}`,
+            });
         }
     } else {
         payment.status = "Failed";
@@ -196,6 +266,17 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
             responseCode,
             responseMessage: "Payment failed",
         };
+
+        await createNotificationSafely({
+            type: "payment",
+            audience: "user",
+            recipient: payment.user,
+            userId: payment.user,
+            orderId: payment.order?._id || payment.order,
+            title: "Payment Failed",
+            message: `Payment for order #${buildOrderCode(payment.order?._id || payment.order)} failed. Please retry.`,
+            link: `/orders/${payment.order?._id || payment.order}`,
+        });
     }
 
     await payment.save();
@@ -315,6 +396,18 @@ export const confirmPayment = asyncHandler(async (req, res) => {
         order.paidAt = new Date();
         order.paymentStatus = "Paid";
         await order.save();
+        emitOrderUpdated(order, { reason: "payment_confirmed_admin" });
+
+        await createNotificationSafely({
+            type: "payment",
+            audience: "user",
+            recipient: order.user,
+            userId: order.user,
+            orderId: order._id,
+            title: "Payment Confirmed",
+            message: `Payment for order #${buildOrderCode(order._id)} was confirmed by admin.`,
+            link: `/orders/${order._id}`,
+        });
     }
 
     await payment.save();

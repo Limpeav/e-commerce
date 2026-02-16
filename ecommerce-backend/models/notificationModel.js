@@ -5,8 +5,13 @@ const notificationSchema = new mongoose.Schema(
         type: {
             type: String,
             required: true,
-            enum: ["order", "user", "product", "system"],
+            enum: ["order", "user", "product", "system", "promotion", "support", "payment"],
             default: "order",
+        },
+        audience: {
+            type: String,
+            enum: ["admin", "user", "all"],
+            default: "admin",
         },
         title: {
             type: String,
@@ -21,6 +26,10 @@ const notificationSchema = new mongoose.Schema(
             ref: "Order",
         },
         userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        recipient: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
         },
@@ -39,6 +48,9 @@ const notificationSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
+notificationSchema.index({ audience: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
 
 const Notification = mongoose.model("Notification", notificationSchema);
 

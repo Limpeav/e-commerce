@@ -12,6 +12,7 @@ import {
     ArrowRight,
     LogOut,
 } from "lucide-react";
+import PastelCloudBackdrop from "../../../components/ui/PastelCloudBackdrop";
 
 const CompleteProfile = () => {
     const { user, login, logout } = useAuth();
@@ -74,54 +75,48 @@ const CompleteProfile = () => {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-bg-base flex items-center justify-center px-4 py-12 relative overflow-hidden font-sans">
-            {/* Background blobs */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-                <div className="absolute bottom-20 right-10 w-72 h-72 bg-secondary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-            </div>
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-4 py-10 font-sans">
+            <PastelCloudBackdrop />
 
-            <div className="w-full max-w-md relative z-10">
+            <div className="relative z-10 w-full max-w-md">
 
                 {/* Header */}
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-6">
-                        <Smartphone className="w-8 h-8 text-primary" />
+                <div className="mb-8 text-center">
+                    <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/15 bg-white shadow-sm">
+                        <Smartphone className="h-7 w-7 text-primary" />
                     </div>
-                    <h1 className="text-3xl font-black text-text-main mb-2 font-display">
+                    <h1 className="text-3xl font-bold text-text-main md:text-4xl">
                         Complete Profile
                     </h1>
-                    <p className="text-text-muted font-medium">
-                        Please verify your phone number to continue
+                    <p className="mt-1 text-sm text-text-muted">
+                        Please add your phone number to continue
                     </p>
                 </div>
 
                 {/* Card */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white p-8 sm:p-10">
+                <div className="rounded-2xl border border-primary/15 bg-white/95 p-6 shadow-sm backdrop-blur md:p-7">
 
                     {error && (
-                        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 mb-6 animate-shake">
-                            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-red-700 text-sm font-bold">{error}</p>
+                        <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 animate-shake">
+                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+                            <p className="text-sm font-medium text-red-700">{error}</p>
                         </div>
                     )}
 
                     {/* Enter Phone Form */}
                     {!completed && (
-                        <form onSubmit={handlePhoneSubmit} className="space-y-6">
-                            <div className="bg-primary/5 rounded-2xl p-4 text-center">
+                        <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                            <div className="rounded-xl border border-primary/12 bg-blue-soft/25 p-4 text-center">
                                 <p className="text-sm text-text-muted font-medium">
                                     Please enter your phone number to continue shopping.
                                 </p>
                             </div>
 
-                            <div className="group">
-                                <label className="block text-xs font-black text-primary uppercase tracking-widest mb-3 ml-1">
-                                    Phone Number
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-text-main">Phone Number</label>
                                 <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40">
-                                        <Phone className="w-5 h-5" />
+                                    <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/45">
+                                        <Phone className="h-4 w-4" />
                                     </div>
                                     <input
                                         type="tel"
@@ -130,7 +125,7 @@ const CompleteProfile = () => {
                                         onChange={(e) => setPhone(e.target.value)}
                                         required
                                         autoFocus
-                                        className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold bg-stone-50/50 focus:bg-white"
+                                        className="w-full rounded-xl border border-primary/20 bg-white py-3 pl-11 pr-4 text-sm text-text-main placeholder:text-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                                     />
                                 </div>
                             </div>
@@ -138,17 +133,17 @@ const CompleteProfile = () => {
                             <button
                                 type="submit"
                                 disabled={loading || !phone}
-                                className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-text-main transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {loading ? (
                                     <>
-                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <Loader className="h-4 w-4 animate-spin" />
                                         Saving...
                                     </>
                                 ) : (
                                     <>
                                         Continue
-                                        <ArrowRight className="w-4 h-4" />
+                                        <ArrowRight className="h-4 w-4" />
                                     </>
                                 )}
                             </button>
@@ -156,9 +151,9 @@ const CompleteProfile = () => {
                             <button
                                 type="button"
                                 onClick={logout}
-                                className="w-full py-3 text-xs font-bold text-stone-400 hover:text-red-500 transition-colors flex items-center justify-center gap-2"
+                                className="flex w-full items-center justify-center gap-2 py-2 text-xs font-medium text-text-muted transition-colors hover:text-red-500"
                             >
-                                <LogOut className="w-3 h-3" />
+                                <LogOut className="h-3.5 w-3.5" />
                                 Logout and Try Later
                             </button>
                         </form>
@@ -166,13 +161,13 @@ const CompleteProfile = () => {
 
                     {/* Success */}
                     {completed && (
-                        <div className="text-center py-8">
-                            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce">
-                                <CheckCircle className="w-10 h-10 text-green-500" />
+                        <div className="py-6 text-center">
+                            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-green-100 animate-bounce">
+                                <CheckCircle className="h-8 w-8 text-green-500" />
                             </div>
-                            <h3 className="text-xl font-black text-green-800 mb-2">Success!</h3>
-                            <p className="text-green-600 mb-6">Redirecting you to home page...</p>
-                            <Loader className="w-6 h-6 text-primary animate-spin mx-auto" />
+                            <h3 className="mb-1 text-xl font-semibold text-green-800">Success!</h3>
+                            <p className="mb-4 text-sm text-green-700">Redirecting you to home page...</p>
+                            <Loader className="mx-auto h-5 w-5 animate-spin text-primary" />
                         </div>
                     )}
                 </div>

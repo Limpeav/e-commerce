@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Package,
@@ -18,15 +18,7 @@ const AdminOrders = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
-
-    useEffect(() => {
-        filterOrders();
-    }, [searchTerm, statusFilter, orders]);
-
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
             setLoading(true);
             const response = await adminService.getOrders();
@@ -37,9 +29,9 @@ const AdminOrders = () => {
             setError(err.response?.data?.message || "Failed to fetch orders");
             setLoading(false);
         }
-    };
+    }, []);
 
-    const filterOrders = () => {
+    const filterOrders = useCallback(() => {
         let filtered = orders;
 
         // Filter by status
@@ -58,7 +50,15 @@ const AdminOrders = () => {
         }
 
         setFilteredOrders(filtered);
-    };
+    }, [orders, searchTerm, statusFilter]);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    useEffect(() => {
+        filterOrders();
+    }, [filterOrders]);
 
     const handleDeleteOrder = async (id) => {
         if (window.confirm("Are you sure you want to delete this order?")) {

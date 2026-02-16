@@ -10,7 +10,7 @@ export const useFetch = (fetchFunction) => {
       .then(setData)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, []);
+  }, [fetchFunction]);
 
   return { data, loading, error };
 };

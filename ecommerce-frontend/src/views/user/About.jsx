@@ -141,7 +141,7 @@ export default function About() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="group bg-white p-12 rounded-[3.5rem] hover:shadow-2xl transition-all duration-500 border border-stone-100 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-2 h-0 bg-primary group-hover:h-full transition-all duration-700"></div>
-                            <div className="w-16 h-16 bg-stone-50 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 group-hover:bg-primary transition-all shadow-sm">
+                            <div className="w-16 h-16 bg-stone-50 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 group-hover:bg-primary-hover transition-all shadow-sm">
                                 <ShieldCheck className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
                             </div>
                             <h4 className="text-xl font-bold text-text-main font-display mb-6 group-hover:translate-x-2 transition-transform">Secure Technology</h4>

@@ -9,6 +9,7 @@ import { WishlistProvider } from "./context/WishlistContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { FlyToCartProvider } from "./context/FlyToCartContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -17,9 +18,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
-              <WishlistProvider>
-                <App />
-              </WishlistProvider>
+              <FlyToCartProvider>
+                <WishlistProvider>
+                  <App />
+                </WishlistProvider>
+              </FlyToCartProvider>
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

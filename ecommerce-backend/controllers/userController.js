@@ -10,29 +10,38 @@ const generateToken = (id) => {
   });
 };
 
-// 🟢 REGISTER (admin or user)
+// 🟢 REGISTER (user only)
 export const registerUser = async (req, res) => {
   try {
-    const { name, phone, email, password, role } = req.body;
+    const { name, phone, email, password } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedPhone = phone?.trim();
+
+    if (!name || !normalizedEmail || !password) {
+      return res.status(400).json({
+        message: "Name, email, and password are required",
+      });
+    }
+
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    if (phone) {
-      const phoneExists = await User.findOne({ phone });
+    if (normalizedPhone) {
+      const phoneExists = await User.findOne({ phone: normalizedPhone });
       if (phoneExists) {
         return res.status(400).json({ message: "Phone number already in use" });
       }
     }
 
     const user = await User.create({
-      name,
-      phone,
-      email,
+      name: name.trim(),
+      phone: normalizedPhone,
+      email: normalizedEmail,
       password,
-      role, // send "admin" from Postman
+      role: "user",
     });
 
     res.status(201).json({
@@ -41,6 +50,7 @@ export const registerUser = async (req, res) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
+      addresses: user.addresses || [],
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -52,8 +62,13 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -69,6 +84,7 @@ export const loginUser = async (req, res) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
+      addresses: user.addresses || [],
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -133,6 +149,7 @@ export const updateUserProfile = async (req, res) => {
       phone: updatedUser.phone,
       email: updatedUser.email,
       role: updatedUser.role,
+      addresses: updatedUser.addresses || [],
       token: generateToken(updatedUser._id),
     });
   } catch (error) {
@@ -508,5 +525,188 @@ export const savePhoneNumber = async (req, res) => {
   } catch (error) {
     console.error("Save phone error:", error);
     res.status(500).json({ message: error.message || "Failed to save phone number" });
+  }
+};
+
+const normalizeAddressInput = (payload = {}, fallback = {}) => ({
+  label: (payload.label ?? fallback.label ?? "Address").toString().trim() || "Address",
+  fullName: (payload.fullName ?? fallback.fullName ?? "").toString().trim(),
+  phone: (payload.phone ?? fallback.phone ?? "").toString().trim(),
+  addressLine1: (payload.addressLine1 ?? fallback.addressLine1 ?? "").toString().trim(),
+  addressLine2: (payload.addressLine2 ?? fallback.addressLine2 ?? "").toString().trim(),
+  city: (payload.city ?? fallback.city ?? "").toString().trim(),
+  postalCode: (payload.postalCode ?? fallback.postalCode ?? "").toString().trim(),
+  country: (payload.country ?? fallback.country ?? "Cambodia").toString().trim() || "Cambodia",
+  latitude:
+    payload.latitude !== undefined && payload.latitude !== null && payload.latitude !== ""
+      ? Number(payload.latitude)
+      : fallback.latitude,
+  longitude:
+    payload.longitude !== undefined && payload.longitude !== null && payload.longitude !== ""
+      ? Number(payload.longitude)
+      : fallback.longitude,
+  isDefault: Boolean(payload.isDefault ?? fallback.isDefault),
+});
+
+const validateAddressPayload = (address) => {
+  if (!address.fullName || !address.phone || !address.addressLine1 || !address.city) {
+    return "fullName, phone, addressLine1, and city are required";
+  }
+
+  if (
+    (address.latitude !== undefined && !Number.isFinite(address.latitude)) ||
+    (address.longitude !== undefined && !Number.isFinite(address.longitude))
+  ) {
+    return "Latitude and longitude must be valid numbers";
+  }
+
+  return null;
+};
+
+const clearDefaultAddress = (addresses = []) => {
+  for (const address of addresses) {
+    address.isDefault = false;
+  }
+};
+
+// 📍 ADDRESS MANAGEMENT
+export const getUserAddresses = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("addresses");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json(user.addresses || []);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to fetch addresses" });
+  }
+};
+
+export const addUserAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if ((user.addresses || []).length >= 10) {
+      return res.status(400).json({ message: "Address limit reached (10)" });
+    }
+
+    const nextAddress = normalizeAddressInput(req.body);
+    const validationError = validateAddressPayload(nextAddress);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    if (nextAddress.isDefault || !user.addresses.length) {
+      clearDefaultAddress(user.addresses);
+      nextAddress.isDefault = true;
+    }
+
+    user.addresses.push(nextAddress);
+    await user.save();
+
+    return res.status(201).json(user.addresses);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to add address" });
+  }
+};
+
+export const updateUserAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const address = user.addresses.id(req.params.addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    const updatedAddress = normalizeAddressInput(req.body, address.toObject());
+    const validationError = validateAddressPayload(updatedAddress);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    if (updatedAddress.isDefault) {
+      clearDefaultAddress(user.addresses);
+    }
+
+    address.label = updatedAddress.label;
+    address.fullName = updatedAddress.fullName;
+    address.phone = updatedAddress.phone;
+    address.addressLine1 = updatedAddress.addressLine1;
+    address.addressLine2 = updatedAddress.addressLine2;
+    address.city = updatedAddress.city;
+    address.postalCode = updatedAddress.postalCode;
+    address.country = updatedAddress.country;
+    address.latitude = updatedAddress.latitude;
+    address.longitude = updatedAddress.longitude;
+    address.isDefault = updatedAddress.isDefault;
+
+    if (user.addresses.length > 0 && !user.addresses.some((item) => item.isDefault)) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+    return res.json(user.addresses);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to update address" });
+  }
+};
+
+export const setDefaultAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const address = user.addresses.id(req.params.addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    clearDefaultAddress(user.addresses);
+    const nextDefault = user.addresses.id(req.params.addressId);
+    if (!nextDefault) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+    nextDefault.isDefault = true;
+
+    await user.save();
+    return res.json(user.addresses);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to set default address" });
+  }
+};
+
+export const deleteUserAddress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const address = user.addresses.id(req.params.addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    const wasDefault = address.isDefault;
+    address.deleteOne();
+
+    if (wasDefault && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+    return res.json(user.addresses);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to delete address" });
   }
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -22,11 +22,7 @@ const OrderDetails = () => {
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
 
-    useEffect(() => {
-        fetchOrderDetails();
-    }, [id]);
-
-    const fetchOrderDetails = async () => {
+    const fetchOrderDetails = useCallback(async () => {
         try {
             setLoading(true);
             const response = await adminService.getOrderById(id);
@@ -36,7 +32,11 @@ const OrderDetails = () => {
             setError(err.response?.data?.message || "Failed to fetch order details");
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchOrderDetails();
+    }, [fetchOrderDetails]);
 
     const handleStatusUpdate = async (newStatus) => {
         try {

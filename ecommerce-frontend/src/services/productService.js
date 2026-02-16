@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "./http";
 
-const API_URL = "http://localhost:4000/api/products";
+const API_URL = `${API_BASE_URL}/products`;
 
 // Get authentication token from localStorage
 const getAuthToken = () => {
@@ -10,8 +11,7 @@ const getAuthToken = () => {
 
 // Get admin token from localStorage
 const getAdminToken = () => {
-  const admin = JSON.parse(localStorage.getItem("admin"));
-  return admin?.token;
+  return localStorage.getItem("adminToken");
 };
 
 export const productService = {
@@ -149,3 +149,5 @@ export const productService = {
     }
   },
 };
+
+export default productService;

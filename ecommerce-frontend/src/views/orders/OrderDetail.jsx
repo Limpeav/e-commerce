@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -6,20 +6,20 @@ import {
   Package,
   Calendar,
   DollarSign,
-  Truck,
   CheckCircle,
   MapPin,
   CreditCard,
-  User,
-  Mail,
   Phone,
   AlertCircle,
   ShoppingBag,
-  Star
+  Ban,
+  Truck
 } from "lucide-react";
 import axios from "axios";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "../../services/http";
+import { joinOrderRoom, subscribeRealtimeEvent } from "../../services/realtime";
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = API_BASE_URL;
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -30,33 +30,51 @@ const OrderDetail = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (id && user) {
-      fetchOrderDetails();
+    if (!id || !user) {
+      return undefined;
     }
+
+    const leaveOrderRoom = joinOrderRoom(id);
+    const unsubscribeOrderUpdate = subscribeRealtimeEvent("order:updated", (payload) => {
+      if (!payload?.orderId || payload.orderId !== id) {
+        return;
+      }
+
+      setOrder((prevOrder) =>
+        prevOrder
+          ? {
+              ...prevOrder,
+              orderStatus: payload.orderStatus ?? prevOrder.orderStatus,
+              paymentStatus: payload.paymentStatus ?? prevOrder.paymentStatus,
+              isPaid: payload.isPaid ?? prevOrder.isPaid,
+              isDelivered: payload.isDelivered ?? prevOrder.isDelivered,
+              updatedAt: payload.updatedAt || prevOrder.updatedAt,
+            }
+          : prevOrder
+      );
+    });
+
+    return () => {
+      unsubscribeOrderUpdate();
+      leaveOrderRoom();
+    };
   }, [id, user]);
 
   const getAuthToken = () => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      return userData.token;
-    }
-    return null;
+    return getUserToken();
   };
 
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const token = getAuthToken();
+      const token = getUserToken();
       if (!token) {
         throw new Error("Not authenticated");
       }
 
       const response = await axios.get(`${API_URL}/orders/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: withAuthHeaders(token),
       });
 
       setOrder(response.data);
@@ -67,7 +85,13 @@ const OrderDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id && user) {
+      fetchOrderDetails();
+    }
+  }, [id, user, fetchOrderDetails]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -85,6 +109,36 @@ const OrderDetail = () => {
       style: "currency",
       currency: "USD",
     }).format(amount || 0);
+  };
+
+  const canCancelOrder =
+    order && (order.orderStatus === "Pending" || order.orderStatus === "Processing");
+
+  const handleCancelOrder = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setError("Not authenticated");
+      return;
+    }
+
+    const confirmed = window.confirm("Cancel this order? You can only cancel before shipping.");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError("");
+      const response = await axios.put(
+        `${API_URL}/orders/${id}/cancel`,
+        {},
+        {
+          headers: withAuthHeaders(token),
+        }
+      );
+      setOrder(response.data);
+    } catch (cancelError) {
+      setError(cancelError.response?.data?.message || "Failed to cancel order");
+    }
   };
 
   if (loading) {
@@ -108,7 +162,7 @@ const OrderDetail = () => {
           </h2>
           <button
             onClick={() => navigate("/orders")}
-            className="mt-4 px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all font-bold text-sm shadow-md"
+            className="mt-4 px-8 py-3 bg-primary text-text-main rounded-xl hover:bg-primary-hover transition-all font-bold text-sm shadow-md"
           >
             Back to Orders
           </button>
@@ -151,6 +205,21 @@ const OrderDetail = () => {
             {order.orderStatus}
           </div>
         </div>
+
+        {canCancelOrder && (
+          <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-red-700">
+              You can cancel this order before it is shipped.
+            </p>
+            <button
+              onClick={handleCancelOrder}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-all"
+            >
+              <Ban className="w-4 h-4" />
+              Cancel Order
+            </button>
+          </div>
+        )}
 
         {/* Items */}
         <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-4">
@@ -216,6 +285,12 @@ const OrderDetail = () => {
                   {order.shippingAddress.phone}
                 </p>
               )}
+              {order.shippingCarrier && (
+                <p className="text-xs font-semibold inline-flex items-center gap-2 rounded-full bg-blue-soft/50 px-3 py-1 text-text-main border border-primary/10">
+                  <Truck className="w-4 h-4 text-primary" />
+                  {order.shippingCarrier}
+                </p>
+              )}
             </div>
           )}
 
@@ -278,6 +353,12 @@ const OrderDetail = () => {
                   : "Free"}
               </span>
             </div>
+            {order.shippingCarrier && (
+              <div className="flex justify-between">
+                <span>Carrier</span>
+                <span className="font-semibold text-text-main">{order.shippingCarrier}</span>
+              </div>
+            )}
             {order.taxPrice > 0 && (
               <div className="flex justify-between">
                 <span>Tax</span>

@@ -1,20 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { BookOpen, Search, HelpCircle, ChevronRight, Package, Truck, CreditCard, ShieldCheck } from "lucide-react";
+import axios from "axios";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
+import { API_BASE_URL } from "../../services/http";
 
 export default function KnowledgeBase() {
     const [searchQuery, setSearchQuery] = useState("");
-
-    const categories = [
-        { icon: Package, title: "Orders & Products", count: 12 },
-        { icon: Truck, title: "Shipping & Delivery", count: 8 },
-        { icon: CreditCard, title: "Payments & Billing", count: 5 },
-        { icon: ShieldCheck, title: "Security & Privacy", count: 7 }
-    ];
-
-    const faqs = [
+    const [faqs, setFaqs] = useState([
         {
             category: "Shipping & Delivery",
             questions: [
@@ -29,7 +23,53 @@ export default function KnowledgeBase() {
                 { q: "How are product quality standards verified?", a: "Every item undergoes a thorough quality check at our warehouse before being shipped to ensuring you receive only the best." }
             ]
         }
+    ]);
+
+    useEffect(() => {
+        const fetchFaqs = async () => {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/support/faqs`);
+                if (Array.isArray(response.data?.faqs) && response.data.faqs.length > 0) {
+                    setFaqs(response.data.faqs.map((section) => ({
+                        category: section.category,
+                        questions: section.questions.map((item) => ({
+                            q: item.question,
+                            a: item.answer,
+                        })),
+                    })));
+                }
+            } catch {
+                // Keep fallback FAQ content when API is unavailable.
+            }
+        };
+
+        fetchFaqs();
+    }, []);
+
+    const categories = [
+        { icon: Package, title: "Orders & Products", count: 12 },
+        { icon: Truck, title: "Shipping & Delivery", count: 8 },
+        { icon: CreditCard, title: "Payments & Billing", count: 5 },
+        { icon: ShieldCheck, title: "Security & Privacy", count: 7 }
     ];
+
+    const filteredFaqs = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) {
+            return faqs;
+        }
+
+        return faqs
+            .map((section) => ({
+                ...section,
+                questions: section.questions.filter(
+                    (item) =>
+                        item.q.toLowerCase().includes(query) ||
+                        item.a.toLowerCase().includes(query)
+                ),
+            }))
+            .filter((section) => section.questions.length > 0);
+    }, [faqs, searchQuery]);
 
     return (
         <PageLayout
@@ -88,7 +128,7 @@ export default function KnowledgeBase() {
                     <SectionHeader number={1} title="Frequently Asked Questions" icon={HelpCircle} />
 
                     <div className="space-y-16">
-                        {faqs.map((section, sIdx) => (
+                        {filteredFaqs.map((section, sIdx) => (
                             <div key={sIdx} className="space-y-8">
                                 <h3 className="text-sm font-bold text-secondary uppercase tracking-wide flex items-center gap-4">
                                     <span className="w-8 h-px bg-secondary/30"></span>
@@ -119,7 +159,7 @@ export default function KnowledgeBase() {
                             <h4 className="text-xl font-bold text-text-main font-display">Still need help?</h4>
                             <p className="text-sm font-medium text-stone-500">Our support team is ready to assist you.</p>
                         </div>
-                        <button className="bg-text-main text-white px-8 py-4 rounded-xl font-bold text-sm hover:bg-primary transition-all shadow-lg hover:shadow-primary/20 active:scale-95">
+                        <button className="bg-text-main text-white px-8 py-4 rounded-xl font-bold text-sm hover:bg-primary-hover hover:text-text-main transition-all shadow-lg hover:shadow-primary/20 active:scale-95">
                             Contact Support
                         </button>
                     </div>

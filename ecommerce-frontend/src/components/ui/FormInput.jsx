@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const FormInput = ({ 
   label, 
@@ -20,12 +20,12 @@ const FormInput = ({
 
   return (
     <div className="group">
-      <label className="block text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4 ml-1">
+      <label className="block text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-2 ml-1">
         {label}
       </label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300" />
+          <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted/60" />
         )}
         <input
           type={inputType}
@@ -35,13 +35,13 @@ const FormInput = ({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className={`w-full ${Icon ? 'pl-12' : 'px-6'} pr-6 py-4 bg-stone-50 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary transition-all font-bold text-text-main disabled:opacity-40 disabled:cursor-not-allowed ${showPasswordToggle ? 'pr-14' : ''}`}
+          className={`w-full ${Icon ? 'pl-12' : 'px-4'} pr-4 py-3 bg-white border border-primary/15 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-semibold text-text-main disabled:opacity-40 disabled:cursor-not-allowed ${showPasswordToggle ? 'pr-14' : ''}`}
         />
         {showPasswordToggle && (
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute right-6 top-1/2 transform -translate-y-1/2 text-stone-300 hover:text-primary transition-colors"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-text-muted/70 hover:text-primary transition-colors"
           >
             <ToggleIcon className="w-5 h-5" />
           </button>

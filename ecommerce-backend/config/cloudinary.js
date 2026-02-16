@@ -1,44 +1,27 @@
+import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
 
-(async function () {
-  // Configuration
+const hasNamedCloudinaryConfig =
+  Boolean(process.env.CLOUDINARY_NAME) &&
+  Boolean(process.env.CLOUDINARY_API_KEY) &&
+  Boolean(process.env.CLOUDINARY_API_SECRET);
+
+const hasCloudinaryUrl = Boolean(process.env.CLOUDINARY_URL);
+
+if (hasNamedCloudinaryConfig) {
   cloudinary.config({
-    cloud_name: "dykl9a88x",
-    api_key: "878276848861513",
-    api_secret: "JNSuZ1bIDgrrlxxA3AvqSRvxsLw",
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
   });
-
-  // Upload an image
-  const uploadResult = await cloudinary.uploader
-    .upload(
-      "https://res.cloudinary.com/prod/image/upload/e_gen_background_replace:prompt_Minimalist%20background%20with%20a%20soft%20pastel%20gradient%20even%20lighting/me/gen-bgr-object-1",
-      {
-        public_id: "shoes",
-      }
-    )
-    .catch((error) => {
-      console.log(error);
-    });
-
-  console.log(uploadResult);
-
-  // Optimize delivery by resizing and applying auto-format and auto-quality
-  const optimizeUrl = cloudinary.url("shoes", {
-    fetch_format: "auto",
-    quality: "auto",
+} else if (hasCloudinaryUrl) {
+  cloudinary.config({
+    secure: true,
   });
+}
 
-  console.log(optimizeUrl);
-
-  // Transform the image: auto-crop to square aspect_ratio
-  const autoCropUrl = cloudinary.url("shoes", {
-    crop: "auto",
-    gravity: "auto",
-    width: 500,
-    height: 500,
-  });
-
-  console.log(autoCropUrl);
-})();
+export const isCloudinaryConfigured =
+  hasNamedCloudinaryConfig || hasCloudinaryUrl;
 
 export default cloudinary;

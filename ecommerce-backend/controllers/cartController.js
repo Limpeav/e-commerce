@@ -1,4 +1,13 @@
 import Cart from "../models/cartModel.js";
+import Product from "../models/Product.js";
+
+const validateQuantity = (quantity) => {
+  const numericQuantity = Number(quantity);
+  if (!Number.isInteger(numericQuantity) || numericQuantity < 1) {
+    return null;
+  }
+  return numericQuantity;
+};
 
 export const getCart = async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id }).populate(
@@ -11,6 +20,16 @@ export const getCart = async (req, res) => {
 // add item to cart
 export const addToCart = async (req, res) => {
   const { productId, quantity } = req.body;
+  const safeQuantity = validateQuantity(quantity);
+
+  if (!productId || !safeQuantity) {
+    return res.status(400).json({ message: "Invalid product or quantity" });
+  }
+
+  const product = await Product.findById(productId).select("_id title stock");
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
 
   let cart = await Cart.findOne({ user: req.user._id });
 
@@ -23,9 +42,20 @@ export const addToCart = async (req, res) => {
   );
 
   if (itemIndex > -1) {
-    cart.items[itemIndex].quantity += quantity;
+    const nextQuantity = cart.items[itemIndex].quantity + safeQuantity;
+    if (Number(product.stock || 0) < nextQuantity) {
+      return res.status(400).json({
+        message: `Only ${product.stock || 0} item(s) available in stock`,
+      });
+    }
+    cart.items[itemIndex].quantity = nextQuantity;
   } else {
-    cart.items.push({ product: productId, quantity });
+    if (Number(product.stock || 0) < safeQuantity) {
+      return res.status(400).json({
+        message: `Only ${product.stock || 0} item(s) available in stock`,
+      });
+    }
+    cart.items.push({ product: productId, quantity: safeQuantity });
   }
 
   await cart.save();
@@ -58,6 +88,11 @@ export const removeFromCart = async (req, res) => {
 export const updateCartQuantity = async (req, res) => {
   const { productId } = req.params;
   const { quantity } = req.body;
+  const safeQuantity = validateQuantity(quantity);
+
+  if (!safeQuantity) {
+    return res.status(400).json({ message: "Quantity must be a positive integer" });
+  }
 
   const cart = await Cart.findOne({ user: req.user._id });
 
@@ -67,7 +102,18 @@ export const updateCartQuantity = async (req, res) => {
 
   if (!item) return res.status(404).json({ message: "Item not found" });
 
-  item.quantity = quantity;
+  const product = await Product.findById(productId).select("_id title stock");
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  if (Number(product.stock || 0) < safeQuantity) {
+    return res.status(400).json({
+      message: `Only ${product.stock || 0} item(s) available in stock`,
+    });
+  }
+
+  item.quantity = safeQuantity;
   await cart.save();
 
   // Populate product details before sending response

@@ -5,7 +5,8 @@ import {
   Package,
   Users,
   ShoppingCart,
-  Settings,
+  MessageSquare,
+  BarChart3,
   LogOut,
   Menu,
   X,
@@ -39,6 +40,16 @@ const AdminSidebar = () => {
       path: '/admin/orders',
       name: 'Orders',
       icon: ShoppingCart
+    },
+    {
+      path: '/admin/reports',
+      name: 'Reports',
+      icon: BarChart3
+    },
+    {
+      path: '/admin/reviews',
+      name: 'Reviews',
+      icon: MessageSquare
     }
   ]
 

@@ -1,10 +1,61 @@
-import React from "react";
-import { Mail, Phone, MessageSquare, Send, Globe, Clock, MapPin } from "lucide-react";
+import React, { useState } from "react";
+import { Mail, Phone, MessageSquare, Send, Globe, Clock } from "lucide-react";
+import axios from "axios";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
+import { API_BASE_URL, getPreferredToken, withAuthHeaders } from "../../services/http";
 
 export default function Contact() {
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        topic: "Technical Support",
+        message: "",
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState("");
+    const [submitError, setSubmitError] = useState("");
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitMessage("");
+        setSubmitError("");
+
+        if (!form.name || !form.email || !form.message) {
+            setSubmitError("Name, email, and message are required.");
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            const token = getPreferredToken();
+
+            await axios.post(
+                `${API_BASE_URL}/support/contact`,
+                form,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...withAuthHeaders(token),
+                    },
+                }
+            );
+
+            setSubmitMessage("Your message was sent successfully. Our team will contact you soon.");
+            setForm((prev) => ({ ...prev, message: "" }));
+        } catch (error) {
+            setSubmitError(error.response?.data?.message || "Failed to send your message.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const contactMethods = [
         {
             icon: Phone,
@@ -44,7 +95,7 @@ export default function Contact() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {contactMethods.map((method, idx) => (
                             <ContentBox key={idx} className="group hover:border-primary/20 transition-all duration-500">
-                                <div className={`w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary transition-all shadow-sm`}>
+                                <div className={`w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary-hover hover:text-text-main transition-all shadow-sm`}>
                                     <method.icon className="w-6 h-6 text-stone-400 group-hover:text-white transition-colors" />
                                 </div>
                                 <h3 className="text-xs font-bold text-primary uppercase tracking-wide mb-2">{method.title}</h3>
@@ -68,20 +119,39 @@ export default function Contact() {
                                 </p>
                             </div>
 
-                            <form className="space-y-6">
+                            <form className="space-y-6" onSubmit={handleSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Full Name</label>
-                                        <input type="text" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Enter name..." />
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={form.name}
+                                            onChange={handleChange}
+                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            placeholder="Enter name..."
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Email Address</label>
-                                        <input type="email" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Enter email..." />
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={form.email}
+                                            onChange={handleChange}
+                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            placeholder="Enter email..."
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Inquiry Topic</label>
-                                    <select className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
+                                    <select
+                                        name="topic"
+                                        value={form.topic}
+                                        onChange={handleChange}
+                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
+                                    >
                                         <option>Technical Support</option>
                                         <option>Billing & Finance</option>
                                         <option>Partnership Proposal</option>
@@ -90,10 +160,27 @@ export default function Contact() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Message</label>
-                                    <textarea rows="4" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder="Your message..."></textarea>
+                                    <textarea
+                                        rows="4"
+                                        name="message"
+                                        value={form.message}
+                                        onChange={handleChange}
+                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                                        placeholder="Your message..."
+                                    ></textarea>
                                 </div>
-                                <button className="w-full bg-text-main text-white py-4 rounded-xl font-bold text-sm hover:bg-primary transition-all shadow-lg hover:shadow-primary/20 flex items-center justify-center gap-3 group active:scale-95">
-                                    Send Message
+                                {submitError && (
+                                    <p className="text-xs font-bold text-red-500 uppercase tracking-wide">{submitError}</p>
+                                )}
+                                {submitMessage && (
+                                    <p className="text-xs font-bold text-green-600 uppercase tracking-wide">{submitMessage}</p>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="w-full bg-text-main text-white py-4 rounded-xl font-bold text-sm hover:bg-primary-hover hover:text-text-main transition-all shadow-lg hover:shadow-primary/20 flex items-center justify-center gap-3 group active:scale-95 disabled:opacity-60"
+                                >
+                                    {submitting ? "Sending..." : "Send Message"}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </button>
                             </form>

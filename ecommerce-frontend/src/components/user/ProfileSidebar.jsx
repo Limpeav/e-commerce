@@ -7,9 +7,7 @@ import {
     Heart,
     Settings,
     LogOut,
-    Briefcase,
-    MapPin,
-    CreditCard
+    MapPin
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -26,8 +24,7 @@ const ProfileSidebar = () => {
         { path: '/profile', icon: User, label: 'My Profile' },
         { path: '/orders', icon: ShoppingBag, label: 'My Orders' },
         { path: '/wishlist', icon: Heart, label: 'Wishlist' },
-        // { path: '/addresses', icon: MapPin, label: 'Address Book' }, // Future Implementation
-        // { path: '/payment-methods', icon: CreditCard, label: 'Payment Methods' }, // Future Implementation
+        { path: '/addresses', icon: MapPin, label: 'Address Book' },
         { path: '/settings', icon: Settings, label: 'Settings' },
     ];
 
@@ -39,7 +36,7 @@ const ProfileSidebar = () => {
                     {user?.avatar ? (
                         <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                     ) : (
-                        <div className="bg-primary text-white text-3xl font-black w-full h-full flex items-center justify-center">
+                        <div className="bg-primary text-text-main text-3xl font-black w-full h-full flex items-center justify-center">
                             {user?.name?.charAt(0).toUpperCase()}
                         </div>
                     )}
@@ -59,7 +56,7 @@ const ProfileSidebar = () => {
                         to={item.path}
                         className={({ isActive }) =>
                             `flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-200 font-bold text-sm group relative overflow-hidden ${isActive
-                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                ? 'bg-primary text-text-main shadow-lg shadow-primary/20'
                                 : 'text-text-muted hover:bg-stone-50 hover:text-text-main'
                             }`
                         }

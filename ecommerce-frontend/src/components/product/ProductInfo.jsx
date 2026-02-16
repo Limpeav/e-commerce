@@ -1,145 +1,132 @@
-import React, { useState } from 'react';
-import { Star, ShoppingCart, Lock, Check, Truck, Shield, RotateCcw, Baby } from 'lucide-react';
+import React from "react";
+import { Lock, RotateCcw, ShoppingCart, Shield, Star, Truck } from "lucide-react";
+import { useFlyToCart } from "../../context/FlyToCartContext";
 
-const ProductInfo = ({
-  product,
-  quantity,
-  setQuantity,
-  onAddToCart,
-  user
-}) => {
+const ProductInfo = ({ product, quantity, setQuantity, onAddToCart, user, imageRef }) => {
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
-  const discountPercent = hasDiscount ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+    : 0;
+
+  const availableStock = Number(product.stock || 0);
+  const inStock = availableStock > 0;
+  const canIncreaseQuantity = quantity < availableStock;
+  const canAddToCart = Boolean(user) && inStock;
+  const { flyToCart } = useFlyToCart();
+
+  const handleAdd = () => {
+    if (!canAddToCart) return;
+    flyToCart(imageRef?.current);
+    onAddToCart();
+  };
 
   return (
-    <div className="space-y-8 flex flex-col justify-center font-sans">
-      {/* Category & Status */}
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
-          <Baby className="w-4 h-4" />
-          {product.category}
+    <div className="space-y-4 rounded-2xl border border-primary/14 bg-white/96 p-3.5 shadow-sm md:p-4">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
+          {product.category || "Baby"}
         </span>
-        <div className="h-1 w-1 bg-stone-300 rounded-full"></div>
-        <span className="text-xs font-medium text-green-600">In Stock</span>
+        <span className={`text-xs font-semibold ${inStock ? "text-green-600" : "text-red-500"}`}>
+          {inStock ? `${availableStock} in stock` : "Out of stock"}
+        </span>
       </div>
 
-      {/* Product Title & Rating */}
-      <div className="space-y-4">
-        <h1 className="text-4xl lg:text-5xl font-bold text-text-main leading-tight font-display tracking-tight">
-          {product.title}
-        </h1>
-
-        <div className="flex items-center gap-4">
+      <div>
+        <h1 className="mb-2 text-2xl font-bold leading-tight text-text-main md:text-3xl">{product.title || product.name}</h1>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <div className="flex items-center gap-1">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 ${i < Math.floor(product.rating || 0)
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-stone-200"
-                    }`}
-                />
-              ))}
-            </div>
-            <span className="ml-2 font-bold text-text-main text-sm">{product.rating?.toFixed(1) || "0.0"}</span>
+            {[...Array(5)].map((_, index) => (
+              <Star
+                key={index}
+                className={`h-4 w-4 ${
+                  index < Math.floor(product.rating || 0) ? "fill-secondary text-secondary" : "text-primary/20"
+                }`}
+              />
+            ))}
           </div>
-          <span className="text-text-muted text-sm font-medium">{product.numReviews} Reviews</span>
+          <span className="font-semibold text-text-main">{product.rating?.toFixed(1) || "0.0"}</span>
+          <span className="text-text-muted">({product.numReviews || 0} reviews)</span>
         </div>
       </div>
 
-      {/* Price */}
-      <div className="flex items-end gap-3 flex-wrap">
+      <div className="flex flex-wrap items-end gap-2.5">
         {hasDiscount ? (
           <>
-            <span className="text-4xl font-bold text-text-main font-display">
-              ${product.discountPrice.toFixed(2)}
-            </span>
-            <span className="text-stone-400 line-through text-xl font-medium mb-1">
-              ${product.price.toFixed(2)}
-            </span>
-            <div className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-bold mb-2">
-              Save {discountPercent}%
-            </div>
+            <span className="font-display text-3xl font-bold text-text-main">${product.discountPrice.toFixed(2)}</span>
+            <span className="text-lg text-text-muted/70 line-through">${product.price.toFixed(2)}</span>
+            <span className="rounded-md bg-blue-soft px-2 py-1 text-xs font-semibold text-secondary">Save {discountPercent}%</span>
           </>
         ) : (
-          <span className="text-4xl font-bold text-text-main font-display">
-            ${product.price.toFixed(2)}
-          </span>
+          <span className="font-display text-3xl font-bold text-text-main">${product.price.toFixed(2)}</span>
         )}
       </div>
 
-      {/* Description */}
-      <div className="prose prose-stone max-w-none">
-        <p className="text-base text-text-muted leading-relaxed">
-          {product.description}
-        </p>
-      </div>
+      <p className="text-sm leading-relaxed text-text-muted md:text-base">{product.description}</p>
 
-      {/* Quantity & Action */}
-      <div className="space-y-6 pt-6 border-t border-stone-100">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Quantity Selector */}
-          <div className="flex items-center gap-3 bg-stone-50 rounded-xl p-1.5 w-fit border border-stone-200">
+      <div className="space-y-3 border-t border-primary/12 pt-3">
+        <div className="flex items-center gap-3">
+          <span className="min-w-14 text-sm font-semibold text-text-main">Qty</span>
+          <div className="inline-flex items-center gap-1 rounded-xl border border-primary/20 p-1">
             <button
+              type="button"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-10 h-10 flex items-center justify-center rounded-lg bg-white shadow-sm hover:bg-stone-100 transition-all font-bold text-xl text-stone-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-primary/15 bg-white text-text-main transition-colors hover:bg-primary/10"
             >
-              −
+              -
             </button>
-            <span className="w-10 text-center font-bold text-lg text-text-main">
-              {quantity}
-            </span>
+            <span className="w-8 text-center text-sm font-semibold text-text-main">{quantity}</span>
             <button
-              onClick={() => setQuantity(quantity + 1)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg bg-white shadow-sm hover:bg-stone-100 transition-all font-bold text-xl text-stone-600"
+              type="button"
+              onClick={() => setQuantity(Math.min(availableStock || 1, quantity + 1))}
+              disabled={!canIncreaseQuantity}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-primary/15 bg-white text-text-main transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               +
             </button>
           </div>
+        </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={onAddToCart}
-            className={`flex-1 py-4 px-8 rounded-xl font-bold text-sm shadow-xl shadow-primary/20 transform transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 bg-gradient-to-r from-primary to-primary-light text-white overflow-hidden relative group`}
-          >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            {user ? (
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={!canAddToCart}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors ${
+            canAddToCart ? "bg-primary text-text-main hover:bg-primary-hover" : "cursor-not-allowed bg-primary/10 text-primary/50"
+          }`}
+        >
+          {user ? (
+            inStock ? (
               <>
-                <ShoppingCart className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                <span>Add to Cart</span>
+                <ShoppingCart className="h-4 w-4" />
+                Add to Cart
               </>
             ) : (
               <>
-                <Lock className="w-5 h-5" />
-                <span>Log in to Buy</span>
+                <Lock className="h-4 w-4" />
+                Out of Stock
               </>
-            )}
-          </button>
-        </div>
+            )
+          ) : (
+            <>
+              <Lock className="h-4 w-4" />
+              Login to Buy
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Value Props */}
-      <div className="grid grid-cols-3 gap-4 pt-6 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-            <Truck className="w-5 h-5" />
-          </div>
-          <span className="text-xs font-medium text-stone-600">Free Shipping</span>
+      <div className="grid grid-cols-1 gap-2 text-xs text-text-muted sm:grid-cols-3">
+        <div className="flex items-center gap-2 rounded-lg bg-blue-soft/55 px-3 py-2">
+          <Truck className="h-4 w-4 text-primary" />
+          Free shipping
         </div>
-
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-            <Shield className="w-5 h-5" />
-          </div>
-          <span className="text-xs font-medium text-stone-600">Secure Payment</span>
+        <div className="flex items-center gap-2 rounded-lg bg-blue-soft/55 px-3 py-2">
+          <Shield className="h-4 w-4 text-primary" />
+          Secure payment
         </div>
-
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-            <RotateCcw className="w-5 h-5" />
-          </div>
-          <span className="text-xs font-medium text-stone-600">Easy Returns</span>
+        <div className="flex items-center gap-2 rounded-lg bg-blue-soft/55 px-3 py-2">
+          <RotateCcw className="h-4 w-4 text-primary" />
+          Easy returns
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Users,
@@ -20,16 +20,7 @@ const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [stats, setStats] = useState({});
 
-    useEffect(() => {
-        fetchUsers();
-        fetchStats();
-    }, []);
-
-    useEffect(() => {
-        filterUsers();
-    }, [searchTerm, users]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
             const response = await adminService.getUsers();
@@ -40,9 +31,9 @@ const UserManagement = () => {
             setError(err.response?.data?.message || "Failed to fetch users");
             setLoading(false);
         }
-    };
+    }, []);
 
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const response = await adminService.getUserStats();
             setStats(response.data);
@@ -53,7 +44,7 @@ const UserManagement = () => {
                 const totalUsers = users.length;
                 const adminUsers = users.filter(u => u.role === "admin").length;
                 const regularUsers = totalUsers - adminUsers;
-                const recentUsers = users
+                const recentUsers = [...users]
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                     .slice(0, 5);
                 
@@ -65,9 +56,9 @@ const UserManagement = () => {
                 });
             }
         }
-    };
+    }, [users]);
 
-    const filterUsers = () => {
+    const filterUsers = useCallback(() => {
         if (searchTerm) {
             const filtered = users.filter(
                 (user) =>
@@ -78,7 +69,16 @@ const UserManagement = () => {
         } else {
             setFilteredUsers(users);
         }
-    };
+    }, [searchTerm, users]);
+
+    useEffect(() => {
+        fetchUsers();
+        fetchStats();
+    }, [fetchUsers, fetchStats]);
+
+    useEffect(() => {
+        filterUsers();
+    }, [filterUsers]);
 
     const handleRoleUpdate = async (userId, currentRole) => {
         const newRole = currentRole === "admin" ? "user" : "admin";

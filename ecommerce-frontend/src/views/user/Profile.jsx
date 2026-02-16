@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 import {
@@ -23,12 +23,13 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "../../services/http";
 
 // UI Components
 import { AlertMessage, StatCard, FormInput } from "../../components";
 import ProfileSidebar from "../../components/user/ProfileSidebar"; // Make sure to import the new sidebar
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = API_BASE_URL;
 
 const Profile = () => {
   const { user, login } = useAuth();
@@ -45,6 +46,7 @@ const Profile = () => {
   });
   const [recentOrders, setRecentOrders] = useState([]);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const getAuthToken = useCallback(() => getUserToken(), []);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,36 +58,20 @@ const Profile = () => {
     avatar: null,
   });
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-        avatar: null,
-      });
-      fetchUserStats();
-      fetchRecentOrders();
-    }
-  }, [user]);
-
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     try {
       const token = getAuthToken();
       if (!token) return;
 
       const [ordersRes, cartRes, wishlistRes] = await Promise.allSettled([
         axios.get(`${API_URL}/orders/myorders`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: withAuthHeaders(token),
         }),
         axios.get(`${API_URL}/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: withAuthHeaders(token),
         }),
         axios.get(`${API_URL}/wishlist`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: withAuthHeaders(token),
         }),
       ]);
 
@@ -102,31 +88,38 @@ const Profile = () => {
     } catch (err) {
       console.error("Error fetching user stats:", err);
     }
-  };
+  }, [getAuthToken]);
 
-  const fetchRecentOrders = async () => {
+  const fetchRecentOrders = useCallback(async () => {
     try {
       const token = getAuthToken();
       if (!token) return;
 
       const response = await axios.get(`${API_URL}/orders/myorders`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: withAuthHeaders(token),
       });
 
       setRecentOrders(response.data.slice(0, 3));
     } catch (err) {
       console.error("Error fetching recent orders:", err);
     }
-  };
+  }, [getAuthToken]);
 
-  const getAuthToken = () => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      return userData.token;
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+        avatar: null,
+      });
+      fetchUserStats();
+      fetchRecentOrders();
     }
-    return null;
-  };
+  }, [user, fetchUserStats, fetchRecentOrders]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -187,7 +180,7 @@ const Profile = () => {
         updateData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...withAuthHeaders(token),
             "Content-Type": "application/json",
           },
         }
@@ -235,7 +228,7 @@ const Profile = () => {
             Identity Unverified
           </h2>
           <p className="text-text-muted font-bold text-sm mb-10">Verification required to access personal registry logs.</p>
-          <Link to="/login" className="bg-text-main text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/10 hover:bg-primary transition-all active:scale-95 inline-block">
+          <Link to="/login" className="bg-text-main text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/10 hover:bg-primary-hover hover:text-text-main transition-all active:scale-95 inline-block">
             Establish Credentials
           </Link>
         </div>
@@ -422,7 +415,7 @@ const Profile = () => {
                                 <User className="w-10 h-10 text-stone-300" />
                               )}
                             </div>
-                            <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary-dark transition-colors shadow-lg">
+                            <label className="absolute bottom-0 right-0 bg-primary text-text-main p-2 rounded-full cursor-pointer hover:bg-primary-hover hover:text-text-main transition-colors shadow-lg">
                               <Camera className="w-4 h-4" />
                               <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
                             </label>
@@ -506,7 +499,7 @@ const Profile = () => {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="bg-primary text-white py-4 px-10 rounded-2xl hover:bg-primary-dark shadow-xl hover:shadow-primary/20 transition-all font-black text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95"
+                        className="bg-primary text-text-main py-4 px-10 rounded-2xl hover:bg-primary-hover hover:text-text-main shadow-xl hover:shadow-primary/20 transition-all font-black text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95"
                       >
                         {loading ? (
                           <>

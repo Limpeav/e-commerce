@@ -1,46 +1,56 @@
-import { Truck, ShieldCheck, Smile, Clock } from "lucide-react";
+import { Award, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
 const benefits = [
-    {
-        icon: Truck,
-        title: "Free Shipping",
-        description: "On all orders over $50"
-    },
-    {
-        icon: ShieldCheck,
-        title: "Safe & Non-Toxic",
-        description: "Certified organic materials"
-    },
-    {
-        icon: Smile,
-        title: "Happiness Guaranteed",
-        description: "30-day easy returns"
-    },
-    {
-        icon: Clock,
-        title: "24/7 Support",
-        description: "We're here for you anytime"
-    }
+  {
+    icon: ShieldCheck,
+    title: "Safe Products",
+    description: "Carefully selected essentials with baby-first safety standards.",
+    tone: "from-blue-soft/65 to-white",
+  },
+  {
+    icon: Truck,
+    title: "Fast Delivery",
+    description: "Quick shipping for urgent parent needs and daily essentials.",
+    tone: "from-mint-soft/70 to-white",
+  },
+  {
+    icon: RotateCcw,
+    title: "Easy Return",
+    description: "Simple 30-day return policy with clear steps and support.",
+    tone: "from-blue-soft/62 to-white",
+  },
+  {
+    icon: Award,
+    title: "Trusted Brands",
+    description: "Popular brands loved by families and verified by our team.",
+    tone: "from-yellow-soft/70 to-white",
+  },
 ];
 
 export default function BrandBenefits() {
-    return (
-        <div className="py-12 bg-white border-b border-stone-100">
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                    {benefits.map((item, index) => (
-                        <div key={index} className="flex flex-col items-center text-center space-y-3 group">
-                            <div className="p-4 rounded-2xl bg-stone-50 text-primary group-hover:bg-primary-light/10 group-hover:text-primary-dark transition-colors duration-300">
-                                <item.icon className="w-8 h-8" strokeWidth={1.5} />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-text-main font-display text-lg">{item.title}</h3>
-                                <p className="text-sm text-text-muted font-medium">{item.description}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+  return (
+    <section className="px-4 md:px-6">
+      <div className="mx-auto max-w-7xl rounded-3xl border border-primary/12 bg-white p-4 shadow-[0_10px_22px_rgba(116,178,226,0.12)] md:p-5">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Trust & Safety</p>
+          <h3 className="text-2xl font-bold text-text-main md:text-3xl">Why parents feel confident shopping here</h3>
         </div>
-    );
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 md:gap-3">
+          {benefits.map((item) => (
+            <article
+              key={item.title}
+              className={`rounded-2xl border border-primary/12 bg-gradient-to-br ${item.tone} p-3.5 shadow-sm md:p-4`}
+            >
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-primary">
+                <item.icon className="h-4.5 w-4.5" />
+              </div>
+              <h4 className="text-base font-semibold text-text-main">{item.title}</h4>
+              <p className="mt-1 line-clamp-2 text-xs text-text-muted">{item.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

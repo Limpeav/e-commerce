@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin, X, Check, Locate, Search } from "lucide-react";
 
-// Google Maps API Key - Uses environment variable if available, otherwise uses the provided key
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
 
 
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
@@ -13,7 +12,6 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searching, setSearching] = useState(false);
   const [addressName, setAddressName] = useState("");
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
@@ -29,6 +27,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     // Check if Google Maps is already loaded
     if (window.google && window.google.maps) {
       setIsGoogleMapsLoaded(true);
+      return;
+    }
+
+    if (!GOOGLE_MAPS_API_KEY) {
+      setLocationError(
+        "Google Maps is not configured. Set VITE_GOOGLE_MAPS_API_KEY in your .env file."
+      );
+      setIsGoogleMapsLoaded(false);
       return;
     }
 
@@ -228,8 +234,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           });
 
           autocompleteRef.current = autocomplete;
-        } catch (e) {
-          console.warn("Places Autocomplete failed to initialize");
+        } catch (error) {
+          console.warn("Places Autocomplete failed to initialize", error);
         }
       }
 
@@ -249,12 +255,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               setAddressName(results[0].formatted_address);
             }
           });
-        } catch (e) {
-          console.warn("Initial address geocoding failed");
+        } catch (error) {
+          console.warn("Initial address geocoding failed", error);
         }
       } else {
         // Get initial address name
-        updateAddress(selectedLocation);
+        const markerPosition = marker.getPosition();
+        if (markerPosition) {
+          updateAddress(markerPosition);
+        }
       }
 
       // Mark map as loaded
@@ -273,7 +282,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
       }
     };
-  }, [isOpen, address, isGoogleMapsLoaded]);
+  }, [isOpen, address, isGoogleMapsLoaded, selectedLocation]);
 
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
@@ -313,8 +322,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                 setAddressName(results[0].formatted_address);
               }
             });
-          } catch (e) {
-            console.warn("Geocoding failed during location detection");
+          } catch (error) {
+            console.warn("Geocoding failed during location detection", error);
           }
         }
 

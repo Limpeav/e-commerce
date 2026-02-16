@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL, getAdminToken } from "./http";
 
-const API_URL = "/api";
+const API_URL = API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -12,7 +13,7 @@ const api = axios.create({
 // Add admin token to requests
 api.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem("adminToken");
+    const adminToken = getAdminToken();
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     }
@@ -79,7 +80,10 @@ export const adminService = {
 
   // Analytics
   getSalesAnalytics: (period) => api.get(`/admin/analytics/sales?period=${period}`),
-  getInventoryReport: () => api.get("/admin/reports/inventory"),
+  getInventoryReport: (params = {}) => api.get("/admin/reports/inventory", { params }),
+  getReviewQueue: (params = {}) => api.get("/admin/reviews", { params }),
+  moderateReview: (productId, reviewId, payload) =>
+    api.patch(`/admin/reviews/${productId}/${reviewId}`, payload),
 
   // Data export
   exportData: (type, format) => api.get(`/admin/export/${type}?format=${format}`),
@@ -88,4 +92,4 @@ export const adminService = {
   cleanupReviews: () => api.post("/admin/cleanup-reviews")
 };
 
-export default api;
+export default adminService;

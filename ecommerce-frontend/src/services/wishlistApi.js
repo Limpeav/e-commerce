@@ -1,20 +1,13 @@
 import axios from "axios";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "./http";
 
-const API_URL = "http://localhost:4000/api/wishlist";
-
-// Get authentication token from localStorage
-const getAuthToken = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  return user?.token;
-};
+const API_URL = `${API_BASE_URL}/wishlist`;
 
 // Get user's wishlist
 export const fetchWishlist = async () => {
-  const token = getAuthToken();
+  const token = getUserToken();
   const config = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: withAuthHeaders(token),
   };
   const response = await axios.get(API_URL, config);
   return response.data;
@@ -22,11 +15,9 @@ export const fetchWishlist = async () => {
 
 // Add item to wishlist
 export const addItemToWishlist = async (productId) => {
-  const token = getAuthToken();
+  const token = getUserToken();
   const config = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: withAuthHeaders(token),
   };
   const response = await axios.post(
     `${API_URL}/add`,
@@ -38,11 +29,9 @@ export const addItemToWishlist = async (productId) => {
 
 // Remove item from wishlist
 export const removeItemFromWishlist = async (productId) => {
-  const token = getAuthToken();
+  const token = getUserToken();
   const config = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: withAuthHeaders(token),
   };
   const response = await axios.delete(
     `${API_URL}/remove/${productId}`,

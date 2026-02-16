@@ -10,20 +10,35 @@ const generateToken = (id) => {
 
 // @desc    Register new admin
 // @route   POST /api/admin/register
-// @access  Public
+// @access  Private/Admin
 export const registerAdmin = async (req, res) => {
     try {
         const { name, phone, email, password } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
+        const normalizedPhone = phone?.trim();
 
-        const userExists = await User.findOne({ email });
+        if (!name || !normalizedEmail || !password) {
+            return res
+                .status(400)
+                .json({ message: "Name, email, and password are required" });
+        }
+
+        const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
         }
 
+        if (normalizedPhone) {
+            const phoneExists = await User.findOne({ phone: normalizedPhone });
+            if (phoneExists) {
+                return res.status(400).json({ message: "Phone number already in use" });
+            }
+        }
+
         const user = await User.create({
-            name,
-            phone,
-            email,
+            name: name.trim(),
+            phone: normalizedPhone,
+            email: normalizedEmail,
             password,
             role: "admin", // Force admin role
         });
@@ -47,13 +62,14 @@ export const registerAdmin = async (req, res) => {
 export const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
 
         // Validate input
-        if (!email || !password) {
+        if (!normalizedEmail || !password) {
             return res.status(400).json({ message: "Please provide email and password" });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password" });
         }

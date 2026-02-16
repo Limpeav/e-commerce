@@ -1,41 +1,191 @@
-import { useState } from 'react';
-import { Package, Truck, MapPin, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Package, Truck, MapPin, CheckCircle, AlertCircle } from "lucide-react";
+import { API_BASE_URL, getUserToken, withAuthHeaders } from "../../services/http";
+import { joinOrderRoom, subscribeRealtimeEvent } from "../../services/realtime";
+
+const statusIcon = {
+  placed: <Package className="w-5 h-5 text-blue-600" />,
+  payment: <CheckCircle className="w-5 h-5 text-green-600" />,
+  shipped: <Truck className="w-5 h-5 text-orange-600" />,
+  delivered: <CheckCircle className="w-5 h-5 text-emerald-600" />,
+  cancelled: <AlertCircle className="w-5 h-5 text-red-600" />,
+};
+
+const formatDate = (value) =>
+  new Date(value).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+const formatTime = (value) =>
+  new Date(value).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const buildTimeline = (order) => {
+  const history = [
+    {
+      date: order.createdAt,
+      status: "Order Placed",
+      location: order.shippingAddress?.city || "Warehouse",
+      icon: statusIcon.placed,
+    },
+  ];
+
+  if (order.isPaid || order.paymentStatus === "Paid") {
+    history.push({
+      date: order.paidAt || order.updatedAt,
+      status: "Payment Confirmed",
+      location: "Payment Gateway",
+      icon: statusIcon.payment,
+    });
+  }
+
+  if (order.orderStatus === "Processing") {
+    history.push({
+      date: order.updatedAt,
+      status: "Processing",
+      location: "Warehouse",
+      icon: statusIcon.placed,
+    });
+  }
+
+  if (order.orderStatus === "Shipped" || order.orderStatus === "Delivered") {
+    history.push({
+      date: order.updatedAt,
+      status: "Shipped",
+      location: order.shippingAddress?.city || "Distribution Center",
+      icon: statusIcon.shipped,
+    });
+  }
+
+  if (order.orderStatus === "Delivered") {
+    history.push({
+      date: order.deliveredAt || order.updatedAt,
+      status: "Delivered",
+      location: order.shippingAddress?.city || "Destination",
+      icon: statusIcon.delivered,
+    });
+  }
+
+  if (order.orderStatus === "Cancelled") {
+    history.push({
+      date: order.updatedAt,
+      status: "Cancelled",
+      location: "Order Management",
+      icon: statusIcon.cancelled,
+    });
+  }
+
+  return history.sort((a, b) => new Date(a.date) - new Date(b.date));
+};
 
 export default function OrderTracking() {
-  const [orderNumber, setOrderNumber] = useState('');
+  const [orderNumber, setOrderNumber] = useState("");
   const [trackingData, setTrackingData] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleTrackOrder = () => {
-    if (orderNumber.trim()) {
-      // Mock tracking data - replace with actual API call
-      setTrackingData({
-        orderNumber: orderNumber,
-        status: 'shipped',
-        estimatedDelivery: '2024-01-20',
-        trackingHistory: [
-          {
-            date: '2024-01-15',
-            time: '10:30 AM',
-            status: 'Order Placed',
-            location: 'Warehouse - New York',
-            icon: <Package className="w-5 h-5 text-blue-600" />
-          },
-          {
-            date: '2024-01-16',
-            time: '2:45 PM',
-            status: 'Order Processed',
-            location: 'Warehouse - New York',
-            icon: <CheckCircle className="w-5 h-5 text-green-600" />
-          },
-          {
-            date: '2024-01-17',
-            time: '9:15 AM',
-            status: 'Shipped',
-            location: 'Distribution Center - New Jersey',
-            icon: <Truck className="w-5 h-5 text-orange-600" />
-          }
-        ]
+  useEffect(() => {
+    if (!trackingData?.id) {
+      return undefined;
+    }
+
+    const leaveOrderRoom = joinOrderRoom(trackingData.id);
+    const unsubscribeOrderUpdate = subscribeRealtimeEvent("order:updated", (payload) => {
+      if (!payload?.orderId || payload.orderId !== trackingData.id) {
+        return;
+      }
+
+      setTrackingData((prevData) => {
+        if (!prevData) {
+          return prevData;
+        }
+
+        const nextStatus = payload.orderStatus || prevData.status;
+        const newEvent = {
+          date: payload.updatedAt || new Date().toISOString(),
+          status: nextStatus,
+          location: "Live status update",
+          icon:
+            nextStatus === "Delivered"
+              ? statusIcon.delivered
+              : nextStatus === "Cancelled"
+                ? statusIcon.cancelled
+                : nextStatus === "Shipped"
+                  ? statusIcon.shipped
+                  : statusIcon.placed,
+        };
+
+        const history = [...prevData.trackingHistory, newEvent];
+
+        return {
+          ...prevData,
+          status: nextStatus,
+          estimatedDelivery: payload.updatedAt || prevData.estimatedDelivery,
+          trackingHistory: history,
+        };
       });
+    });
+
+    return () => {
+      unsubscribeOrderUpdate();
+      leaveOrderRoom();
+    };
+  }, [trackingData?.id]);
+
+  const handleTrackOrder = async () => {
+    const query = orderNumber.trim().toLowerCase();
+    if (!query) {
+      setError("Enter an order ID or the last 8 characters.");
+      return;
+    }
+
+    const token = getUserToken();
+    if (!token) {
+      setError("Please sign in to track your orders.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await axios.get(`${API_BASE_URL}/orders/myorders`, {
+        headers: withAuthHeaders(token),
+      });
+
+      const orders = Array.isArray(response.data) ? response.data : [];
+      const matchedOrder = orders.find((order) => {
+        const id = order._id?.toLowerCase() || "";
+        const shortId = id.slice(-8);
+        return id === query || shortId === query;
+      });
+
+      if (!matchedOrder) {
+        setTrackingData(null);
+        setError("Order not found in your account.");
+        return;
+      }
+
+      setTrackingData({
+        id: matchedOrder._id,
+        orderNumber: matchedOrder._id.slice(-8),
+        status: matchedOrder.orderStatus,
+        estimatedDelivery:
+          matchedOrder.orderStatus === "Delivered"
+            ? matchedOrder.deliveredAt || matchedOrder.updatedAt
+            : matchedOrder.updatedAt,
+        trackingHistory: buildTimeline(matchedOrder),
+      });
+    } catch (trackError) {
+      setTrackingData(null);
+      setError(trackError.response?.data?.message || "Failed to track order");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,7 +201,6 @@ export default function OrderTracking() {
           </p>
         </div>
 
-        {/* Tracking Input */}
         <div className="bg-white rounded-[3rem] shadow-2xl shadow-primary/5 p-10 mb-12 border border-stone-100">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 relative group">
@@ -60,23 +209,27 @@ export default function OrderTracking() {
                 type="text"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
-                placeholder="Enter Registry Index (e.g., ORD-2024-001)"
+                placeholder="Enter full order ID or last 8 characters"
                 className="w-full pl-14 pr-6 py-4.5 bg-stone-50 border-2 border-stone-100 rounded-[2rem] focus:outline-none focus:border-primary transition-all text-text-main font-bold placeholder-stone-300"
               />
             </div>
             <button
               onClick={handleTrackOrder}
-              className="bg-text-main text-white px-10 py-4.5 rounded-[2rem] hover:bg-primary transition-all shadow-2xl shadow-primary/10 font-black uppercase tracking-[0.2em] text-[10px] active:scale-95 flex items-center justify-center gap-3"
+              disabled={loading}
+              className="bg-text-main text-white px-10 py-4.5 rounded-[2rem] hover:bg-primary-hover hover:text-text-main transition-all shadow-2xl shadow-primary/10 font-black uppercase tracking-[0.2em] text-[10px] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-60"
             >
-              Track Order
+              {loading ? "Tracking..." : "Track Order"}
             </button>
           </div>
+          {error && (
+            <p className="mt-4 text-red-500 font-bold text-xs uppercase tracking-wider">
+              {error}
+            </p>
+          )}
         </div>
 
-        {/* Tracking Results */}
         {trackingData && (
           <div className="space-y-10 animate-slideUp">
-            {/* Current Status */}
             <div className="bg-white rounded-[3.5rem] shadow-2xl shadow-primary/5 p-10 border border-stone-100 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Truck className="w-32 h-32 text-text-main" />
@@ -87,28 +240,38 @@ export default function OrderTracking() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative z-10">
                 <div>
-                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">Registry Index</p>
-                  <p className="font-mono text-sm font-black text-text-main bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-100 inline-block">#{trackingData.orderNumber.toUpperCase()}</p>
+                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">
+                    Registry Index
+                  </p>
+                  <p className="font-mono text-sm font-black text-text-main bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-100 inline-block">
+                    #{trackingData.orderNumber.toUpperCase()}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">Current Protocol</p>
-                  <p className="font-black text-secondary text-sm uppercase tracking-widest bg-secondary/5 px-4 py-2 rounded-full border border-secondary/10 inline-block">{trackingData.status}</p>
+                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">
+                    Current Protocol
+                  </p>
+                  <p className="font-black text-secondary text-sm uppercase tracking-widest bg-secondary/5 px-4 py-2 rounded-full border border-secondary/10 inline-block">
+                    {trackingData.status}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">Expected Arrival</p>
-                  <p className="font-black text-text-main text-sm">{new Date(trackingData.estimatedDelivery).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</p>
+                  <p className="text-[10px] font-black text-primary/40 mb-3 uppercase tracking-[0.3em]">
+                    Last Update
+                  </p>
+                  <p className="font-black text-text-main text-sm">
+                    {formatDate(trackingData.estimatedDelivery).toUpperCase()}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Tracking History */}
             <div className="bg-white rounded-[3.5rem] shadow-2xl shadow-primary/5 p-10 border border-stone-100">
               <h2 className="text-[10px] font-black text-text-main mb-10 flex items-center gap-3 uppercase tracking-[0.3em]">
                 <MapPin className="w-4 h-4 text-primary" />
                 Transit Logs
               </h2>
               <div className="space-y-8 relative">
-                {/* Vertical Line */}
                 <div className="absolute left-[26px] top-2 bottom-2 w-0.5 bg-stone-100"></div>
 
                 {trackingData.trackingHistory.map((event, index) => (
@@ -118,9 +281,11 @@ export default function OrderTracking() {
                     </div>
                     <div className="flex-1 pt-2">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
-                        <p className="font-black text-text-main uppercase tracking-widest text-sm">{event.status}</p>
+                        <p className="font-black text-text-main uppercase tracking-widest text-sm">
+                          {event.status}
+                        </p>
                         <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em]">
-                          {new Date(event.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()} // {event.time}
+                          {formatDate(event.date).toUpperCase()} // {formatTime(event.date)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] font-black text-primary/60 uppercase tracking-widest">

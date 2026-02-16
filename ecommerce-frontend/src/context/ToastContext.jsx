@@ -73,6 +73,10 @@ const ToastItem = ({ id, type, message, description, onClose }) => {
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
+    const removeToast = useCallback((id) => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, []);
+
     const addToast = useCallback(({ type = "info", message, description, duration = 4000 }) => {
         const id = Math.random().toString(36).substr(2, 9);
         setToasts((prev) => [...prev, { id, type, message, description }]);
@@ -82,11 +86,7 @@ export const ToastProvider = ({ children }) => {
                 removeToast(id);
             }, duration);
         }
-    }, []);
-
-    const removeToast = useCallback((id) => {
-        setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, []);
+    }, [removeToast]);
 
     const success = (message, description) => addToast({ type: "success", message, description });
     const error = (message, description) => addToast({ type: "error", message, description });

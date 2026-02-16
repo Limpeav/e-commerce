@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { generateBakongQR, getPaymentStatus } from "../services/paymentService";
-import { getOrderById } from "../services/orderService";
+import { generateBakongQR, getPaymentStatus } from "../../services/paymentService";
+import { getOrderById } from "../../services/orderService";
 
 export default function BakongPayment() {
     const { orderId } = useParams();
@@ -14,9 +14,28 @@ export default function BakongPayment() {
     const [timeLeft, setTimeLeft] = useState(null);
     const [paymentStatus, setPaymentStatus] = useState("pending");
 
+    const fetchOrderAndGenerateQR = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Fetch order details
+            const orderData = await getOrderById(orderId);
+            setOrder(orderData);
+
+            // Generate BAKONG QR code
+            const paymentData = await generateBakongQR(orderId);
+            setPayment(paymentData);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to generate payment QR code");
+        } finally {
+            setLoading(false);
+        }
+    }, [orderId]);
+
     useEffect(() => {
         fetchOrderAndGenerateQR();
-    }, [orderId]);
+    }, [fetchOrderAndGenerateQR]);
 
     // Poll payment status
     useEffect(() => {
@@ -71,25 +90,6 @@ export default function BakongPayment() {
         }
     }, [payment]);
 
-    const fetchOrderAndGenerateQR = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Fetch order details
-            const orderData = await getOrderById(orderId);
-            setOrder(orderData);
-
-            // Generate BAKONG QR code
-            const paymentData = await generateBakongQR(orderId);
-            setPayment(paymentData);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to generate payment QR code");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleCancelPayment = () => {
         navigate(`/orders/${orderId}`);
     };
@@ -114,7 +114,7 @@ export default function BakongPayment() {
                     <p className="text-gray-600 mb-6">{error}</p>
                     <button
                         onClick={() => navigate(`/orders/${orderId}`)}
-                        className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition"
+                        className="bg-primary text-text-main px-6 py-2 rounded-lg hover:bg-primary-hover transition"
                     >
                         Back to Order
                     </button>
@@ -234,7 +234,7 @@ export default function BakongPayment() {
                         <div className="flex gap-4 mt-6">
                             <button
                                 onClick={fetchOrderAndGenerateQR}
-                                className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
+                                className="flex-1 bg-primary text-text-main py-3 rounded-lg font-semibold hover:bg-primary-hover transition"
                             >
                                 Refresh QR Code
                             </button>

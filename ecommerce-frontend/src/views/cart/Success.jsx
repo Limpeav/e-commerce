@@ -1,7 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, ShoppingBag } from 'lucide-react';
 
 export default function OrderSuccess() {
+  const location = useLocation();
+  const orderId = location.state?.orderId;
+  const displayOrderNumber = orderId
+    ? `#${String(orderId).slice(-8).toUpperCase()}`
+    : "Pending Assignment";
+
   return (
     <div className="min-h-screen bg-bg-base flex items-center justify-center py-20 px-6 font-sans">
       <div className="max-w-xl mx-auto text-center">
@@ -21,7 +27,9 @@ export default function OrderSuccess() {
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Order Number</span>
-              <span className="font-mono text-sm font-bold text-text-main bg-stone-50 px-3 py-1 rounded-lg border border-stone-100">#ORD-{new Date().getFullYear()}-{Math.floor(Math.random() * 9000 + 1000)}</span>
+              <span className="font-mono text-sm font-bold text-text-main bg-stone-50 px-3 py-1 rounded-lg border border-stone-100">
+                {displayOrderNumber}
+              </span>
             </div>
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Date</span>
@@ -37,7 +45,7 @@ export default function OrderSuccess() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
             to="/orders"
-            className="flex-1 bg-primary text-white px-8 py-4 rounded-xl hover:bg-primary-dark transition-all shadow-md font-bold text-sm flex items-center justify-center gap-2 active:scale-95"
+            className="flex-1 bg-primary text-text-main px-8 py-4 rounded-xl hover:bg-primary-hover transition-all shadow-md font-bold text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <ShoppingBag className="w-4 h-4" />
             View Orders

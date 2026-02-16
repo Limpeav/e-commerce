@@ -1,57 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
-    /* Fonts */
-    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-    --font-display: "Inter", system-ui, -apple-system, sans-serif;
+    --font-sans: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+    --font-display: "Sora", "Plus Jakarta Sans", sans-serif;
 
-    /* Modern Professional Palette */
-    /* Primary: Indio/Violet - Innovation, Trust, Premium */
-    --color-primary: #4F46E5;
-    --color-primary-light: #818CF8;
-    --color-primary-dark: #3730A3;
+    --color-primary: #f6c6dc;
+    --color-primary-light: #fcebf3;
+    --color-primary-hover: #e8abc8;
+    --color-primary-dark: #d893b4;
 
-    /* Secondary: Vibrant Pink/Rose - Energy, Action */
-    --color-secondary: #DB2777;
-    --color-secondary-light: #F472B6;
+    --color-secondary: #8fd3f5;
+    --color-secondary-light: #e6f6ff;
 
-    /* Neutrals */
-    --color-bg-base: #FAFAF9;
-    /* Warm Stone 50 */
-    --color-bg-card: #FFFFFF;
-    --color-text-main: #1C1917;
-    /* Stone 900 */
-    --color-text-muted: #57534E;
-    /* Stone 600 */
+    --color-bg-base: #f5fbff;
+    --color-bg-card: #ffffff;
+    --color-text-main: #23334d;
+    --color-text-muted: #667b99;
+    --color-line-soft: #dce8f5;
+    --color-pink-soft: #eef7ff;
+    --color-blue-soft: #e7f3ff;
+    --color-yellow-soft: #fff6d8;
+    --color-mint-soft: #e3f8ef;
+    --color-cream: #fffefa;
+    --color-peach-soft: #f3f8ff;
+    --color-lavender-soft: #eef3ff;
 }
 
-/* Responsive Typography Base */
 html {
     font-size: 14px;
-    /* Mobile base */
     -webkit-text-size-adjust: 100%;
 }
 
 @media (min-width: 640px) {
     html {
         font-size: 15px;
-        /* Tablet / Large Phone */
     }
 }
 
 @media (min-width: 1024px) {
     html {
         font-size: 16px;
-        /* Desktop / Laptop */
     }
 }
 
-/* Base Styles */
 body {
+    margin: 0;
     font-family: var(--font-sans);
-    background-color: var(--color-bg-base);
     color: var(--color-text-main);
+    background-color: var(--color-bg-base);
+    background-image:
+        radial-gradient(circle at 86% 10%, rgba(146, 206, 248, 0.50), transparent 45%),
+        radial-gradient(circle at 16% 82%, rgba(204, 233, 255, 0.44), transparent 52%),
+        radial-gradient(circle at 48% 38%, rgba(184, 221, 250, 0.30), transparent 54%),
+        radial-gradient(circle at 9% 15%, rgba(166, 215, 247, 0.18), transparent 42%),
+        radial-gradient(circle at 76% 80%, rgba(221, 240, 255, 0.16), transparent 48%),
+        linear-gradient(175deg, #fffefb 0%, #f4faff 54%, #eaf5ff 100%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -64,13 +69,30 @@ h5,
 h6 {
     font-family: var(--font-display);
     font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
-/* Animations */
+a {
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+select {
+    cursor: pointer;
+}
+
+::selection {
+    color: #fff;
+    background: #d893b4;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(14px);
     }
 
     to {
@@ -80,13 +102,13 @@ h6 {
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: fadeIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes scaleIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.97);
     }
 
     to {
@@ -96,55 +118,54 @@ h6 {
 }
 
 .animate-scale-in {
-    animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: scaleIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes floatY {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.animate-float-slow {
+    animation: floatY 4.6s ease-in-out infinite;
 }
 
 @keyframes shake {
-
     0%,
     100% {
         transform: translateX(0);
     }
 
-    15% {
-        transform: translateX(-4px) rotate(-1deg);
+    20% {
+        transform: translateX(-3px);
     }
 
-    30% {
-        transform: translateX(4px) rotate(1deg);
-    }
-
-    45% {
-        transform: translateX(-2px);
+    40% {
+        transform: translateX(3px);
     }
 
     60% {
-        transform: translateX(2px);
+        transform: translateX(-2px);
     }
 
-    75% {
-        transform: translateX(-1px);
+    80% {
+        transform: translateX(2px);
     }
 }
 
 .animate-shake {
-    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    animation: shake 0.35s ease-in-out both;
 }
 
-/* Global Interactive Pointers */
-button,
-[role="button"],
-a,
-input[type="submit"],
-input[type="button"],
-select {
-    cursor: pointer;
-}
-
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -152,10 +173,26 @@ select {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #D6D3D1;
-    border-radius: 99px;
+    background: #d7b9ca;
+    border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #A8A29E;
+    background: #cfa4ba;
+}
+
+.cart-bump {
+    animation: cartBump 0.32s ease;
+}
+
+@keyframes cartBump {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+    }
 }

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { disconnectRealtime } from "../services/realtime";
 
 const AuthContext = createContext();
 
@@ -19,6 +20,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("adminToken");
+    disconnectRealtime();
     setUser(null);
   };
 

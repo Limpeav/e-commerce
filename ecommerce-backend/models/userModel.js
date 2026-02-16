@@ -1,6 +1,23 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const addressSchema = mongoose.Schema(
+  {
+    label: { type: String, default: "Address" },
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
+    addressLine1: { type: String, required: true },
+    addressLine2: { type: String, default: "" },
+    city: { type: String, required: true },
+    postalCode: { type: String, default: "" },
+    country: { type: String, required: true, default: "Cambodia" },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    isDefault: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
 const userSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -24,6 +41,10 @@ const userSchema = mongoose.Schema(
     phoneVerificationCode: { type: String, required: false },
     phoneVerificationExpire: { type: Date, required: false },
     tempPhone: { type: String, required: false },
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
   },
   { timestamps: true }
 );
@@ -36,6 +57,9 @@ userSchema.pre("save", async function () {
 
 // Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password || typeof enteredPassword !== "string") {
+    return false;
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

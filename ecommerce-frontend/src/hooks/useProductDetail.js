@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchProductById, createProductReview } from '../services/productApi';
 
 export const useProductDetail = (id, user) => {
@@ -6,7 +6,7 @@ export const useProductDetail = (id, user) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchProductById(id, user?.token);
@@ -14,7 +14,8 @@ export const useProductDetail = (id, user) => {
       
       // Set alreadyReviewed status from backend response
       if (data.alreadyReviewed !== undefined) {
-        const storageKey = `reviewed_${user?.id}_${id}`;
+        const userId = user?._id || user?.id;
+        const storageKey = `reviewed_${userId}_${id}`;
         if (data.alreadyReviewed && user) {
           localStorage.setItem(storageKey, 'true');
         }
@@ -25,13 +26,13 @@ export const useProductDetail = (id, user) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, user]);
 
   useEffect(() => {
     if (id) {
       fetchProduct();
     }
-  }, [id, user]);
+  }, [id, fetchProduct]);
 
   return { product, loading, error, refetch: fetchProduct };
 };
@@ -46,7 +47,8 @@ export const useProductReview = (id, user) => {
   // Check localStorage for existing review on component mount
   useEffect(() => {
     if (user && id) {
-      const storageKey = `reviewed_${user.id}_${id}`;
+      const userId = user._id || user.id;
+      const storageKey = `reviewed_${userId}_${id}`;
       const hasReviewed = localStorage.getItem(storageKey);
       if (hasReviewed === 'true') {
         setAlreadyReviewed(true);
@@ -70,7 +72,8 @@ export const useProductReview = (id, user) => {
       await createProductReview(id, { rating, comment }, user.token);
 
       // Save review status to localStorage
-      const storageKey = `reviewed_${user.id}_${id}`;
+      const userId = user._id || user.id;
+      const storageKey = `reviewed_${userId}_${id}`;
       localStorage.setItem(storageKey, 'true');
 
       setRating(5);
@@ -83,7 +86,8 @@ export const useProductReview = (id, user) => {
         setAlreadyReviewed(true);
         setReviewError("");
         if (user && id) {
-          const storageKey = `reviewed_${user.id}_${id}`;
+          const userId = user._id || user.id;
+          const storageKey = `reviewed_${userId}_${id}`;
           localStorage.setItem(storageKey, 'true');
         }
       } else {
