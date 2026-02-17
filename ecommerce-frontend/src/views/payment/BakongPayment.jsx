@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { generateBakongQR, getPaymentStatus } from "../services/paymentService";
-import { getOrderById } from "../services/orderService";
+import { generateBakongQR, getPaymentStatus } from "../../services/paymentService";
+import { getOrderById } from "../../services/orderService";
 
 export default function BakongPayment() {
     const { orderId } = useParams();
