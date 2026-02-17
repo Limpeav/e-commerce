@@ -27,8 +27,9 @@ import { motion, AnimatePresence } from "framer-motion";
 // UI Components
 import { AlertMessage, StatCard, FormInput } from "../../components";
 import ProfileSidebar from "../../components/user/ProfileSidebar"; // Make sure to import the new sidebar
+import { config } from "../../config/index.js";
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = config.API_BASE_URL;
 
 const Profile = () => {
   const { user, login } = useAuth();

@@ -18,8 +18,9 @@ import {
   Star
 } from "lucide-react";
 import axios from "axios";
+import { config } from "../../config/index.js";
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = config.API_BASE_URL;
 
 const OrderDetail = () => {
   const { id } = useParams();

@@ -1,23 +1,23 @@
 // App Configuration
 export const config = {
   // API Configuration
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
-  
+  API_BASE_URL: 'http://localhost:4000/api',
+
   // App Configuration
   APP_NAME: 'E-Commerce Platform',
   APP_VERSION: '1.0.0',
-  
+
   // UI Configuration
   DEBOUNCE_DELAY: 300,
   TOAST_DURATION: 3000,
-  
+
   // Pagination
   ITEMS_PER_PAGE: 12,
-  
+
   // Image Configuration
   DEFAULT_IMAGE: '/assets/images/placeholder.png',
   IMAGE_QUALITY: 80,
-  
+
   // Local Storage Keys
   STORAGE_KEYS: {
     AUTH_TOKEN: 'authToken',

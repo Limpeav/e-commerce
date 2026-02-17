@@ -1,14 +1,16 @@
-const API_URL = "http://localhost:4000/api/products";
+import { config } from "../config/index.js";
+
+const API_URL = `${config.API_BASE_URL}/products`;
 
 export const fetchProducts = async () => {
   try {
     const res = await fetch(API_URL);
-    
+
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.message || `Failed to fetch products: ${res.status} ${res.statusText}`);
     }
-    
+
     return await res.json();
   } catch (error) {
     if (error.name === "TypeError" && error.message.includes("fetch")) {
@@ -24,16 +26,16 @@ export const fetchProductById = async (id, token = null) => {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    
+
     const res = await fetch(`${API_URL}/${id}`, {
       headers,
     });
-    
+
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.message || `Failed to fetch product: ${res.status} ${res.statusText}`);
     }
-    
+
     return await res.json();
   } catch (error) {
     if (error.name === "TypeError" && error.message.includes("fetch")) {
@@ -55,11 +57,11 @@ export const createProductReview = async (productId, review, token) => {
     });
 
     const data = await res.json().catch(() => ({}));
-    
+
     if (!res.ok) {
       throw new Error(data.message || `Failed to submit review: ${res.status} ${res.statusText}`);
     }
-    
+
     return data;
   } catch (error) {
     if (error.name === "TypeError" && error.message.includes("fetch")) {

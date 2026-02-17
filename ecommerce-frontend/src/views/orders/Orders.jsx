@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
+import { config } from "../../config/index.js";
 
-const API_URL = "http://localhost:4000/api";
+const API_URL = config.API_BASE_URL;
 
 const Orders = () => {
   const { user } = useAuth();

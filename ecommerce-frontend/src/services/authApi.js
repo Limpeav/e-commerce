@@ -1,11 +1,12 @@
 import axios from "axios";
+import { config } from "../config/index.js";
 
 const API = axios.create({
-  baseURL: "http://localhost:4000/api/users",
+  baseURL: `${config.API_BASE_URL}/users`,
 });
 
 const AUTH_API = axios.create({
-  baseURL: "http://localhost:4000/api/auth",
+  baseURL: `${config.API_BASE_URL}/auth`,
 });
 
 export const registerUser = (data) => API.post("/register", data);
