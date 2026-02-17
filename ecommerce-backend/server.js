@@ -20,7 +20,9 @@ import http from "http";
 import { initializeSocket } from "./realtime/socket.js";
 
 dotenv.config();
-connectDB();
+
+// Connect to Database
+await connectDB();
 
 const app = express();
 const server = http.createServer(app);
