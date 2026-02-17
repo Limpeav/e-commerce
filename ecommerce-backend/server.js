@@ -16,13 +16,39 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 
+import http from "http";
+import { initializeSocket } from "./realtime/socket.js";
+
 dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
 
 app.use(express.json());
-app.use(cors());
+
+// CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.CLIENT_URL, // Add your deployed frontend URL here
+  process.env.VITE_API_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("Blocked by CORS:", origin);
+        callback(null, true); // Allow all for now to prevent blocking, but log it.
+        // callback(new Error("Not allowed by CORS")); // Strict mode
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Security Middleware
 app.use(helmet());
@@ -37,6 +63,9 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(limiter);
+
+// Initialize Socket.io
+initializeSocket(server, allowedOrigins);
 
 
 // ROUTES
@@ -60,5 +89,5 @@ app.get("/test", (req, res) => {
 
 // START SERVER
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 // Server updated with email config
