@@ -215,29 +215,42 @@ export default function Navbar() {
 
       {/* Mobile Header - Compact & Sticky */}
       <nav className="fixed top-0 left-0 right-0 z-[90] bg-white/95 backdrop-blur-xl border-b border-stone-100 md:hidden safe-area-top">
-        <div className="px-4 h-14 flex justify-between items-center">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="bg-primary-light/20 p-1.5 rounded-lg">
+        <div className="px-4 h-16 flex justify-between items-center">
+          {/* Left: Mobile Menu Trigger */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="p-2 -ml-2 rounded-xl text-stone-600 hover:bg-stone-50 active:bg-stone-100 transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
+          {/* Center: Logo */}
+          <Link to="/" className="flex items-center gap-2 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="bg-primary-light/10 p-1.5 rounded-xl">
               <Baby className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-lg font-bold text-text-main font-display tracking-tight">ShopX</h1>
+            <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">ShopX</h1>
           </Link>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/search')}
-              className="p-2 rounded-full hover:bg-stone-50 text-stone-500"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+          {/* Right: Cart & Profile/Auth */}
+          <div className="flex items-center gap-1">
+            <Link to="/cart" className="relative p-2 rounded-full hover:bg-stone-50 text-stone-600 transition-colors">
+              <ShoppingCart className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
+
             {user ? (
-              <Link to="/profile" className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-light text-white flex items-center justify-center font-bold text-xs shadow-md">
-                {user.name?.charAt(0).toUpperCase() || "U"}
+              <Link to="/profile" className="ml-1">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-light text-white flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white">
+                  {user.name?.charAt(0).toUpperCase() || "U"}
+                </div>
               </Link>
             ) : (
-              <Link to="/login" className="text-sm font-bold text-primary">
+              <Link to="/login" className="ml-1 text-sm font-bold text-primary px-3 py-1.5 bg-primary/5 rounded-lg">
                 Login
               </Link>
             )}
@@ -383,79 +396,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Bottom Navigation Bar - Enhanced App-Like Feel */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] md:hidden bg-white/95 backdrop-blur-xl border-t border-stone-100 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
-        <div className="grid grid-cols-4 gap-1 px-4 py-2">
-          {/* Home */}
-          <Link
-            to="/"
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative group ${isActive("/") ? "text-primary bg-primary/5" : "text-stone-400 hover:bg-stone-50"
-              }`}
-          >
-            <motion.div whileTap={{ scale: 0.9 }}>
-              <Home className={`w-6 h-6 ${isActive("/") ? "fill-current" : ""}`} />
-            </motion.div>
-            <span className={`text-[10px] mt-1 font-bold ${isActive("/") ? "text-primary" : "text-stone-400"}`}>
-              Home
-            </span>
-            {isActive("/") && (
-              <motion.div layoutId="nav-indicator" className="absolute -top-[1px] w-8 h-1 bg-primary rounded-full" />
-            )}
-          </Link>
 
-          {/* Wishlist */}
-          <Link
-            to="/wishlist"
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative group ${isActive("/wishlist") ? "text-rose-500 bg-rose-50" : "text-stone-400 hover:bg-stone-50"
-              }`}
-          >
-            <motion.div whileTap={{ scale: 0.9 }} className="relative">
-              <Heart className={`w-6 h-6 ${isActive("/wishlist") ? "fill-current" : ""}`} />
-              {wishlistItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
-                  {wishlistItemCount}
-                </span>
-              )}
-            </motion.div>
-            <span className={`text-[10px] mt-1 font-bold ${isActive("/wishlist") ? "text-rose-500" : "text-stone-400"}`}>
-              Wish
-            </span>
-          </Link>
-
-          {/* Cart */}
-          <Link
-            to="/cart"
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative group ${isActive("/cart") ? "text-indigo-600 bg-indigo-50" : "text-stone-400 hover:bg-stone-50"
-              }`}
-          >
-            <motion.div whileTap={{ scale: 0.9 }} className="relative">
-              <ShoppingCart className={`w-6 h-6 ${isActive("/cart") ? "fill-current" : ""}`} />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
-                  {cartItemCount}
-                </span>
-              )}
-            </motion.div>
-            <span className={`text-[10px] mt-1 font-bold ${isActive("/cart") ? "text-indigo-600" : "text-stone-400"}`}>
-              Cart
-            </span>
-          </Link>
-
-          {/* Profile */}
-          <Link
-            to={user ? "/profile" : "/login"}
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative group ${isActive("/profile") || isActive("/login") ? "text-primary bg-primary/5" : "text-stone-400 hover:bg-stone-50"
-              }`}
-          >
-            <motion.div whileTap={{ scale: 0.9 }}>
-              <User className={`w-6 h-6 ${isActive("/profile") || isActive("/login") ? "fill-current" : ""}`} />
-            </motion.div>
-            <span className={`text-[10px] mt-1 font-bold ${isActive("/profile") || isActive("/login") ? "text-primary" : "text-stone-400"}`}>
-              {user ? "Profile" : "Login"}
-            </span>
-          </Link>
-        </div>
-      </div>
     </>
   );
 }
