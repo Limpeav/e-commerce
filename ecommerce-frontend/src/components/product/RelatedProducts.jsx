@@ -41,10 +41,10 @@ const RelatedProducts = ({ currentProduct }) => {
     if (loading || relatedProducts.length === 0) return null;
 
     return (
-        <div className="mt-24 border-t border-stone-100 pt-16">
-            <div className="flex items-center gap-2 mb-8">
-                <Sparkles className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold text-text-main font-display">
+        <div className="mt-16 sm:mt-24 border-t border-stone-100 pt-10 sm:pt-16">
+            <div className="flex items-center gap-2 mb-6 sm:mb-8">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                <h2 className="text-xl sm:text-2xl font-bold text-text-main font-display">
                     You Might Also Like
                 </h2>
             </div>
@@ -62,7 +62,7 @@ const RelatedProducts = ({ currentProduct }) => {
                         }
                     }
                 }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8"
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8"
             >
                 {relatedProducts.map(product => (
                     <ProductCard

@@ -14,8 +14,8 @@ export default function Wishlist() {
   // Empty Wishlist State
   if (wishlist.length === 0) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center py-20 px-6 font-sans">
-        <div className="text-center max-w-lg mx-auto bg-white p-16 rounded-[4rem] border border-stone-100 shadow-2xl relative overflow-hidden">
+      <div className="min-h-screen bg-bg-base flex items-center justify-center py-20 px-3 sm:px-6 pb-24 md:pb-20 font-sans">
+        <div className="text-center max-w-lg mx-auto bg-white p-8 sm:p-16 rounded-2xl sm:rounded-[4rem] border border-stone-100 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16"></div>
 
           <div className="relative mb-10">
@@ -46,15 +46,15 @@ export default function Wishlist() {
 
   // Wishlist with Items
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 font-sans">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-bg-base py-6 sm:py-12 pt-20 sm:pt-24 md:pt-32 pb-20 md:pb-12 font-sans">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-6 sm:mb-12">
           <div className="inline-flex items-center gap-2 mb-4 bg-white px-4 py-2 rounded-full shadow-sm border border-stone-100">
             <Heart className="w-4 h-4 text-primary fill-primary" />
             <span className="text-primary font-bold text-xs uppercase tracking-wide">My Wishlist</span>
           </div>
-          <h1 className="text-4xl font-bold text-text-main mb-2 tracking-tight">Saved Items</h1>
+          <h1 className="text-2xl sm:text-4xl font-bold text-text-main mb-2 tracking-tight">Saved Items</h1>
           <p className="text-text-muted font-medium text-sm flex items-center gap-2">
             <span>{wishlist.length} {wishlist.length === 1 ? "item" : "items"}</span>
             <div className="w-1 h-1 bg-stone-300 rounded-full"></div>
@@ -63,7 +63,7 @@ export default function Wishlist() {
         </div>
 
         {/* Wishlist Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
           {wishlist.map((product) => (
             <div
               key={product._id}

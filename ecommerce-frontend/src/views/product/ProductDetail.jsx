@@ -85,23 +85,23 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base pt-28 font-sans">
+    <div className="min-h-screen bg-bg-base pt-16 sm:pt-20 md:pt-28 pb-20 md:pb-0 font-sans">
 
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10">
         {/* Back Button */}
         {/* Back Button */}
-        <div className="mb-8">
+        <div className="mb-4 sm:mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-white border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-110 active:scale-95 transition-all duration-300 group"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-white border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-110 active:scale-95 transition-all duration-300 group"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-stone-600 group-hover:text-primary transition-colors stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600 group-hover:text-primary transition-colors stroke-[2.5]" />
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-16 mb-20">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-10 md:gap-16 mb-10 sm:mb-20">
           {/* Product Image Section */}
           <ProductImage
             product={product}

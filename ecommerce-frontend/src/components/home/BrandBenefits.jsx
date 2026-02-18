@@ -25,17 +25,17 @@ const benefits = [
 
 export default function BrandBenefits() {
     return (
-        <div className="py-12 bg-white border-b border-stone-100">
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="py-6 sm:py-12 bg-white border-b border-stone-100">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
                     {benefits.map((item, index) => (
-                        <div key={index} className="flex flex-col items-center text-center space-y-3 group">
-                            <div className="p-4 rounded-2xl bg-stone-50 text-primary group-hover:bg-primary-light/10 group-hover:text-primary-dark transition-colors duration-300">
-                                <item.icon className="w-8 h-8" strokeWidth={1.5} />
+                        <div key={index} className="flex flex-col items-center text-center space-y-2 sm:space-y-3 group">
+                            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-stone-50 text-primary group-hover:bg-primary-light/10 group-hover:text-primary-dark transition-colors duration-300">
+                                <item.icon className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-text-main font-display text-lg">{item.title}</h3>
-                                <p className="text-sm text-text-muted font-medium">{item.description}</p>
+                                <h3 className="font-bold text-text-main font-display text-xs sm:text-lg">{item.title}</h3>
+                                <p className="text-[10px] sm:text-sm text-text-muted font-medium">{item.description}</p>
                             </div>
                         </div>
                     ))}

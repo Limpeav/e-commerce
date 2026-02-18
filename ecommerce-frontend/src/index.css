@@ -159,3 +159,28 @@ select {
 ::-webkit-scrollbar-thumb:hover {
     background: #A8A29E;
 }
+
+/* No scrollbar utility for horizontal scroll areas */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Safe area for notched phones (iPhone X+) */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+
+    button,
+    a,
+    [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+    }
+}

@@ -143,7 +143,7 @@ const Login = () => {
   });
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center px-4 py-12 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center px-3 sm:px-4 py-8 sm:py-12 pb-20 md:pb-12 relative overflow-hidden font-sans">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -165,18 +165,18 @@ const Login = () => {
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-8 transform hover:scale-105 transition-transform duration-300">
-            <LogIn className="w-8 h-8 text-primary" />
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-stone-100 mb-4 sm:mb-8 transform hover:scale-105 transition-transform duration-300">
+            <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
           </div>
-          <h1 className="text-5xl font-black text-text-main mb-3 font-display tracking-tight leading-none">
+          <h1 className="text-3xl sm:text-5xl font-black text-text-main mb-2 sm:mb-3 font-display tracking-tight leading-none">
             Welcome Back
           </h1>
-          <p className="text-text-muted font-medium text-lg">Sign in to continue shopping</p>
+          <p className="text-text-muted font-medium text-sm sm:text-lg">Sign in to continue shopping</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white p-10">
+        <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-10">
           <form onSubmit={submitHandler} className="space-y-6">
             {/* Error Message */}
             {error && (

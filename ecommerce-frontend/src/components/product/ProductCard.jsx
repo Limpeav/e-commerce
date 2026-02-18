@@ -77,7 +77,7 @@ const ProductCard = ({
         </div>
 
         <Link to={`/products/${product._id}`} className="block mb-1 md:mb-2 group-hover:text-primary transition-colors">
-          <h3 className="font-bold text-text-main text-sm md:text-xl leading-tight font-display line-clamp-1">
+          <h3 className="font-bold text-text-main text-sm sm:text-base md:text-xl leading-tight font-display line-clamp-2 md:line-clamp-1">
             {product.name || product.title}
           </h3>
         </Link>

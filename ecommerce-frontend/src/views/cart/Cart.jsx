@@ -33,8 +33,8 @@ export default function Cart() {
 
   // Cart with Items
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 font-sans">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-bg-base py-6 sm:py-12 pt-20 sm:pt-24 md:pt-32 pb-20 md:pb-12 font-sans">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         {/* Header */}
         <CartHeader itemCount={itemCount} />
 
