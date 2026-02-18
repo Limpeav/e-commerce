@@ -216,28 +216,29 @@ export default function Navbar() {
       {/* Mobile Header - Compact & Sticky */}
       <nav className="fixed top-0 left-0 right-0 z-[90] bg-white/95 backdrop-blur-xl border-b border-stone-100 md:hidden safe-area-top">
         <div className="px-4 h-16 flex justify-between items-center">
-          {/* Left: Mobile Menu Trigger */}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="p-2 -ml-2 rounded-xl text-stone-600 hover:bg-stone-50 active:bg-stone-100 transition-colors"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-
-          {/* Center: Logo */}
-          <Link to="/" className="flex items-center gap-2 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          {/* Left: Logo */}
+          <Link to="/" className="flex items-center gap-2">
             <div className="bg-primary-light/10 p-1.5 rounded-xl">
               <Baby className="w-5 h-5 text-primary" />
             </div>
             <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">ShopX</h1>
           </Link>
 
-          {/* Right: Cart & Profile/Auth */}
+          {/* Right: Wishlist, Cart & Profile/Auth */}
           <div className="flex items-center gap-1">
+            <Link to="/wishlist" className="relative p-2 rounded-full hover:bg-stone-50 text-stone-600 transition-colors">
+              <Heart className="w-5 h-5" />
+              {wishlistItemCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
+                  {wishlistItemCount}
+                </span>
+              )}
+            </Link>
+
             <Link to="/cart" className="relative p-2 rounded-full hover:bg-stone-50 text-stone-600 transition-colors">
               <ShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">
                   {cartItemCount}
                 </span>
               )}

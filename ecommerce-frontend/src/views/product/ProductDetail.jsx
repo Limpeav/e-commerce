@@ -11,6 +11,7 @@ import ProductInfo from "../../components/product/ProductInfo";
 import ReviewSection from "../../components/product/ReviewSection";
 import LoginPrompt from "../../components/product/LoginPrompt";
 import RelatedProducts from "../../components/product/RelatedProducts";
+import Loading from "../../components/common/Loading";
 
 // Hooks
 import { useProductDetail, useProductReview } from "../../hooks/useProductDetail";
@@ -51,16 +52,7 @@ export default function ProductDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
-          <div className="w-16 h-16 border-4 border-primary/10 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-text-muted font-medium text-sm animate-pulse">
-            Loading product...
-          </p>
-        </div>
-      </div>
-    );
+    return <Loading message="Loading product..." />;
   }
 
   if (error) {
