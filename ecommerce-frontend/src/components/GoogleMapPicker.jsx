@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, X, Check, Locate, Search } from "lucide-react";
+import { MapPin, X, Check, Locate, Search, Navigation, ChevronUp } from "lucide-react";
 
 // Google Maps API Key - Uses environment variable if available, otherwise uses the provided key
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
-
 
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,10 +12,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searching, setSearching] = useState(false);
   const [addressName, setAddressName] = useState("");
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(true);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -24,41 +24,62 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      // On iOS, also handle touch events
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.top = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.top = "";
+    };
+  }, [isOpen]);
+
   // Load Google Maps Script
   useEffect(() => {
-    // Check if Google Maps is already loaded
     if (window.google && window.google.maps) {
       setIsGoogleMapsLoaded(true);
       return;
     }
 
-    // Check if script is already being loaded
     const existingScript = document.querySelector(
       `script[src*="maps.googleapis.com/maps/api/js"]`
     );
 
     if (existingScript) {
-      // Script exists, wait for it to load
       if (window.google && window.google.maps) {
         setIsGoogleMapsLoaded(true);
       } else {
-        // Wait for existing script to load
         const handleLoad = () => {
           setIsGoogleMapsLoaded(true);
           setLocationError("");
         };
-        existingScript.addEventListener('load', handleLoad);
-        return () => existingScript.removeEventListener('load', handleLoad);
+        existingScript.addEventListener("load", handleLoad);
+        return () => existingScript.removeEventListener("load", handleLoad);
       }
       return;
     }
 
-    // Create new script only if it doesn't exist
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,geometry`;
     script.async = true;
     script.defer = true;
-    script.id = "google-maps-script"; // Add ID to identify the script
+    script.id = "google-maps-script";
 
     script.onload = () => {
       setIsGoogleMapsLoaded(true);
@@ -72,23 +93,19 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
     document.head.appendChild(script);
 
-    return () => {
-      // Don't remove script on unmount as it may be needed by other components
-    };
+    return () => { };
   }, []);
 
   // Initialize map when modal opens
   useEffect(() => {
     if (!isOpen || !mapRef.current) return;
 
-    // Wait for Google Maps to be loaded
     if (!isGoogleMapsLoaded || !window.google || !window.google.maps) {
       setIsMapLoading(true);
       setLocationError("Loading Google Maps...");
       return;
     }
 
-    // Don't reinitialize if map already exists
     if (mapInstanceRef.current) {
       setIsMapLoading(false);
       setLocationError("");
@@ -98,28 +115,25 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     try {
       setIsMapLoading(true);
 
-      // Create the map with professional styling
+      // Detect if mobile
+      const isMobile = window.innerWidth < 768;
+
       const map = new window.google.maps.Map(mapRef.current, {
         center: selectedLocation,
         zoom: 15,
-        mapTypeControl: true,
+        // Simplified controls on mobile
+        mapTypeControl: !isMobile,
         mapTypeControlOptions: {
           style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
           position: window.google.maps.ControlPosition.TOP_RIGHT,
         },
-        streetViewControl: true,
-        streetViewControlOptions: {
-          position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
-        },
-        fullscreenControl: true,
-        fullscreenControlOptions: {
-          position: window.google.maps.ControlPosition.RIGHT_TOP,
-        },
-        zoomControl: true,
+        streetViewControl: false, // Hide on mobile for cleaner UI
+        fullscreenControl: false, // We already have full screen modal
+        zoomControl: !isMobile, // Hide zoom buttons on mobile (pinch to zoom)
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_CENTER,
         },
-        // Professional Map Styling
+        gestureHandling: "greedy", // Allow single-finger map panning on mobile
         styles: [
           {
             featureType: "poi",
@@ -136,7 +150,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
       mapInstanceRef.current = map;
 
-      // Create custom marker with animation
+      // Create custom marker - slightly larger on mobile for visibility
       const marker = new window.google.maps.Marker({
         position: selectedLocation,
         map: map,
@@ -144,7 +158,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         animation: window.google.maps.Animation.DROP,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 12,
+          scale: isMobile ? 14 : 12,
           fillColor: "#3B82F6",
           fillOpacity: 1,
           strokeColor: "#FFFFFF",
@@ -154,25 +168,21 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
       markerRef.current = marker;
 
-      // Update address display when marker is placed (optional feature)
       const updateAddress = (latLng) => {
         try {
           if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
-            return; // Geocoding not available
+            return;
           }
-
           const geocoder = new window.google.maps.Geocoder();
           geocoder.geocode({ location: latLng }, (results, status) => {
             if (status === "OK" && results[0]) {
               setAddressName(results[0].formatted_address);
             } else if (status === "REQUEST_DENIED") {
-              console.warn("Geocoding API not enabled. Address names won't be shown.");
-              // Still works, just won't show address names
+              console.warn("Geocoding API not enabled.");
             }
           });
         } catch (error) {
           console.warn("Geocoding failed:", error);
-          // Non-critical error, map still works
         }
       };
 
@@ -187,6 +197,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         marker.setAnimation(window.google.maps.Animation.BOUNCE);
         setTimeout(() => marker.setAnimation(null), 750);
         updateAddress(e.latLng);
+        setShowBottomSheet(true);
       });
 
       // Handle marker drag
@@ -198,6 +209,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         setSelectedLocation(newLocation);
         map.panTo(e.latLng);
         updateAddress(e.latLng);
+        setShowBottomSheet(true);
       });
 
       // Initialize autocomplete for search
@@ -224,6 +236,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               marker.setAnimation(window.google.maps.Animation.BOUNCE);
               setTimeout(() => marker.setAnimation(null), 750);
               setAddressName(place.formatted_address || place.name);
+              setIsSearchFocused(false);
+              // Blur search input on mobile after selection
+              if (searchInputRef.current) {
+                searchInputRef.current.blur();
+              }
             }
           });
 
@@ -253,21 +270,17 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           console.warn("Initial address geocoding failed");
         }
       } else {
-        // Get initial address name
         updateAddress(selectedLocation);
       }
 
-      // Mark map as loaded
       setIsMapLoading(false);
       setLocationError("");
-
     } catch (error) {
       console.error("Error initializing map:", error);
       setLocationError("Failed to initialize map. Please try again.");
       setIsMapLoading(false);
     }
 
-    // Cleanup on unmount
     return () => {
       if (mapInstanceRef.current) {
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
@@ -278,7 +291,6 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser.");
-      window.alert("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -304,7 +316,6 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           setTimeout(() => markerRef.current.setAnimation(null), 750);
         }
 
-        // Get address for detected location (optional)
         if (window.google && window.google.maps && window.google.maps.Geocoder) {
           try {
             const geocoder = new window.google.maps.Geocoder();
@@ -319,13 +330,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         }
 
         setDetectingLocation(false);
+        setShowBottomSheet(true);
       },
       (error) => {
         setDetectingLocation(false);
         let errorMessage = "Could not detect location.";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = "Permission denied. Please enable location access in your browser settings to use this feature.";
+            errorMessage = "Location access denied. Please enable it in settings.";
             break;
           case error.POSITION_UNAVAILABLE:
             errorMessage = "Location unavailable. Please try again.";
@@ -335,7 +347,6 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
             break;
         }
         setLocationError(errorMessage);
-        window.alert(errorMessage);
       },
       {
         enableHighAccuracy: true,
@@ -365,57 +376,48 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-purple-100 transition-all duration-300 border border-blue-200 font-semibold shadow-sm hover:shadow-md"
+        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-purple-100 transition-all duration-300 border border-blue-200 font-semibold shadow-sm hover:shadow-md active:scale-95"
       >
         <MapPin className="w-4 h-4" />
         {initialLocation ? "Update Location on Map" : "Select Location on Map"}
       </button>
 
-      {/* Modal */}
+      {/* Full Screen Modal - Mobile First */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-xl">
-                    <MapPin className="w-5 h-5 text-white" />
-                  </div>
-                  Select Delivery Location
-                </h2>
-                <p className="text-sm text-gray-600 mt-2">
-                  Click on the map, drag the marker, or search for your location
-                </p>
-              </div>
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col bg-white md:bg-black/60 md:backdrop-blur-md md:items-center md:justify-center md:p-4"
+          style={{ touchAction: "none" }}
+        >
+          {/* Desktop wrapper */}
+          <div className="flex flex-col w-full h-full md:bg-white md:rounded-3xl md:shadow-2xl md:max-w-5xl md:max-h-[95vh] md:overflow-hidden">
+
+            {/* === HEADER === */}
+            <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-white shrink-0 safe-area-top">
+              {/* Close button - left on mobile for thumb reach */}
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-white/80 rounded-xl transition-all duration-300 ml-4"
+                className="p-2.5 -ml-1 hover:bg-gray-100 rounded-xl transition-all duration-200 active:scale-90 md:order-2 md:ml-4 md:-mr-1"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
               </button>
-            </div>
-
-            {/* Search Bar */}
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search for a location, address, or place..."
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 font-medium"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex-1 text-center md:text-left md:order-1">
+                <h2 className="text-base md:text-xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
+                  <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg md:rounded-xl">
+                    <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
+                  </div>
+                  <span>Select Location</span>
+                </h2>
               </div>
+              {/* Spacer for mobile centering */}
+              <div className="w-10 md:hidden"></div>
             </div>
 
-            {/* Map Container */}
-            <div className="flex-1 relative min-h-[500px] bg-gray-100">
+            {/* === MAP CONTAINER - Takes full remaining space === */}
+            <div className="flex-1 relative bg-gray-100 min-h-0">
+              {/* Map */}
               <div
                 ref={mapRef}
-                className="w-full h-full min-h-[500px]"
+                className="absolute inset-0 w-full h-full"
                 style={{ zIndex: 0 }}
               ></div>
 
@@ -423,89 +425,230 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               {isMapLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ zIndex: 5 }}>
                   <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-700 font-semibold text-lg">Loading Google Maps...</p>
-                    <p className="text-gray-500 text-sm mt-2">Please wait a moment</p>
+                    <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-gray-700 font-semibold text-sm md:text-lg">Loading Map...</p>
+                    <p className="text-gray-500 text-xs md:text-sm mt-1">Please wait a moment</p>
                   </div>
                 </div>
               )}
 
-              {/* Controls Overlay */}
-              <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none" style={{ zIndex: 10 }}>
-                {/* Address Display */}
-                {addressName && (
-                  <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-xl shadow-lg border border-gray-200 max-w-md pointer-events-auto">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Selected Location
-                    </p>
-                    <p className="text-sm font-bold text-gray-900 line-clamp-2">
-                      {addressName}
-                    </p>
-                  </div>
-                )}
+              {/* === SEARCH BAR - Floating on map === */}
+              <div
+                className="absolute top-3 left-3 right-3 md:top-4 md:left-4 md:right-4"
+                style={{ zIndex: 20 }}
+              >
+                <div className="relative max-w-lg mx-auto md:mx-0 md:max-w-xl">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400 pointer-events-none" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search location..."
+                    className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 rounded-2xl border-0 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 text-sm md:text-base font-medium"
+                    style={{
+                      boxShadow: isSearchFocused
+                        ? "0 8px 30px rgba(59, 130, 246, 0.15), 0 4px 10px rgba(0,0,0,0.08)"
+                        : "0 4px 15px rgba(0,0,0,0.1)",
+                    }}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                  />
+                </div>
               </div>
 
-              {/* Location Detection Button */}
-              <div className="absolute bottom-4 right-4 flex flex-col items-end gap-3" style={{ zIndex: 10 }}>
+              {/* === FLOATING ACTION BUTTONS - Right side === */}
+              <div
+                className="absolute right-3 md:right-4 flex flex-col items-end gap-2.5"
+                style={{
+                  zIndex: 15,
+                  bottom: showBottomSheet && addressName ? "200px" : "140px",
+                  transition: "bottom 0.3s ease",
+                }}
+              >
+                {/* Error Message */}
                 {locationError && (
-                  <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-semibold border border-red-200 shadow-lg max-w-[250px] text-center animate-fade-in">
+                  <div className="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs font-semibold border border-red-200 shadow-lg max-w-[200px] text-center animate-pulse">
                     {locationError}
                   </div>
                 )}
+
+                {/* My Location FAB */}
                 <button
                   type="button"
                   onClick={detectUserLocation}
                   disabled={detectingLocation}
-                  className="bg-white px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 font-semibold text-gray-900 hover:bg-blue-50 group"
+                  className="w-12 h-12 md:w-auto md:h-auto md:px-4 md:py-3 bg-white rounded-full md:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 disabled:opacity-50 flex items-center justify-center md:gap-2.5 font-semibold text-gray-900 active:scale-90 group"
                   title="Use my current location"
                 >
                   {detectingLocation ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-sm">Detecting...</span>
-                    </>
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      <Locate className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm">Use My Location</span>
+                      <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <span className="hidden md:inline text-sm">My Location</span>
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Coordinates Display */}
-              <div className="absolute bottom-4 left-4" style={{ zIndex: 10 }}>
-                <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-gray-200">
-                  <p className="text-xs font-mono text-gray-600">
-                    {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                  </p>
+              {/* === BOTTOM SHEET - Mobile-friendly info + confirm === */}
+              <div
+                className="absolute bottom-0 left-0 right-0 transition-transform duration-300 ease-out"
+                style={{
+                  zIndex: 20,
+                  transform: showBottomSheet ? "translateY(0)" : "translateY(calc(100% - 60px))",
+                }}
+              >
+                {/* Pull indicator on mobile */}
+                <div
+                  className="flex justify-center py-2 md:hidden cursor-pointer"
+                  onClick={() => setShowBottomSheet(!showBottomSheet)}
+                >
+                  <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
                 </div>
-              </div>
-            </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
-              <div className="flex gap-4 justify-end">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-6 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-300 font-semibold border border-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmLocation}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Check className="w-5 h-5" />
-                  Confirm Location
-                </button>
+                <div className="bg-white rounded-t-3xl md:rounded-none shadow-[0_-4px_20px_rgba(0,0,0,0.1)] px-4 pb-4 pt-2 md:px-6 md:py-4 safe-area-bottom">
+                  {/* Selected Address Info */}
+                  {addressName && (
+                    <div className="mb-3 md:mb-4">
+                      <div className="flex items-start gap-3 bg-blue-50 rounded-2xl p-3 md:p-4">
+                        <div className="p-2 bg-blue-600 rounded-xl shrink-0 mt-0.5">
+                          <MapPin className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider mb-0.5">
+                            Delivery Location
+                          </p>
+                          <p className="text-xs md:text-sm font-semibold text-gray-900 line-clamp-2 leading-relaxed">
+                            {addressName}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Coordinates */}
+                  <div className="flex items-center justify-between mb-3 md:mb-4">
+                    <div className="bg-gray-100 px-3 py-1.5 rounded-lg">
+                      <p className="text-[10px] md:text-xs font-mono text-gray-500">
+                        📍 {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    <p className="text-[10px] md:text-xs text-gray-400 hidden md:block">
+                      Tap the map or drag the marker
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="flex-1 md:flex-none px-5 py-3.5 md:py-3 bg-gray-100 text-gray-700 rounded-2xl md:rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold text-sm active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmLocation}
+                      className="flex-[2] md:flex-none px-6 py-3.5 md:py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl md:rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl text-sm active:scale-95"
+                    >
+                      <Check className="w-4 h-4 md:w-5 md:h-5" />
+                      Confirm Location
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* === CUSTOM STYLES === */}
+      <style>{`
+        /* Safe area for notched phones */
+        .safe-area-top {
+          padding-top: max(0.75rem, env(safe-area-inset-top));
+        }
+        .safe-area-bottom {
+          padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+
+        /* Override Google Maps autocomplete dropdown for mobile */
+        .pac-container {
+          z-index: 99999 !important;
+          border-radius: 16px !important;
+          border: none !important;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+          margin-top: 8px !important;
+          font-family: inherit !important;
+          overflow: hidden !important;
+        }
+
+        @media (max-width: 767px) {
+          .pac-container {
+            left: 12px !important;
+            right: 12px !important;
+            width: auto !important;
+            border-radius: 16px !important;
+          }
+        }
+
+        .pac-item {
+          padding: 12px 16px !important;
+          border: none !important;
+          border-bottom: 1px solid #f3f4f6 !important;
+          cursor: pointer !important;
+          font-size: 14px !important;
+          line-height: 1.4 !important;
+          display: flex !important;
+          align-items: center !important;
+          min-height: 48px !important; /* Touch target */
+        }
+
+        .pac-item:last-child {
+          border-bottom: none !important;
+        }
+
+        .pac-item:hover,
+        .pac-item:active {
+          background-color: #eff6ff !important;
+        }
+
+        .pac-item-query {
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          color: #1f2937 !important;
+        }
+
+        .pac-icon {
+          margin-right: 12px !important;
+          width: 20px !important;
+          height: 20px !important;
+        }
+
+        .pac-matched {
+          font-weight: 700 !important;
+          color: #2563eb !important;
+        }
+
+        /* Hide Google logo in autocomplete */
+        .pac-logo::after {
+          display: none !important;
+        }
+
+        /* Smooth animations */
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </>
   );
 };
