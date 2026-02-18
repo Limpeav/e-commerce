@@ -19,7 +19,7 @@ const ProductCard = ({
     <motion.div
       variants={variants}
       whileHover={{ y: -10 }}
-      className="group relative flex flex-col h-full bg-white rounded-3xl md:rounded-[2.5rem] p-3 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 border border-stone-100/50"
+      className="group relative flex flex-col h-full bg-white rounded-3xl md:rounded-[2.5rem] p-2 md:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 border border-stone-100/50"
     >
       {/* Product Image Area */}
       <div className="relative aspect-[4/5] bg-stone-50 rounded-2xl md:rounded-[2rem] overflow-hidden mb-3 md:mb-6">
@@ -27,8 +27,8 @@ const ProductCard = ({
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
           className={`absolute top-2 right-2 md:top-4 md:right-4 z-30 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-lg transition-all duration-300 cursor-pointer ${isInWishlist(product._id)
-              ? "bg-secondary text-white scale-110"
-              : "bg-white/90 backdrop-blur-md text-stone-400 hover:text-secondary hover:scale-110"
+            ? "bg-secondary text-white scale-110"
+            : "bg-white/90 backdrop-blur-md text-stone-400 hover:text-secondary hover:scale-110"
             }`}
         >
           <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isInWishlist(product._id) ? "fill-current" : ""}`} />
@@ -82,7 +82,7 @@ const ProductCard = ({
           </h3>
         </Link>
 
-        <p className="text-xs md:text-sm text-text-muted font-medium line-clamp-2 mb-3 md:mb-6 h-8 md:h-10 leading-relaxed">
+        <p className="hidden md:block text-xs md:text-sm text-text-muted font-medium line-clamp-2 mb-3 md:mb-6 h-8 md:h-10 leading-relaxed">
           {product.description || "The perfect choice for your baby's comfort and style."}
         </p>
 

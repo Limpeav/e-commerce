@@ -54,9 +54,9 @@ export default function Home() {
     }
 
     return (
-        <div className="min-h-screen bg-bg-base font-sans pt-20">
+        <div className="min-h-screen bg-bg-base font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0">
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
-            <div className="sticky top-20 z-40 bg-bg-base/80 backdrop-blur-xl border-b border-stone-200/50">
+            <div className="sticky top-14 sm:top-16 md:top-20 z-40 bg-bg-base/80 backdrop-blur-xl border-b border-stone-200/50">
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
@@ -66,11 +66,11 @@ export default function Home() {
                 />
             </div>
 
-            <main className="space-y-12">
+            <main className="space-y-6 sm:space-y-12">
                 {/* Hero Section Banner */}
                 <Hero />
 
-                <div className="max-w-7xl mx-auto px-6 pb-24">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
                     {/* Section Header */}
                     <SectionHeader
                         searchQuery={searchQuery}
@@ -91,7 +91,7 @@ export default function Home() {
                 </div>
             </main>
 
-            <div className="bg-white py-24 border-t border-stone-100">
+            <div className="bg-white py-12 sm:py-24 border-t border-stone-100">
                 <BrandBenefits />
             </div>
         </div>

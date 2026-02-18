@@ -4,17 +4,17 @@ import { motion } from "framer-motion";
 
 export default function Hero() {
     return (
-        <div className="w-full bg-bg-base pb-12 pt-2 px-4 md:px-6">
+        <div className="w-full bg-bg-base pb-6 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-4 md:px-6">
             <div className="max-w-7xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full relative bg-primary rounded-[3rem] overflow-hidden shadow-2xl min-h-[500px] flex items-center p-8 md:p-20 text-white"
+                    className="w-full relative bg-primary rounded-none sm:rounded-[3rem] overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[400px] md:min-h-[500px] flex items-center p-6 sm:p-10 md:p-20 text-white"
                 >
                     {/* Background Decorative Elements */}
-                    <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary-light/10 rounded-full blur-[120px] animate-pulse"></div>
-                    <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[100px]"></div>
+                    <div className="absolute top-[-10%] right-[-5%] w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary-light/10 rounded-full blur-[80px] sm:blur-[120px] animate-pulse"></div>
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[200px] sm:w-[400px] h-[200px] sm:h-[400px] bg-secondary/10 rounded-full blur-[60px] sm:blur-[100px]"></div>
 
                     {/* Floating Ornaments */}
                     <motion.div
@@ -42,9 +42,9 @@ export default function Hero() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3, duration: 0.6 }}
-                            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-primary-light text-xs font-bold uppercase tracking-[0.2em] mb-8"
+                            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-primary-light text-[10px] sm:text-xs font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-4 sm:mb-8"
                         >
-                            <Sparkles className="w-4 h-4 text-amber-300" />
+                            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-300" />
                             <span>Premium Baby Essentials 2024</span>
                         </motion.div>
 
@@ -52,7 +52,7 @@ export default function Hero() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5, duration: 0.8 }}
-                            className="text-4xl md:text-6xl font-bold font-display leading-tight mb-8 tracking-tight"
+                            className="text-2xl sm:text-4xl md:text-6xl font-bold font-display leading-tight mb-4 sm:mb-8 tracking-tight"
                         >
                             Gentle touch for pure joy
                         </motion.h1>
@@ -61,12 +61,10 @@ export default function Hero() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.7, duration: 0.8 }}
-                            className="text-white/80 text-lg md:text-xl font-medium mb-12 max-w-lg leading-relaxed"
+                            className="text-white/80 text-sm sm:text-lg md:text-xl font-medium mb-6 sm:mb-12 max-w-lg leading-relaxed"
                         >
                             Curating the finest organic fabrics and sustainable products for your baby's delicate journey.
                         </motion.p>
-
-
                     </div>
 
                     {/* Stats/Offer Card */}
@@ -92,4 +90,3 @@ export default function Hero() {
         </div>
     );
 }
-
