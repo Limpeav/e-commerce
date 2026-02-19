@@ -25,7 +25,7 @@ const ProductCard = ({
       className="group relative flex flex-col h-full bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transition-shadow duration-500 border border-stone-100"
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
-      <div className="relative aspect-square overflow-hidden bg-stone-50">
+      <div className="relative aspect-square overflow-hidden bg-stone-50 rounded-2xl">
         <Link to={`/products/${product._id}`} className="block w-full h-full">
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
@@ -56,8 +56,8 @@ const ProductCard = ({
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
           className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-sm ${inWishlist
-              ? 'bg-rose-500 text-white shadow-rose-200'
-              : 'bg-white/80 text-stone-400 hover:text-rose-500 hover:bg-white'
+            ? 'bg-rose-500 text-white shadow-rose-200'
+            : 'bg-white/80 text-stone-400 hover:text-rose-500 hover:bg-white'
             }`}
         >
           <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} strokeWidth={2.5} />
@@ -73,8 +73,8 @@ const ProductCard = ({
             onClick={() => onAddToCart(product)}
             disabled={!user || outOfStock}
             className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
-                ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
-                : 'bg-indigo-600 text-white shadow-indigo-200'
+              ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
+              : 'bg-indigo-600 text-white shadow-indigo-200'
               }`}
             title="Quick Add"
           >
