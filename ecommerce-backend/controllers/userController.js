@@ -185,10 +185,19 @@ export const forgotPassword = async (req, res) => {
       console.log(`✅ Password reset code sent to: ${user.email}`);
     } catch (emailError) {
       console.error("❌ Failed to send email:", emailError.message);
-      // Log the code for manual use if email fails (dev only)
-      if (process.env.NODE_ENV !== "production") {
-        console.log("\n📋 RESET CODE (dev mode):", resetCode, "\n");
-      }
+      console.error("❌ Email error details:", {
+        code: emailError.code,
+        command: emailError.command,
+        responseCode: emailError.responseCode,
+        response: emailError.response,
+        EMAIL_USER: process.env.EMAIL_USER,
+        EMAIL_SERVICE: process.env.EMAIL_SERVICE,
+        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
+      });
+      return res.status(500).json({
+        message: "Failed to send email. Please try again later.",
+        error: emailError.message,
+      });
     }
 
     // Mask the email for display (like Facebook)
@@ -305,9 +314,19 @@ export const resendResetCode = async (req, res) => {
       console.log(`✅ Password reset code resent to: ${user.email}`);
     } catch (emailError) {
       console.error("❌ Failed to resend email:", emailError.message);
-      if (process.env.NODE_ENV !== "production") {
-        console.log("\n📋 RESET CODE (dev mode):", resetCode, "\n");
-      }
+      console.error("❌ Email error details:", {
+        code: emailError.code,
+        command: emailError.command,
+        responseCode: emailError.responseCode,
+        response: emailError.response,
+        EMAIL_USER: process.env.EMAIL_USER,
+        EMAIL_SERVICE: process.env.EMAIL_SERVICE,
+        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
+      });
+      return res.status(500).json({
+        message: "Failed to send email. Please try again later.",
+        error: emailError.message,
+      });
     }
 
     res.json({
