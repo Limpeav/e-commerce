@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Users,
@@ -8,6 +8,7 @@ import {
     ArrowLeft,
     UserCheck,
     UserX,
+    RefreshCw,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 
@@ -19,10 +20,21 @@ const UserManagement = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [stats, setStats] = useState({});
+    const [refreshing, setRefreshing] = useState(false);
+
+    const refresh = useCallback(async (showSpinner = false) => {
+        if (showSpinner) setRefreshing(true);
+        await Promise.all([fetchUsers(), fetchStats()]);
+        if (showSpinner) setRefreshing(false);
+    }, []);
 
     useEffect(() => {
         fetchUsers();
         fetchStats();
+
+        // Auto-refresh every 30 seconds so new registrations appear automatically
+        const interval = setInterval(() => refresh(false), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -56,7 +68,7 @@ const UserManagement = () => {
                 const recentUsers = users
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                     .slice(0, 5);
-                
+
                 setStats({
                     totalUsers,
                     adminUsers,
@@ -157,11 +169,22 @@ const UserManagement = () => {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-                            <Users className="w-4 h-4" />
-                            <span className="text-sm font-medium">
-                                {filteredUsers.length} Users
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
+                                <Users className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                    {filteredUsers.length} Users
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => refresh(true)}
+                                disabled={refreshing}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-50"
+                                title="Refresh user list"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                {refreshing ? 'Refreshing...' : 'Refresh'}
+                            </button>
                         </div>
                     </div>
                 </div>

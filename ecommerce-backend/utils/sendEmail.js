@@ -1,15 +1,21 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE || "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
 
 // Send password reset code email (Facebook-style 6-digit code)
 export const sendPasswordResetCode = async (email, userName, resetCode) => {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
   const fromName = process.env.EMAIL_FROM_NAME || "Baby Product Website";
+  const fromEmail = process.env.EMAIL_USER;
 
-  const { data, error } = await resend.emails.send({
-    from: `${fromName} <${fromEmail}>`,
-    to: [email],
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
     subject: `${resetCode} is your password reset code`,
     html: `
       <!DOCTYPE html>
@@ -74,16 +80,16 @@ export const sendPasswordResetCode = async (email, userName, resetCode) => {
       
       ${fromName}
     `,
-  });
+  };
 
-  if (error) {
-    console.error("❌ Resend error:", error);
-    throw new Error(error.message || "Failed to send email via Resend");
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Password reset code email sent successfully via Gmail!");
+    console.log("   Message ID:", info.messageId);
+    console.log("   To:", email);
+    return info;
+  } catch (error) {
+    console.error("❌ Nodemailer error:", error);
+    throw new Error(error.message || "Failed to send email via Gmail");
   }
-
-  console.log("✅ Password reset code email sent successfully via Resend!");
-  console.log("   Message ID:", data?.id);
-  console.log("   To:", email);
-
-  return data;
 };
