@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ecommerce-frontend
+    env: static
+    buildCommand: cd ecommerce-frontend && npm install && npm run build
+    staticPublishPath: ecommerce-frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
