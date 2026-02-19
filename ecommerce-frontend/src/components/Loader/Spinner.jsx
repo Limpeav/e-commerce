@@ -1,9 +1,10 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
-const Spinner = ({ 
-  size = 'medium', 
-  color = 'blue',
-  className = '' 
+const Spinner = ({
+  size = 'medium',
+  color = 'indigo', // Changed default to match brand color
+  className = ''
 }) => {
   const sizeClasses = {
     small: 'w-4 h-4',
@@ -13,20 +14,19 @@ const Spinner = ({
   };
 
   const colorClasses = {
-    blue: 'border-blue-600 border-t-transparent',
-    white: 'border-white border-t-transparent',
-    gray: 'border-gray-600 border-t-transparent',
-    green: 'border-green-600 border-t-transparent',
-    red: 'border-red-600 border-t-transparent'
+    indigo: 'text-indigo-600',
+    blue: 'text-blue-600',
+    white: 'text-white',
+    gray: 'text-gray-600',
+    green: 'text-green-600',
+    red: 'text-red-600'
   };
 
   return (
-    <div 
+    <Loader2
       className={`
         ${sizeClasses[size]} 
         ${colorClasses[color]} 
-        border-2 
-        rounded-full 
         animate-spin 
         ${className}
       `}

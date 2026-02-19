@@ -30,11 +30,16 @@ const CartItem = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 mb-2 sm:mb-6 text-[10px] sm:text-xs font-medium text-stone-500">
+        <div className="flex items-center gap-2 mb-2 sm:mb-3 text-[10px] sm:text-xs font-medium text-stone-500">
           <span className="truncate">{item.product.category}</span>
           <div className="h-1 w-1 bg-stone-300 rounded-full shrink-0"></div>
           <span className="text-green-600 font-bold whitespace-nowrap">In Stock</span>
         </div>
+
+        {/* Product Description */}
+        <p className="text-[10px] sm:text-xs text-stone-400 line-clamp-3 mb-3 sm:mb-4">
+          {item.product.description}
+        </p>
 
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-6">
           {/* Price Per Item */}

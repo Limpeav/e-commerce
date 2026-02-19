@@ -199,11 +199,12 @@ export default function Navbar() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <Link to="/login" className="px-6 py-3 rounded-xl font-semibold text-sm text-text-muted hover:text-primary hover:bg-stone-50 transition-all">
-                      Login
-                    </Link>
-                    <Link to="/register" className="px-6 py-3 rounded-xl font-semibold text-sm bg-text-main text-white hover:bg-primary transition-all shadow-xl shadow-stone-200 hover:shadow-primary/20 hover:-translate-y-0.5">
-                      Register
+                    <Link
+                      to="/login"
+                      className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light/10 transition-all"
+                      title="Login / Register"
+                    >
+                      <User className="w-6 h-6" />
                     </Link>
                   </div>
                 )}
@@ -251,8 +252,8 @@ export default function Navbar() {
                 </div>
               </Link>
             ) : (
-              <Link to="/login" className="ml-1 text-sm font-bold text-primary px-3 py-1.5 bg-primary/5 rounded-lg">
-                Login
+              <Link to="/login" className="p-2 rounded-full hover:bg-stone-50 text-stone-600 transition-colors">
+                <User className="w-5 h-5" />
               </Link>
             )}
           </div>
