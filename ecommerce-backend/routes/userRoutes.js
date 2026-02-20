@@ -10,6 +10,8 @@ import {
   startPhoneVerification,
   verifyPhone,
   savePhoneNumber,
+  requestDeleteOtp,
+  deleteAccount,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -25,5 +27,7 @@ router.put("/profile", protect, updateUserProfile);
 router.post("/start-phone-verification", protect, startPhoneVerification);
 router.post("/verify-phone", protect, verifyPhone);
 router.post("/save-phone", protect, savePhoneNumber);
+router.post("/request-delete-otp", protect, requestDeleteOtp);
+router.post("/delete-account", protect, deleteAccount);
 
 export default router;

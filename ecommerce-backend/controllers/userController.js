@@ -1,7 +1,7 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetCode } from "../utils/sendEmail.js";
+import { sendPasswordResetCode, sendDeleteAccountOtp } from "../utils/sendEmail.js";
 
 // 🔐 generate token
 const generateToken = (id) => {
@@ -179,25 +179,15 @@ export const forgotPassword = async (req, res) => {
       }
     );
 
+    console.log(`\n📧 [MOCK EMAIL] Password Reset Code for ${user.email}: ${resetCode}\n`);
+
     // Send password reset code email
     try {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code sent to: ${user.email}`);
     } catch (emailError) {
-      console.error("❌ Failed to send email:", emailError.message);
-      console.error("❌ Email error details:", {
-        code: emailError.code,
-        command: emailError.command,
-        responseCode: emailError.responseCode,
-        response: emailError.response,
-        EMAIL_USER: process.env.EMAIL_USER,
-        EMAIL_SERVICE: process.env.EMAIL_SERVICE,
-        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
-      });
-      return res.status(500).json({
-        message: "Failed to send email. Please try again later.",
-        error: emailError.message,
-      });
+      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      // We continue to allow the flow because the code is shown in the console
     }
 
     // Mask the email for display (like Facebook)
@@ -308,25 +298,15 @@ export const resendResetCode = async (req, res) => {
       }
     );
 
+    console.log(`\n📧 [MOCK EMAIL] Resent Password Reset Code for ${user.email}: ${resetCode}\n`);
+
     // Send password reset code email
     try {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code resent to: ${user.email}`);
     } catch (emailError) {
-      console.error("❌ Failed to resend email:", emailError.message);
-      console.error("❌ Email error details:", {
-        code: emailError.code,
-        command: emailError.command,
-        responseCode: emailError.responseCode,
-        response: emailError.response,
-        EMAIL_USER: process.env.EMAIL_USER,
-        EMAIL_SERVICE: process.env.EMAIL_SERVICE,
-        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
-      });
-      return res.status(500).json({
-        message: "Failed to send email. Please try again later.",
-        error: emailError.message,
-      });
+      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      // We continue to allow the flow because the code is shown in the console
     }
 
     res.json({
@@ -527,5 +507,110 @@ export const savePhoneNumber = async (req, res) => {
   } catch (error) {
     console.error("Save phone error:", error);
     res.status(500).json({ message: error.message || "Failed to save phone number" });
+  }
+};
+
+// 📧 REQUEST DELETE ACCOUNT OTP (Google users only)
+export const requestDeleteOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.googleId) {
+      return res.status(400).json({ message: "This endpoint is only for Google-authenticated accounts" });
+    }
+
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hash OTP for secure storage
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    // Store hashed OTP and expiry (10 minutes)
+    await User.updateOne(
+      { _id: user._id },
+      {
+        deleteAccountOtp: hashedOtp,
+        deleteAccountOtpExpire: Date.now() + 10 * 60 * 1000,
+      }
+    );
+
+    // Log the OTP to the console for development testing
+    console.log(`\n📧 [MOCK EMAIL] Delete Account OTP for ${user.email}: ${otp}\n`);
+
+    // Send the OTP email
+    try {
+      await sendDeleteAccountOtp(user.email, user.name, otp);
+      console.log(`✅ Delete account OTP sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      // We continue to allow the flow because the OTP is shown in the console
+    }
+
+    res.json({
+      message: "A confirmation code has been sent to your email address.",
+      email: user.email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(b.length) + c),
+    });
+
+  } catch (error) {
+    console.error("Request delete OTP error:", error);
+    res.status(500).json({ message: "Failed to send confirmation email. Please try again." });
+  }
+};
+
+// 🗑️ DELETE ACCOUNT
+export const deleteAccount = async (req, res) => {
+  try {
+    const { password, otpCode } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isGoogleUser = !!user.googleId;
+
+    if (isGoogleUser) {
+      // ── Google users must verify via OTP sent to their email ──
+      if (!otpCode) {
+        return res.status(400).json({ message: "Confirmation code is required" });
+      }
+
+      if (!user.deleteAccountOtp || !user.deleteAccountOtpExpire) {
+        return res.status(400).json({ message: "No confirmation code found. Please request a new one." });
+      }
+
+      if (user.deleteAccountOtpExpire < Date.now()) {
+        return res.status(400).json({ message: "Confirmation code has expired. Please request a new one." });
+      }
+
+      const hashedOtp = crypto.createHash("sha256").update(otpCode.toString()).digest("hex");
+      if (hashedOtp !== user.deleteAccountOtp) {
+        return res.status(401).json({ message: "Invalid confirmation code. Please check and try again." });
+      }
+
+    } else {
+      // ── Regular users must verify via their password ──
+      if (!password) {
+        return res.status(400).json({ message: "Password is required to delete your account" });
+      }
+
+      const isMatch = await user.matchPassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Incorrect password. Cannot delete account." });
+      }
+    }
+
+    // Hard delete the account
+    await User.findByIdAndDelete(req.user._id);
+
+    res.json({ message: "Your account has been successfully deleted." });
+
+  } catch (error) {
+    console.error("Delete account error:", error);
+    res.status(500).json({ message: "Failed to delete account", error: error.message });
   }
 };

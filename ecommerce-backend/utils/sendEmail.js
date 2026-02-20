@@ -93,3 +93,145 @@ export const sendPasswordResetCode = async (email, userName, resetCode) => {
     throw new Error(error.message || "Failed to send email via Gmail");
   }
 };
+
+// ─────────────────────────────────────────────────
+// Send Delete Account OTP (for Google OAuth users)
+// ─────────────────────────────────────────────────
+export const sendDeleteAccountOtp = async (email, userName, otp) => {
+  const fromName = process.env.EMAIL_FROM_NAME || "Baby Product Website";
+  const fromEmail = process.env.EMAIL_USER;
+
+  // Build individual digit boxes for a visual OTP display
+  const digits = otp.split("");
+  const digitBoxes = digits
+    .map(
+      (d) =>
+        `<td style="padding:0 4px;">
+          <div style="
+            width:48px; height:60px;
+            background:#fff1f2;
+            border:2px solid #fecdd3;
+            border-radius:12px;
+            text-align:center;
+            line-height:60px;
+            font-size:28px;
+            font-weight:800;
+            color:#dc2626;
+            font-family:'Courier New',monospace;
+            display:inline-block;
+          ">${d}</div>
+        </td>`
+    )
+    .join("");
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: `[Action Required] Confirm your account deletion — ${otp}`,
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Delete Account Confirmation</title>
+      </head>
+      <body style="margin:0;padding:0;background:#fef2f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;padding:40px 16px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:480px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);border:1px solid #fecdd3;">
+
+                <!-- Header -->
+                <tr>
+                  <td style="background:#dc2626;padding:28px 32px;text-align:center;">
+                    <p style="margin:0;font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;text-transform:uppercase;">${fromName}</p>
+                    <p style="margin:8px 0 0;font-size:13px;color:#fca5a5;font-weight:500;">Account Security Alert</p>
+                  </td>
+                </tr>
+
+                <!-- Warning Icon row -->
+                <tr>
+                  <td style="padding:40px 32px 0;text-align:center;">
+                    <div style="width:64px;height:64px;background:#fee2e2;border-radius:50%;border:4px solid #fecdd3;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;line-height:64px;">
+                      ⚠️
+                    </div>
+                    <h1 style="font-size:22px;font-weight:800;color:#18181b;margin:20px 0 8px;letter-spacing:-0.5px;">Delete Account Request</h1>
+                    <p style="font-size:14px;line-height:1.7;color:#52525b;margin:0 0 32px;">
+                      Hello <strong>${userName || "there"}</strong>,<br>
+                      We received a request to permanently delete your account.<br>
+                      Enter the code below in the app to confirm.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- OTP Digit Boxes -->
+                <tr>
+                  <td style="padding:0 32px 32px;text-align:center;">
+                    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#9ca3af;margin:0 0 16px;">Your Confirmation Code</p>
+                    <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                      <tr>${digitBoxes}</tr>
+                    </table>
+                    <p style="font-size:13px;color:#9ca3af;margin:20px 0 0;">
+                      ⏱ This code expires in <strong style="color:#dc2626;">10 minutes</strong>
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Warning box -->
+                <tr>
+                  <td style="padding:0 32px 32px;">
+                    <div style="background:#fef2f2;border:1.5px solid #fecdd3;border-radius:14px;padding:16px 20px;">
+                      <p style="margin:0;font-size:13px;line-height:1.6;color:#dc2626;font-weight:600;">
+                        🚨 This action is permanent and irreversible.<br>
+                        <span style="font-weight:400;color:#6b7280;">All your orders, reviews, and account data will be permanently deleted.</span>
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background:#fafafa;padding:24px 32px;text-align:center;border-top:1px solid #f4f4f5;">
+                    <p style="font-size:12px;color:#a1a1aa;line-height:1.6;margin:0;">
+                      If you did NOT request this, your account is safe — simply ignore this email.<br>
+                      &copy; ${new Date().getFullYear()} ${fromName}. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `,
+    text: `
+DELETE ACCOUNT CONFIRMATION CODE: ${otp}
+
+Hello ${userName || "there"},
+
+We received a request to permanently delete your ShopX account.
+Enter the 6-digit code above in the app to confirm.
+
+This code expires in 10 minutes.
+
+WARNING: This action is PERMANENT and irreversible.
+
+If you did NOT request this, please ignore this email — your account is safe.
+
+${fromName}
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Delete account OTP email sent to:", email);
+    return info;
+  } catch (error) {
+    console.error("❌ Failed to send delete OTP email:", error);
+    throw new Error(error.message || "Failed to send confirmation email");
+  }
+};
+

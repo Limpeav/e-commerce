@@ -24,6 +24,8 @@ const userSchema = mongoose.Schema(
     phoneVerificationCode: { type: String, required: false },
     phoneVerificationExpire: { type: Date, required: false },
     tempPhone: { type: String, required: false },
+    deleteAccountOtp: { type: String, required: false },       // Hashed OTP for Google user account deletion
+    deleteAccountOtpExpire: { type: Date, required: false },   // OTP expiry
   },
   { timestamps: true }
 );

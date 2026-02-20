@@ -24,12 +24,18 @@ export const googleAuth = async (req, res) => {
 
     if (user) {
       // User exists, generate token and login
+      // Update googleId if not already set
+      if (sub && !user.googleId) {
+        await User.updateOne({ _id: user._id }, { googleId: sub });
+        user.googleId = sub;
+      }
       res.json({
         _id: user._id,
         name: user.name,
         phone: user.phone || "",
         email: user.email,
         role: user.role,
+        googleId: user.googleId || null,
         token: generateToken(user._id),
       });
     } else {
@@ -49,6 +55,7 @@ export const googleAuth = async (req, res) => {
         phone: user.phone || "",
         email: user.email,
         role: user.role,
+        googleId: user.googleId || null,
         token: generateToken(user._id),
       });
     }
