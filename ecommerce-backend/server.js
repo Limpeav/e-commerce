@@ -30,24 +30,9 @@ const server = http.createServer(app);
 app.use(express.json());
 
 // CORS Configuration
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  process.env.CLIENT_URL, // Add your deployed frontend URL here
-  process.env.VITE_API_URL,
-].filter(Boolean);
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log("Blocked by CORS:", origin);
-        callback(null, true); // Allow all for now to prevent blocking, but log it.
-        // callback(new Error("Not allowed by CORS")); // Strict mode
-      }
-    },
+    origin: true, // true reflects the exact request origin, effectively allowing all while working with credentials
     credentials: true,
   })
 );
@@ -70,7 +55,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Initialize Socket.io
-initializeSocket(server, allowedOrigins);
+initializeSocket(server, true);
 
 
 // ROUTES
