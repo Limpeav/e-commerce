@@ -53,7 +53,10 @@ app.use(
 );
 
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false // Allows OAuth popups (like Google) to communicate back to the app
+}));
 // app.use(mongoSanitize());
 
 // Rate Limiting - More lenient for development
