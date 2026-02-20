@@ -1,17 +1,43 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: process.env.EMAIL_PORT || 465,
-  secure: true, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+// Create transporter with fallback options
+const createTransporter = () => {
+  const config = {
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+    // Keep timeouts short so that if connection fails, it errors quickly!
+    // A long timeout will exceed Render's max HTTP limits (60s) resulting in 502 Bad Gateway.
+    connectionTimeout: 5000, // 5 seconds connection timeout
+    greetingTimeout: 5000,  // 5 seconds greeting timeout
+    socketTimeout: 15000,    // 15 seconds socket timeout
+  };
+
+  // Use port 465 by default for better compatibility with cloud platforms like Render
+  config.port = parseInt(process.env.EMAIL_PORT) || 465;
+  config.secure = config.port === 465; // true for 465, false for 587
+
+  return nodemailer.createTransport(config);
+};
+
+// Initialize transporter
+let transporter = createTransporter();
+
+// Verify connection on startup (only in development or if explicitly enabled)
+if (process.env.NODE_ENV !== 'production' || process.env.VERIFY_EMAIL === 'true') {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ Email transporter verification failed:', error.message);
+    } else {
+      console.log('✅ Email transporter is ready');
+    }
+  });
+}
 
 // Send password reset code email (Facebook-style 6-digit code)
 export const sendPasswordResetCode = async (email, userName, resetCode) => {
@@ -88,12 +114,26 @@ export const sendPasswordResetCode = async (email, userName, resetCode) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
+    // Try sending with current transporter
+    let info = await transporter.sendMail(mailOptions);
     console.log("✅ Password reset code email sent successfully via Gmail!");
     console.log("   Message ID:", info.messageId);
     console.log("   To:", email);
     return info;
   } catch (error) {
+    // If connection error, try recreating transporter once and retry
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      console.log('⚠️ Email connection failed, retrying with new transporter...');
+      transporter = createTransporter();
+      try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ Password reset code email sent on retry!");
+        return info;
+      } catch (retryError) {
+        console.error("❌ Nodemailer retry error:", retryError);
+        throw new Error(retryError.message || "Failed to send email via Gmail");
+      }
+    }
     console.error("❌ Nodemailer error:", error);
     throw new Error(error.message || "Failed to send email via Gmail");
   }
@@ -231,10 +271,23 @@ ${fromName}
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
+    let info = await transporter.sendMail(mailOptions);
     console.log("✅ Delete account OTP email sent to:", email);
     return info;
   } catch (error) {
+    // If connection error, try recreating transporter once and retry
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      console.log('⚠️ Email connection failed for delete OTP, retrying...');
+      transporter = createTransporter();
+      try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ Delete account OTP email sent on retry!");
+        return info;
+      } catch (retryError) {
+        console.error("❌ Failed to send delete OTP email on retry:", retryError);
+        throw new Error(retryError.message || "Failed to send confirmation email");
+      }
+    }
     console.error("❌ Failed to send delete OTP email:", error);
     throw new Error(error.message || "Failed to send confirmation email");
   }
