@@ -186,7 +186,7 @@ export const forgotPassword = async (req, res) => {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code sent to: ${user.email}`);
     } catch (emailError) {
-      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
       // We continue to allow the flow because the code is shown in the console
     }
 
@@ -305,7 +305,7 @@ export const resendResetCode = async (req, res) => {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code resent to: ${user.email}`);
     } catch (emailError) {
-      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
       // We continue to allow the flow because the code is shown in the console
     }
 
@@ -546,7 +546,7 @@ export const requestDeleteOtp = async (req, res) => {
       await sendDeleteAccountOtp(user.email, user.name, otp);
       console.log(`✅ Delete account OTP sent to: ${user.email}`);
     } catch (emailError) {
-      console.error(`⚠️ Could not send email (Invalid Credentials). Please check your EMAIL_PASSWORD in .env`);
+      console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
       // We continue to allow the flow because the OTP is shown in the console
     }
 
