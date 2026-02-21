@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/AuthContext';
@@ -241,8 +242,8 @@ export default function Settings() {
       {/* ══════════════════════════════════════════
           Delete Account Modal
       ══════════════════════════════════════════ */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      {showDeleteModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-slide-up">
             <div className="p-6 sm:p-8">
 
@@ -446,7 +447,8 @@ export default function Settings() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </PageLayout>
   );

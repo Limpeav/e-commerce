@@ -34,10 +34,12 @@ export default function Wishlist() {
 
           <Link
             to="/"
-            className="inline-flex items-center gap-3 bg-text-main text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl font-bold text-sm shadow-xl hover:shadow-primary/20 hover:bg-primary transform hover:-translate-y-1 transition-all duration-300 active:scale-95"
+            className="inline-flex items-center gap-3 px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl font-bold text-sm shadow-xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 border-[2px] border-transparent [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]"
           >
-            <ShoppingBag className="w-5 h-5" />
-            Start Shopping
+            <ShoppingBag className="w-5 h-5 text-indigo-600" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-rose-500">
+              Start Shopping
+            </span>
           </Link>
         </div>
       </div>

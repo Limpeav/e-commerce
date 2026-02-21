@@ -37,11 +37,12 @@ export default function EmptyCart() {
           {/* CTA Button */}
           <Link
             to="/"
-            className="group relative inline-flex items-center gap-3 bg-text-main text-white px-10 py-4 rounded-xl font-bold text-sm overflow-hidden transition-all hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-1 active:scale-95"
+            className="group inline-flex items-center gap-3 px-10 py-4 rounded-xl font-bold text-sm shadow-xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 border-[2px] border-transparent [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]"
           >
-            <span className="relative z-10">Start Shopping</span>
-            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-rose-500">
+              Start Shopping
+            </span>
+            <ArrowRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </div>
