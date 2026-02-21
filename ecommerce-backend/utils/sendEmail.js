@@ -2,8 +2,12 @@ import nodemailer from "nodemailer";
 
 // Create transporter with fallback options
 const createTransporter = () => {
+  // Render blocks outbound port 587 (STARTTLS). Use port 465 (SSL) instead.
+  // Gmail supports port 465 with secure:true (direct SSL, no STARTTLS negotiation needed).
   const config = {
     host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: 465,      // Force port 465 — reliable on Render's network
+    secure: true,   // true = SSL/TLS directly (no STARTTLS); required for port 465
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
@@ -11,16 +15,11 @@ const createTransporter = () => {
     tls: {
       rejectUnauthorized: false,
     },
-    // Keep timeouts short so that if connection fails, it errors quickly!
-    // A long timeout will exceed Render's max HTTP limits (60s) resulting in 502 Bad Gateway.
-    connectionTimeout: 5000, // 5 seconds connection timeout
-    greetingTimeout: 5000,  // 5 seconds greeting timeout
-    socketTimeout: 15000,    // 15 seconds socket timeout
+    // Timeouts tuned for Render free tier (cold-start can be slow)
+    connectionTimeout: 10000, // 10 seconds connection timeout
+    greetingTimeout: 10000,   // 10 seconds greeting timeout
+    socketTimeout: 20000,     // 20 seconds socket timeout
   };
-
-  // Use port 465 by default for better compatibility with cloud platforms like Render
-  config.port = parseInt(process.env.EMAIL_PORT) || 465;
-  config.secure = config.port === 465; // true for 465, false for 587
 
   return nodemailer.createTransport(config);
 };
