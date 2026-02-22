@@ -14,7 +14,6 @@ import {
   AlertCircle
 } from "lucide-react";
 import axios from "axios";
-import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 
 const API_URL = config.API_BASE_URL;
@@ -127,15 +126,10 @@ const Orders = () => {
 
   return (
     <div className="min-h-screen bg-bg-base py-12 pt-32 px-4 md:px-8 font-sans">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileSidebar />
-          </div>
-
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className="w-full">
             {/* Header */}
             <div className="bg-white rounded-[2rem] border border-stone-100 p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-sm">
               <div className="text-center md:text-left">
