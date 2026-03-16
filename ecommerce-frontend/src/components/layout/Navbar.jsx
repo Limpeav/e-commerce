@@ -217,13 +217,21 @@ export default function Navbar() {
       {/* Mobile Header - Compact & Sticky */}
       <nav className="fixed top-0 left-0 right-0 z-[90] bg-white/95 backdrop-blur-xl border-b border-stone-100 md:hidden safe-area-top">
         <div className="px-4 h-16 flex justify-between items-center">
-          {/* Left: Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="bg-primary-light/10 p-1.5 rounded-xl">
-              <Baby className="w-5 h-5 text-primary" />
-            </div>
-            <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">ShopX</h1>
-          </Link>
+          {/* Left: Menu & Logo */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowMobileMenu(true)}
+              className="p-1.5 -ml-1.5 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="bg-primary-light/10 p-1.5 rounded-xl">
+                <Baby className="w-5 h-5 text-primary" />
+              </div>
+              <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">ShopX</h1>
+            </Link>
+          </div>
 
           {/* Right: Wishlist, Cart & Profile/Auth */}
           <div className="flex items-center gap-1">
