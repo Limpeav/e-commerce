@@ -82,14 +82,14 @@ export default function ProductDetail() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10">
         {/* Back Button */}
-        {/* Back Button */}
-        <div className="mb-4 sm:mb-8">
+        <div className="mb-6 sm:mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-white border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-110 active:scale-95 transition-all duration-300 group"
+            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-white border border-stone-200 shadow-sm hover:shadow-md hover:border-stone-300 transition-all duration-300 group active:scale-95"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600 group-hover:text-primary transition-colors stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-stone-500 group-hover:text-stone-800 transition-colors stroke-[2.5]" />
+            <span className="text-sm sm:text-base font-bold text-stone-600 group-hover:text-stone-900 transition-colors">Back</span>
           </button>
         </div>
 

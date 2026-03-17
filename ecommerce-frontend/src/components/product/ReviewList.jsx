@@ -5,9 +5,9 @@ const ReviewList = ({ reviews }) => {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex items-center justify-between mb-2 sm:mb-4">
-        <h2 className="text-2xl sm:text-3xl font-black text-text-main font-display tracking-tight">Latest Entries</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-text-main font-display tracking-tight">Customer Reviews</h2>
         {reviews && reviews.length > 0 &&
-          <span className="text-[9px] sm:text-[10px] font-black text-primary bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-[0.2em]">Verified History</span>
+          <span className="text-[9px] sm:text-[10px] font-black text-primary bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-[0.2em]">Verified Reviews</span>
         }
       </div>
 
@@ -25,9 +25,9 @@ const ReviewList = ({ reviews }) => {
                     <div className="text-[9px] sm:text-[10px] text-stone-400 font-black uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-secondary/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full">
-                  <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-secondary text-secondary" />
-                  <span className="text-xs font-black text-secondary">{review.rating}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-amber-50 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-amber-100/50">
+                  <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-500" />
+                  <span className="text-xs font-black text-amber-600">{review.rating}</span>
                 </div>
               </div>
               <div className="bg-stone-50/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-100/50">
@@ -41,8 +41,8 @@ const ReviewList = ({ reviews }) => {
           <div className="text-stone-100 mb-6 sm:mb-8">
             <Star className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" />
           </div>
-          <p className="text-text-main font-black text-xl sm:text-2xl font-display mb-2 sm:mb-3 tracking-tight">Blank Canvas</p>
-          <p className="text-text-muted font-bold text-base sm:text-lg">Be the pioneer to review this masterpiece.</p>
+          <p className="text-text-main font-black text-xl sm:text-2xl font-display mb-2 sm:mb-3 tracking-tight">No Reviews Yet</p>
+          <p className="text-text-muted font-bold text-base sm:text-lg">Be the first to review this product.</p>
         </div>
       )}
     </div>

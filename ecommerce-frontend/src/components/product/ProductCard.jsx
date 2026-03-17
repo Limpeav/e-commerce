@@ -55,12 +55,12 @@ const ProductCard = ({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
-          className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-sm ${inWishlist
-            ? 'bg-rose-500 text-white shadow-rose-200'
-            : 'bg-white/80 text-stone-400 hover:text-rose-500 hover:bg-white'
+          className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 ${inWishlist
+            ? 'border-transparent shadow-md [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box] text-indigo-600'
+            : 'bg-transparent border-stone-300 text-stone-400 hover:text-indigo-600 hover:border-indigo-600'
             }`}
         >
-          <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} strokeWidth={2.5} />
+          <Heart className="w-4 h-4" strokeWidth={2.5} />
         </motion.button>
       </div>
 

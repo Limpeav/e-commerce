@@ -99,13 +99,13 @@ export default function Navbar() {
 
                 <Link
                   to="/wishlist"
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/wishlist")
-                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                    : "text-text-muted hover:text-primary hover:bg-primary-light/10"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border-2 relative ${isActive("/wishlist")
+                    ? "border-transparent shadow-lg shadow-indigo-500/10 [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]"
+                    : "bg-transparent border-transparent text-text-muted hover:text-indigo-600"
                     }`}
                 >
                   <div className="relative">
-                    <Heart className="w-5 h-5" />
+                    <Heart className={`w-5 h-5 ${isActive("/wishlist") ? "text-indigo-600" : ""}`} />
                     <AnimatePresence mode="wait">
                       {wishlistItemCount > 0 && (
                         <motion.span
@@ -235,7 +235,7 @@ export default function Navbar() {
 
           {/* Right: Wishlist, Cart & Profile/Auth */}
           <div className="flex items-center gap-1">
-            <Link to="/wishlist" className="relative p-2 rounded-full hover:bg-stone-50 text-stone-600 transition-colors">
+            <Link to="/wishlist" className={`relative p-2 rounded-full transition-all duration-300 border-2 ${isActive("/wishlist") ? 'border-transparent shadow-md shadow-indigo-500/10 [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box] text-indigo-600' : 'bg-transparent border-transparent text-stone-600 hover:text-indigo-600'}`}>
               <Heart className="w-5 h-5" />
               {wishlistItemCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold ring-2 ring-white">

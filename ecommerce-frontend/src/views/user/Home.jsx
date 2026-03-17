@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useAuth } from "../../context/AuthContext";
@@ -19,6 +19,8 @@ export default function Home() {
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
+    
+    const productsRef = useRef(null);
 
     // Custom hooks
     const { products, loading, error } = useProducts();
@@ -30,6 +32,18 @@ export default function Home() {
         categories,
         filteredProducts
     } = useProductFilters(products);
+
+    const handleCategorySelect = (category) => {
+        setSelectedCategory(category);
+        // Add a small delay to ensure React state updates before scrolling
+        setTimeout(() => {
+            if (productsRef.current) {
+                const yOffset = -180; // Adjust for navbar and search bar height
+                const y = productsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }, 100);
+    };
 
     const handleAddToCart = (product) => {
         if (!user) return;
@@ -61,7 +75,7 @@ export default function Home() {
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
+                    setSelectedCategory={handleCategorySelect}
                     categories={categories}
                 />
             </div>
@@ -70,7 +84,7 @@ export default function Home() {
                 {/* Hero Section Banner */}
                 <Hero />
 
-                <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
+                <div ref={productsRef} className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
                     {/* Section Header */}
                     <SectionHeader
                         searchQuery={searchQuery}
