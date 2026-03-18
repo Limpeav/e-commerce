@@ -109,8 +109,8 @@ const ProductInfo = ({
           <button
             onClick={onAddToCart}
             className={`flex-1 py-4 sm:py-0 w-full rounded-[1.25rem] font-bold text-base transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 overflow-hidden relative group border-2 ${user
-                ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-xl shadow-indigo-600/20'
-                : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
+              ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-xl shadow-indigo-600/20'
+              : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
               }`}
           >
             {user ? (
@@ -134,21 +134,21 @@ const ProductInfo = ({
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
             <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Free<br/>Shipping</span>
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Free<br />Shipping</span>
         </div>
 
         <div className="flex flex-col items-center gap-3 bg-white p-3 sm:p-4 rounded-[1.5rem] border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 shadow-inner">
             <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Secure<br/>Payment</span>
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Secure<br />Payment</span>
         </div>
 
         <div className="flex flex-col items-center gap-3 bg-white p-3 sm:p-4 rounded-[1.5rem] border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
             <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Easy<br/>Returns</span>
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-stone-600 text-center leading-tight">Easy<br />Returns</span>
         </div>
       </div>
     </div>

@@ -16,20 +16,35 @@ import {
   EyeOff,
   Package,
   Shield,
-  CreditCard,
-  MapPin,
-  Clock,
-  Settings
+  Settings,
+  Calendar,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 // UI Components
 import { AlertMessage, StatCard, FormInput } from "../../components";
-import ProfileSidebar from "../../components/user/ProfileSidebar"; // Make sure to import the new sidebar
+import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 
 const API_URL = config.API_BASE_URL;
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.5, staggerChildren: 0.1, ease: "easeOut" } 
+  },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+};
 
 const Profile = () => {
   const { user, login } = useAuth();
@@ -91,14 +106,9 @@ const Profile = () => {
       ]);
 
       setStats({
-        totalOrders:
-          ordersRes.status === "fulfilled" ? ordersRes.value.data.length || 0 : 0,
-        cartItems:
-          cartRes.status === "fulfilled"
-            ? cartRes.value.data.items?.length || 0
-            : 0,
-        wishlistItems:
-          wishlistRes.status === "fulfilled" ? wishlistRes.value.data.length || 0 : 0,
+        totalOrders: ordersRes.status === "fulfilled" ? ordersRes.value.data.length || 0 : 0,
+        cartItems: cartRes.status === "fulfilled" ? cartRes.value.data.items?.length || 0 : 0,
+        wishlistItems: wishlistRes.status === "fulfilled" ? wishlistRes.value.data.length || 0 : 0,
       });
     } catch (err) {
       console.error("Error fetching user stats:", err);
@@ -131,10 +141,7 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
     setSuccess("");
   };
@@ -159,9 +166,7 @@ const Profile = () => {
 
     try {
       const token = getAuthToken();
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
+      if (!token) throw new Error("Not authenticated");
 
       const updateData = {
         name: formData.name,
@@ -170,31 +175,21 @@ const Profile = () => {
       };
 
       if (formData.newPassword) {
-        if (!formData.currentPassword) {
-          throw new Error("Current password is required to change password");
-        }
-        if (formData.newPassword !== formData.confirmPassword) {
-          throw new Error("New passwords do not match");
-        }
-        if (formData.newPassword.length < 6) {
-          throw new Error("New password must be at least 6 characters");
-        }
+        if (!formData.currentPassword) throw new Error("Current password is required to change password");
+        if (formData.newPassword !== formData.confirmPassword) throw new Error("New passwords do not match");
+        if (formData.newPassword.length < 6) throw new Error("New password must be at least 6 characters");
+        
         updateData.currentPassword = formData.currentPassword;
         updateData.newPassword = formData.newPassword;
       }
 
-      const response = await axios.put(
-        `${API_URL}/users/profile`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.put(`${API_URL}/users/profile`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      // Preserve all user data including createdAt
       const updatedUser = {
         ...user,
         _id: response.data._id,
@@ -219,9 +214,7 @@ const Profile = () => {
 
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || "Failed to update profile"
-      );
+      setError(err.response?.data?.message || err.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -229,87 +222,132 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-base font-sans">
-        <div className="text-center bg-white p-12 rounded-[4rem] shadow-2xl border border-stone-100">
-          <AlertCircle className="w-16 h-16 text-red-200 mx-auto mb-6" />
-          <h2 className="text-3xl font-black text-text-main mb-4 font-display tracking-tight uppercase tracking-widest text-xs">
-            Identity Unverified
-          </h2>
-          <p className="text-text-muted font-bold text-sm mb-10">Verification required to access personal registry logs.</p>
-          <Link to="/login" className="bg-text-main text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/10 hover:bg-primary transition-all active:scale-95 inline-block">
-            Establish Credentials
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 font-sans">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="text-center bg-white p-12 rounded-[2rem] shadow-xl border border-stone-100 max-w-md w-full"
+        >
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-3xl font-bold text-stone-800 mb-3 tracking-tight">Access Denied</h2>
+          <p className="text-stone-500 font-medium mb-8">Please log in to view your profile dashboard and manage your account.</p>
+          <Link to="/login" className="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30">
+            Sign In Now <ChevronRight className="w-5 h-5" />
           </Link>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0, x: 20 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-    exit: { opacity: 0, x: -20, transition: { duration: 0.2 } }
-  };
-
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 px-4 md:px-8 font-sans">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-stone-50 pb-20 font-sans">
+      {/* Dynamic Header Banner */}
+      <div className="h-72 w-full bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-700 relative overflow-hidden">
+        {/* Abstract shapes for visual interest */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl"></div>
+          <div className="absolute bottom-0 right-10 w-80 h-80 bg-pink-500 rounded-full mix-blend-overlay filter blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-full flex flex-col justify-end pb-10 relative z-10">
+          <motion.div 
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex items-end gap-6"
+          >
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-2xl bg-white p-1 shadow-2xl transform rotate-3 transition-transform group-hover:rotate-0 duration-300">
+                <div className="w-full h-full rounded-xl bg-stone-100 overflow-hidden flex items-center justify-center relative">
+                  {avatarPreview ? (
+                     <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                     <User className="w-12 h-12 text-stone-300" />
+                  )}
+                  {activeTab === "edit" && (
+                    <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
+                      <Camera className="w-6 h-6 mb-1" />
+                      <span className="text-xs font-bold">Change</span>
+                      <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-2 text-white">
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-md">
+                {user.name}
+              </h1>
+              <p className="text-indigo-100 flex items-center gap-2 mt-2 font-medium">
+                <Mail className="w-4 h-4" /> {user.email}
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
-        {/* Messages */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-8 relative z-20">
+        
         <AnimatePresence>
           {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-8"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
               <AlertMessage type="success" message={success} title="Success" onClose={() => setSuccess("")} />
             </motion.div>
           )}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mb-8"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
               <AlertMessage type="error" message={error} title="Error" onClose={() => setError("")} />
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
+          
+          {/* Sidebar Area */}
           <div className="lg:col-span-1">
-            <ProfileSidebar />
+            <motion.div 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              className="sticky top-24"
+            >
+              <ProfileSidebar />
+            </motion.div>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-8">
-            {/* Header Tabs */}
-            <div className="bg-white rounded-3xl p-2 shadow-sm border border-stone-100 flex flex-wrap gap-2">
+          {/* Main Dashboard Area */}
+          <div className="lg:col-span-3 space-y-6">
+            
+            {/* Elegant Tab Navigation */}
+            <motion.div 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="bg-white rounded-2xl p-1.5 shadow-sm border border-stone-100 flex flex-nowrap overflow-x-auto no-scrollbar"
+            >
               {[
-                { id: "overview", label: "Overview", icon: User },
-                { id: "edit", label: "Edit Profile", icon: Settings },
-                { id: "security", label: "Security", icon: Shield },
+                { id: "overview", label: "Dashboard", icon: TrendingUp },
+                { id: "edit", label: "Profile Details", icon: Settings },
+                { id: "security", label: "Security & Login", icon: Shield },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-2xl transition-all font-bold text-sm ${activeTab === tab.id
-                    ? "bg-text-main text-white shadow-lg"
-                    : "text-text-muted hover:bg-stone-50 hover:text-text-main"
-                    }`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl transition-all duration-300 font-semibold text-sm whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "bg-indigo-600 text-white shadow-md transform scale-[1.02]"
+                      : "text-stone-500 hover:bg-stone-50 hover:text-indigo-600"
+                  }`}
                 >
-                  <tab.icon className="w-4 h-4" />
+                  <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "animate-pulse" : ""}`} />
                   {tab.label}
                 </button>
               ))}
-            </div>
+            </motion.div>
 
-            {/* Tab Content */}
+            {/* Content Area */}
             <AnimatePresence mode="wait">
+              
               {activeTab === "overview" && (
                 <motion.div
                   key="overview"
@@ -317,214 +355,265 @@ const Profile = () => {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  {/* Stats Grid */}
+                  {/* Premium Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard to="/orders" label="Total Orders" value={stats.totalOrders} icon={ShoppingBag} />
-                    <StatCard to="/wishlist" label="Wishlist" value={stats.wishlistItems} icon={Heart} />
-                    <StatCard to="/cart" label="In Cart" value={stats.cartItems} icon={ShoppingCart} />
+                    {[
+                      { to: "/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-blue-500 to-indigo-600", bg: "bg-blue-50 border-blue-100" },
+                      { to: "/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-pink-500 to-rose-600", bg: "bg-pink-50 border-pink-100" },
+                      { to: "/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50 border-emerald-100" }
+                    ].map((stat, idx) => (
+                      <motion.div key={idx} variants={itemVariants} className={`rounded-[2rem] p-6 border ${stat.bg} shadow-sm relative overflow-hidden group hover:shadow-md transition-all`}>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500">
+                          <stat.icon className="w-24 h-24" />
+                        </div>
+                        <div className="relative z-10">
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center shadow-lg mb-4`}>
+                            <stat.icon className="w-6 h-6" />
+                          </div>
+                          <p className="text-stone-600 font-medium text-sm">{stat.label}</p>
+                          <h3 className="text-3xl font-black text-stone-800 mt-1">{stat.value}</h3>
+                          <Link to={stat.to} className="inline-flex items-center gap-1 text-sm font-bold mt-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `var(--color-primary)` }}>
+                            View All <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
 
-                  {/* Quick Info & Recent Activity */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Personal Info Card */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-stone-100 shadow-sm hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-text-main">Personal Info</h3>
-                        <button onClick={() => setActiveTab("edit")} className="text-primary text-xs font-black uppercase tracking-widest hover:underline">Edit</button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Minimalist Quick Info */}
+                    <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 border border-stone-100 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-50">
+                        <h3 className="text-xl font-bold flex items-center gap-2 text-stone-800">
+                          <User className="w-5 h-5 text-indigo-500" /> Account Summary
+                        </h3>
+                        <button onClick={() => setActiveTab("edit")} className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors">Edit</button>
                       </div>
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                            <User className="w-5 h-5" />
+                      
+                      <div className="space-y-6 relative">
+                        {/* Decorative Line */}
+                        <div className="absolute left-6 top-8 bottom-4 w-px bg-stone-100 z-0"></div>
+                        
+                        {[
+                          { icon: User, label: "Full Name", value: user.name },
+                          { icon: Mail, label: "Email", value: user.email },
+                          { icon: Phone, label: "Phone", value: user.phone || "Not provided" },
+                          { icon: Calendar, label: "Joined", value: new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex gap-4 relative z-10 group">
+                            <div className="w-12 h-12 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-stone-500 group-hover:border-indigo-300 group-hover:text-indigo-600 group-hover:shadow-md transition-all">
+                              <item.icon className="w-5 h-5" />
+                            </div>
+                            <div className="pt-1">
+                              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{item.label}</p>
+                              <p className="text-stone-800 font-medium text-lg">{item.value}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Full Name</p>
-                            <p className="text-text-main font-bold">{user.name}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                            <Mail className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Email Address</p>
-                            <p className="text-text-main font-bold truncate max-w-[200px]">{user.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl">
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                            <Phone className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Phone Number</p>
-                            <p className="text-text-main font-bold">{user.phone || "Not set"}</p>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    </div>
+                    </motion.div>
 
-                    {/* Recent Orders Preview */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-stone-100 shadow-sm hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-text-main">Recent Orders</h3>
-                        <Link to="/orders" className="text-primary text-xs font-black uppercase tracking-widest hover:underline">View All</Link>
+                    {/* Exquisite Recent Orders */}
+                    <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 border border-stone-100 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col">
+                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-50">
+                        <h3 className="text-xl font-bold flex items-center gap-2 text-stone-800">
+                          <Package className="w-5 h-5 text-indigo-500" /> Recent Activity
+                        </h3>
+                        <Link to="/orders" className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors">View All</Link>
                       </div>
-                      <div className="space-y-4">
+                      
+                      <div className="space-y-4 flex-1">
                         {recentOrders.length > 0 ? (
-                          recentOrders.map((order) => (
-                            <Link key={order._id} to={`/orders/${order._id}`} className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl hover:bg-white hover:shadow-sm border border-transparent hover:border-stone-100 transition-all group">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-text-muted font-bold text-xs border border-stone-100 group-hover:border-primary/20 group-hover:text-primary transition-colors">
-                                  #{order._id.slice(-4).toUpperCase()}
-                                </div>
+                          recentOrders.map((order, idx) => (
+                            <Link key={order._id} to={`/orders/${order._id}`} className="block">
+                              <motion.div 
+                                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
+                                className="p-4 rounded-xl border border-stone-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group flex items-center justify-between relative overflow-hidden"
+                              >
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div>
-                                  <p className="text-text-main font-bold text-sm">{new Date(order.createdAt).toLocaleDateString()}</p>
-                                  <p className="text-text-muted text-xs font-medium">{order.orderItems?.length} Items • ${order.totalPrice?.toFixed(2)}</p>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">#{order._id.slice(-6).toUpperCase()}</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
+                                      ${order.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
+                                        order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-amber-100 text-amber-700'
+                                      }`}
+                                    >
+                                      {order.orderStatus}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm font-medium text-stone-800">
+                                    {new Date(order.createdAt).toLocaleDateString()}
+                                  </p>
                                 </div>
-                              </div>
-                              <div className={`w-2 h-2 rounded-full ${order.orderStatus === 'delivered' ? 'bg-green-500' :
-                                order.orderStatus === 'shipped' ? 'bg-blue-500' :
-                                  'bg-yellow-500'
-                                }`} />
+                                <div className="text-right">
+                                  <p className="font-bold text-lg text-indigo-600">${order.totalPrice?.toFixed(2)}</p>
+                                  <p className="text-xs text-stone-500 font-medium">{order.orderItems?.length} items</p>
+                                </div>
+                              </motion.div>
                             </Link>
                           ))
                         ) : (
-                          <div className="text-center py-8">
-                            <Package className="w-12 h-12 text-stone-200 mx-auto mb-2" />
-                            <p className="text-text-muted font-bold text-sm">No recent orders</p>
+                          <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                              <ShoppingBag className="w-6 h-6 text-stone-300" />
+                            </div>
+                            <p className="text-stone-800 font-bold">No orders yet</p>
+                            <p className="text-sm text-stone-500 mt-1">When you make a purchase, it will appear here.</p>
+                            <Link to="/products" className="mt-4 text-sm font-bold text-indigo-600 hover:text-indigo-800 underline">Start Shopping</Link>
                           </div>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
                 </motion.div>
               )}
 
-              {(activeTab === "edit" || activeTab === "security") && (
+              {activeTab === "edit" && (
                 <motion.div
-                  key="form"
+                  key="edit"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-stone-100 shadow-sm"
+                  className="bg-white rounded-[2rem] p-8 md:p-10 border border-stone-100 shadow-sm"
                 >
-                  <form onSubmit={handleUpdateProfile} className="space-y-8">
-                    {activeTab === "edit" && (
-                      <div className="space-y-8">
-                        <div className="flex items-center gap-6 mb-8 pb-8 border-b border-stone-100">
-                          <div className="relative group">
-                            <div className="w-24 h-24 rounded-full bg-stone-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
-                              {avatarPreview ? (
-                                <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
-                              ) : (
-                                <User className="w-10 h-10 text-stone-300" />
-                              )}
-                            </div>
-                            <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full cursor-pointer hover:bg-primary-dark transition-colors shadow-lg">
-                              <Camera className="w-4 h-4" />
-                              <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
-                            </label>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-text-main">Profile Photo</h3>
-                            <p className="text-text-muted text-xs font-medium max-w-xs">Upload a new avatar. Larger images will be resized automatically. Maximum upload size is 5MB.</p>
-                          </div>
-                        </div>
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-stone-800">Update Profile</h2>
+                    <p className="text-stone-500 text-sm mt-1">Manage your personal information and contact details.</p>
+                  </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormInput label="Full Name" name="name" value={formData.name} onChange={handleInputChange} required icon={User} />
-                          <FormInput label="Email Address" name="email" value={formData.email} onChange={handleInputChange} required icon={Mail} />
-                          <FormInput label="Phone Number" name="phone" value={formData.phone} onChange={handleInputChange} required icon={Phone} />
-                          <div className="hidden md:block"></div> {/* Spacer */}
+                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="group">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Full Name</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                            <User className="h-5 w-5" />
+                          </div>
+                          <input type="text" name="name" value={formData.name} onChange={handleInputChange} required
+                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="John Doe"
+                          />
                         </div>
                       </div>
-                    )}
 
-                    {activeTab === "security" && (
-                      <div className="space-y-6 max-w-2xl mx-auto">
-                        <div className="text-center mb-8">
-                          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                            <Lock className="w-8 h-8" />
+                      <div className="group">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Email Address</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                            <Mail className="h-5 w-5" />
                           </div>
-                          <h3 className="text-xl font-bold text-text-main">Change Password</h3>
-                          <p className="text-text-muted text-sm font-medium">Ensure your account is secure by using a strong password.</p>
-                        </div>
-
-                        <div className="space-y-6">
-                          <div className="group">
-                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Current Password</label>
-                            <div className="relative">
-                              <input
-                                type={showCurrentPassword ? "text" : "password"}
-                                name="currentPassword"
-                                value={formData.currentPassword}
-                                onChange={handleInputChange}
-                                className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
-                                placeholder="Enter current password"
-                              />
-                              <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary transition-colors">
-                                {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="group">
-                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">New Password</label>
-                            <div className="relative">
-                              <input
-                                type={showPassword ? "text" : "password"}
-                                name="newPassword"
-                                value={formData.newPassword}
-                                onChange={handleInputChange}
-                                className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
-                                placeholder="Enter new password"
-                              />
-                              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary transition-colors">
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="group">
-                            <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Confirm New Password</label>
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              name="confirmPassword"
-                              value={formData.confirmPassword}
-                              onChange={handleInputChange}
-                              className="w-full px-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-primary focus:bg-white transition-all font-bold text-text-main"
-                              placeholder="Confirm new password"
-                            />
-                          </div>
+                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} required
+                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="john@example.com"
+                          />
                         </div>
                       </div>
-                    )}
 
-                    <div className="pt-8 border-t border-stone-100 flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-primary text-white py-4 px-10 rounded-2xl hover:bg-primary-dark shadow-xl hover:shadow-primary/20 transition-all font-black text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95"
-                      >
-                        {loading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            Saving Changes...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-5 h-5" />
-                            Save Changes
-                          </>
-                        )}
+                      <div className="group md:col-span-2">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Phone Number</label>
+                        <div className="relative md:w-1/2 md:pr-3">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                            <Phone className="h-5 w-5" />
+                          </div>
+                          <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required
+                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="+1 (555) 000-0000"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-stone-100 flex justify-end">
+                      <button type="submit" disabled={loading} className="bg-indigo-600 text-white py-4 px-8 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
+                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Save className="w-5 h-5" />}
+                        {loading ? "Saving..." : "Save Changes"}
                       </button>
                     </div>
                   </form>
                 </motion.div>
               )}
+
+              {activeTab === "security" && (
+                <motion.div
+                  key="security"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="bg-white rounded-[2rem] p-8 md:p-10 border border-stone-100 shadow-sm max-w-3xl mx-auto"
+                >
+                  <div className="text-center mb-10">
+                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 relative">
+                      <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-20"></div>
+                      <Shield className="w-10 h-10 relative z-10" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-stone-800">Security Settings</h2>
+                    <p className="text-stone-500 text-sm mt-2">Update your password to keep your account secure.</p>
+                  </div>
+
+                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="space-y-5">
+                      <div className="group">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Current Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-amber-500 transition-colors">
+                            <Lock className="h-5 w-5" />
+                          </div>
+                          <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formData.currentPassword} onChange={handleInputChange}
+                            className="block w-full pl-11 pr-12 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="Enter current password"
+                          />
+                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-amber-600 transition-colors">
+                            {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="group">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">New Password</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-emerald-500 transition-colors">
+                            <Lock className="h-5 w-5" />
+                          </div>
+                          <input type={showPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} onChange={handleInputChange}
+                            className="block w-full pl-11 pr-12 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="Enter new password"
+                          />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-emerald-600 transition-colors">
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="group">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Confirm New Password</label>
+                        <div className="relative">
+                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-emerald-500 transition-colors">
+                            <Lock className="h-5 w-5" />
+                          </div>
+                          <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange}
+                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all font-medium text-stone-800"
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-8 flex justify-center">
+                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className="bg-stone-800 text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
+                        {loading ? "Updating Security..." : "Update Password"}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
             </AnimatePresence>
           </div>
         </div>
