@@ -1,7 +1,9 @@
 import React from 'react';
 import { Star, Check } from 'lucide-react';
+import { useDarkMode } from '../../hooks';
 
 const ReviewForm = ({ reviewData, onSubmit }) => {
+  const [isDark] = useDarkMode();
   const {
     rating,
     setRating,
@@ -17,7 +19,7 @@ const ReviewForm = ({ reviewData, onSubmit }) => {
       <h3 className="text-sm font-black text-text-main uppercase tracking-widest mb-6">Write a Review</h3>
       
       {alreadyReviewed ? (
-        <div className="bg-green-50 text-green-700 p-6 rounded-[2rem] text-sm border border-green-100">
+        <div className={`p-6 rounded-[2rem] text-sm border ${isDark ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-green-50 text-green-700 border-green-100"}`}>
           <div className="flex items-center gap-3 mb-2">
             <Check className="w-5 h-5 text-green-600 font-black" />
             <span className="font-black uppercase tracking-widest">Review Submitted</span>
@@ -25,7 +27,7 @@ const ReviewForm = ({ reviewData, onSubmit }) => {
           <p className="font-bold opacity-80">Thank you for your feedback!</p>
         </div>
       ) : reviewError ? (
-        <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold border border-red-100">
+        <div className={`p-4 rounded-2xl text-xs font-bold border ${isDark ? "bg-red-500/10 text-red-300 border-red-500/20" : "bg-red-50 text-red-600 border-red-100"}`}>
           {reviewError}
         </div>
       ) : null}
@@ -37,7 +39,7 @@ const ReviewForm = ({ reviewData, onSubmit }) => {
             <select
               value={rating}
               onChange={(e) => setRating(e.target.value)}
-              className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl p-4 focus:outline-none focus:border-primary transition-all font-black text-text-main"
+              className={`w-full border-2 rounded-2xl p-4 focus:outline-none focus:border-primary transition-all font-black text-text-main ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
             >
               <option value="5">5 - Exceptional</option>
               <option value="4">4 - High Quality</option>
@@ -54,7 +56,7 @@ const ReviewForm = ({ reviewData, onSubmit }) => {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Write your review here..."
-              className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl p-5 focus:outline-none focus:border-primary transition-all text-text-main font-bold placeholder:font-normal"
+              className={`w-full border-2 rounded-2xl p-5 focus:outline-none focus:border-primary transition-all text-text-main font-bold placeholder:font-normal ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-100"}`}
             ></textarea>
           </div>
           

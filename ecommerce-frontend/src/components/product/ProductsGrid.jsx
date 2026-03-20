@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import ProductCard from './ProductCard';
+import { useDarkMode } from '../../hooks';
 
 const container = {
   hidden: { opacity: 0 },
@@ -28,6 +29,8 @@ const ProductsGrid = ({
   selectedCategory,
   onClearFilters
 }) => {
+  const [isDark] = useDarkMode();
+
   return (
     <AnimatePresence mode="wait">
       {filteredProducts.length > 0 ? (
@@ -54,9 +57,9 @@ const ProductsGrid = ({
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-16 sm:py-40 bg-white rounded-2xl sm:rounded-[3rem] shadow-sm border border-stone-100 px-4"
+          className={`text-center py-16 sm:py-40 rounded-2xl sm:rounded-[3rem] px-4 border ${isDark ? 'bg-slate-900 border-slate-800 shadow-[0_20px_60px_-24px_rgba(2,6,23,0.7)]' : 'bg-white border-stone-100 shadow-sm'}`}
         >
-          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-stone-50 text-stone-200 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-8">
+          <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-8 ${isDark ? 'bg-slate-800 text-slate-500' : 'bg-stone-50 text-stone-200'}`}>
             <Search className="w-7 h-7 sm:w-10 sm:h-10" />
           </div>
           <h3 className="text-xl sm:text-3xl font-bold text-text-main mb-2 sm:mb-3 font-display">No results found</h3>

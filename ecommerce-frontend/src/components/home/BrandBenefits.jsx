@@ -1,4 +1,5 @@
 import { Truck, ShieldCheck, Smile, Clock } from "lucide-react";
+import { useDarkMode } from "../../hooks";
 
 const benefits = [
     {
@@ -24,13 +25,15 @@ const benefits = [
 ];
 
 export default function BrandBenefits() {
+    const [isDark] = useDarkMode();
+
     return (
-        <div className="py-6 sm:py-12 bg-white border-b border-stone-100">
+        <div className={`py-6 sm:py-12 border-b transition-colors duration-300 ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-stone-100"}`}>
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
                     {benefits.map((item, index) => (
                         <div key={index} className="flex flex-col items-center text-center space-y-2 sm:space-y-3 group">
-                            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-stone-50 text-primary group-hover:bg-primary-light/10 group-hover:text-primary-dark transition-colors duration-300">
+                            <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl text-primary transition-colors duration-300 ${isDark ? "bg-slate-900 group-hover:bg-slate-800 group-hover:text-primary-light" : "bg-stone-50 group-hover:bg-primary-light/10 group-hover:text-primary-dark"}`}>
                                 <item.icon className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
                             </div>
                             <div>

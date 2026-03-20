@@ -1,4 +1,5 @@
 import { Quote, Star } from "lucide-react";
+import { useDarkMode } from "../../hooks";
 
 const REVIEWS = [
   {
@@ -28,9 +29,11 @@ const REVIEWS = [
 ];
 
 export default function ParentReviews() {
+  const [isDark] = useDarkMode();
+
   return (
     <section className="px-4 md:px-6" aria-label="Customer reviews">
-      <div className="max-w-7xl mx-auto rounded-3xl border border-primary/12 bg-white p-4 shadow-[0_10px_22px_rgba(116,178,226,0.12)] md:p-5">
+      <div className={`max-w-7xl mx-auto rounded-3xl border p-4 md:p-5 ${isDark ? "border-slate-800 bg-slate-900 shadow-[0_22px_60px_-30px_rgba(2,6,23,0.9)]" : "border-primary/12 bg-white shadow-[0_10px_22px_rgba(116,178,226,0.12)]"}`}>
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Parent Reviews</p>
           <h2 className="mt-1 text-2xl font-bold text-text-main md:text-3xl">Trusted by families every day</h2>
@@ -38,7 +41,7 @@ export default function ParentReviews() {
 
         <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3 md:gap-3">
           {REVIEWS.map((review) => (
-            <article key={review.name} className="rounded-2xl border border-primary/12 bg-gradient-to-br from-white to-blue-soft/20 p-3.5 shadow-sm">
+            <article key={review.name} className={`rounded-2xl border p-3.5 shadow-sm ${isDark ? "border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800" : "border-primary/12 bg-gradient-to-br from-white to-blue-soft/20"}`}>
               <div className="mb-2.5 flex items-center justify-between">
                 <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
                   {review.initials}

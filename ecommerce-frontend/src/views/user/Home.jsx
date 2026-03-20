@@ -11,6 +11,7 @@ import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
 import SectionHeader from "../../components/product/SectionHeader";
 import ErrorState from "../../components/product/ErrorState";
+import { useDarkMode } from "../../hooks";
 
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
@@ -19,6 +20,7 @@ export default function Home() {
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
+    const [isDark] = useDarkMode();
     
     const productsRef = useRef(null);
 
@@ -68,9 +70,9 @@ export default function Home() {
     }
 
     return (
-        <div className="min-h-screen bg-bg-base font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0">
+        <div className={`min-h-screen font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
-            <div className="sticky top-14 sm:top-16 md:top-20 z-40 bg-bg-base/80 backdrop-blur-xl border-b border-stone-200/50">
+            <div className={`sticky top-14 sm:top-16 md:top-20 z-40 backdrop-blur-xl border-b transition-colors duration-300 ${isDark ? "bg-slate-950/88 border-slate-800" : "bg-bg-base/80 border-stone-200/50"}`}>
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
@@ -105,10 +107,9 @@ export default function Home() {
                 </div>
             </main>
 
-            <div className="bg-white py-12 sm:py-24 border-t border-stone-100">
+            <div className={`py-12 sm:py-24 border-t transition-colors duration-300 ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-stone-100"}`}>
                 <BrandBenefits />
             </div>
         </div>
     );
 }
-

@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useDarkMode } from '../../hooks';
 
 const SectionHeader = ({ searchQuery, filteredProductsLength }) => {
+  const [isDark] = useDarkMode();
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -25,7 +28,7 @@ const SectionHeader = ({ searchQuery, filteredProductsLength }) => {
       </div>
 
       {/* Item Count Pill */}
-      <div className="inline-flex items-center gap-2 px-6 py-3 bg-white shadow-sm rounded-2xl border border-stone-100 text-sm font-bold text-text-muted tracking-tight">
+      <div className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl border text-sm font-bold tracking-tight ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.8)]' : 'bg-white border-stone-100 text-text-muted shadow-sm'}`}>
         <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
         {filteredProductsLength} Exclusive Pieces
       </div>

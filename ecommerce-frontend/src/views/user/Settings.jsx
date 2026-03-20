@@ -205,11 +205,20 @@ export default function Settings() {
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-stone-100">
                   <Palette className={`w-5 h-5 transition-colors ${isDark ? 'text-primary' : 'text-stone-300'}`} />
                 </div>
-                <span className="text-sm font-bold text-text-main">Dark Mode</span>
+                <div>
+                  <p className="text-sm font-bold text-text-main">Dark Mode</p>
+                  <p className="text-xs font-medium text-text-muted">
+                    {isDark ? 'Enabled for this browser' : 'Use the light appearance'}
+                  </p>
+                </div>
               </div>
               <button
-                onClick={toggleDarkMode}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 shadow-inner ${isDark ? 'bg-primary' : 'bg-stone-200'}`}
+                type="button"
+                role="switch"
+                aria-checked={isDark}
+                aria-label={`Turn ${isDark ? 'off' : 'on'} dark mode`}
+                onClick={() => toggleDarkMode()}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 ${isDark ? 'bg-primary' : 'bg-stone-200'}`}
               >
                 <span
                   className={`inline-block h-6 w-6 transform rounded-full bg-white transition-all duration-300 shadow-md ${isDark ? 'translate-x-7' : 'translate-x-1'}`}

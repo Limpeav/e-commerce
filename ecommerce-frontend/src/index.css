@@ -54,6 +54,30 @@ body {
     color: var(--color-text-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+html.dark body {
+    background:
+        radial-gradient(circle at top, rgba(79, 70, 229, 0.18), transparent 30%),
+        linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    color: #E2E8F0;
+}
+
+html.dark .text-text-main {
+    color: #F8FAFC !important;
+}
+
+html.dark .text-text-muted {
+    color: #94A3B8 !important;
+}
+
+html.dark .ring-white {
+    --tw-ring-color: #0f172a !important;
 }
 
 h1,

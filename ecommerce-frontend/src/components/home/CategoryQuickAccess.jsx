@@ -6,6 +6,7 @@ import {
   Shirt,
   Truck,
 } from "lucide-react";
+import { useDarkMode } from "../../hooks";
 
 const CATEGORY_CARDS = [
   {
@@ -65,9 +66,11 @@ const getProductCount = (products, keywords) => {
 };
 
 export default function CategoryQuickAccess({ categories, products, onSelectCategory }) {
+  const [isDark] = useDarkMode();
+
   return (
     <section className="px-4 md:px-6" aria-label="Quick category access">
-      <div className="max-w-7xl mx-auto rounded-3xl border border-primary/12 bg-white p-4 md:p-5 shadow-[0_10px_22px_rgba(116,178,226,0.12)]">
+      <div className={`max-w-7xl mx-auto rounded-3xl border p-4 md:p-5 ${isDark ? "border-slate-800 bg-slate-900 shadow-[0_22px_60px_-30px_rgba(2,6,23,0.9)]" : "border-primary/12 bg-white shadow-[0_10px_22px_rgba(116,178,226,0.12)]"}`}>
         <div className="mb-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Quick Access</p>
           <h2 className="mt-1 text-2xl font-bold text-text-main md:text-3xl">Shop by Category</h2>
@@ -84,9 +87,9 @@ export default function CategoryQuickAccess({ categories, products, onSelectCate
                 key={card.label}
                 type="button"
                 onClick={() => onSelectCategory({ matchedCategory, fallbackQuery: card.label })}
-                className={`group rounded-2xl border border-primary/12 bg-gradient-to-br ${card.tone} p-2.5 text-left shadow-sm transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-3`}
+                className={`group rounded-2xl border p-2.5 text-left shadow-sm transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-3 ${isDark ? "border-slate-700 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800" : `border-primary/12 bg-gradient-to-br ${card.tone}`}`}
               >
-                <div className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-primary md:h-9 md:w-9">
+                <div className={`mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary md:h-9 md:w-9 ${isDark ? "bg-slate-800" : "bg-white"}`}>
                   <Icon className="h-4 w-4" />
                 </div>
 

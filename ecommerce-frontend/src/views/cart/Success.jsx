@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { CheckCircle, ShoppingBag } from 'lucide-react';
+import { useDarkMode } from '../../hooks';
 
 export default function OrderSuccess() {
+  const [isDark] = useDarkMode();
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center py-20 px-6 font-sans">
+    <div className={`min-h-screen flex items-center justify-center py-20 px-6 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="max-w-xl mx-auto text-center">
-        <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-primary/10 border-4 border-white">
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-primary/10 border-4 ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-white"}`}>
           <CheckCircle className="w-12 h-12 text-primary" />
         </div>
 
@@ -17,13 +19,13 @@ export default function OrderSuccess() {
           Thank you for your purchase.
         </p>
 
-        <div className="bg-white rounded-3xl shadow-lg border border-stone-100 p-8 mb-10 text-left">
+        <div className={`rounded-3xl border p-8 mb-10 text-left ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-lg"}`}>
           <div className="space-y-4">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+            <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Order Number</span>
-              <span className="font-mono text-sm font-bold text-text-main bg-stone-50 px-3 py-1 rounded-lg border border-stone-100">#ORD-{new Date().getFullYear()}-{Math.floor(Math.random() * 9000 + 1000)}</span>
+              <span className={`font-mono text-sm font-bold text-text-main px-3 py-1 rounded-lg border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>#ORD-{new Date().getFullYear()}-{Math.floor(Math.random() * 9000 + 1000)}</span>
             </div>
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+            <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Date</span>
               <span className="font-bold text-text-main text-sm">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
@@ -45,7 +47,7 @@ export default function OrderSuccess() {
 
           <Link
             to="/"
-            className="flex-1 bg-white text-text-muted border border-stone-200 px-8 py-4 rounded-xl hover:bg-stone-50 transition-all font-bold text-sm flex items-center justify-center active:scale-95"
+            className={`flex-1 border px-8 py-4 rounded-xl transition-all font-bold text-sm flex items-center justify-center active:scale-95 ${isDark ? "bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800" : "bg-white text-text-muted border-stone-200 hover:bg-stone-50"}`}
           >
             Continue Shopping
           </Link>

@@ -1,16 +1,23 @@
 import React from "react";
 import { ArrowRight, Sparkles, Star, Heart } from "lucide-react";
 import { motion } from "framer-motion";
+import { useDarkMode } from "../../hooks";
 
 export default function Hero() {
+    const [isDark] = useDarkMode();
+
     return (
-        <div className="w-full bg-bg-base pb-6 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-4 md:px-6">
+        <div className={`w-full pb-6 sm:pb-12 pt-1 sm:pt-2 px-0 sm:px-4 md:px-6 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             <div className="max-w-7xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full relative bg-primary rounded-none sm:rounded-[3rem] overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[400px] md:min-h-[500px] flex items-center p-6 sm:p-10 md:p-20 text-white"
+                    className={`w-full relative rounded-none sm:rounded-[3rem] overflow-hidden min-h-[280px] sm:min-h-[400px] md:min-h-[500px] flex items-center p-6 sm:p-10 md:p-20 text-white ${
+                        isDark
+                            ? "bg-[linear-gradient(135deg,#1e1b4b_0%,#312e81_32%,#4f46e5_100%)] shadow-[0_30px_80px_-24px_rgba(15,23,42,0.95)]"
+                            : "bg-primary shadow-2xl"
+                    }`}
                 >
                     {/* Background Decorative Elements */}
                     <div className="absolute top-[-10%] right-[-5%] w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary-light/10 rounded-full blur-[80px] sm:blur-[120px] animate-pulse"></div>

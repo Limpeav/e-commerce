@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDarkMode } from '../../hooks';
 
 const ProductCard = ({
   product,
@@ -16,21 +17,26 @@ const ProductCard = ({
   const finalPrice = hasDiscount ? product.discountPrice : product.price;
   const inWishlist = isInWishlist(product._id);
   const outOfStock = product.stock === 0;
+  const [isDark] = useDarkMode();
 
   return (
     <motion.article
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className="group relative flex flex-col h-full bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transition-shadow duration-500 border border-stone-100"
+      className={`group relative flex flex-col h-full rounded-[2rem] overflow-hidden transition-shadow duration-500 border ${
+        isDark
+          ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
+          : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)]'
+      }`}
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
-      <div className="relative aspect-square overflow-hidden bg-stone-50 rounded-2xl">
+      <div className={`relative aspect-square overflow-hidden rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
         <Link to={`/products/${product._id}`} className="block w-full h-full">
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
             alt={product.name}
-            className="w-full h-full object-contain p-6 transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-110 mix-blend-multiply"
+            className={`w-full h-full object-contain p-6 transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-110 ${isDark ? '' : 'mix-blend-multiply'}`}
             onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'; }}
           />
         </Link>
@@ -56,8 +62,8 @@ const ProductCard = ({
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
           className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 ${inWishlist
-            ? 'border-transparent shadow-md [background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box] text-indigo-600'
-            : 'bg-transparent border-stone-300 text-stone-400 hover:text-indigo-600 hover:border-indigo-600'
+            ? `${isDark ? '[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]'} border-transparent shadow-md text-indigo-600`
+            : `${isDark ? 'bg-slate-900/80 border-slate-600 text-slate-400 hover:text-indigo-400 hover:border-indigo-500' : 'bg-transparent border-stone-300 text-stone-400 hover:text-indigo-600 hover:border-indigo-600'}`
             }`}
         >
           <Heart className="w-4 h-4" strokeWidth={2.5} />
@@ -65,7 +71,7 @@ const ProductCard = ({
       </div>
 
       {/* ═══ CONTENT SECTION ═══ */}
-      <div className="flex flex-col flex-1 p-5 pt-6 gap-3 bg-white relative">
+      <div className={`flex flex-col flex-1 p-5 pt-6 gap-3 relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
 
         {/* Floating Quick Add Button (Desktop) - Overlaps Image/Content */}
         <div className="absolute -top-6 right-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
@@ -73,7 +79,7 @@ const ProductCard = ({
             onClick={() => onAddToCart(product)}
             disabled={!user || outOfStock}
             className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
-              ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
+              ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
               : 'bg-indigo-600 text-white shadow-indigo-200'
               }`}
             title="Quick Add"
@@ -87,9 +93,9 @@ const ProductCard = ({
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-500">
             {product.category || 'Essentials'}
           </span>
-          <div className="flex items-center gap-1 bg-stone-50 px-2 py-1 rounded-lg">
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-            <span className="text-[10px] font-bold text-stone-600">
+            <span className={`text-[10px] font-bold ${isDark ? 'text-slate-300' : 'text-stone-600'}`}>
               {typeof product.rating === 'number' ? product.rating.toFixed(1) : '0.0'}
             </span>
           </div>
@@ -97,28 +103,28 @@ const ProductCard = ({
 
         {/* Title */}
         <Link to={`/products/${product._id}`} className="group-hover:text-indigo-600 transition-colors duration-300">
-          <h3 className="font-bold text-stone-900 text-lg leading-snug line-clamp-2 min-h-[2.75rem]">
+          <h3 className={`font-bold text-lg leading-snug line-clamp-2 min-h-[2.75rem] ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {product.name || product.title}
           </h3>
         </Link>
 
         {/* Description Snippet (Optional - keeps card informative) */}
-        <p className="text-xs font-medium text-stone-400 line-clamp-3">
+        <p className={`text-xs font-medium line-clamp-3 ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
           {product.description || 'Premium quality for your lifestyle.'}
         </p>
 
         {/* Divider */}
-        <div className="w-full h-px bg-stone-100 my-1" />
+        <div className={`w-full h-px my-1 ${isDark ? 'bg-slate-700' : 'bg-stone-100'}`} />
 
         {/* Price Row */}
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">
             {hasDiscount && (
-              <span className="text-xs font-bold text-stone-300 line-through">
+              <span className={`text-xs font-bold line-through ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
                 ${product.price?.toFixed(2)}
               </span>
             )}
-            <span className="text-xl font-black text-stone-900 tracking-tight">
+            <span className={`text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-stone-900'}`}>
               ${finalPrice?.toFixed(2)}
             </span>
           </div>
@@ -127,13 +133,13 @@ const ProductCard = ({
           <button
             onClick={() => onAddToCart(product)}
             disabled={!user || outOfStock}
-            className="md:hidden text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl"
+            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl ${isDark ? 'text-indigo-300 bg-indigo-500/15' : 'text-indigo-600 bg-indigo-50'}`}
           >
             {outOfStock ? 'Sold Out' : 'Add'}
           </button>
 
           {/* Desktop: View Details Arrow */}
-          <Link to={`/products/${product._id}`} className="hidden md:flex items-center gap-1 text-xs font-bold text-stone-300 group-hover:text-indigo-600 transition-colors">
+          <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-indigo-600 ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
             Details <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

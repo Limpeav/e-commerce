@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import ProductCard from './ProductCard';
 import { Sparkles } from 'lucide-react';
+import { useDarkMode } from '../../hooks';
 
 import { motion } from 'framer-motion';
 
@@ -13,6 +14,7 @@ const RelatedProducts = ({ currentProduct }) => {
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
+    const [isDark] = useDarkMode();
 
     const relatedProducts = useMemo(() => {
         if (!products.length || !currentProduct) return [];
@@ -41,7 +43,7 @@ const RelatedProducts = ({ currentProduct }) => {
     if (loading || relatedProducts.length === 0) return null;
 
     return (
-        <div className="mt-16 sm:mt-24 border-t border-stone-100 pt-10 sm:pt-16">
+        <div className={`mt-16 sm:mt-24 border-t pt-10 sm:pt-16 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
             <div className="flex items-center gap-2 mb-6 sm:mb-8">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 <h2 className="text-xl sm:text-2xl font-bold text-text-main font-display">

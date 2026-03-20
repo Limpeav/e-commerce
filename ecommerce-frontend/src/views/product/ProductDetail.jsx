@@ -4,6 +4,7 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { ArrowLeft, Baby } from "lucide-react";
+import { useDarkMode } from "../../hooks";
 
 // Components
 import ProductImage from "../../components/product/ProductImage";
@@ -22,6 +23,7 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [isDark] = useDarkMode();
 
   // State
   const [quantity, setQuantity] = useState(1);
@@ -58,7 +60,7 @@ export default function ProductDetail() {
   if (error) {
     return (
       <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
+        <div className={`text-center p-12 rounded-[3rem] shadow-2xl ${isDark ? "bg-slate-900 border border-slate-800" : "bg-white"}`}>
           <p className="text-red-500 font-bold text-lg mb-4">Error loading product</p>
           <p className="text-text-muted">{error}</p>
         </div>
@@ -69,7 +71,7 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl">
+        <div className={`text-center p-12 rounded-[3rem] shadow-2xl ${isDark ? "bg-slate-900 border border-slate-800" : "bg-white"}`}>
           <p className="text-text-muted font-bold text-lg">Product not found</p>
         </div>
       </div>
@@ -77,7 +79,7 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base pt-16 sm:pt-20 md:pt-28 pb-20 md:pb-0 font-sans">
+    <div className={`min-h-screen pt-16 sm:pt-20 md:pt-28 pb-20 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
 
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10">
@@ -85,11 +87,11 @@ export default function ProductDetail() {
         <div className="mb-6 sm:mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-white border border-stone-200 shadow-sm hover:shadow-md hover:border-stone-300 transition-all duration-300 group active:scale-95"
+            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-300 group active:scale-95 ${isDark ? "bg-slate-900 border-slate-700 hover:bg-slate-800" : "bg-white border-stone-200 hover:shadow-md hover:border-stone-300"}`}
             aria-label="Go back"
           >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-stone-500 group-hover:text-stone-800 transition-colors stroke-[2.5]" />
-            <span className="text-sm sm:text-base font-bold text-stone-600 group-hover:text-stone-900 transition-colors">Back</span>
+            <ArrowLeft className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors stroke-[2.5] ${isDark ? "text-slate-400 group-hover:text-white" : "text-stone-500 group-hover:text-stone-800"}`} />
+            <span className={`text-sm sm:text-base font-bold transition-colors ${isDark ? "text-slate-300 group-hover:text-white" : "text-stone-600 group-hover:text-stone-900"}`}>Back</span>
           </button>
         </div>
 

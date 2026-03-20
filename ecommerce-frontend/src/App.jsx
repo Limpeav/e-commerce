@@ -19,6 +19,7 @@ import ScrollToTop from "./components/common/ScrollToTop";
 import Loading from "./components/common/Loading";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import PageTransition from "./components/common/PageTransition";
+import { useDarkMode } from "./hooks";
 
 // Create lazy loaded components
 const LazyComponents = {};
@@ -39,6 +40,7 @@ const phoneExemptPaths = [
 function App() {
   const location = useLocation();
   const { user } = useAuth();
+  const [isDark] = useDarkMode();
 
   const isAdminRoute = location.pathname.startsWith("/admin") && location.pathname !== "/admin/login";
   const shouldShowNavFooter = !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute;
@@ -71,35 +73,36 @@ function App() {
   return (
     <ErrorBoundary>
       <ScrollToTop />
+      <div className={isDark ? "bg-slate-950 text-slate-100 transition-colors duration-300" : "bg-stone-50 text-text-main transition-colors duration-300"}>
+        {/* User Layout */}
+        {shouldShowNavFooter && <Navbar />}
 
-      {/* User Layout */}
-      {shouldShowNavFooter && <Navbar />}
+        {/* Admin Layout */}
+        {isAdminRoute && <AdminSidebar />}
 
-      {/* Admin Layout */}
-      {isAdminRoute && <AdminSidebar />}
+        <main className={`min-h-screen transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-stone-50"} ${isAdminRoute ? 'lg:ml-64' : ''}`}>
+          <Suspense fallback={<Loading />}>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                {/* Public Routes */}
+                {publicRoutes.map(route => renderRoute(route))}
 
-      <main className={`min-h-screen ${isAdminRoute ? 'lg:ml-64' : ''}`}>
-        <Suspense fallback={<Loading />}>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
-              {/* Public Routes */}
-              {publicRoutes.map(route => renderRoute(route))}
+                {/* Protected User Routes */}
+                {protectedRoutes.map(route => renderRoute(route, true, false))}
 
-              {/* Protected User Routes */}
-              {protectedRoutes.map(route => renderRoute(route, true, false))}
+                {/* Admin Routes */}
+                {adminRoutes.map(route => renderRoute(route, false, true))}
 
-              {/* Admin Routes */}
-              {adminRoutes.map(route => renderRoute(route, false, true))}
+                {/* Additional Routes */}
+                {additionalRoutes.map(route => renderRoute(route))}
+              </Routes>
+            </AnimatePresence>
+          </Suspense>
+        </main>
 
-              {/* Additional Routes */}
-              {additionalRoutes.map(route => renderRoute(route))}
-            </Routes>
-          </AnimatePresence>
-        </Suspense>
-      </main>
-
-      {/* User Footer */}
-      {shouldShowNavFooter && <Footer />}
+        {/* User Footer */}
+        {shouldShowNavFooter && <Footer />}
+      </div>
     </ErrorBoundary>
   );
 }
