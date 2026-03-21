@@ -41,6 +41,7 @@ api.interceptors.response.use(
 export const adminService = {
   // Authentication
   login: (credentials) => api.post("/admin/login", credentials),
+  getCurrentAdmin: () => api.get("/admin/me"),
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),

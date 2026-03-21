@@ -1,17 +1,64 @@
-import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import Loading from "../../components/common/Loading";
+import { adminService } from "../../services/adminService";
 
 // Admin Route - Only allows admin users
 const AdminRoute = ({ children }) => {
-  // Check for admin authentication
-  const adminToken = localStorage.getItem("adminToken");
-  const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null");
+  const [status, setStatus] = useState("checking");
 
-  if (!adminToken || !adminUser || adminUser.role !== 'admin') {
-    return <Navigate to="/admin/login" replace />
+  useEffect(() => {
+    let isMounted = true;
+
+    const validateAdminSession = async () => {
+      const adminToken = localStorage.getItem("adminToken");
+      const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null");
+
+      if (!adminToken || !adminUser || adminUser.role !== "admin") {
+        if (isMounted) {
+          setStatus("unauthorized");
+        }
+        return;
+      }
+
+      try {
+        const { data } = await adminService.getCurrentAdmin();
+
+        if (!data || data.role !== "admin") {
+          throw new Error("Invalid admin session");
+        }
+
+        localStorage.setItem("adminUser", JSON.stringify({ ...adminUser, ...data }));
+
+        if (isMounted) {
+          setStatus("authorized");
+        }
+      } catch (error) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUser");
+
+        if (isMounted) {
+          setStatus("unauthorized");
+        }
+      }
+    };
+
+    validateAdminSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (status === "checking") {
+    return <Loading />;
   }
 
-  return children
-}
+  if (status !== "authorized") {
+    return <Navigate to="/admin/login" replace />;
+  }
 
-export default AdminRoute
+  return children;
+};
+
+export default AdminRoute;

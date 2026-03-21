@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDarkMode } from '../../hooks';
 
 const LoaderComponent = ({
   size = 'medium',
@@ -6,6 +7,8 @@ const LoaderComponent = ({
   fullScreen = false,
   className = ''
 }) => {
+  const [isDark] = useDarkMode();
+
   const sizeClasses = {
     small: 'w-6 h-6',
     medium: 'w-10 h-10',
@@ -14,21 +17,27 @@ const LoaderComponent = ({
   };
 
   const containerClasses = fullScreen
-    ? 'fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md transition-all duration-300'
-    : 'flex flex-col items-center justify-center py-8';
+    ? `fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md transition-all duration-300 ${
+        isDark ? 'bg-slate-950/85' : 'bg-white/80'
+      }`
+    : 'flex flex-col items-center justify-center py-8 transition-colors duration-300';
 
   return (
     <div className={`${containerClasses} ${className}`}>
-      {/* Custom CSS Animated Loader */}
       <div className={`${sizeClasses[size]} relative font-sans`}>
-        <div className="absolute inset-0 rounded-full border-2 border-indigo-100"></div>
-        <div className="absolute inset-0 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
+        <div className={`absolute inset-0 rounded-full border-2 ${isDark ? 'border-slate-700' : 'border-indigo-100'}`}></div>
+        <div className={`absolute inset-0 rounded-full border-2 border-t-transparent animate-spin ${isDark ? 'border-cyan-400' : 'border-indigo-600'}`}></div>
       </div>
 
-      {/* Message */}
       {message && (
         <div className="mt-4 flex flex-col items-center gap-1">
-          <p className="text-gray-600 font-bold tracking-wide text-sm bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-rose-500">
+          <p
+            className={`font-bold tracking-wide text-sm bg-clip-text text-transparent ${
+              isDark
+                ? 'bg-gradient-to-r from-cyan-300 to-blue-400'
+                : 'bg-gradient-to-r from-indigo-600 to-rose-500'
+            }`}
+          >
             {message}
           </p>
         </div>

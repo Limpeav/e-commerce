@@ -2,11 +2,17 @@ import { productService } from '../services/productService.js'
 
 // Product Controller - Handles product logic
 export class ProductController {
+  static sortByNewest(products = []) {
+    return [...products].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    )
+  }
+
   // Get all products
   static async getProducts() {
     try {
       const response = await productService.getAllProducts()
-      return { success: true, data: response.data }
+      return { success: true, data: this.sortByNewest(response.data || []) }
     } catch (error) {
       return { success: false, error: error.message }
     }
@@ -139,7 +145,7 @@ export class ProductController {
       case 'name':
         return sorted.sort((a, b) => a.name.localeCompare(b.name))
       case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        return this.sortByNewest(sorted)
       default:
         return sorted
     }

@@ -98,7 +98,7 @@ export default function Privacy() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
             <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-6 relative z-10">Communications</h2>
             <div className="space-y-2 relative z-10">
-              <p className="text-sm font-black font-display tracking-widest">ENCRYPTION@SHOPX.NET</p>
+              <p className="text-sm font-black font-display tracking-widest">ENCRYPTION@APPLAC.NET</p>
               <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.3em]">SECURE CHANNEL 01</p>
             </div>
           </section>

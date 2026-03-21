@@ -15,11 +15,13 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { config } from "../../config/index.js";
+import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 
 const Orders = () => {
   const { user } = useAuth();
+  const [isDark] = useDarkMode();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,13 +69,25 @@ const Orders = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      Pending: "bg-stone-50 text-stone-500 border-stone-100",
-      Processing: "bg-primary/5 text-primary border-primary/10",
-      Shipped: "bg-blue-50 text-blue-600 border-blue-100",
-      Delivered: "bg-green-50 text-green-600 border-green-100",
-      Cancelled: "bg-red-50 text-red-600 border-red-100",
+      Pending: isDark
+        ? "bg-slate-800/90 text-slate-300 border-slate-700"
+        : "bg-stone-50 text-stone-500 border-stone-100",
+      Processing: isDark
+        ? "bg-indigo-500/12 text-indigo-200 border-indigo-500/20"
+        : "bg-primary/5 text-primary border-primary/10",
+      Shipped: isDark
+        ? "bg-blue-500/12 text-blue-200 border-blue-500/20"
+        : "bg-blue-50 text-blue-600 border-blue-100",
+      Delivered: isDark
+        ? "bg-emerald-500/12 text-emerald-200 border-emerald-500/20"
+        : "bg-green-50 text-green-600 border-green-100",
+      Cancelled: isDark
+        ? "bg-rose-500/12 text-rose-200 border-rose-500/20"
+        : "bg-red-50 text-red-600 border-red-100",
     };
-    return colors[status] || "bg-stone-50 text-stone-500 border-stone-100";
+    return colors[status] || (isDark
+      ? "bg-slate-800/90 text-slate-300 border-slate-700"
+      : "bg-stone-50 text-stone-500 border-stone-100");
   };
 
   const getStatusIcon = (status) => {
@@ -96,16 +110,29 @@ const Orders = () => {
     }).format(amount || 0);
   };
 
+  const pageClassName = isDark ? "bg-transparent text-slate-100" : "bg-bg-base";
+  const cardClassName = isDark
+    ? "bg-slate-900/90 border-slate-800 text-slate-100 shadow-2xl shadow-slate-950/20"
+    : "bg-white border-stone-100 text-text-main shadow-sm";
+  const softPanelClassName = isDark
+    ? "bg-slate-800/70 border-slate-700"
+    : "bg-stone-50 border-stone-100";
+  const mutedClassName = isDark ? "text-slate-400" : "text-text-muted";
+  const subtleTextClassName = isDark ? "text-slate-500" : "text-stone-500";
+  const invertedSurfaceClassName = isDark
+    ? "bg-slate-950 text-slate-50"
+    : "bg-text-main text-white";
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-base font-sans">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-2xl border border-stone-100">
-          <AlertCircle className="w-16 h-16 text-red-200 mx-auto mb-6" />
-          <h2 className="text-3xl font-black text-text-main mb-3 font-display tracking-tight uppercase tracking-widest text-xs">
+      <div className={`min-h-screen flex items-center justify-center font-sans transition-colors ${pageClassName}`}>
+        <div className={`text-center p-12 rounded-[3rem] shadow-2xl border ${cardClassName}`}>
+          <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${isDark ? "text-rose-300" : "text-red-200"}`} />
+          <h2 className="text-3xl font-black mb-3 font-display tracking-tight uppercase tracking-widest text-xs">
             Identity Needed
           </h2>
-          <p className="text-text-muted font-bold text-sm mb-8">Please enter your credentials to view history.</p>
-          <button onClick={() => navigate("/login")} className="bg-text-main text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-primary transition-all">
+          <p className={`${mutedClassName} font-bold text-sm mb-8`}>Please enter your credentials to view history.</p>
+          <button onClick={() => navigate("/login")} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl transition-all ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-text-main text-white hover:bg-primary"}`}>
             Enter Vault
           </button>
         </div>
@@ -115,7 +142,7 @@ const Orders = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-base font-sans">
+      <div className={`min-h-screen flex items-center justify-center font-sans transition-colors ${pageClassName}`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/10 border-t-primary mx-auto mb-6"></div>
           <p className="text-primary font-black uppercase tracking-[0.2em] text-[10px] animate-pulse">Syncing History...</p>
@@ -125,13 +152,13 @@ const Orders = () => {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 px-4 md:px-8 font-sans">
+    <div className={`min-h-screen py-12 pt-32 px-4 md:px-8 font-sans transition-colors ${pageClassName}`}>
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col gap-8">
           {/* Main Content */}
           <div className="w-full">
             {/* Header */}
-            <div className="bg-white rounded-[2rem] border border-stone-100 p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-8 shadow-sm">
+            <div className={`rounded-[2rem] border p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-8 ${cardClassName}`}>
               <div className="text-center md:text-left">
                 <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -139,14 +166,14 @@ const Orders = () => {
                   </div>
                   <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
                 </div>
-                <h1 className="text-3xl font-bold text-text-main tracking-tight">
+                <h1 className="text-3xl font-bold tracking-tight">
                   Order History
                 </h1>
-                <p className="text-text-muted mt-1 font-medium text-sm">
+                <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
                   View details of your past orders
                 </p>
               </div>
-              <div className="flex items-center gap-3 bg-stone-50 text-text-main px-6 py-3 rounded-xl border border-stone-100 font-bold shadow-sm">
+              <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
                 <Package className="w-4 h-4 text-primary" />
                 <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
               </div>
@@ -154,19 +181,19 @@ const Orders = () => {
 
             {/* Orders List */}
             {orders.length === 0 ? (
-              <div className="bg-white rounded-[3rem] border border-stone-100 p-16 text-center shadow-md">
-                <div className="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-stone-100">
-                  <Package className="w-8 h-8 text-stone-300" />
+              <div className={`rounded-[3rem] border p-16 text-center ${cardClassName}`}>
+                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border ${softPanelClassName}`}>
+                  <Package className={`w-8 h-8 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                 </div>
-                <h2 className="text-2xl font-bold text-text-main mb-3">
+                <h2 className="text-2xl font-bold mb-3">
                   No Orders Found
                 </h2>
-                <p className="text-text-muted mb-8 max-w-md mx-auto font-medium text-sm leading-relaxed">
+                <p className={`${mutedClassName} mb-8 max-w-md mx-auto font-medium text-sm leading-relaxed`}>
                   You haven't placed any orders yet. Start shopping to find the best essentials for your baby.
                 </p>
                 <button
                   onClick={() => navigate("/")}
-                  className="px-8 py-4 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all font-bold text-sm shadow-md active:scale-95"
+                  className={`px-8 py-4 rounded-xl transition-all font-bold text-sm shadow-md active:scale-95 ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-primary text-white hover:bg-primary-dark"}`}
                 >
                   Start Shopping
                 </button>
@@ -176,14 +203,14 @@ const Orders = () => {
                 {orders.map((order) => (
                   <div
                     key={order._id}
-                    className="bg-white rounded-[2rem] border border-stone-100 overflow-hidden hover:shadow-lg transition-all duration-300 group"
+                    className={`rounded-[2rem] border overflow-hidden hover:shadow-lg transition-all duration-300 group ${cardClassName}`}
                   >
                     {/* Order Header */}
-                    <div className="bg-stone-50/50 p-6 border-b border-stone-100">
+                    <div className={`p-6 border-b ${isDark ? "bg-slate-800/50 border-slate-800" : "bg-stone-50/50 border-stone-100"}`}>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="text-sm font-bold text-text-main font-mono bg-white px-3 py-1.5 rounded-lg border border-stone-100 shadow-sm">
+                            <h3 className={`text-sm font-bold font-mono px-3 py-1.5 rounded-lg border shadow-sm ${isDark ? "bg-slate-950/80 border-slate-700 text-slate-100" : "bg-white border-stone-100 text-text-main"}`}>
                               #{order._id.slice(-8).toUpperCase()}
                             </h3>
                             <span
@@ -195,7 +222,7 @@ const Orders = () => {
                               {order.orderStatus}
                             </span>
                           </div>
-                          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-stone-500">
+                          <div className={`flex flex-wrap items-center gap-4 text-xs font-medium ${subtleTextClassName}`}>
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-primary" />
                               {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -203,14 +230,14 @@ const Orders = () => {
                             {order.paymentStatus && (
                               <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-green-500' : 'bg-secondary'}`}></div>
-                                Status: <span className={order.paymentStatus === 'Paid' ? 'text-green-600 font-bold' : 'text-secondary font-bold'}>{order.paymentStatus}</span>
+                                Status: <span className={order.paymentStatus === 'Paid' ? (isDark ? 'text-emerald-300 font-bold' : 'text-green-600 font-bold') : 'text-secondary font-bold'}>{order.paymentStatus}</span>
                               </div>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1 mr-1">Total</span>
-                          <div className="flex items-center gap-2 bg-text-main text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/10">
+                          <span className={`text-xs font-bold uppercase tracking-wide mb-1 mr-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>Total</span>
+                          <div className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg ${invertedSurfaceClassName} ${isDark ? "shadow-slate-950/30" : "shadow-primary/10"}`}>
                             <span className="text-xl font-bold tracking-tight">
                               {formatCurrency(order.totalPrice)}
                             </span>
@@ -228,9 +255,13 @@ const Orders = () => {
                         {order.orderItems?.map((item, index) => (
                           <div
                             key={index}
-                            className="flex items-center gap-4 p-3 bg-stone-50/50 rounded-xl border border-stone-100/50 group/item hover:bg-white hover:shadow-md transition-all duration-300"
+                            className={`flex items-center gap-4 p-3 rounded-xl border group/item transition-all duration-300 ${
+                              isDark
+                                ? "bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:shadow-slate-950/20"
+                                : "bg-stone-50/50 border-stone-100/50 hover:bg-white hover:shadow-md"
+                            }`}
                           >
-                            <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center flex-shrink-0 p-2 border border-stone-100 overflow-hidden">
+                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 p-2 border overflow-hidden ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
                               {item.image ? (
                                 <img
                                   src={item.image}
@@ -238,15 +269,15 @@ const Orders = () => {
                                   className="w-full h-full object-contain transform group-hover/item:scale-105 transition-transform duration-500"
                                 />
                               ) : (
-                                <Package className="w-5 h-5 text-stone-200" />
+                                <Package className={`w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-200"}`} />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h5 className="font-bold text-text-main truncate text-sm">
+                              <h5 className="font-bold truncate text-sm">
                                 {item.name}
                               </h5>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs font-medium text-stone-500 bg-white px-2 py-0.5 rounded border border-stone-100">
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
                                   Qty: {item.quantity}
                                 </span>
                                 <span className="text-xs font-bold text-primary">
@@ -255,7 +286,7 @@ const Orders = () => {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-text-main text-sm">
+                              <p className="font-bold text-sm">
                                 {formatCurrency(item.price * item.quantity)}
                               </p>
                             </div>
@@ -265,20 +296,24 @@ const Orders = () => {
                     </div>
 
                     {/* Order Footer */}
-                    <div className="bg-stone-50/30 px-6 py-4 border-t border-stone-100/50">
+                    <div className={`px-6 py-4 border-t ${isDark ? "bg-slate-900/80 border-slate-800" : "bg-stone-50/30 border-stone-100/50"}`}>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="space-y-1">
                           {order.shippingAddress && (
-                            <div className="text-xs font-medium text-stone-500 flex items-center gap-2">
+                            <div className={`text-xs font-medium flex items-center gap-2 ${subtleTextClassName}`}>
                               <MapPin className="w-3.5 h-3.5 text-primary" />
-                              <span className="text-text-main font-bold">Shipping to:</span>{" "}
+                              <span className={isDark ? "text-slate-100 font-bold" : "text-text-main font-bold"}>Shipping to:</span>{" "}
                               {order.shippingAddress.address}, {order.shippingAddress.city}
                             </div>
                           )}
                         </div>
                         <button
                           onClick={() => navigate(`/orders/${order._id}`)}
-                          className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-stone-200 text-text-main rounded-xl hover:border-primary hover:text-primary transition-all font-bold text-xs shadow-sm active:scale-95"
+                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 ${
+                            isDark
+                              ? "bg-slate-950 border border-slate-700 text-slate-100 hover:border-indigo-400 hover:text-indigo-300"
+                              : "bg-white border border-stone-200 text-text-main hover:border-primary hover:text-primary"
+                          }`}
                         >
                           <Eye className="w-4 h-4" />
                           View Details

@@ -20,7 +20,7 @@ export default function Terms() {
           <SectionHeader number={1} title="Acceptance of Terms" />
           <ContentBox>
             <p className="text-sm font-medium text-text-muted leading-relaxed">
-              By accessing and using ShopX, you accept and agree to be bound by these Terms of Service
+              By accessing and using Applac, you accept and agree to be bound by these Terms of Service
               and our Privacy Policy. If you do not agree to these terms, please do not use our services.
             </p>
           </ContentBox>
@@ -137,7 +137,7 @@ export default function Terms() {
           <SectionHeader number={6} title="Proprietary Rights" titleClass="text-xl font-black text-text-main font-display uppercase tracking-widest" />
           <ContentBox className="rounded-[3rem] p-10 text-center">
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest leading-[2.5] max-w-2xl mx-auto">
-              All digital constructs, branding, visual algorithms, and textual data are protected proprietary assets of the ShopX collective.
+              All digital constructs, branding, visual algorithms, and textual data are protected proprietary assets of the Applac collective.
               Unauthorized duplication, reverse engineering, or redistribution is strictly prohibited and monitored.
             </p>
           </ContentBox>
@@ -150,7 +150,7 @@ export default function Terms() {
             <h2 className="text-xl font-black text-red-900 font-display uppercase tracking-widest">Liability Ceiling</h2>
           </div>
           <p className="text-[10px] font-black text-red-800 uppercase tracking-widest leading-relaxed">
-            ShopX maintains zero liability for consequential system anomalies or indirect data fluctuations. Total agency is capped at the acquisition cost of the specific asset involved in the dispute.
+            Applac maintains zero liability for consequential system anomalies or indirect data fluctuations. Total agency is capped at the acquisition cost of the specific asset involved in the dispute.
           </p>
         </section>
 
@@ -161,7 +161,7 @@ export default function Terms() {
             <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.5em] mb-8">Legal Terminal</h2>
             <p className="text-2xl font-black font-display mb-8 uppercase tracking-tight">Direct inquiry line for arbitration & policy disputes.</p>
             <div className="flex flex-col gap-2">
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest">LEGAL.HUB@SHOPX.NET</p>
+              <p className="text-[10px] font-black text-primary uppercase tracking-widest">LEGAL.HUB@APPLAC.NET</p>
               <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em]">GLOBAL JURISDICTION 01</p>
             </div>
           </div>

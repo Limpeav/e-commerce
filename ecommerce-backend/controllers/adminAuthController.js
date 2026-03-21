@@ -10,7 +10,7 @@ const generateToken = (id) => {
 
 // @desc    Register new admin
 // @route   POST /api/admin/register
-// @access  Public
+// @access  Private/Admin
 export const registerAdmin = async (req, res) => {
     try {
         const { name, phone, email, password } = req.body;
@@ -79,4 +79,17 @@ export const loginAdmin = async (req, res) => {
         console.error("Admin login error:", error);
         res.status(500).json({ message: error.message || "Server error during login" });
     }
+};
+
+// @desc    Get current admin session
+// @route   GET /api/admin/me
+// @access  Private/Admin
+export const getAdminProfile = async (req, res) => {
+    res.json({
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone,
+        role: req.user.role,
+    });
 };

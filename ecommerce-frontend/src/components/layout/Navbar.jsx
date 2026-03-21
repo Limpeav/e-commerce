@@ -93,7 +93,7 @@ export default function Navbar() {
                 <Baby className="w-7 h-7 text-primary" />
               </motion.div>
               <h1 className="text-2xl font-bold text-text-main tracking-tight font-display leading-none">
-                ShopX
+                Applac
               </h1>
             </Link>
 
@@ -253,7 +253,7 @@ export default function Navbar() {
               <div className="bg-primary-light/10 p-1.5 rounded-xl">
                 <Baby className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">ShopX</h1>
+              <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">Applac</h1>
             </Link>
           </div>
 

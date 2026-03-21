@@ -11,7 +11,7 @@ export const productService = {
    * @returns {Promise<Array>} Array of products
    */
   async getAllProducts() {
-    return await Product.find();
+    return await Product.find().sort({ createdAt: -1, _id: -1 });
   },
 
   /**

@@ -35,7 +35,7 @@ export default function Footer() {
                 <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-text-main tracking-tight font-display">
-                ShopX
+                Applac
               </h1>
             </Link>
             <p className="text-text-muted text-xs sm:text-sm font-medium leading-relaxed max-w-sm">
@@ -136,7 +136,7 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-12">
           {/* Copyright */}
           <p className="text-[9px] sm:text-[10px] font-semibold text-text-muted/60 uppercase tracking-widest order-2 sm:order-1 text-center">
-            © {currentYear} ShopX Inc. All rights reserved.
+            © {currentYear} Applac Inc. All rights reserved.
           </p>
 
           {/* Social Links */}

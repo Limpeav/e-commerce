@@ -121,11 +121,11 @@ export default function Location() {
                         <div className="space-y-4 relative z-10">
                             <div className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-white/40" />
-                                <span className="text-xs font-bold tracking-widest">LOGISTICS@SHOPX.NET</span>
+                                <span className="text-xs font-bold tracking-widest">LOGISTICS@APPLAC.NET</span>
                             </div>
                             <div className="flex items-center gap-3">
                                 <Globe className="w-4 h-4 text-white/40" />
-                                <span className="text-xs font-bold tracking-widest">HQ.SHOPX.NET</span>
+                                <span className="text-xs font-bold tracking-widest">HQ.APPLAC.NET</span>
                             </div>
                         </div>
                     </div>

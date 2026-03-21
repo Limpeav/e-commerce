@@ -16,7 +16,7 @@ export default function Contact() {
         {
             icon: Mail,
             title: "Email Terminal",
-            value: "support@shopx.com",
+            value: "support@applac.com",
             description: "24/7 Response coverage",
             color: "primary"
         },
@@ -107,7 +107,7 @@ export default function Contact() {
                                     <div className="space-y-6 relative z-10">
                                         <div>
                                             <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-2">Office Address</h4>
-                                            <p className="text-lg font-bold mb-1">SHOPX GLOBAL INC.</p>
+                                            <p className="text-lg font-bold mb-1">APPLAC GLOBAL INC.</p>
                                             <p className="text-xs font-medium text-white/60 leading-relaxed">
                                                 1234 Tech Plaza, Silicon District<br />
                                                 San Francisco, CA 94103<br />

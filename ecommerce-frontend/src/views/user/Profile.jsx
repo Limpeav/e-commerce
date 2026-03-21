@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertMessage, StatCard, FormInput } from "../../components";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
+import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 
@@ -48,6 +49,7 @@ const itemVariants = {
 
 const Profile = () => {
   const { user, login } = useAuth();
+  const [isDark] = useDarkMode();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -222,17 +224,19 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50 font-sans">
+      <div className={`min-h-screen flex items-center justify-center font-sans transition-colors ${isDark ? "bg-slate-950" : "bg-stone-50"}`}>
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }} 
           animate={{ scale: 1, opacity: 1 }} 
-          className="text-center bg-white p-12 rounded-[2rem] shadow-xl border border-stone-100 max-w-md w-full"
+          className={`text-center p-12 rounded-[2rem] shadow-xl border max-w-md w-full transition-colors ${
+            isDark ? "bg-slate-900/95 border-slate-800 text-slate-100" : "bg-white border-stone-100"
+          }`}
         >
-          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-500"}`}>
             <Lock className="w-10 h-10" />
           </div>
-          <h2 className="text-3xl font-bold text-stone-800 mb-3 tracking-tight">Access Denied</h2>
-          <p className="text-stone-500 font-medium mb-8">Please log in to view your profile dashboard and manage your account.</p>
+          <h2 className={`text-3xl font-bold mb-3 tracking-tight ${isDark ? "text-slate-50" : "text-stone-800"}`}>Access Denied</h2>
+          <p className={`${isDark ? "text-slate-400" : "text-stone-500"} font-medium mb-8`}>Please log in to view your profile dashboard and manage your account.</p>
           <Link to="/login" className="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30">
             Sign In Now <ChevronRight className="w-5 h-5" />
           </Link>
@@ -242,7 +246,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-20 font-sans">
+    <div className={`min-h-screen pb-20 font-sans transition-colors ${isDark ? "bg-transparent" : "bg-stone-50"}`}>
       {/* Dynamic Header Banner */}
       <div className="h-72 w-full bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-700 relative overflow-hidden">
         {/* Abstract shapes for visual interest */}
@@ -258,12 +262,16 @@ const Profile = () => {
             className="flex items-end gap-6"
           >
             <div className="relative group">
-              <div className="w-32 h-32 rounded-2xl bg-white p-1 shadow-2xl transform rotate-3 transition-transform group-hover:rotate-0 duration-300">
-                <div className="w-full h-full rounded-xl bg-stone-100 overflow-hidden flex items-center justify-center relative">
+              <div className={`w-32 h-32 rounded-2xl p-1 shadow-2xl transform rotate-3 transition-transform group-hover:rotate-0 duration-300 ${
+                isDark ? "bg-slate-900/95 ring-1 ring-white/10" : "bg-white"
+              }`}>
+                <div className={`w-full h-full rounded-xl overflow-hidden flex items-center justify-center relative ${
+                  isDark ? "bg-slate-800" : "bg-stone-100"
+                }`}>
                   {avatarPreview ? (
                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                     <User className="w-12 h-12 text-stone-300" />
+                     <User className={`w-12 h-12 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                   )}
                   {activeTab === "edit" && (
                     <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
@@ -323,7 +331,9 @@ const Profile = () => {
             <motion.div 
               initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="bg-white rounded-2xl p-1.5 shadow-sm border border-stone-100 flex flex-nowrap overflow-x-auto no-scrollbar"
+              className={`rounded-2xl p-1.5 shadow-sm border flex flex-nowrap overflow-x-auto no-scrollbar transition-colors ${
+                isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"
+              }`}
             >
               {[
                 { id: "overview", label: "Dashboard", icon: TrendingUp },
@@ -336,7 +346,9 @@ const Profile = () => {
                   className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl transition-all duration-300 font-semibold text-sm whitespace-nowrap ${
                     activeTab === tab.id
                       ? "bg-indigo-600 text-white shadow-md transform scale-[1.02]"
-                      : "text-stone-500 hover:bg-stone-50 hover:text-indigo-600"
+                      : isDark
+                        ? "text-slate-400 hover:bg-slate-800 hover:text-indigo-300"
+                        : "text-stone-500 hover:bg-stone-50 hover:text-indigo-600"
                   }`}
                 >
                   <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "animate-pulse" : ""}`} />
@@ -364,7 +376,13 @@ const Profile = () => {
                       { to: "/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-pink-500 to-rose-600", bg: "bg-pink-50 border-pink-100" },
                       { to: "/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50 border-emerald-100" }
                     ].map((stat, idx) => (
-                      <motion.div key={idx} variants={itemVariants} className={`rounded-[2rem] p-6 border ${stat.bg} shadow-sm relative overflow-hidden group hover:shadow-md transition-all`}>
+                      <motion.div
+                        key={idx}
+                        variants={itemVariants}
+                        className={`rounded-[2rem] p-6 border shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${
+                          isDark ? "bg-slate-900/90 border-slate-800" : stat.bg
+                        }`}
+                      >
                         <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500">
                           <stat.icon className="w-24 h-24" />
                         </div>
@@ -372,8 +390,8 @@ const Profile = () => {
                           <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center shadow-lg mb-4`}>
                             <stat.icon className="w-6 h-6" />
                           </div>
-                          <p className="text-stone-600 font-medium text-sm">{stat.label}</p>
-                          <h3 className="text-3xl font-black text-stone-800 mt-1">{stat.value}</h3>
+                          <p className={`font-medium text-sm ${isDark ? "text-slate-400" : "text-stone-600"}`}>{stat.label}</p>
+                          <h3 className={`text-3xl font-black mt-1 ${isDark ? "text-slate-50" : "text-stone-800"}`}>{stat.value}</h3>
                           <Link to={stat.to} className="inline-flex items-center gap-1 text-sm font-bold mt-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `var(--color-primary)` }}>
                             View All <ChevronRight className="w-4 h-4" />
                           </Link>
@@ -384,17 +402,17 @@ const Profile = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Minimalist Quick Info */}
-                    <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 border border-stone-100 shadow-sm hover:shadow-lg transition-shadow duration-300">
-                      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-50">
-                        <h3 className="text-xl font-bold flex items-center gap-2 text-stone-800">
+                    <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
+                      <div className={`flex items-center justify-between mb-8 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
+                        <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
                           <User className="w-5 h-5 text-indigo-500" /> Account Summary
                         </h3>
-                        <button onClick={() => setActiveTab("edit")} className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors">Edit</button>
+                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25" : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"}`}>Edit</button>
                       </div>
                       
                       <div className="space-y-6 relative">
                         {/* Decorative Line */}
-                        <div className="absolute left-6 top-8 bottom-4 w-px bg-stone-100 z-0"></div>
+                        <div className={`absolute left-6 top-8 bottom-4 w-px z-0 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
                         
                         {[
                           { icon: User, label: "Full Name", value: user.name },
@@ -403,12 +421,16 @@ const Profile = () => {
                           { icon: Calendar, label: "Joined", value: new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
                         ].map((item, idx) => (
                           <div key={idx} className="flex gap-4 relative z-10 group">
-                            <div className="w-12 h-12 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-stone-500 group-hover:border-indigo-300 group-hover:text-indigo-600 group-hover:shadow-md transition-all">
+                            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all ${
+                              isDark
+                                ? "bg-slate-950 border-slate-700 text-slate-400 group-hover:border-indigo-400 group-hover:text-indigo-300 group-hover:shadow-[0_0_0_1px_rgba(129,140,248,0.15)]"
+                                : "bg-white border-stone-200 text-stone-500 group-hover:border-indigo-300 group-hover:text-indigo-600 group-hover:shadow-md"
+                            }`}>
                               <item.icon className="w-5 h-5" />
                             </div>
                             <div className="pt-1">
-                              <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">{item.label}</p>
-                              <p className="text-stone-800 font-medium text-lg">{item.value}</p>
+                              <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-500" : "text-stone-400"}`}>{item.label}</p>
+                              <p className={`font-medium text-lg ${isDark ? "text-slate-100" : "text-stone-800"}`}>{item.value}</p>
                             </div>
                           </div>
                         ))}
@@ -416,12 +438,12 @@ const Profile = () => {
                     </motion.div>
 
                     {/* Exquisite Recent Orders */}
-                    <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 border border-stone-100 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col">
-                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-50">
-                        <h3 className="text-xl font-bold flex items-center gap-2 text-stone-800">
+                    <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
+                      <div className={`flex items-center justify-between mb-6 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
+                        <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
                           <Package className="w-5 h-5 text-indigo-500" /> Recent Activity
                         </h3>
-                        <Link to="/orders" className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors">View All</Link>
+                        <Link to="/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25" : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"}`}>View All</Link>
                       </div>
                       
                       <div className="space-y-4 flex-1">
@@ -430,12 +452,16 @@ const Profile = () => {
                             <Link key={order._id} to={`/orders/${order._id}`} className="block">
                               <motion.div 
                                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
-                                className="p-4 rounded-xl border border-stone-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group flex items-center justify-between relative overflow-hidden"
+                                className={`p-4 rounded-xl border transition-all group flex items-center justify-between relative overflow-hidden ${
+                                  isDark
+                                    ? "border-slate-800 hover:border-indigo-500/40 hover:bg-slate-800/90"
+                                    : "border-stone-100 hover:border-indigo-200 hover:bg-indigo-50/50"
+                                }`}
                               >
                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">#{order._id.slice(-6).toUpperCase()}</span>
+                                    <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${isDark ? "text-slate-300 bg-slate-800" : "text-stone-500 bg-stone-100"}`}>#{order._id.slice(-6).toUpperCase()}</span>
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
                                       ${order.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
                                         order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
@@ -445,24 +471,24 @@ const Profile = () => {
                                       {order.orderStatus}
                                     </span>
                                   </div>
-                                  <p className="text-sm font-medium text-stone-800">
+                                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>
                                     {new Date(order.createdAt).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <div className="text-right">
                                   <p className="font-bold text-lg text-indigo-600">${order.totalPrice?.toFixed(2)}</p>
-                                  <p className="text-xs text-stone-500 font-medium">{order.orderItems?.length} items</p>
+                                  <p className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>{order.orderItems?.length} items</p>
                                 </div>
                               </motion.div>
                             </Link>
                           ))
                         ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                              <ShoppingBag className="w-6 h-6 text-stone-300" />
+                          <div className={`h-full flex flex-col items-center justify-center text-center p-6 rounded-2xl border border-dashed ${isDark ? "bg-slate-950/60 border-slate-800" : "bg-stone-50 border-stone-200"}`}>
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-sm mb-4 ${isDark ? "bg-slate-900" : "bg-white"}`}>
+                              <ShoppingBag className={`w-6 h-6 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                             </div>
-                            <p className="text-stone-800 font-bold">No orders yet</p>
-                            <p className="text-sm text-stone-500 mt-1">When you make a purchase, it will appear here.</p>
+                            <p className={`font-bold ${isDark ? "text-slate-100" : "text-stone-800"}`}>No orders yet</p>
+                            <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>When you make a purchase, it will appear here.</p>
                             <Link to="/products" className="mt-4 text-sm font-bold text-indigo-600 hover:text-indigo-800 underline">Start Shopping</Link>
                           </div>
                         )}
@@ -479,56 +505,62 @@ const Profile = () => {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="bg-white rounded-[2rem] p-8 md:p-10 border border-stone-100 shadow-sm"
+                  className={`rounded-[2rem] p-8 md:p-10 border shadow-sm ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}
                 >
                   <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-stone-800">Update Profile</h2>
-                    <p className="text-stone-500 text-sm mt-1">Manage your personal information and contact details.</p>
+                    <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Update Profile</h2>
+                    <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Manage your personal information and contact details.</p>
                   </div>
 
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="group">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Full Name</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Full Name</label>
                         <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                             <User className="h-5 w-5" />
                           </div>
                           <input type="text" name="name" value={formData.name} onChange={handleInputChange} required
-                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="John Doe"
                           />
                         </div>
                       </div>
 
                       <div className="group">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Email Address</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
                         <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                             <Mail className="h-5 w-5" />
                           </div>
                           <input type="email" name="email" value={formData.email} onChange={handleInputChange} required
-                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="john@example.com"
                           />
                         </div>
                       </div>
 
                       <div className="group md:col-span-2">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Phone Number</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
                         <div className="relative md:w-1/2 md:pr-3">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-indigo-500 transition-colors">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                             <Phone className="h-5 w-5" />
                           </div>
                           <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required
-                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="+1 (555) 000-0000"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-stone-100 flex justify-end">
+                    <div className={`pt-6 mt-6 border-t flex justify-end ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                       <button type="submit" disabled={loading} className="bg-indigo-600 text-white py-4 px-8 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
                         {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Save className="w-5 h-5" />}
                         {loading ? "Saving..." : "Save Changes"}
@@ -545,59 +577,65 @@ const Profile = () => {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="bg-white rounded-[2rem] p-8 md:p-10 border border-stone-100 shadow-sm max-w-3xl mx-auto"
+                  className={`rounded-[2rem] p-8 md:p-10 border shadow-sm max-w-3xl mx-auto ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}
                 >
                   <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 relative">
-                      <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-20"></div>
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 relative ${isDark ? "bg-indigo-500/10" : "bg-indigo-50"}`}>
+                      <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${isDark ? "bg-indigo-400" : "bg-indigo-100"}`}></div>
                       <Shield className="w-10 h-10 relative z-10" />
                     </div>
-                    <h2 className="text-2xl font-bold text-stone-800">Security Settings</h2>
-                    <p className="text-stone-500 text-sm mt-2">Update your password to keep your account secure.</p>
+                    <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Security Settings</h2>
+                    <p className={`text-sm mt-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Update your password to keep your account secure.</p>
                   </div>
 
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="space-y-5">
                       <div className="group">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Current Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Current Password</label>
                         <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-amber-500 transition-colors">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-amber-300" : "text-stone-400 group-focus-within:text-amber-500"}`}>
                             <Lock className="h-5 w-5" />
                           </div>
                           <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formData.currentPassword} onChange={handleInputChange}
-                            className="block w-full pl-11 pr-12 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="Enter current password"
                           />
-                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-amber-600 transition-colors">
+                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-amber-300" : "text-stone-400 hover:text-amber-600"}`}>
                             {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                           </button>
                         </div>
                       </div>
 
                       <div className="group">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">New Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>New Password</label>
                         <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-emerald-500 transition-colors">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Lock className="h-5 w-5" />
                           </div>
                           <input type={showPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} onChange={handleInputChange}
-                            className="block w-full pl-11 pr-12 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="Enter new password"
                           />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-emerald-600 transition-colors">
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-emerald-300" : "text-stone-400 hover:text-emerald-600"}`}>
                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                           </button>
                         </div>
                       </div>
 
                       <div className="group">
-                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Confirm New Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Confirm New Password</label>
                         <div className="relative">
-                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400 group-focus-within:text-emerald-500 transition-colors">
+                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Lock className="h-5 w-5" />
                           </div>
                           <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange}
-                            className="block w-full pl-11 pr-4 py-4 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all font-medium text-stone-800"
+                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
                             placeholder="Confirm new password"
                           />
                         </div>
@@ -605,7 +643,7 @@ const Profile = () => {
                     </div>
 
                     <div className="pt-8 flex justify-center">
-                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className="bg-stone-800 text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className={`text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? "bg-slate-100 text-slate-950 hover:bg-white hover:shadow-[0_20px_50px_-24px_rgba(248,250,252,0.75)]" : "bg-stone-800 hover:bg-black hover:shadow-xl"}`}>
                         {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
                         {loading ? "Updating Security..." : "Update Password"}
                       </button>

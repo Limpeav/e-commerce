@@ -1,6 +1,6 @@
 import express from "express";
 import { getDashboardData } from "../controllers/adminController.js";
-import { registerAdmin, loginAdmin } from "../controllers/adminAuthController.js";
+import { registerAdmin, loginAdmin, getAdminProfile } from "../controllers/adminAuthController.js";
 import {
     getAllUsers,
     getUserById,
@@ -14,8 +14,9 @@ import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 const router = express.Router();
 
 // Auth routes
-router.post("/register", registerAdmin);
+router.post("/register", protect, admin, registerAdmin);
 router.post("/login", loginAdmin);
+router.get("/me", protect, admin, getAdminProfile);
 
 // Dashboard
 router.get("/dashboard", protect, admin, getDashboardData);
