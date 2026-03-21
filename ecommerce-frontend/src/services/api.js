@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+    clearAdminSession,
+    getStoredAdminToken,
+} from "../utils/adminSession.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
@@ -12,9 +16,9 @@ const api = axios.create({
 // Add token to requests if it exists
 api.interceptors.request.use(
     (config) => {
-        const adminData = JSON.parse(localStorage.getItem("admin"));
-        if (adminData?.token) {
-            config.headers.Authorization = `Bearer ${adminData.token}`;
+        const adminToken = getStoredAdminToken();
+        if (adminToken) {
+            config.headers.Authorization = `Bearer ${adminToken}`;
         }
         return config;
     },
@@ -28,9 +32,8 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Unauthorized - clear admin data and redirect to login
-            localStorage.removeItem("admin");
-            window.location.href = "/";
+            clearAdminSession();
+            window.location.href = "/admin/login";
         }
         return Promise.reject(error);
     }

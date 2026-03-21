@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { clearAdminSession, getStoredAdminUser } from '../../utils/adminSession'
 import {
   LayoutDashboard,
   Package,
@@ -17,7 +18,7 @@ const AdminSidebar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
 
   // Get admin user data
-  const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null")
+  const adminUser = getStoredAdminUser()
 
   const menuItems = [
     {
@@ -43,8 +44,7 @@ const AdminSidebar = () => {
   ]
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken")
-    localStorage.removeItem("adminUser")
+    clearAdminSession()
     navigate("/admin/login")
   }
 

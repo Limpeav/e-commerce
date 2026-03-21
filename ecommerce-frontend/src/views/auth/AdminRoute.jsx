@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Loading from "../../components/common/Loading";
 import { adminService } from "../../services/adminService";
+import {
+  clearAdminSession,
+  getStoredAdminUser,
+  getStoredAdminToken,
+} from "../../utils/adminSession";
 
 // Admin Route - Only allows admin users
 const AdminRoute = ({ children }) => {
@@ -11,8 +16,8 @@ const AdminRoute = ({ children }) => {
     let isMounted = true;
 
     const validateAdminSession = async () => {
-      const adminToken = localStorage.getItem("adminToken");
-      const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null");
+      const adminToken = getStoredAdminToken();
+      const adminUser = getStoredAdminUser();
 
       if (!adminToken || !adminUser || adminUser.role !== "admin") {
         if (isMounted) {
@@ -34,8 +39,7 @@ const AdminRoute = ({ children }) => {
           setStatus("authorized");
         }
       } catch (error) {
-        localStorage.removeItem("adminToken");
-        localStorage.removeItem("adminUser");
+        clearAdminSession();
 
         if (isMounted) {
           setStatus("unauthorized");

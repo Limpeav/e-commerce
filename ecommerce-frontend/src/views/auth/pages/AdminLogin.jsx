@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminService } from "../../../services/adminService.js";
 import {
+  clearAdminSession,
+  hasStoredAdminSession,
+  persistAdminSession,
+} from "../../../utils/adminSession.js";
+import {
   Mail,
   Lock,
   ShieldCheck,
@@ -23,7 +28,22 @@ const AdminLogin = () => {
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+
+    const validateExistingAdminSession = async () => {
+      if (!hasStoredAdminSession()) {
+        return;
+      }
+
+      try {
+        await adminService.getCurrentAdmin();
+        navigate("/admin", { replace: true });
+      } catch {
+        clearAdminSession();
+      }
+    };
+
+    validateExistingAdminSession();
+  }, [navigate]);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -40,11 +60,9 @@ const AdminLogin = () => {
         throw new Error("Invalid response from server");
       }
 
-      // Store admin token and user info
-      localStorage.setItem("adminToken", data.token);
-      localStorage.setItem("adminUser", JSON.stringify(data));
+      persistAdminSession(data);
 
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     } catch (err) {
       console.error("Admin login error:", err);
       setError(

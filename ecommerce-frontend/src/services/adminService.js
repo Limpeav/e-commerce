@@ -1,5 +1,9 @@
 import axios from "axios";
 import { config } from "../config/index.js";
+import {
+  clearAdminSession,
+  getStoredAdminToken,
+} from "../utils/adminSession.js";
 
 const API_URL = config.API_BASE_URL;
 
@@ -13,7 +17,7 @@ const api = axios.create({
 // Add admin token to requests
 api.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem("adminToken");
+    const adminToken = getStoredAdminToken();
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     }
@@ -29,8 +33,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("adminUser");
+      clearAdminSession();
       window.location.href = "/admin/login";
     }
     return Promise.reject(error);

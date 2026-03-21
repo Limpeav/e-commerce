@@ -1,5 +1,6 @@
 import axios from "axios";
 import { config } from "../config/index.js";
+import { getStoredAdminToken } from "../utils/adminSession.js";
 
 const API_URL = `${config.API_BASE_URL}/products`;
 
@@ -7,12 +8,6 @@ const API_URL = `${config.API_BASE_URL}/products`;
 const getAuthToken = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   return user?.token;
-};
-
-// Get admin token from localStorage
-const getAdminToken = () => {
-  const admin = JSON.parse(localStorage.getItem("admin"));
-  return admin?.token;
 };
 
 export const productService = {
@@ -89,7 +84,7 @@ export const productService = {
   // Create product (admin only)
   createProduct: async (productData) => {
     try {
-      const token = getAdminToken();
+      const token = getStoredAdminToken();
       if (!token) {
         throw new Error("Admin authentication required");
       }
@@ -107,7 +102,7 @@ export const productService = {
   // Update product (admin only)
   updateProduct: async (id, productData) => {
     try {
-      const token = getAdminToken();
+      const token = getStoredAdminToken();
       if (!token) {
         throw new Error("Admin authentication required");
       }
@@ -125,7 +120,7 @@ export const productService = {
   // Delete product (admin only)
   deleteProduct: async (id) => {
     try {
-      const token = getAdminToken();
+      const token = getStoredAdminToken();
       if (!token) {
         throw new Error("Admin authentication required");
       }
