@@ -6,14 +6,21 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
   return (
     <div className="relative font-sans">
-      <div className={`rounded-[2rem] sm:rounded-[3rem] p-3 sm:p-5 lg:p-6 border sticky top-28 overflow-hidden transition-all duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.95)]" : "bg-white border-stone-100 shadow-xl"}`}>
-        <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl -mr-32 -mt-32 opacity-70 ${isDark ? "bg-gradient-to-br from-indigo-900/40 to-rose-900/30" : "bg-gradient-to-br from-indigo-50 to-rose-50"}`}></div>
+      <div className={`sticky top-28 overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] border p-4 sm:p-5 lg:p-6 transition-all duration-300 ${isDark ? "border-slate-800 bg-[linear-gradient(160deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] shadow-[0_28px_70px_-30px_rgba(2,6,23,0.95)]" : "border-stone-200 bg-[linear-gradient(160deg,#ffffff,#f8fafc)] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.2)]"}`}>
+        <div className={`absolute inset-x-0 top-0 h-40 opacity-80 ${isDark ? "bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_70%)]" : "bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.10),transparent_70%)]"}`}></div>
 
-        <div className={`relative z-10 flex items-center justify-center rounded-[1.5rem] sm:rounded-[2rem] p-6 sm:p-10 h-[320px] sm:h-[450px] lg:h-[550px] transition-all duration-300 border shadow-inner ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50/50 border-stone-100"}`}>
+        <div className={`relative z-10 flex min-h-[320px] sm:min-h-[450px] lg:min-h-[560px] items-center justify-center overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] transition-all duration-300 ${isDark ? "bg-slate-900/75 ring-1 ring-inset ring-white/6" : "bg-white/80 ring-1 ring-inset ring-stone-200/80"}`}>
+          <img
+            src={product.image}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover object-center blur-2xl"
+          />
+          <div className={`absolute inset-0 ${isDark ? "bg-[linear-gradient(180deg,rgba(15,23,42,0.35),rgba(15,23,42,0.12))]" : "bg-[linear-gradient(180deg,rgba(248,250,252,0.35),rgba(255,255,255,0.18))]"}`}></div>
           <img
             src={product.image}
             alt={product.title}
-            className={`w-full h-full object-contain transform hover:scale-105 transition-transform duration-700 drop-shadow-2xl ${isDark ? "" : "mix-blend-multiply"}`}
+            className={`relative z-10 block max-h-full w-auto max-w-full object-contain object-center px-3 py-3 sm:px-4 sm:py-4 transition-transform duration-700 hover:scale-[1.02] ${isDark ? "drop-shadow-[0_24px_44px_rgba(15,23,42,0.65)]" : "drop-shadow-[0_20px_36px_rgba(148,163,184,0.35)]"}`}
           />
         </div>
 

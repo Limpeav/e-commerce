@@ -3,10 +3,12 @@
 export class UserModel {
   constructor(data = {}) {
     this._id = data._id || ''
+    this.id = data.id || data._id || ''
     this.name = data.name || ''
     this.email = data.email || ''
     this.phone = data.phone || ''
     this.password = data.password || ''
+    this.token = data.token || null
     this.role = data.role || 'user'
     this.avatar = data.avatar || ''
     this.address = data.address || {
@@ -116,12 +118,14 @@ export class UserModel {
   // Format user data for API
   toAPIFormat() {
     return {
+      id: this.id,
       name: this.name,
       email: this.email,
       phone: this.phone,
       role: this.role,
       avatar: this.avatar,
-      address: this.address
+      address: this.address,
+      token: this.token
     }
   }
 

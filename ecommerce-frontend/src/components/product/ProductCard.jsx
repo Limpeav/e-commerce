@@ -36,7 +36,7 @@ const ProductCard = ({
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
             alt={product.name}
-            className={`w-full h-full object-contain p-6 transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-110 ${isDark ? '' : 'mix-blend-multiply'}`}
+            className="w-full h-full object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-105"
             onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'; }}
           />
         </Link>
@@ -61,7 +61,7 @@ const ProductCard = ({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
-          className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 ${inWishlist
+          className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 cursor-pointer ${inWishlist
             ? `${isDark ? '[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]'} border-transparent shadow-md text-indigo-600`
             : `${isDark ? 'bg-slate-900/80 border-slate-600 text-slate-400 hover:text-indigo-400 hover:border-indigo-500' : 'bg-transparent border-stone-300 text-stone-400 hover:text-indigo-600 hover:border-indigo-600'}`
             }`}
@@ -80,7 +80,7 @@ const ProductCard = ({
             disabled={!user || outOfStock}
             className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
               ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
-              : 'bg-indigo-600 text-white shadow-indigo-200'
+              : 'bg-indigo-600 text-white shadow-indigo-200 cursor-pointer'
               }`}
             title="Quick Add"
           >
@@ -102,7 +102,7 @@ const ProductCard = ({
         </div>
 
         {/* Title */}
-        <Link to={`/products/${product._id}`} className="group-hover:text-indigo-600 transition-colors duration-300">
+        <Link to={`/products/${product._id}`} className="group-hover:text-indigo-600 transition-colors duration-300 cursor-pointer">
           <h3 className={`font-bold text-lg leading-snug line-clamp-2 min-h-[2.75rem] ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {product.name || product.title}
           </h3>
@@ -133,7 +133,7 @@ const ProductCard = ({
           <button
             onClick={() => onAddToCart(product)}
             disabled={!user || outOfStock}
-            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl ${isDark ? 'text-indigo-300 bg-indigo-500/15' : 'text-indigo-600 bg-indigo-50'}`}
+            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-indigo-300 bg-indigo-500/15' : 'text-indigo-600 bg-indigo-50'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
             {outOfStock ? 'Sold Out' : 'Add'}
           </button>

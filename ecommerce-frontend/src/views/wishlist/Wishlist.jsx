@@ -135,7 +135,7 @@ export default function Wishlist() {
                   onClick={() => handleAddToCart(product)}
                   disabled={product.stock === 0}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl font-black text-[10px] sm:text-sm shadow-sm transition-all duration-300 group/btn ${product.stock > 0
-                    ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95"
+                    ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95 cursor-pointer"
                     : (isDark ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700" : "bg-stone-50 text-stone-300 cursor-not-allowed border border-stone-100")
                     }`}
                 >

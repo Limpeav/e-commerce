@@ -1,11 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
-import {
-  fetchWishlist,
-  addItemToWishlist,
-  removeItemFromWishlist,
-} from "../services/wishlistApi";
+import { WishlistController } from "../controllers/index.js";
 
 const WishlistContext = createContext();
 
@@ -20,8 +16,8 @@ export const WishlistProvider = ({ children }) => {
     const loadWishlist = async () => {
       if (user) {
         try {
-          const wishlistData = await fetchWishlist();
-          setWishlist(Array.isArray(wishlistData) ? wishlistData : wishlistData.products || []);
+          const result = await WishlistController.getWishlist();
+          setWishlist(result.success ? result.data || [] : []);
         } catch (error) {
           console.error("Error loading wishlist:", error);
           setWishlist([]);
@@ -44,10 +40,12 @@ export const WishlistProvider = ({ children }) => {
     }
 
     try {
-      await addItemToWishlist(product._id);
+      const result = await WishlistController.addToWishlist(product);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      const updatedWishlist = await fetchWishlist();
-      setWishlist(updatedWishlist.products || []);
+      setWishlist(result.data || []);
       success("Saved to Wishlist", `${product.name} has been saved.`);
     } catch (error) {
       console.error("Error adding to wishlist:", error);
@@ -60,10 +58,12 @@ export const WishlistProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      await removeItemFromWishlist(productId);
+      const result = await WishlistController.removeFromWishlist(productId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      const updatedWishlist = await fetchWishlist();
-      setWishlist(updatedWishlist.products || []);
+      setWishlist(result.data || []);
       info("Removed from Wishlist", "Item has been removed from your wishlist.");
     } catch (error) {
       console.error("Error removing from wishlist:", error);
@@ -73,7 +73,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Check if product is in wishlist
   const isInWishlist = (id) => {
-    return wishlist.some((item) => item._id === id);
+    return WishlistController.isInWishlist(wishlist, id);
   };
 
   // Toggle wishlist (add if not present, remove if present)

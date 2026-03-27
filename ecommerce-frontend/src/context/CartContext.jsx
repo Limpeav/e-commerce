@@ -1,13 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
-import {
-  fetchCart,
-  addItemToCart,
-  updateCartItemQuantity,
-  removeItemFromCart,
-  clearUserCart,
-} from "../services/cartApi";
+import { CartController } from "../controllers/index.js";
 
 const CartContext = createContext();
 
@@ -22,8 +16,8 @@ export const CartProvider = ({ children }) => {
     const loadCart = async () => {
       if (user) {
         try {
-          const cartData = await fetchCart();
-          setCart(cartData.items || []);
+          const result = await CartController.getCart();
+          setCart(result.success ? result.data || [] : []);
         } catch (error) {
           console.error("Error loading cart:", error);
           setCart([]);
@@ -46,15 +40,12 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
-      const productData = {
-        productId: product._id,
-        quantity: quantity,
-      };
+      const result = await CartController.addToCart(product, quantity);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      await addItemToCart(productData);
-
-      const updatedCart = await fetchCart();
-      setCart(updatedCart.items || []);
+      setCart(result.data || []);
 
       success("Added to Cart", `${product.name} has been added to your cart.`);
     } catch (error) {
@@ -68,8 +59,12 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      const updatedCart = await updateCartItemQuantity(productId, newQuantity);
-      setCart(updatedCart.items || []);
+      const result = await CartController.updateQuantity(productId, newQuantity);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setCart(result.data || []);
     } catch (error) {
       console.error("Error updating quantity:", error);
       toastError("Update Failed", "Could not update item quantity.");
@@ -81,8 +76,12 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      const updatedCart = await removeItemFromCart(productId);
-      setCart(updatedCart.items || []);
+      const result = await CartController.removeFromCart(productId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setCart(result.data || []);
       info("Item Removed", "Item has been removed from your cart.");
     } catch (error) {
       console.error("Error removing item:", error);
@@ -95,8 +94,12 @@ export const CartProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      await clearUserCart();
-      setCart([]);
+      const result = await CartController.clearCart();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setCart(result.data || []);
       info("Cart Cleared", "All items have been removed from your cart.");
     } catch (error) {
       console.error("Error clearing cart:", error);

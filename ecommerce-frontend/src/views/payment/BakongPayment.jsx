@@ -1,261 +1,492 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { generateBakongQR, getPaymentStatus } from "../../services/paymentService";
+import {
+  generateBakongQR,
+  getPaymentStatus,
+  cancelPayment,
+} from "../../services/paymentService";
 import { getOrderById } from "../../services/orderService";
 
+// ─── Icons ───────────────────────────────────────────────────────────────────
+const CheckCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+const XCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+    <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
+);
+const ClockIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const RefreshIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+const ArrowLeftIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+const PhoneIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+const ScanIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    <polyline points="4 7 4 4 7 4" /><polyline points="17 4 20 4 20 7" /><polyline points="20 17 20 20 17 20" /><polyline points="7 20 4 20 4 17" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+  </svg>
+);
+const ShieldIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+// ─── Step indicator ───────────────────────────────────────────────────────────
+const Step = ({ num, label, active, done }) => (
+  <div className="flex flex-col items-center gap-1.5">
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
+      ${done ? "bg-primary text-white" : active ? "bg-primary/10 border-2 border-primary text-primary" : "bg-stone-100 text-stone-400"}`}>
+      {done ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12" /></svg> : num}
+    </div>
+    <span className={`text-[10px] font-bold uppercase tracking-wider ${active || done ? "text-primary" : "text-stone-400"}`}>{label}</span>
+  </div>
+);
+const StepConnector = ({ done }) => (
+  <div className={`h-0.5 flex-1 rounded-full transition-all ${done ? "bg-primary" : "bg-stone-200"}`} />
+);
+
+// ─── Pulse ring ───────────────────────────────────────────────────────────────
+const PulseRing = () => (
+  <div className="absolute inset-0 pointer-events-none">
+    <span className="absolute inset-0 rounded-2xl animate-ping bg-primary/10" style={{ animationDuration: "2s" }} />
+  </div>
+);
+
 export default function BakongPayment() {
-    const { orderId } = useParams();
-    const navigate = useNavigate();
+  const { orderId } = useParams();
+  const navigate = useNavigate();
 
-    const [order, setOrder] = useState(null);
-    const [payment, setPayment] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(null);
-    const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [order, setOrder] = useState(null);
+  const [payment, setPayment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [error, setError] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending | completed | failed | expired
 
-    useEffect(() => {
-        fetchOrderAndGenerateQR();
-    }, [orderId]);
+  // ── Fetch order + generate QR ──────────────────────────────────────────────
+  const fetchOrderAndGenerateQR = useCallback(async (isRefresh = false) => {
+    try {
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
+      setPaymentStatus("pending");
 
-    // Poll payment status
-    useEffect(() => {
-        if (payment && paymentStatus === "pending") {
-            const interval = setInterval(async () => {
-                try {
-                    const updatedPayment = await getPaymentStatus(payment._id);
-                    setPayment(updatedPayment);
+      const orderData = await getOrderById(orderId);
+      setOrder(orderData);
 
-                    if (updatedPayment.status === "Completed") {
-                        setPaymentStatus("completed");
-                        clearInterval(interval);
-                        setTimeout(() => {
-                            navigate(`/orders/${orderId}`);
-                        }, 3000);
-                    } else if (updatedPayment.status === "Failed") {
-                        setPaymentStatus("failed");
-                        clearInterval(interval);
-                    } else if (updatedPayment.status === "Expired") {
-                        setPaymentStatus("expired");
-                        clearInterval(interval);
-                    }
-                } catch (err) {
-                    console.error("Error checking payment status:", err);
-                }
-            }, 5000); // Check every 5 seconds
-
-            return () => clearInterval(interval);
-        }
-    }, [payment, paymentStatus, orderId, navigate]);
-
-    // Countdown timer
-    useEffect(() => {
-        if (payment?.khqrData?.expiresAt) {
-            const interval = setInterval(() => {
-                const now = new Date();
-                const expires = new Date(payment.khqrData.expiresAt);
-                const diff = expires - now;
-
-                if (diff <= 0) {
-                    setTimeLeft("Expired");
-                    setPaymentStatus("expired");
-                    clearInterval(interval);
-                } else {
-                    const minutes = Math.floor(diff / 60000);
-                    const seconds = Math.floor((diff % 60000) / 1000);
-                    setTimeLeft(`${minutes}:${seconds.toString().padStart(2, "0")}`);
-                }
-            }, 1000);
-
-            return () => clearInterval(interval);
-        }
-    }, [payment]);
-
-    const fetchOrderAndGenerateQR = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Fetch order details
-            const orderData = await getOrderById(orderId);
-            setOrder(orderData);
-
-            // Generate BAKONG QR code
-            const paymentData = await generateBakongQR(orderId);
-            setPayment(paymentData);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to generate payment QR code");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCancelPayment = () => {
-        navigate(`/orders/${orderId}`);
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Generating payment QR code...</p>
-                </div>
-            </div>
-        );
+      const paymentData = await generateBakongQR(orderId);
+      setPayment(paymentData);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to generate payment QR code. Please try again.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  }, [orderId]);
 
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-                    <div className="text-red-500 text-5xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Error</h2>
-                    <p className="text-gray-600 mb-6">{error}</p>
-                    <button
-                        onClick={() => navigate(`/orders/${orderId}`)}
-                        className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition"
-                    >
-                        Back to Order
-                    </button>
-                </div>
-            </div>
-        );
+  useEffect(() => {
+    fetchOrderAndGenerateQR();
+  }, [fetchOrderAndGenerateQR]);
+
+  // ── Poll payment status every 5s ──────────────────────────────────────────
+  useEffect(() => {
+    if (!payment || paymentStatus !== "pending") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const updated = await getPaymentStatus(payment._id);
+        setPayment(updated);
+        if (updated.status === "Completed") {
+          setPaymentStatus("completed");
+          clearInterval(interval);
+          setTimeout(() => navigate(`/orders/${orderId}`), 3000);
+        } else if (updated.status === "Failed") {
+          setPaymentStatus("failed");
+          clearInterval(interval);
+        } else if (updated.status === "Expired") {
+          setPaymentStatus("expired");
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error("Status poll error:", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [payment, paymentStatus, orderId, navigate]);
+
+  // ── Countdown timer ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!payment?.khqrData?.expiresAt) return;
+
+    const interval = setInterval(() => {
+      const diff = new Date(payment.khqrData.expiresAt) - new Date();
+      if (diff <= 0) {
+        setTimeLeft("00:00");
+        setPaymentStatus("expired");
+        clearInterval(interval);
+      } else {
+        const m = Math.floor(diff / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [payment]);
+
+  // ── Cancel ────────────────────────────────────────────────────────────────
+  const handleCancel = async () => {
+    try {
+      setCancelling(true);
+      if (payment?._id && paymentStatus === "pending") {
+        await cancelPayment(payment._id);
+      }
+    } catch (err) {
+      console.error("Cancel error:", err);
+    } finally {
+      navigate(`/orders/${orderId}`);
     }
+  };
 
+  // ── Time colour helper ────────────────────────────────────────────────────
+  const getTimerColour = () => {
+    if (!timeLeft) return "text-primary";
+    const [m] = timeLeft.split(":").map(Number);
+    if (m < 5) return "text-red-500";
+    if (m < 10) return "text-amber-500";
+    return "text-primary";
+  };
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-2xl mx-auto">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">BAKONG Payment</h1>
-                    <p className="text-gray-600">Scan the QR code below to complete your payment</p>
-                </div>
-
-                {/* Payment Status */}
-                {paymentStatus === "completed" && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center">
-                            <span className="text-4xl mr-4">✅</span>
-                            <div>
-                                <h3 className="text-lg font-bold text-green-800">Payment Successful!</h3>
-                                <p className="text-green-700">Redirecting to your order...</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {paymentStatus === "failed" && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center">
-                            <span className="text-4xl mr-4">❌</span>
-                            <div>
-                                <h3 className="text-lg font-bold text-red-800">Payment Failed</h3>
-                                <p className="text-red-700">Please try again or contact support</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {paymentStatus === "expired" && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-                        <div className="flex items-center">
-                            <span className="text-4xl mr-4">⏰</span>
-                            <div>
-                                <h3 className="text-lg font-bold text-yellow-800">QR Code Expired</h3>
-                                <p className="text-yellow-700">Please generate a new QR code</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* QR Code Section */}
-                {paymentStatus === "pending" && payment && (
-                    <div className="bg-white rounded-lg shadow-md p-8">
-                        {/* Timer */}
-                        {timeLeft && timeLeft !== "Expired" && (
-                            <div className="text-center mb-6">
-                                <p className="text-sm text-gray-600 mb-2">QR Code expires in:</p>
-                                <p className="text-3xl font-bold text-primary">{timeLeft}</p>
-                            </div>
-                        )}
-
-                        {/* QR Code */}
-                        <div className="flex justify-center mb-6">
-                            <div className="bg-white p-4 rounded-lg border-4 border-primary shadow-lg">
-                                <img
-                                    src={payment.khqrData.qrCode}
-                                    alt="BAKONG QR Code"
-                                    className="w-64 h-64"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Payment Instructions */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                            <h3 className="font-bold text-blue-900 mb-3 text-lg">How to Pay:</h3>
-                            <ol className="list-decimal list-inside space-y-2 text-blue-800">
-                                <li>Open your BAKONG app or any bank app that supports KHQR</li>
-                                <li>Select "Scan QR" or "KHQR Payment"</li>
-                                <li>Scan the QR code above</li>
-                                <li>Verify the amount and merchant details</li>
-                                <li>Confirm the payment</li>
-                            </ol>
-                        </div>
-
-                        {/* Payment Details */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <h3 className="font-bold text-gray-800 mb-4">Payment Details</h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Merchant:</span>
-                                    <span className="font-semibold">{payment.khqrData.merchantName}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Amount:</span>
-                                    <span className="font-bold text-lg text-primary">
-                                        ${payment.amount.toFixed(2)}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Transaction ID:</span>
-                                    <span className="font-mono text-xs">{payment.khqrData.transactionId}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Order ID:</span>
-                                    <span className="font-mono text-xs">
-                                        {order?._id.slice(-8).toUpperCase()}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-4 mt-6">
-                            <button
-                                onClick={fetchOrderAndGenerateQR}
-                                className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
-                            >
-                                Refresh QR Code
-                            </button>
-                            <button
-                                onClick={handleCancelPayment}
-                                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-
-                        {/* Checking Status */}
-                        <div className="text-center mt-6">
-                            <div className="inline-flex items-center text-sm text-gray-600">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                                Checking payment status...
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          </div>
+          <p className="text-text-muted font-semibold">Generating your secure QR code…</p>
         </div>
+      </div>
     );
+  }
+
+  // ── Error ─────────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-500">
+            <XCircleIcon />
+          </div>
+          <h2 className="text-2xl font-bold text-text-main mb-2">Payment Error</h2>
+          <p className="text-text-muted mb-8 text-sm leading-relaxed">{error}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => fetchOrderAndGenerateQR()}
+              className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate(`/orders/${orderId}`)}
+              className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
+            >
+              Back to Order
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Payment Completed ─────────────────────────────────────────────────────
+  if (paymentStatus === "completed") {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full bg-green-100 animate-ping opacity-60" style={{ animationDuration: "1.5s" }} />
+            <div className="relative w-24 h-24 bg-green-50 rounded-full border-2 border-green-200 flex items-center justify-center text-green-500 p-5">
+              <CheckCircleIcon />
+            </div>
+          </div>
+          <h2 className="text-3xl font-black text-text-main mb-2 tracking-tight">Payment Successful!</h2>
+          <p className="text-text-muted text-sm mb-6">Your payment has been confirmed. Redirecting to your order…</p>
+          <div className="bg-green-50 border border-green-100 rounded-2xl px-6 py-4 inline-flex items-center gap-2 text-green-700 text-sm font-semibold">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            Redirecting in a few seconds
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Payment Failed ────────────────────────────────────────────────────────
+  if (paymentStatus === "failed") {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
+          <div className="w-20 h-20 bg-red-50 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 mx-auto mb-6 p-5">
+            <XCircleIcon />
+          </div>
+          <h2 className="text-2xl font-bold text-text-main mb-2">Payment Failed</h2>
+          <p className="text-text-muted text-sm mb-8">Something went wrong. Please try again or choose a different payment method.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => fetchOrderAndGenerateQR(true)}
+              className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate(`/orders/${orderId}`)}
+              className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
+            >
+              Back to Order
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── QR Expired ─────────────────────────────────────────────────────────────
+  if (paymentStatus === "expired") {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
+          <div className="w-20 h-20 bg-amber-50 rounded-full border-2 border-amber-100 flex items-center justify-center text-amber-500 mx-auto mb-6 p-5">
+            <ClockIcon />
+          </div>
+          <h2 className="text-2xl font-bold text-text-main mb-2">QR Code Expired</h2>
+          <p className="text-text-muted text-sm mb-8">Your QR code has expired after 30 minutes. Generate a new one to complete your payment.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => fetchOrderAndGenerateQR(true)}
+              disabled={refreshing}
+              className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {refreshing ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating…</>
+              ) : (
+                <><RefreshIcon />New QR Code</>
+              )}
+            </button>
+            <button
+              onClick={() => navigate(`/orders/${orderId}`)}
+              className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
+            >
+              Back to Order
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main Payment Page ─────────────────────────────────────────────────────
+  const exchangeRate = 4100;
+  const amountKHR = order ? Math.round(order.totalPrice * exchangeRate).toLocaleString() : "—";
+
+  return (
+    <div className="min-h-screen bg-bg-base py-10 pt-24 px-4 font-sans">
+      <div className="max-w-xl mx-auto">
+
+        {/* Back button */}
+        <button
+          onClick={handleCancel}
+          className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm mb-8 transition-all bg-white px-5 py-2.5 rounded-full shadow-sm border border-stone-100 hover:shadow-md w-fit"
+        >
+          <ArrowLeftIcon />
+          Back to Order
+        </button>
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" className="w-4 h-4">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">BAKONG KHQR</p>
+          </div>
+          <h1 className="text-4xl font-black text-text-main tracking-tight">Scan to Pay</h1>
+          <p className="text-text-muted text-sm mt-1">Use any KHQR-compatible banking app to complete your payment</p>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 mb-8">
+          <Step num="1" label="Order" done />
+          <StepConnector done />
+          <Step num="2" label="Scan QR" active />
+          <StepConnector done={false} />
+          <Step num="3" label="Confirm" active={false} done={false} />
+        </div>
+
+        {/* Main card */}
+        {payment && (
+          <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 overflow-hidden animate-scale-in">
+
+            {/* Timer bar */}
+            <div className="px-8 pt-8 pb-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">QR Expires In</span>
+                <span className={`text-2xl font-black tabular-nums ${getTimerColour()}`}>{timeLeft ?? "—"}</span>
+              </div>
+              {/* Progress bar */}
+              {timeLeft && timeLeft !== "00:00" && (() => {
+                const [m, s] = timeLeft.split(":").map(Number);
+                const secondsLeft = m * 60 + s;
+                const pct = Math.max(0, Math.min(100, (secondsLeft / 1800) * 100));
+                return (
+                  <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        background: m < 5 ? "#EF4444" : m < 10 ? "#F59E0B" : "#4F46E5",
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* QR Code */}
+            <div className="flex justify-center px-8 py-8">
+              <div className="relative">
+                <PulseRing />
+                <div className="relative bg-white rounded-2xl border-2 border-stone-100 shadow-lg p-4">
+                  {/* Corner decorations */}
+                  <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-primary rounded-tl-lg" />
+                  <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-primary rounded-tr-lg" />
+                  <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-lg" />
+                  <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-lg" />
+                  <img
+                    src={payment.khqrData.qrCode}
+                    alt="BAKONG KHQR Code"
+                    className="w-56 h-56 object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="mx-8 mb-6 bg-primary/5 rounded-2xl p-5 text-center border border-primary/10">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary/60 mb-0.5">Amount Due</p>
+              <p className="text-4xl font-black text-primary tracking-tight">${payment.amount.toFixed(2)}</p>
+              <p className="text-xs text-text-muted mt-0.5 font-medium">≈ {amountKHR} KHR</p>
+            </div>
+
+            {/* How to pay */}
+            <div className="mx-8 mb-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3">How to Pay</p>
+              <ol className="space-y-2.5">
+                {[
+                  { icon: <PhoneIcon />, text: "Open BAKONG or any KHQR-compatible bank app" },
+                  { icon: <ScanIcon />, text: 'Tap "Scan QR" or "Pay with KHQR"' },
+                  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>, text: "Verify the amount and confirm payment" },
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-primary/8 flex items-center justify-center text-primary flex-shrink-0">{step.icon}</div>
+                    <span className="text-sm text-text-muted leading-tight pt-1.5 font-medium">{step.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Payment details */}
+            <div className="mx-8 mb-6 border-t border-stone-100 pt-5 space-y-3">
+              {[
+                { label: "Merchant", value: payment.khqrData.merchantName },
+                { label: "Order ID", value: `#${orderId.slice(-8).toUpperCase()}`, mono: true },
+                { label: "Transaction ID", value: payment.khqrData.transactionId, mono: true, small: true },
+              ].map(({ label, value, mono, small }) => (
+                <div key={label} className="flex items-center justify-between gap-4">
+                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide">{label}</span>
+                  <span className={`font-bold text-text-main ${mono ? "font-mono" : ""} ${small ? "text-xs" : "text-sm"} truncate max-w-[55%] text-right`}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Polling indicator */}
+            <div className="mx-8 mb-6 flex items-center justify-center gap-2 text-xs text-text-muted bg-stone-50 rounded-xl py-3 border border-stone-100">
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
+              <span className="font-semibold">Checking payment status automatically</span>
+            </div>
+
+            {/* Actions */}
+            <div className="px-8 pb-8 flex gap-3">
+              <button
+                onClick={() => fetchOrderAndGenerateQR(true)}
+                disabled={refreshing}
+                className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {refreshing ? (
+                  <div className="w-4 h-4 border-2 border-stone-400/30 border-t-stone-400 rounded-full animate-spin" />
+                ) : (
+                  <RefreshIcon />
+                )}
+                Refresh QR
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="flex-1 py-3.5 bg-red-50 text-red-500 border border-red-100 rounded-xl font-bold text-sm hover:bg-red-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {cancelling ? (
+                  <div className="w-4 h-4 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" />
+                ) : null}
+                Cancel Payment
+              </button>
+            </div>
+
+            {/* Security note */}
+            <div className="border-t border-stone-100 px-8 py-4 flex items-center justify-center gap-2 text-xs text-stone-400 font-medium">
+              <ShieldIcon />
+              Secured by NBC BAKONG · 256-bit Encryption
+            </div>
+          </div>
+        )}
+
+        {/* Supported banks */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-stone-400 font-medium">Accepted by ABA, ACLEDA, Canadia, Chip Mong, and all KHQR-enabled banks</p>
+        </div>
+
+      </div>
+    </div>
+  );
 }

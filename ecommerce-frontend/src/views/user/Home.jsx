@@ -72,7 +72,7 @@ export default function Home() {
     return (
         <div className={`min-h-screen font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
-            <div className={`sticky top-14 sm:top-16 md:top-20 z-40 backdrop-blur-xl border-b transition-colors duration-300 ${isDark ? "bg-slate-950/88 border-slate-800" : "bg-bg-base/80 border-stone-200/50"}`}>
+            <div className={`sticky top-14 sm:top-16 md:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
@@ -80,6 +80,9 @@ export default function Home() {
                     setSelectedCategory={handleCategorySelect}
                     categories={categories}
                 />
+                <div className="px-0 sm:px-4 md:px-6">
+                    <div className={`max-w-6xl mx-auto border-b transition-colors duration-300 ${isDark ? "border-slate-800" : "border-stone-200/50"}`}></div>
+                </div>
             </div>
 
             <main className="space-y-6 sm:space-y-12">

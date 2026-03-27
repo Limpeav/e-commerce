@@ -111,7 +111,7 @@ const ProductInfo = ({
           <button
             onClick={onAddToCart}
             className={`flex-1 py-4 sm:py-0 w-full rounded-[1.25rem] font-bold text-base transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 overflow-hidden relative group border-2 ${user
-              ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-xl shadow-indigo-600/20'
+              ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-xl shadow-indigo-600/20 cursor-pointer'
               : isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
               }`}
           >

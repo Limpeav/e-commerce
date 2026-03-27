@@ -93,12 +93,12 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
         disabled={!user || Number(product.stock || 0) < 1}
         className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold ${
           !user
-            ? "border-primary/10 bg-primary/10 text-primary/55"
+            ? "border-primary/10 bg-primary/10 text-primary/55 cursor-pointer"
             : Number(product.stock || 0) < 1
             ? "cursor-not-allowed border-text-muted/20 bg-text-muted/20 text-text-muted"
             : isDark
-            ? "border-primary bg-primary text-white hover:bg-primary-dark"
-            : "border-primary bg-primary text-text-main hover:bg-primary-hover"
+            ? "border-primary bg-primary text-white hover:bg-primary-dark cursor-pointer"
+            : "border-primary bg-primary text-text-main hover:bg-primary-hover cursor-pointer"
         }`}
       >
         <ShoppingBag className="h-4 w-4" />
