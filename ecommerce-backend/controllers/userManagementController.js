@@ -31,7 +31,23 @@ export const updateUserRole = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
 
     if (user) {
-        user.role = req.body.role || user.role; // "admin" or "user"
+        const { role } = req.body;
+
+        if (role && !["admin", "user"].includes(role)) {
+            res.status(400);
+            throw new Error("Invalid role");
+        }
+
+        if (
+            user._id.toString() === req.user._id.toString() &&
+            role &&
+            role !== "admin"
+        ) {
+            res.status(400);
+            throw new Error("Cannot remove your own admin access");
+        }
+
+        user.role = role || user.role; // "admin" or "user"
         const updatedUser = await user.save();
 
         res.json({

@@ -77,12 +77,20 @@ export const getOrderById = asyncHandler(async (req, res) => {
         "name email"
     );
 
-    if (order) {
-        res.json(order);
-    } else {
+    if (!order) {
         res.status(404);
         throw new Error("Order not found");
     }
+
+    const isAdmin = req.user?.role === "admin";
+    const isOwner = order.user?._id?.toString() === req.user?._id?.toString();
+
+    if (!isAdmin && !isOwner) {
+        res.status(403);
+        throw new Error("Not authorized to view this order");
+    }
+
+    res.json(order);
 });
 
 // @desc    Update order status
