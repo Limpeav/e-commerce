@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import {
   Package,
   Plus,
+  Images,
   Pencil,
   Trash2,
   Search,
   Filter,
-  ArrowLeft,
 } from "lucide-react";
 
 const ProductList = () => {
@@ -101,14 +101,8 @@ const ProductList = () => {
       {/* Header */}
       <div className="bg-white shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate("/admin")}
-                className="p-3 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
-              </button>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Product Management</h1>
                 <p className="mt-1 text-sm text-gray-500">
@@ -116,13 +110,22 @@ const ProductList = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/admin/products/add")}
-              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-semibold">Add Product</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button
+                onClick={() => navigate("/admin/banners")}
+                className="flex items-center space-x-2 rounded-xl border border-blue-200 bg-white px-6 py-3 text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md"
+              >
+                <Images className="w-5 h-5" />
+                <span className="font-semibold">Add Banner</span>
+              </button>
+              <button
+                onClick={() => navigate("/admin/products/add")}
+                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="font-semibold">Add Product</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

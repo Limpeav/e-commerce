@@ -19,6 +19,7 @@ import {
 import axios from "axios";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import { config } from "../../config/index.js";
+import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 
@@ -26,6 +27,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
   const { user } = useAuth();
+  const [isDark] = useDarkMode();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -84,6 +86,7 @@ const Checkout = () => {
       latitude: location.lat,
       longitude: location.lng,
     }));
+    setError("");
   };
 
   const getAuthToken = () => {
@@ -113,7 +116,10 @@ const Checkout = () => {
     }
 
     // Validate location is selected
-    if (!shippingAddress.latitude || !shippingAddress.longitude) {
+    if (
+      shippingAddress.latitude == null ||
+      shippingAddress.longitude == null
+    ) {
       setError("Please pin your location on the map");
       setLoading(false);
       return;
@@ -183,24 +189,24 @@ const Checkout = () => {
   // Order success view
   if (orderPlaced) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center px-6 font-sans">
-        <div className="max-w-2xl w-full bg-white rounded-[3rem] shadow-xl p-12 text-center border border-stone-100 relative overflow-hidden">
+      <div className={`min-h-screen flex items-center justify-center px-6 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <div className={`max-w-2xl w-full rounded-[3rem] p-12 text-center border relative overflow-hidden transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_32px_80px_-36px_rgba(2,6,23,0.95)]" : "bg-white border-stone-100 shadow-xl"}`}>
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
           <div className="mb-10 relative z-10">
-            <div className="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-stone-100">
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
               <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
             <h1 className="text-4xl font-bold text-text-main mb-3 font-display tracking-tight">
               Order Placed Successfully!
             </h1>
-            <p className="text-text-muted font-medium text-lg max-w-md mx-auto">
+            <p className={`font-medium text-lg max-w-md mx-auto ${isDark ? "text-slate-400" : "text-text-muted"}`}>
               Thank you for your order. We are preparing your items for shipment.
             </p>
           </div>
 
-          <div className="bg-stone-50 rounded-2xl p-6 mb-8 border border-stone-100 inline-block w-full max-w-sm">
-            <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Order ID</p>
+          <div className={`rounded-2xl p-6 mb-8 border inline-block w-full max-w-sm ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-text-muted"}`}>Order ID</p>
             <p className="text-2xl font-bold text-text-main font-mono tracking-tight">
               #{orderId?.slice(-8).toUpperCase()}
             </p>
@@ -215,7 +221,7 @@ const Checkout = () => {
             </button>
             <button
               onClick={() => navigate("/")}
-              className="px-8 py-4 bg-white text-text-muted border border-stone-200 rounded-xl hover:border-primary hover:text-primary transition-all font-bold text-sm hover:shadow-lg active:scale-95"
+              className={`px-8 py-4 border rounded-xl transition-all font-bold text-sm hover:border-primary hover:text-primary active:scale-95 ${isDark ? "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800" : "bg-white text-text-muted border-stone-200 hover:shadow-lg"}`}
             >
               Continue Shopping
             </button>
@@ -226,13 +232,13 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 px-6 font-sans">
+    <div className={`min-h-screen py-12 pt-32 px-6 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <button
             onClick={() => navigate("/cart")}
-            className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm mb-8 transition-all bg-white px-5 py-2.5 rounded-full w-fit shadow-sm border border-stone-100 hover:shadow-md"
+            className={`flex items-center gap-2 font-bold text-sm mb-8 transition-all px-5 py-2.5 rounded-full w-fit border ${isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-primary hover:bg-slate-800" : "bg-white border-stone-100 text-text-muted hover:text-primary hover:shadow-md"} `}
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Cart
@@ -247,9 +253,9 @@ const Checkout = () => {
             {/* Left Column - Forms */}
             <div className="lg:col-span-2 space-y-8">
               {/* Shipping Address */}
-              <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 p-8 md:p-10">
+              <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
                 <h2 className="text-xl font-bold text-text-main mb-8 flex items-center gap-4 font-display">
-                  <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-primary border border-stone-100">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-primary border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
                     <MapPin className="w-5 h-5" />
                   </div>
                   Shipping Address
@@ -261,7 +267,7 @@ const Checkout = () => {
                       Full Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                      <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                       <input
                         type="text"
                         name="fullName"
@@ -269,7 +275,7 @@ const Checkout = () => {
                         onChange={handleInputChange}
                         required
                         placeholder="John Doe"
-                        className="w-full pl-12 pr-6 py-3.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main placeholder:text-stone-400"
+                        className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
                       />
                     </div>
                   </div>
@@ -279,7 +285,7 @@ const Checkout = () => {
                       Address
                     </label>
                     <div className="relative">
-                      <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                      <Building className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                       <input
                         type="text"
                         name="address"
@@ -287,7 +293,7 @@ const Checkout = () => {
                         onChange={handleInputChange}
                         required
                         placeholder="123 Street Name"
-                        className="w-full pl-12 pr-6 py-3.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main placeholder:text-stone-400"
+                        className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
                       />
                     </div>
                   </div>
@@ -304,7 +310,7 @@ const Checkout = () => {
                         onChange={handleInputChange}
                         required
                         placeholder="Phnom Penh"
-                        className="w-full px-6 py-3.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main placeholder:text-stone-400"
+                        className={`w-full px-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
                       />
                     </div>
 
@@ -313,7 +319,7 @@ const Checkout = () => {
                         Phone Number
                       </label>
                       <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                        <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                         <input
                           type="tel"
                           name="phone"
@@ -321,14 +327,14 @@ const Checkout = () => {
                           onChange={handleInputChange}
                           required
                           placeholder="+1 (555) 000-0000"
-                          className="w-full pl-12 pr-6 py-3.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main placeholder:text-stone-400"
+                          className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Google Maps Location Picker */}
-                  <div className="pt-8 border-t border-stone-100">
+                  <div className={`pt-8 border-t ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                     <div className="flex items-center justify-between mb-4">
                       <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -342,7 +348,7 @@ const Checkout = () => {
                         </span>
                       )}
                     </div>
-                    <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
+                    <div className={`rounded-2xl overflow-hidden border shadow-sm ${isDark ? "border-slate-700" : "border-stone-200"}`}>
                       <GoogleMapPicker
                         onSelectLocation={handleLocationSelect}
                         initialLocation={
@@ -361,9 +367,9 @@ const Checkout = () => {
               </div>
 
               {/* Payment Method */}
-              <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 p-8 md:p-10">
+              <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
                 <h2 className="text-xl font-bold text-text-main mb-8 flex items-center gap-4 font-display">
-                  <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-primary border border-stone-100">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-primary border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
                     <CreditCard className="w-5 h-5" />
                   </div>
                   Payment Method
@@ -376,10 +382,12 @@ const Checkout = () => {
                         key={method}
                         className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition-all group ${paymentMethod === method
                           ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-stone-200 hover:border-primary/30 hover:bg-stone-50"
+                          : isDark
+                            ? "border-slate-700 hover:border-primary/40 hover:bg-slate-800"
+                            : "border-stone-200 hover:border-primary/30 hover:bg-stone-50"
                           }`}
                       >
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === method ? 'border-primary bg-primary' : 'border-stone-300'}`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === method ? 'border-primary bg-primary' : isDark ? 'border-slate-600' : 'border-stone-300'}`}>
                           {paymentMethod === method && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
                         <input
@@ -390,7 +398,7 @@ const Checkout = () => {
                           onChange={(e) => setPaymentMethod(e.target.value)}
                           className="hidden"
                         />
-                        <span className={`font-bold text-sm ${paymentMethod === method ? 'text-primary' : 'text-text-muted'}`}>{method}</span>
+                        <span className={`font-bold text-sm ${paymentMethod === method ? 'text-primary' : isDark ? 'text-slate-400' : 'text-text-muted'}`}>{method}</span>
                       </label>
                     )
                   )}
@@ -399,18 +407,18 @@ const Checkout = () => {
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3 animate-shake">
+                <div className={`border rounded-2xl p-4 flex items-center gap-3 animate-shake ${isDark ? "bg-red-500/10 border-red-500/20" : "bg-red-50 border-red-100"}`}>
                   <AlertCircle className="w-5 h-5 text-red-500" />
-                  <p className="text-red-700 font-medium text-sm">{error}</p>
+                  <p className={`font-medium text-sm ${isDark ? "text-red-300" : "text-red-700"}`}>{error}</p>
                 </div>
               )}
             </div>
 
             {/* Right Column - Order Summary */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 p-8 md:p-10 sticky top-32">
+              <div className={`rounded-[2.5rem] border p-8 md:p-10 sticky top-32 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
                 <h2 className="text-xl font-bold text-text-main mb-8 flex items-center gap-4 font-display">
-                  <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-primary border border-stone-100">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-primary border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
                     <Package className="w-5 h-5" />
                   </div>
                   Order Summary
@@ -421,9 +429,9 @@ const Checkout = () => {
                   {validCartItems.map((item) => (
                     <div
                       key={item._id || item.product._id}
-                      className="flex items-center gap-4 p-3 bg-stone-50 rounded-2xl border border-stone-100 group"
+                      className={`flex items-center gap-4 p-3 rounded-2xl border group ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
                     >
-                      <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center flex-shrink-0 p-1.5 border border-stone-100">
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 p-1.5 border ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
                         <img
                           src={item.product.image}
                           alt={item.product.title || item.product.name}
@@ -435,7 +443,7 @@ const Checkout = () => {
                           {item.product.title || item.product.name}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Qty: {item.quantity}</span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>Qty: {item.quantity}</span>
                         </div>
                       </div>
                       <div className="text-right">
@@ -448,23 +456,23 @@ const Checkout = () => {
                 </div>
 
                 {/* Price Breakdown */}
-                <div className="space-y-3 mb-8 border-t border-stone-100 pt-6">
-                  <div className="flex justify-between text-text-muted text-sm font-medium">
+                <div className={`space-y-3 mb-8 border-t pt-6 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
+                  <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
                     <span>Subtotal</span>
                     <span className="text-text-main font-bold">${subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-text-muted text-sm font-medium">
+                  <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
                     <span>Shipping</span>
                     <span className="text-green-600 font-bold">
                       {shippingPrice === 0 ? "Free" : `$${shippingPrice.toFixed(2)}`}
                     </span>
                   </div>
-                  <div className="flex justify-between text-text-muted text-sm font-medium">
+                  <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
                     <span>Tax (8%)</span>
                     <span className="text-text-main font-bold">${taxPrice.toFixed(2)}</span>
                   </div>
 
-                  <div className="h-px bg-stone-100 my-4"></div>
+                  <div className={`h-px my-4 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
 
                   <div className="flex justify-between items-end">
                     <span className="text-text-main font-bold text-lg">Total</span>
@@ -493,7 +501,7 @@ const Checkout = () => {
                   )}
                 </button>
 
-                <p className="mt-6 text-xs text-center font-medium text-stone-400 flex items-center justify-center gap-1.5">
+                <p className={`mt-6 text-xs text-center font-medium flex items-center justify-center gap-1.5 ${isDark ? "text-slate-500" : "text-stone-400"}`}>
                   <Lock className="w-3 h-3" />
                   Secure Payment
                 </p>

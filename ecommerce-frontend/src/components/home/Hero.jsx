@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import bannerImage from "../../assets/banner.jpg";
+import { fetchBanners } from "../../services/bannerService";
 
 export default function Hero() {
     const [isDark] = useDarkMode();
@@ -9,24 +10,15 @@ export default function Hero() {
     const [containerWidth, setContainerWidth] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [slides, setSlides] = useState([
+        {
+            image: bannerImage,
+            alt: "Featured shopping banner",
+        },
+    ]);
     const sliderRef = useRef(null);
     const dragStartXRef = useRef(0);
     const dragDeltaRef = useRef(0);
-
-    const slides = [
-        {
-            image: bannerImage,
-            alt: "Featured shopping banner 1",
-        },
-        {
-            image: bannerImage,
-            alt: "Featured shopping banner 2",
-        },
-        {
-            image: bannerImage,
-            alt: "Featured shopping banner 3",
-        },
-    ];
 
     useEffect(() => {
         if (!sliderRef.current) return undefined;
@@ -44,6 +36,36 @@ export default function Hero() {
         observer.observe(sliderRef.current);
 
         return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadBanners = async () => {
+            try {
+                const banners = await fetchBanners();
+
+                if (!isMounted || !Array.isArray(banners) || banners.length === 0) {
+                    return;
+                }
+
+                setSlides(
+                    banners.map((banner, index) => ({
+                        image: banner.image,
+                        alt: banner.alt || banner.title || `Homepage banner ${index + 1}`,
+                    }))
+                );
+                setActiveSlide(0);
+            } catch (error) {
+                console.error("Failed to load banners:", error);
+            }
+        };
+
+        loadBanners();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -92,7 +114,7 @@ export default function Hero() {
     const trackOffset = containerWidth > 0 ? -(activeSlide * containerWidth) + dragOffset : 0;
 
     return (
-        <div className={`w-full pb-4 sm:pb-8 pt-1 sm:pt-2 px-0 sm:px-4 md:px-6 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <div className={`w-full px-3 pb-4 pt-1 transition-colors duration-300 sm:px-4 sm:pb-8 sm:pt-2 md:px-6 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             <div className="max-w-6xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

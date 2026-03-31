@@ -2,14 +2,18 @@ import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "../config/cloudinary.js";
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "ecommerce-products",
-    allowed_formats: ["jpg", "png", "jpeg", "webp"],
-  },
-});
+export const createUpload = (folder = "ecommerce-products") => {
+  const storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+      folder,
+      allowed_formats: ["jpg", "png", "jpeg", "webp"],
+    },
+  });
 
-const upload = multer({ storage });
+  return multer({ storage });
+};
+
+const upload = createUpload();
 
 export default upload;

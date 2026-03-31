@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, X, Check, Locate, Search, Navigation, ChevronUp } from "lucide-react";
+import { MapPin, X, Check, Search, Navigation } from "lucide-react";
 
 // Google Maps API Key - Uses environment variable if available, otherwise uses the provided key
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
 
+const DEFAULT_LOCATION = { lat: 11.5564, lng: 104.9282 };
+
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
+  const initialLat = initialLocation?.lat ?? DEFAULT_LOCATION.lat;
+  const initialLng = initialLocation?.lng ?? DEFAULT_LOCATION.lng;
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
-    initialLocation || { lat: 11.5564, lng: 104.9282 } // Default to Phnom Penh, Cambodia
+    { lat: initialLat, lng: initialLng }
   );
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -23,6 +27,33 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const markerRef = useRef(null);
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) return;
+    setSelectedLocation({ lat: initialLat, lng: initialLng });
+  }, [initialLat, initialLng, isOpen]);
+
+  const resetDraftState = () => {
+    setSelectedLocation({ lat: initialLat, lng: initialLng });
+    setLocationError("");
+    setShowBottomSheet(true);
+    setSearchQuery("");
+  };
+
+  const cleanupMapInstance = () => {
+    if (mapInstanceRef.current && window.google?.maps?.event) {
+      window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
+    }
+    if (markerRef.current && window.google?.maps?.event) {
+      window.google.maps.event.clearInstanceListeners(markerRef.current);
+    }
+    if (autocompleteRef.current && window.google?.maps?.event) {
+      window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+    }
+    mapInstanceRef.current = null;
+    markerRef.current = null;
+    autocompleteRef.current = null;
+  };
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -177,6 +208,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           geocoder.geocode({ location: latLng }, (results, status) => {
             if (status === "OK" && results[0]) {
               setAddressName(results[0].formatted_address);
+              setSearchQuery(results[0].formatted_address);
             } else if (status === "REQUEST_DENIED") {
               console.warn("Geocoding API not enabled.");
             }
@@ -236,6 +268,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               marker.setAnimation(window.google.maps.Animation.BOUNCE);
               setTimeout(() => marker.setAnimation(null), 750);
               setAddressName(place.formatted_address || place.name);
+              setSearchQuery(place.formatted_address || place.name || "");
               setIsSearchFocused(false);
               // Blur search input on mobile after selection
               if (searchInputRef.current) {
@@ -245,7 +278,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           });
 
           autocompleteRef.current = autocomplete;
-        } catch (e) {
+        } catch {
           console.warn("Places Autocomplete failed to initialize");
         }
       }
@@ -264,9 +297,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               map.setCenter(location);
               marker.setPosition(results[0].geometry.location);
               setAddressName(results[0].formatted_address);
+              setSearchQuery(results[0].formatted_address);
             }
           });
-        } catch (e) {
+        } catch {
           console.warn("Initial address geocoding failed");
         }
       } else {
@@ -286,7 +320,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
       }
     };
-  }, [isOpen, address, isGoogleMapsLoaded]);
+  }, [isOpen, address, isGoogleMapsLoaded, selectedLocation]);
 
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
@@ -297,57 +331,78 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     setDetectingLocation(true);
     setLocationError("");
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setSelectedLocation(location);
+    const applyDetectedLocation = (position) => {
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      setSelectedLocation(location);
 
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setCenter(location);
-          mapInstanceRef.current.setZoom(17);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setCenter(location);
+        mapInstanceRef.current.setZoom(17);
+      }
+
+      if (markerRef.current) {
+        markerRef.current.setPosition(location);
+        markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
+        setTimeout(() => markerRef.current.setAnimation(null), 750);
+      }
+
+      if (window.google && window.google.maps && window.google.maps.Geocoder) {
+        try {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location }, (results, status) => {
+            if (status === "OK" && results[0]) {
+              setAddressName(results[0].formatted_address);
+              setSearchQuery(results[0].formatted_address);
+            }
+          });
+        } catch {
+          console.warn("Geocoding failed during location detection");
         }
+      }
 
-        if (markerRef.current) {
-          markerRef.current.setPosition(location);
-          markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
-          setTimeout(() => markerRef.current.setAnimation(null), 750);
-        }
+      setDetectingLocation(false);
+      setShowBottomSheet(true);
+    };
 
-        if (window.google && window.google.maps && window.google.maps.Geocoder) {
-          try {
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ location }, (results, status) => {
-              if (status === "OK" && results[0]) {
-                setAddressName(results[0].formatted_address);
-              }
-            });
-          } catch (e) {
-            console.warn("Geocoding failed during location detection");
+    const handleLocationError = (error, hasRetried) => {
+      if (!hasRetried && error.code === error.POSITION_UNAVAILABLE) {
+        navigator.geolocation.getCurrentPosition(
+          applyDetectedLocation,
+          (retryError) => handleLocationError(retryError, true),
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 300000,
           }
-        }
+        );
+        return;
+      }
 
-        setDetectingLocation(false);
-        setShowBottomSheet(true);
-      },
-      (error) => {
-        setDetectingLocation(false);
-        let errorMessage = "Could not detect location.";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = "Location access denied. Please enable it in settings.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "Location unavailable. Please try again.";
-            break;
-          case error.TIMEOUT:
-            errorMessage = "Request timed out. Please try again.";
-            break;
-        }
-        setLocationError(errorMessage);
-      },
+      setDetectingLocation(false);
+      let errorMessage = "Could not detect your location.";
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage =
+            "Location access denied. Allow location for this site in your browser settings.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage =
+            "Current location is unavailable. Turn on device location services and try again.";
+          break;
+        case error.TIMEOUT:
+          errorMessage =
+            "Location request timed out. Check your connection or try again.";
+          break;
+      }
+      setLocationError(errorMessage);
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      applyDetectedLocation,
+      (error) => handleLocationError(error, false),
       {
         enableHighAccuracy: true,
         timeout: 10000,
@@ -358,16 +413,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
   const handleConfirmLocation = () => {
     onSelectLocation(selectedLocation);
+    cleanupMapInstance();
     setIsOpen(false);
   };
 
   const handleClose = () => {
+    resetDraftState();
+    cleanupMapInstance();
     setIsOpen(false);
-    if (mapInstanceRef.current) {
-      window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
-      mapInstanceRef.current = null;
-      markerRef.current = null;
-    }
   };
 
   return (
@@ -375,7 +428,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       {/* Button to open map picker */}
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          resetDraftState();
+          setIsOpen(true);
+        }}
         className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-purple-100 transition-all duration-300 border border-blue-200 font-semibold shadow-sm hover:shadow-md active:scale-95"
       >
         <MapPin className="w-4 h-4" />

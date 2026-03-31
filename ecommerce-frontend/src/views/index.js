@@ -36,6 +36,7 @@ export { default as AdminDashboard } from './admin/Dashboard';
 export { default as AdminProductsList } from './admin/Products/List';
 export { default as AdminProductsAdd } from './admin/Products/Add';
 export { default as AdminProductsEdit } from './admin/Products/Edit';
+export { default as AdminBanners } from './admin/Banners';
 export { default as AdminUsers } from './admin/Users';
 export { default as AdminOrdersList } from './admin/Orders/List';
 export { default as AdminOrderDetails } from './admin/Orders/Details';

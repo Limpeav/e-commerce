@@ -9,7 +9,6 @@ import { useDarkMode } from "../../../hooks";
 import {
   Mail,
   Lock,
-  LogIn,
   AlertCircle,
   Loader,
   Eye,
@@ -177,13 +176,6 @@ const Login = () => {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
         <div className="text-center mb-6 sm:mb-10">
-          <div
-            className={`inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl shadow-xl border mb-4 sm:mb-8 transform hover:scale-105 transition-transform duration-300 ${
-              isDark ? "bg-slate-900 border-slate-800" : "bg-white border-stone-100"
-            }`}
-          >
-            <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-          </div>
           <h1
             className={`text-3xl sm:text-5xl font-black mb-2 sm:mb-3 font-display tracking-tight leading-none ${
               isDark ? "text-slate-100" : "text-text-main"
@@ -325,7 +317,6 @@ const Login = () => {
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
                   Sign In
                 </>
               )}

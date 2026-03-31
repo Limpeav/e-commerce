@@ -75,6 +75,24 @@ export const adminService = {
   },
   deleteProduct: (id) => api.delete(`/products/${id}`),
 
+  // Banner methods
+  getBanners: () => api.get("/banners/admin/all"),
+  createBanner: (bannerData) => {
+    return api.post("/banners", bannerData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  updateBanner: (id, bannerData) => {
+    return api.put(`/banners/${id}`, bannerData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  deleteBanner: (id) => api.delete(`/banners/${id}`),
+
   // Order methods
   getOrders: () => api.get("/orders"),
   getOrderById: (id) => api.get(`/orders/${id}`),
