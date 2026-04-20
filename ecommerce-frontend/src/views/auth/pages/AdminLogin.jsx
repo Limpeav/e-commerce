@@ -50,8 +50,8 @@ const AdminLogin = () => {
     setError("");
     setLoading(true);
 
-    try {
-      const response = await adminService.login({ email, password });
+try {
+        const response = await adminService.login({ email, password });
 
       // Handle both response.data and direct data
       const data = response.data || response;
@@ -60,7 +60,7 @@ const AdminLogin = () => {
         throw new Error("Invalid response from server");
       }
 
-      persistAdminSession(data);
+      persistAdminSession(data.token, data);
 
       navigate("/admin", { replace: true });
     } catch (err) {

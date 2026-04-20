@@ -23,6 +23,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleUser, setGoogleUser] = useState(null);
+  const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [isDark] = useDarkMode();
@@ -89,7 +91,7 @@ const Login = () => {
     }
   };
 
-  // Google Login Handler
+  // Google Login Handler - First step: get user info
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -108,30 +110,13 @@ const Login = () => {
 
         const { email, name, picture, sub } = userInfoResponse.data;
 
-        // Send to backend
-        const { data } = await googleAuth({
-          email,
-          name,
-          picture,
-          sub,
-        });
-
-        if (data.role !== "user") {
-          setError("Not a user account. Please use appropriate credentials.");
-          setLoading(false);
-          return;
-        }
-
-        login(data);
-        // Redirect to complete-profile if phone is missing (Google users)
-        if (!data.phone) {
-          navigate("/complete-profile");
-        } else {
-          navigate("/");
-        }
+        // Store Google user info and show confirmation modal
+        setGoogleUser({ email, name, picture, sub, accessToken: tokenResponse.access_token });
+        setShowGoogleConfirm(true);
+        setLoading(false);
       } catch (err) {
         setError(
-          err.response?.data?.message || "Google login failed. Please try again."
+          "Google login failed. Please try again."
         );
         setLoading(false);
       }
@@ -141,6 +126,46 @@ const Login = () => {
       setLoading(false);
     },
   });
+
+  // Continue with Google login after confirmation
+  const handleGoogleContinue = async () => {
+    if (!googleUser) return;
+    
+    try {
+      setLoading(true);
+      setError("");
+
+      const { data } = await googleAuth({
+        email: googleUser.email,
+        name: googleUser.name,
+        picture: googleUser.picture,
+        sub: googleUser.sub,
+      });
+
+      if (data.role !== "user") {
+        setError("Not a user account. Please use appropriate credentials.");
+        setLoading(false);
+        return;
+      }
+
+      login(data);
+      if (!data.phone) {
+        navigate("/complete-profile");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Google login failed. Please try again."
+      );
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleCancel = () => {
+    setGoogleUser(null);
+    setShowGoogleConfirm(false);
+  };
 
   return (
     <div
@@ -397,6 +422,90 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      {/* Google Account Confirmation Modal */}
+      {showGoogleConfirm && googleUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleGoogleCancel}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={`relative w-full max-w-sm p-6 rounded-2xl shadow-2xl ${
+              isDark ? "bg-slate-800" : "bg-white"
+            }`}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                {googleUser.picture ? (
+                  <img 
+                    src={googleUser.picture} 
+                    alt={googleUser.name}
+                    className="w-14 h-14 rounded-full"
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-white">
+                    {googleUser.name?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              
+              <h3 className={`text-xl font-bold mb-1 ${isDark ? "text-white" : "text-gray-900"}`}>
+                Continue with Google?
+              </h3>
+              
+              <p className={`text-sm mb-6 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+                You're signing in as
+              </p>
+              
+              <div className={`flex items-center justify-center gap-3 p-3 rounded-xl mb-6 ${
+                isDark ? "bg-slate-700/50" : "bg-gray-100"
+              }`}>
+                {googleUser.picture && (
+                  <img 
+                    src={googleUser.picture} 
+                    alt={googleUser.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                )}
+                <div className="text-left">
+                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
+                    {googleUser.name}
+                  </p>
+                  <p className={`text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+                    {googleUser.email}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleGoogleCancel}
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+                    isDark 
+                      ? "bg-slate-700 text-slate-300 hover:bg-slate-600" 
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGoogleContinue}
+                  disabled={loading}
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader className="w-4 h-4 animate-spin" />}
+                  Continue
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

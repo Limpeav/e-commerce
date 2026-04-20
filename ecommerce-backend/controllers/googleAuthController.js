@@ -26,8 +26,8 @@ export const googleAuth = async (req, res) => {
       // User exists, generate token and login
       // Update googleId if not already set
       if (sub && !user.googleId) {
-        await User.updateOne({ _id: user._id }, { googleId: sub });
         user.googleId = sub;
+        await user.save();
       }
       res.json({
         _id: user._id,
@@ -40,11 +40,10 @@ export const googleAuth = async (req, res) => {
       });
     } else {
       // User doesn't exist, create new user
+      // Don't set password for Google users - they'll use Google to login
       user = await User.create({
         name,
         email,
-        // phone is intentionally omitted for Google OAuth users (sparse unique index)
-        password: sub + Date.now() + Math.random(), // Random password (won't be used for Google auth)
         role: "user",
         googleId: sub, // Store Google ID
       });
