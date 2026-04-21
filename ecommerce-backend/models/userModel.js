@@ -15,6 +15,11 @@ const userSchema = mongoose.Schema(
     googleId: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    tempPhone: { type: String },
+    phoneVerificationCode: { type: String },
+    phoneVerificationExpire: { type: Date },
+    deleteAccountOtp: { type: String },
+    deleteAccountOtpExpire: { type: Date },
   },
   { timestamps: true }
 );

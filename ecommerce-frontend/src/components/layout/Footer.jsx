@@ -49,7 +49,7 @@ export default function Footer() {
               <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border group-hover:bg-primary transition-all ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
                   <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-muted group-hover:text-white transition-colors" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium tracking-wide text-text-muted group-hover:text-primary transition-colors">016568335</span>
+                <span className="text-xs sm:text-sm font-medium tracking-wide text-text-muted group-hover:text-primary transition-colors">016 568 335</span>
               </div>
               <div className="flex items-center gap-3 sm:gap-4 group cursor-pointer">
               <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border group-hover:bg-primary transition-all ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>

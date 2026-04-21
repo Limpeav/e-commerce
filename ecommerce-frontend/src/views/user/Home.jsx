@@ -6,7 +6,6 @@ import Loading from "../common/Loading";
 
 // Components
 import Hero from "../../components/home/Hero";
-import BrandBenefits from "../../components/home/BrandBenefits";
 import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
 import SectionHeader from "../../components/product/SectionHeader";
@@ -109,10 +108,6 @@ export default function Home() {
                     />
                 </div>
             </main>
-
-            <div className={`py-12 sm:py-24 border-t transition-colors duration-300 ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-stone-100"}`}>
-                <BrandBenefits />
-            </div>
         </div>
     );
 }

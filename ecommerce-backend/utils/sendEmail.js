@@ -156,9 +156,13 @@ export const sendDeleteAccountOtp = async (email, userName, otp) => {
                   <!-- Warning Icon row -->
                   <tr>
                     <td style="padding:40px 32px 0;text-align:center;">
-                      <div style="width:64px;height:64px;background:#fee2e2;border-radius:50%;border:4px solid #fecdd3;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;line-height:64px;">
-                        ⚠️
-                      </div>
+                      <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                        <tr>
+                          <td align="center" valign="middle" style="width:64px;height:64px;background:#fee2e2;border-radius:50%;border:4px solid #fecdd3;">
+                            <span style="display:inline-block;font-size:28px;line-height:1;color:#f59e0b;">&#9888;</span>
+                          </td>
+                        </tr>
+                      </table>
                       <h1 style="font-size:22px;font-weight:800;color:#18181b;margin:20px 0 8px;letter-spacing:-0.5px;">Delete Account Request</h1>
                       <p style="font-size:14px;line-height:1.7;color:#52525b;margin:0 0 32px;">
                         Hello <strong>${userName || "there"}</strong>,<br>
