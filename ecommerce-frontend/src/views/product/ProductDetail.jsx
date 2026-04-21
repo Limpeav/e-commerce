@@ -1,8 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useCart } from "../../context/CartContext";
-import { useAuth } from "../../context/AuthContext";
-import { useWishlist } from "../../context/WishlistContext";
+import { useCart } from "../../context/useCart";
+import { useAuth } from "../../context/useAuth";
+import { useWishlist } from "../../context/useWishlist";
 import { ArrowLeft, Baby } from "lucide-react";
 import { useDarkMode } from "../../hooks";
 

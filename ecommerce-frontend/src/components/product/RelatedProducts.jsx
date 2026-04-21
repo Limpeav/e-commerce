@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useProducts } from '../../hooks/useProducts';
-import { useWishlist } from '../../context/WishlistContext';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
+import { useWishlist } from '../../context/useWishlist';
+import { useCart } from '../../context/useCart';
+import { useAuth } from '../../context/useAuth';
 import ProductCard from './ProductCard';
 import { Sparkles } from 'lucide-react';
 import { useDarkMode } from '../../hooks';

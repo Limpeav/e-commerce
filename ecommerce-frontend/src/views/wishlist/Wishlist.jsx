@@ -1,5 +1,5 @@
-import { useWishlist } from "../../context/WishlistContext";
-import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/useWishlist";
+import { useCart } from "../../context/useCart";
 import { Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useDarkMode } from "../../hooks";

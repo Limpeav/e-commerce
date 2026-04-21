@@ -9,7 +9,7 @@ import {
   protectedRoutes,
   publicRoutes,
 } from "../config/routes";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { useDarkMode } from "../hooks";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";

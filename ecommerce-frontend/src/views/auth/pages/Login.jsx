@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { loginUser, googleAuth } from "../../../services/authApi";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../context/useAuth";
 import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";

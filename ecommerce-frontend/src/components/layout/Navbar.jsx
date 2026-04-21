@@ -17,9 +17,9 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-import { useCart } from "../../context/CartContext";
-import { useWishlist } from "../../context/WishlistContext";
-import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/useCart";
+import { useWishlist } from "../../context/useWishlist";
+import { useAuth } from "../../context/useAuth";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";

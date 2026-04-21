@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
-import { useCart } from "../../context/CartContext";
-import { useWishlist } from "../../context/WishlistContext";
-import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/useCart";
+import { useWishlist } from "../../context/useWishlist";
+import { useAuth } from "../../context/useAuth";
 import Loading from "../common/Loading";
 
 // Components

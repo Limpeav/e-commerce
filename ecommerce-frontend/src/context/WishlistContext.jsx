@@ -1,9 +1,8 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "./AuthContext";
+import { useState, useEffect } from "react";
 import { useToast } from "./ToastContext";
 import { WishlistController } from "../controllers/index.js";
-
-const WishlistContext = createContext();
+import { useAuth } from "./useAuth";
+import { WishlistContext } from "./wishlist-context";
 
 export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
@@ -105,5 +104,3 @@ export const WishlistProvider = ({ children }) => {
     </WishlistContext.Provider>
   );
 };
-
-export const useWishlist = () => useContext(WishlistContext);

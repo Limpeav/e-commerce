@@ -2,7 +2,7 @@ import { registerUser, googleAuth } from "../../../services/authApi";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../context/useAuth";
 import { motion } from "framer-motion";
 import axios from "axios";
 import {

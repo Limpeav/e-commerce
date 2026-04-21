@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { config } from '../../config/index.js';

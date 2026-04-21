@@ -1,9 +1,8 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "./AuthContext";
+import { useState, useEffect } from "react";
 import { useToast } from "./ToastContext";
 import { CartController } from "../controllers/index.js";
-
-const CartContext = createContext();
+import { useAuth } from "./useAuth";
+import { CartContext } from "./cart-context";
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
@@ -121,12 +120,4 @@ export const CartProvider = ({ children }) => {
       {children}
     </CartContext.Provider>
   );
-};
-
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within CartProvider");
-  }
-  return context;
 };

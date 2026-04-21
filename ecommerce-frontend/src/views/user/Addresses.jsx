@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { AddressController } from "../../controllers/addressController";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 const Addresses = () => {
   const { user } = useAuth();
