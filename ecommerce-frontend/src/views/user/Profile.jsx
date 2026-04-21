@@ -256,7 +256,7 @@ const Profile = () => {
           </div>
           <h2 className={`text-3xl font-bold mb-3 tracking-tight ${isDark ? "text-slate-50" : "text-stone-800"}`}>Access Denied</h2>
           <p className={`${isDark ? "text-slate-400" : "text-stone-500"} font-medium mb-8`}>Please log in to view your profile dashboard and manage your account.</p>
-          <Link to="/login" className="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30">
+          <Link to="/login" className="w-full rounded-xl bg-primary py-4 font-bold text-white flex items-center justify-center gap-2 transition-all shadow-lg hover:bg-primary-dark hover:shadow-primary/30">
             Sign In Now <ChevronRight className="w-5 h-5" />
           </Link>
         </motion.div>
@@ -267,11 +267,11 @@ const Profile = () => {
   return (
     <div className={`min-h-screen pb-20 font-sans transition-colors ${isDark ? "bg-transparent" : "bg-stone-50"}`}>
       {/* Dynamic Header Banner */}
-      <div className="h-72 w-full bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-700 relative overflow-hidden">
+      <div className="relative h-72 w-full overflow-hidden bg-[linear-gradient(135deg,#7A967E_0%,#8DAA91_48%,#E6BAA3_100%)]">
         {/* Abstract shapes for visual interest */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl"></div>
-          <div className="absolute bottom-0 right-10 w-80 h-80 bg-pink-500 rounded-full mix-blend-overlay filter blur-3xl"></div>
+          <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white mix-blend-overlay blur-3xl"></div>
+          <div className="absolute bottom-0 right-10 h-80 w-80 rounded-full bg-secondary/40 mix-blend-overlay blur-3xl"></div>
         </div>
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-full flex flex-col justify-end pb-10 relative z-10">
@@ -307,7 +307,7 @@ const Profile = () => {
               <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-md">
                 {user.name}
               </h1>
-              <p className="text-indigo-100 flex items-center gap-2 mt-2 font-medium">
+              <p className="mt-2 flex items-center gap-2 font-medium text-white/85">
                 <Mail className="w-4 h-4" /> {user.email}
               </p>
             </div>
@@ -364,10 +364,10 @@ const Profile = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl transition-all duration-300 font-semibold text-sm whitespace-nowrap ${
                     activeTab === tab.id
-                      ? "bg-indigo-600 text-white shadow-md transform scale-[1.02]"
+                      ? "bg-primary text-white shadow-md transform scale-[1.02]"
                       : isDark
-                        ? "text-slate-400 hover:bg-slate-800 hover:text-indigo-300"
-                        : "text-stone-500 hover:bg-stone-50 hover:text-indigo-600"
+                        ? "text-slate-400 hover:bg-slate-800 hover:text-primary"
+                        : "text-stone-500 hover:bg-stone-50 hover:text-primary"
                   }`}
                 >
                   <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "animate-pulse" : ""}`} />
@@ -391,9 +391,9 @@ const Profile = () => {
                   {/* Premium Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
-                      { to: "/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-blue-500 to-indigo-600", bg: "bg-blue-50 border-blue-100" },
-                      { to: "/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-pink-500 to-rose-600", bg: "bg-pink-50 border-pink-100" },
-                      { to: "/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50 border-emerald-100" }
+                      { to: "/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
+                      { to: "/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
+                      { to: "/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
                     ].map((stat, idx) => (
                       <motion.div
                         key={idx}
@@ -424,9 +424,9 @@ const Profile = () => {
                     <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
                       <div className={`flex items-center justify-between mb-8 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
                         <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <User className="w-5 h-5 text-indigo-500" /> Account Summary
+                          <User className="w-5 h-5 text-primary" /> Account Summary
                         </h3>
-                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25" : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"}`}>Edit</button>
+                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>Edit</button>
                       </div>
                       
                       <div className="space-y-6 relative">
@@ -442,8 +442,8 @@ const Profile = () => {
                           <div key={idx} className="flex gap-4 relative z-10 group">
                             <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all ${
                               isDark
-                                ? "bg-slate-950 border-slate-700 text-slate-400 group-hover:border-indigo-400 group-hover:text-indigo-300 group-hover:shadow-[0_0_0_1px_rgba(129,140,248,0.15)]"
-                                : "bg-white border-stone-200 text-stone-500 group-hover:border-indigo-300 group-hover:text-indigo-600 group-hover:shadow-md"
+                                ? "bg-slate-950 border-slate-700 text-slate-400 group-hover:border-primary group-hover:text-primary-light group-hover:shadow-[0_0_0_1px_rgba(167,199,173,0.18)]"
+                                : "bg-white border-stone-200 text-stone-500 group-hover:border-primary-light group-hover:text-primary group-hover:shadow-md"
                             }`}>
                               <item.icon className="w-5 h-5" />
                             </div>
@@ -460,9 +460,9 @@ const Profile = () => {
                     <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
                       <div className={`flex items-center justify-between mb-6 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
                         <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <Package className="w-5 h-5 text-indigo-500" /> Recent Activity
+                          <Package className="w-5 h-5 text-primary" /> Recent Activity
                         </h3>
-                        <Link to="/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25" : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"}`}>View All</Link>
+                        <Link to="/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>View All</Link>
                       </div>
                       
                       <div className="space-y-4 flex-1">
@@ -473,11 +473,11 @@ const Profile = () => {
                                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
                                 className={`p-4 rounded-xl border transition-all group flex items-center justify-between relative overflow-hidden ${
                                   isDark
-                                    ? "border-slate-800 hover:border-indigo-500/40 hover:bg-slate-800/90"
-                                    : "border-stone-100 hover:border-indigo-200 hover:bg-indigo-50/50"
+                                    ? "border-slate-800 hover:border-primary/40 hover:bg-slate-800/90"
+                                    : "border-stone-100 hover:border-primary/20 hover:bg-primary/5"
                                 }`}
                               >
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${isDark ? "text-slate-300 bg-slate-800" : "text-stone-500 bg-stone-100"}`}>#{order._id.slice(-6).toUpperCase()}</span>
@@ -495,7 +495,7 @@ const Profile = () => {
                                   </p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-bold text-lg text-indigo-600">${order.totalPrice?.toFixed(2)}</p>
+                                  <p className="text-lg font-bold text-primary">${order.totalPrice?.toFixed(2)}</p>
                                   <p className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>{order.orderItems?.length} items</p>
                                 </div>
                               </motion.div>
@@ -508,7 +508,7 @@ const Profile = () => {
                             </div>
                             <p className={`font-bold ${isDark ? "text-slate-100" : "text-stone-800"}`}>No orders yet</p>
                             <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>When you make a purchase, it will appear here.</p>
-                            <Link to="/products" className="mt-4 text-sm font-bold text-indigo-600 hover:text-indigo-800 underline">Start Shopping</Link>
+                            <Link to="/products" className="mt-4 text-sm font-bold text-primary hover:text-primary-dark underline">Start Shopping</Link>
                           </div>
                         )}
                       </div>

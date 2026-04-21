@@ -11,19 +11,28 @@ export default function EmptyCart() {
   const [isDark] = useDarkMode();
 
   return (
-    <div className={`min-h-screen flex items-center justify-center font-sans overflow-hidden transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+    <div className="min-h-screen bg-bg-base flex items-center justify-center overflow-hidden font-sans transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-6 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
 
         {/* Main Empty State */}
-        <div className={`text-center relative z-10 p-16 md:p-24 rounded-[4rem] border max-w-2xl ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_64px_128px_-40px_rgba(2,6,23,0.95)]" : "bg-white border-stone-100 shadow-[0_64px_128px_-32px_rgba(19,78,74,0.1)]"}`}>
+        <div
+          className={`relative z-10 max-w-2xl rounded-[4rem] border p-16 text-center ${isDark ? "bg-bg-card shadow-[0_64px_128px_-40px_rgba(12,16,12,0.7)]" : "bg-bg-card shadow-[0_64px_128px_-32px_rgba(122,150,126,0.14)]"} md:p-24`}
+          style={{ borderColor: "var(--color-border)" }}
+        >
           {/* Animated Icon */}
           <div className="relative inline-block mb-12">
             <div className="absolute inset-0 bg-primary/20 rounded-[2.5rem] blur-2xl opacity-40 animate-pulse"></div>
-            <div className={`relative w-32 h-32 rounded-[2.5rem] flex items-center justify-center shadow-2xl border transform hover:scale-110 transition-transform duration-300 ${isDark ? "bg-slate-800 border-slate-700" : "bg-white border-stone-100"}`}>
+            <div
+              className="relative flex h-32 w-32 items-center justify-center rounded-[2.5rem] border bg-bg-card shadow-2xl transition-transform duration-300 hover:scale-110"
+              style={{ borderColor: "var(--color-border)" }}
+            >
               <ShoppingBag className="w-14 h-14 text-primary" strokeWidth={1} />
             </div>
-            <div className="absolute -top-4 -right-4 bg-secondary w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl animate-bounce border-4 border-white">
+            <div
+              className="absolute -top-4 -right-4 flex h-12 w-12 items-center justify-center rounded-2xl border-4 bg-secondary shadow-2xl animate-bounce"
+              style={{ borderColor: "var(--color-bg-card)" }}
+            >
               <Sparkles className="w-6 h-6 text-white" />
             </div>
           </div>
@@ -40,12 +49,10 @@ export default function EmptyCart() {
           {/* CTA Button */}
           <Link
             to="/"
-            className={`group inline-flex items-center gap-3 px-10 py-4 rounded-xl font-bold text-sm shadow-xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 border-[2px] border-transparent ${isDark ? "[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]" : "[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]"}`}
+            className="group inline-flex items-center gap-3 rounded-xl bg-primary px-10 py-4 text-sm font-bold text-white shadow-xl transform transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95"
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-rose-500">
-              Start Shopping
-            </span>
-            <ArrowRight className="w-5 h-5 text-rose-500 group-hover:translate-x-1 transition-transform" />
+            <span>Start Shopping</span>
+            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
       </div>

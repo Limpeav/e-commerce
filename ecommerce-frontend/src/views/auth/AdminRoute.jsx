@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Loading from "../../components/common/Loading";
-import { adminService } from "../../services/adminService";
-import {
-  clearAdminSession,
-  getStoredAdminUser,
-  getStoredAdminToken,
-} from "../../utils/adminSession";
+import { AdminController } from "../../controllers/adminController";
 
 // Admin Route - Only allows admin users
 const AdminRoute = ({ children }) => {
@@ -16,35 +11,13 @@ const AdminRoute = ({ children }) => {
     let isMounted = true;
 
     const validateAdminSession = async () => {
-      const adminToken = getStoredAdminToken();
-      const adminUser = getStoredAdminUser();
+      const result = await AdminController.validateSession();
 
-      if (!adminToken || !adminUser || adminUser.role !== "admin") {
-        if (isMounted) {
-          setStatus("unauthorized");
-        }
+      if (!isMounted) {
         return;
       }
 
-      try {
-        const { data } = await adminService.getCurrentAdmin();
-
-        if (!data || data.role !== "admin") {
-          throw new Error("Invalid admin session");
-        }
-
-        localStorage.setItem("adminUser", JSON.stringify({ ...adminUser, ...data }));
-
-        if (isMounted) {
-          setStatus("authorized");
-        }
-      } catch (error) {
-        clearAdminSession();
-
-        if (isMounted) {
-          setStatus("unauthorized");
-        }
-      }
+      setStatus(result.success ? "authorized" : "unauthorized");
     };
 
     validateAdminSession();

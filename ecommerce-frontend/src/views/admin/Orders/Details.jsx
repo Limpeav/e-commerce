@@ -12,7 +12,7 @@ import {
     CheckCircle,
     ExternalLink,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { AdminController } from "../../../controllers/adminController";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -27,42 +27,49 @@ const OrderDetails = () => {
     }, [id]);
 
     const fetchOrderDetails = async () => {
-        try {
-            setLoading(true);
-            const response = await adminService.getOrderById(id);
-            setOrder(response.data);
-            setLoading(false);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to fetch order details");
-            setLoading(false);
+        setLoading(true);
+        const result = await AdminController.getOrderById(id);
+
+        if (result.success) {
+            setOrder(result.data);
+            setError(null);
+        } else {
+            setError(result.error || "Failed to fetch order details");
         }
+
+        setLoading(false);
     };
 
     const handleStatusUpdate = async (newStatus) => {
-        try {
-            setUpdating(true);
-            await adminService.updateOrderStatus(id, newStatus);
-            fetchOrderDetails();
+        setUpdating(true);
+        const result = await AdminController.updateOrderStatus(id, newStatus);
+
+        if (!result.success) {
+            alert(result.error || "Failed to update order status");
             setUpdating(false);
-        } catch (err) {
-            alert(err.response?.data?.message || "Failed to update order status");
-            setUpdating(false);
+            return;
         }
+
+        await fetchOrderDetails();
+        setUpdating(false);
     };
 
     const handlePaymentStatusUpdate = async (newPaymentStatus) => {
         if (!window.confirm(`Are you sure you want to mark this order as ${newPaymentStatus}?`)) {
             return;
         }
-        try {
-            setUpdating(true);
-            await adminService.updatePaymentStatus(id, newPaymentStatus);
-            fetchOrderDetails();
+
+        setUpdating(true);
+        const result = await AdminController.updatePaymentStatus(id, newPaymentStatus);
+
+        if (!result.success) {
+            alert(result.error || "Failed to update payment status");
             setUpdating(false);
-        } catch (err) {
-            alert(err.response?.data?.message || "Failed to update payment status");
-            setUpdating(false);
+            return;
         }
+
+        await fetchOrderDetails();
+        setUpdating(false);
     };
 
     const getPaymentStatusColor = (status) => {

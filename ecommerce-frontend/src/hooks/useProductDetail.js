@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { fetchProductById, createProductReview } from '../services/productApi';
+import { useState, useEffect } from "react";
+import { ProductController } from "../controllers/productController";
 
 export const useProductDetail = (id, user) => {
   const [product, setProduct] = useState(null);
@@ -9,16 +9,14 @@ export const useProductDetail = (id, user) => {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const data = await fetchProductById(id, user?.token);
-      setProduct(data);
-      
-      // Set alreadyReviewed status from backend response
-      if (data.alreadyReviewed !== undefined) {
-        const storageKey = `reviewed_${user?.id}_${id}`;
-        if (data.alreadyReviewed && user) {
-          localStorage.setItem(storageKey, 'true');
-        }
+      setError(null);
+      const result = await ProductController.getProductDetail(id, user);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to fetch product");
       }
+
+      setProduct(result.data);
     } catch (err) {
       setError(err.message || "Failed to fetch product");
       console.error("Failed to fetch product", err);
@@ -46,9 +44,7 @@ export const useProductReview = (id, user) => {
   // Check localStorage for existing review on component mount
   useEffect(() => {
     if (user && id) {
-      const storageKey = `reviewed_${user.id}_${id}`;
-      const hasReviewed = localStorage.getItem(storageKey);
-      if (hasReviewed === 'true') {
+      if (ProductController.hasReviewed(user._id || user.id, id)) {
         setAlreadyReviewed(true);
       }
     }
@@ -59,33 +55,24 @@ export const useProductReview = (id, user) => {
     setReviewError("");
 
     try {
-      if (!user) {
-        throw new Error("You must be logged in to submit a review");
+      const result = await ProductController.submitReview(id, user, {
+        rating,
+        comment,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error);
       }
-
-      if (!user.token) {
-        throw new Error("Authentication token missing. Please log in again.");
-      }
-
-      await createProductReview(id, { rating, comment }, user.token);
-
-      // Save review status to localStorage
-      const storageKey = `reviewed_${user.id}_${id}`;
-      localStorage.setItem(storageKey, 'true');
 
       setRating(5);
       setComment("");
       setAlreadyReviewed(true);
-      
+
       if (onSuccess) onSuccess();
     } catch (err) {
       if (err.message === "Product already reviewed") {
         setAlreadyReviewed(true);
         setReviewError("");
-        if (user && id) {
-          const storageKey = `reviewed_${user.id}_${id}`;
-          localStorage.setItem(storageKey, 'true');
-        }
       } else {
         setReviewError(err.message || "An error occurred. Please try again.");
       }

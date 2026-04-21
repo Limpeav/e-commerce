@@ -7,13 +7,7 @@ import {
     Trash2,
     CheckCheck,
 } from "lucide-react";
-import {
-    fetchNotifications,
-    getUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-} from "../services/notificationApi.js";
+import { NotificationController } from "../controllers/notificationController.js";
 
 const NotificationPanel = () => {
     const navigate = useNavigate();
@@ -24,17 +18,17 @@ const NotificationPanel = () => {
 
     // Load notifications
     const loadNotifications = async () => {
-        try {
-            setLoading(true);
-            const data = await fetchNotifications();
-            setNotifications(data);
-            const countData = await getUnreadCount();
-            setUnreadCount(countData.count);
-        } catch (error) {
-            console.error("Error loading notifications:", error);
-        } finally {
-            setLoading(false);
+        setLoading(true);
+        const result = await NotificationController.getPanelState();
+
+        if (result.success) {
+            setNotifications(result.data.notifications);
+            setUnreadCount(result.data.unreadCount);
+        } else {
+            console.error("Error loading notifications:", result.error);
         }
+
+        setLoading(false);
     };
 
     // Initial load
@@ -46,31 +40,31 @@ const NotificationPanel = () => {
     }, []);
 
     const handleMarkAsRead = async (notificationId) => {
-        try {
-            await markAsRead(notificationId);
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error marking notification as read:", error);
+        const result = await NotificationController.markAsRead(notificationId);
+        if (!result.success) {
+            console.error("Error marking notification as read:", result.error);
+            return;
         }
+        await loadNotifications();
     };
 
     const handleMarkAllAsRead = async () => {
-        try {
-            await markAllAsRead();
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error marking all as read:", error);
+        const result = await NotificationController.markAllAsRead();
+        if (!result.success) {
+            console.error("Error marking all as read:", result.error);
+            return;
         }
+        await loadNotifications();
     };
 
     const handleDelete = async (notificationId, e) => {
         e.stopPropagation(); // Prevent notification click
-        try {
-            await deleteNotification(notificationId);
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error deleting notification:", error);
+        const result = await NotificationController.delete(notificationId);
+        if (!result.success) {
+            console.error("Error deleting notification:", result.error);
+            return;
         }
+        await loadNotifications();
     };
 
     const handleNotificationClick = async (notification) => {
@@ -83,13 +77,12 @@ const NotificationPanel = () => {
         }
 
         // Auto-delete the notification after viewing (runs in background)
-        try {
-            await deleteNotification(notification._id);
-            // Reload notifications to update the list and count
-            await loadNotifications();
-        } catch (error) {
-            console.error("Error auto-deleting notification:", error);
+        const result = await NotificationController.delete(notification._id);
+        if (!result.success) {
+            console.error("Error auto-deleting notification:", result.error);
+            return;
         }
+        await loadNotifications();
     };
 
     const formatTime = (timestamp) => {

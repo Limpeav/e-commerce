@@ -1,4 +1,10 @@
 import { adminService } from "../services/adminService.js";
+import {
+  clearAdminSession,
+  getStoredAdminUser,
+  getStoredAdminToken,
+  setAdminSession,
+} from "../utils/adminSession.js";
 
 // Admin Controller - Handles admin logic
 export class AdminController {
@@ -31,10 +37,31 @@ export class AdminController {
     }
   }
 
+  static async getOrderById(orderId) {
+    try {
+      const response = await adminService.getOrderById(orderId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   // Update order status
   static async updateOrderStatus(orderId, status) {
     try {
       const response = await adminService.updateOrderStatus(orderId, status);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  static async updatePaymentStatus(orderId, paymentStatus) {
+    try {
+      const response = await adminService.updatePaymentStatus(
+        orderId,
+        paymentStatus
+      );
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -156,5 +183,28 @@ export class AdminController {
     }
 
     return ((current - previous) / previous) * 100;
+  }
+
+  static async validateSession() {
+    const adminToken = getStoredAdminToken();
+    const adminUser = getStoredAdminUser();
+
+    if (!adminToken || !adminUser || adminUser.role !== "admin") {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+      const { data } = await adminService.getCurrentAdmin();
+
+      if (!data || data.role !== "admin") {
+        throw new Error("Invalid admin session");
+      }
+
+      setAdminSession(adminToken, { ...adminUser, ...data });
+      return { success: true, data: { ...adminUser, ...data } };
+    } catch (error) {
+      clearAdminSession();
+      return { success: false, error: error.message };
+    }
   }
 }

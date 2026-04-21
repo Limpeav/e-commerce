@@ -9,55 +9,32 @@ import {
   Edit3,
   CheckCircle2,
 } from "lucide-react";
-import axios from "axios";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
-import { API_BASE_URL, getUserToken, withAuthHeaders } from "../../services/http";
+import { AddressController } from "../../controllers/addressController";
 import { useAuth } from "../../context/AuthContext";
-
-const API_URL = API_BASE_URL;
-
-const emptyForm = {
-  label: "",
-  fullName: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  city: "",
-  postalCode: "",
-  country: "Cambodia",
-  isDefault: false,
-};
 
 const Addresses = () => {
   const { user } = useAuth();
   const [addresses, setAddresses] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => AddressController.createEmptyForm());
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const getToken = () => getUserToken();
-
   const loadAddresses = useCallback(async () => {
-    const token = getToken();
-    if (!token) {
-      return;
+    setLoading(true);
+    setError("");
+
+    const result = await AddressController.getAddresses();
+
+    setAddresses(result.data || []);
+    if (!result.success) {
+      setError(result.error || "Failed to load addresses");
     }
 
-    try {
-      setLoading(true);
-      setError("");
-      const response = await axios.get(`${API_URL}/users/addresses`, {
-        headers: withAuthHeaders(token),
-      });
-      setAddresses(Array.isArray(response.data) ? response.data : []);
-    } catch (loadError) {
-      setError(loadError.response?.data?.message || "Failed to load addresses");
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -67,7 +44,7 @@ const Addresses = () => {
   }, [user, loadAddresses]);
 
   const resetForm = () => {
-    setForm(emptyForm);
+    setForm(AddressController.createEmptyForm());
     setEditingId(null);
   };
 
@@ -81,44 +58,22 @@ const Addresses = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const token = getToken();
-    if (!token) {
-      setError("Not authenticated");
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    const result = await AddressController.saveAddress(editingId, form);
+
+    if (!result.success) {
+      setError(result.error || "Failed to save address");
+      setSaving(false);
       return;
     }
 
-    try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
-
-      const payload = {
-        ...form,
-        label: form.label || "Address",
-      };
-
-      const response = editingId
-        ? await axios.put(`${API_URL}/users/addresses/${editingId}`, payload, {
-            headers: {
-              ...withAuthHeaders(token),
-              "Content-Type": "application/json",
-            },
-          })
-        : await axios.post(`${API_URL}/users/addresses`, payload, {
-            headers: {
-              ...withAuthHeaders(token),
-              "Content-Type": "application/json",
-            },
-          });
-
-      setAddresses(Array.isArray(response.data) ? response.data : []);
-      setSuccess(editingId ? "Address updated" : "Address added");
-      resetForm();
-    } catch (saveError) {
-      setError(saveError.response?.data?.message || "Failed to save address");
-    } finally {
-      setSaving(false);
-    }
+    setAddresses(result.data || []);
+    setSuccess(editingId ? "Address updated" : "Address added");
+    resetForm();
+    setSaving(false);
   };
 
   const handleEdit = (address) => {
@@ -139,47 +94,35 @@ const Addresses = () => {
   };
 
   const handleDelete = async (addressId) => {
-    const token = getToken();
-    if (!token) {
-      return;
-    }
-
     const confirmed = window.confirm("Delete this address?");
     if (!confirmed) {
       return;
     }
 
-    try {
-      const response = await axios.delete(`${API_URL}/users/addresses/${addressId}`, {
-        headers: withAuthHeaders(token),
-      });
-      setAddresses(Array.isArray(response.data) ? response.data : []);
-      setSuccess("Address deleted");
-      if (editingId === addressId) {
-        resetForm();
-      }
-    } catch (deleteError) {
-      setError(deleteError.response?.data?.message || "Failed to delete address");
+    const result = await AddressController.deleteAddress(addressId);
+
+    if (!result.success) {
+      setError(result.error || "Failed to delete address");
+      return;
+    }
+
+    setAddresses(result.data || []);
+    setSuccess("Address deleted");
+    if (editingId === addressId) {
+      resetForm();
     }
   };
 
   const handleSetDefault = async (addressId) => {
-    const token = getToken();
-    if (!token) {
+    const result = await AddressController.setDefaultAddress(addressId);
+
+    if (!result.success) {
+      setError(result.error || "Failed to set default address");
       return;
     }
 
-    try {
-      const response = await axios.put(
-        `${API_URL}/users/addresses/${addressId}/default`,
-        {},
-        { headers: withAuthHeaders(token) }
-      );
-      setAddresses(Array.isArray(response.data) ? response.data : []);
-      setSuccess("Default address updated");
-    } catch (defaultError) {
-      setError(defaultError.response?.data?.message || "Failed to set default address");
-    }
+    setAddresses(result.data || []);
+    setSuccess("Default address updated");
   };
 
   if (!user) {

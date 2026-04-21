@@ -1,10 +1,16 @@
-import React from "react";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import React, { useRef } from "react";
+import { Search, X, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 
 export default function SearchBar({ searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, categories }) {
     const [isDark] = useDarkMode();
+    const categoriesRef = useRef(null);
+
+    const scrollCategories = () => {
+        if (!categoriesRef.current) return;
+        categoriesRef.current.scrollBy({ left: 220, behavior: "smooth" });
+    };
 
     return (
         <div className="w-full py-2.5 sm:py-4 px-3 sm:px-4 md:px-6">
@@ -37,8 +43,11 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                 </div>
 
                 {/* Categories Wrapper */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 sm:pb-1 no-scrollbar w-full">
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-none">
+                    <div
+                        ref={categoriesRef}
+                        className="flex w-full items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar sm:max-w-[430px] sm:gap-2 sm:pb-1 md:max-w-[510px] lg:max-w-[560px] xl:max-w-[620px]"
+                    >
                         {categories.map((cat) => (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
@@ -55,6 +64,17 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                             </motion.button>
                         ))}
                     </div>
+                    <button
+                        type="button"
+                        onClick={scrollCategories}
+                        className={`shrink-0 rounded-lg border p-2.5 transition-all duration-300 active:scale-95 ${isDark
+                            ? "bg-slate-900 text-slate-300 border-slate-700 hover:border-primary/40 hover:bg-slate-800"
+                            : "bg-white text-text-muted border-stone-100 hover:border-primary/30 hover:bg-stone-50 hover:text-primary"
+                            }`}
+                        aria-label="Show more categories"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </button>
                 </div>
             </div>
         </div>

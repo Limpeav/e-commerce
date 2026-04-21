@@ -16,13 +16,19 @@ export default function Wishlist() {
   // Empty Wishlist State
   if (wishlist.length === 0) {
     return (
-      <div className={`min-h-screen flex items-center justify-center py-20 px-4 sm:px-6 pb-24 md:pb-20 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
-        <div className={`text-center max-w-lg mx-auto p-8 sm:p-16 rounded-3xl sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_34px_90px_-28px_rgba(2,6,23,0.95)]" : "bg-white border-stone-100"}`}>
+      <div className="min-h-screen bg-bg-base px-4 py-20 pb-24 font-sans transition-colors duration-300 sm:px-6 md:pb-20">
+        <div
+          className={`relative mx-auto max-w-lg overflow-hidden rounded-3xl border p-8 text-center shadow-2xl sm:rounded-[4rem] sm:p-16 ${isDark ? "bg-bg-card shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]" : "bg-bg-card shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"}`}
+          style={{ borderColor: "var(--color-border)" }}
+        >
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16"></div>
 
           <div className="relative mb-8 sm:mb-10">
-            <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
-              <Heart className="w-10 h-10 sm:w-14 sm:h-14 text-primary/20" />
+            <div
+              className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-[color:var(--color-surface-soft)] shadow-inner sm:h-32 sm:w-32 sm:rounded-[2.5rem]"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <Heart className="h-10 w-10 text-primary/30 sm:h-14 sm:w-14" />
             </div>
           </div>
 
@@ -36,12 +42,10 @@ export default function Wishlist() {
 
           <Link
             to="/"
-            className={`inline-flex items-center gap-3 px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl font-bold text-sm shadow-xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 border-[2px] border-transparent ${isDark ? "[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]" : "[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]"}`}
+            className="inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
           >
-            <ShoppingBag className="w-5 h-5 text-indigo-600" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-rose-500">
-              Start Shopping
-            </span>
+            <ShoppingBag className="h-5 w-5" />
+            <span>Start Shopping</span>
           </Link>
         </div>
       </div>
@@ -50,18 +54,21 @@ export default function Wishlist() {
 
   // Wishlist with Items
   return (
-    <div className={`min-h-screen py-6 sm:py-12 pt-24 sm:pt-24 md:pt-32 pb-20 md:pb-12 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+    <div className="min-h-screen bg-bg-base pt-24 pb-20 font-sans transition-colors duration-300 sm:pt-24 sm:py-12 md:pt-32 md:pb-12">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         {/* Header */}
         <div className="mb-8 sm:mb-12">
-          <div className={`inline-flex items-center gap-2 mb-3 sm:mb-4 px-4 py-2 rounded-full shadow-sm border ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-stone-100"}`}>
+          <div
+            className="mb-3 inline-flex items-center gap-2 rounded-full border bg-bg-card px-4 py-2 shadow-sm sm:mb-4"
+            style={{ borderColor: "var(--color-border)" }}
+          >
             <Heart className="w-4 h-4 text-primary fill-primary" />
             <span className="text-primary font-bold text-xs uppercase tracking-wide">My Wishlist</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-text-main mb-2 tracking-tight font-display">Saved Items</h1>
           <p className="text-text-muted font-bold text-xs sm:text-sm flex items-center gap-2">
             <span>{wishlist.length} {wishlist.length === 1 ? "item" : "items"}</span>
-            <div className={`w-1 h-1 rounded-full ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
+            <div className="h-1 w-1 rounded-full bg-primary/40"></div>
             <span>saved for later</span>
           </p>
         </div>
@@ -71,17 +78,22 @@ export default function Wishlist() {
           {wishlist.map((product) => (
             <div
               key={product._id}
-              className={`relative rounded-[1.5rem] sm:rounded-[2rem] border p-3 sm:p-4 transition-all duration-300 group flex flex-col ${isDark ? "bg-slate-900 border-slate-800 hover:shadow-[0_24px_60px_-28px_rgba(79,70,229,0.4)]" : "bg-white border-stone-100 hover:shadow-lg"}`}
+              className={`group relative flex flex-col rounded-[1.5rem] border bg-bg-card p-3 transition-all duration-300 hover:-translate-y-1 sm:rounded-[2rem] sm:p-4 ${isDark ? "hover:shadow-[0_24px_60px_-28px_rgba(12,16,12,0.5)]" : "hover:shadow-[0_24px_60px_-28px_rgba(122,150,126,0.18)]"}`}
+              style={{ borderColor: "var(--color-border)" }}
             >
               {/* Product Image */}
-              <Link to={`/products/${product._id}`} className={`block relative rounded-[1.2rem] sm:rounded-[1.5rem] p-4 sm:p-6 aspect-square mb-3 sm:mb-4 overflow-hidden ${isDark ? "bg-slate-800" : "bg-stone-50"}`}>
+              <Link
+                to={`/products/${product._id}`}
+                className="relative mb-3 block aspect-square overflow-hidden rounded-[1.2rem] bg-[color:var(--color-surface-soft)] p-4 sm:mb-4 sm:rounded-[1.5rem] sm:p-6"
+              >
                 <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       removeFromWishlist(product._id);
                     }}
-                    className={`backdrop-blur-sm p-2.5 sm:p-2 rounded-lg sm:rounded-xl shadow-sm border transition-all transform active:scale-95 ${isDark ? "bg-slate-900/90 border-slate-700 text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "bg-white/90 border-white text-stone-300 hover:bg-red-50 hover:text-red-500"}`}
+                    className="transform rounded-lg border bg-bg-card/90 p-2.5 text-text-muted shadow-sm backdrop-blur-sm transition-all active:scale-95 hover:bg-secondary/12 hover:text-secondary sm:rounded-xl sm:p-2"
+                    style={{ borderColor: "var(--color-border)" }}
                     title="Remove from Wishlist"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -96,7 +108,10 @@ export default function Wishlist() {
 
                 {/* Category Badge Overlay */}
                 <div className="absolute bottom-3 left-3 hidden sm:block">
-                  <span className={`backdrop-blur-sm text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full border shadow-sm ${isDark ? "bg-slate-900/90 text-slate-100 border-slate-700" : "bg-white/90 text-text-main border-white"}`}>
+                  <span
+                    className="rounded-full border bg-bg-card/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-text-main shadow-sm backdrop-blur-sm"
+                    style={{ borderColor: "var(--color-border)" }}
+                  >
                     {product.category}
                   </span>
                 </div>
@@ -117,15 +132,15 @@ export default function Wishlist() {
 
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <div className="flex flex-col">
-                    <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-wide mb-0.5 sm:mb-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>Price</span>
+                    <span className="mb-0.5 text-[8px] font-bold uppercase tracking-wide text-text-muted sm:mb-1 sm:text-[10px]">Price</span>
                     <span className="text-base sm:text-xl font-black text-text-main tracking-tight font-display">
                       ${product.price ? product.price.toFixed(2) : "0.00"}
                     </span>
                   </div>
-                  <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wide border ${product.stock > 0
-                    ? (isDark ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-green-50 text-green-600 border-green-100")
-                    : (isDark ? "bg-red-500/10 text-red-300 border-red-500/20" : "bg-red-50 text-red-500 border-red-100")
-                    }`}>
+                  <div
+                    className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wide sm:px-3 sm:py-1 sm:text-[10px] ${product.stock > 0 ? "bg-primary/10 text-primary" : "bg-secondary/12 text-secondary"}`}
+                    style={{ borderColor: product.stock > 0 ? "color-mix(in srgb, var(--color-primary) 28%, transparent)" : "color-mix(in srgb, var(--color-secondary) 30%, transparent)" }}
+                  >
                     {product.stock > 0 ? "Stock" : "Sold"}
                   </div>
                 </div>
@@ -136,8 +151,9 @@ export default function Wishlist() {
                   disabled={product.stock === 0}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl font-black text-[10px] sm:text-sm shadow-sm transition-all duration-300 group/btn ${product.stock > 0
                     ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95 cursor-pointer"
-                    : (isDark ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700" : "bg-stone-50 text-stone-300 cursor-not-allowed border border-stone-100")
+                    : "cursor-not-allowed border bg-[color:var(--color-surface-soft)] text-text-muted"
                     }`}
+                  style={product.stock > 0 ? undefined : { borderColor: "var(--color-border)" }}
                 >
                   <ShoppingCart className="w-3.5 h-3.5 sm:w-4 h-4" />
                   <span>{product.stock > 0 ? "Add to Cart" : "Sold Out"}</span>
@@ -148,7 +164,11 @@ export default function Wishlist() {
         </div>
 
         <div className="mt-16 text-center">
-          <Link to="/" className={`inline-flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm px-6 py-3 rounded-full shadow-sm hover:shadow-md transition-all border active:scale-95 ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-stone-100"}`}>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border bg-bg-card px-6 py-3 text-sm font-bold text-text-muted shadow-sm transition-all hover:border-primary/25 hover:text-primary hover:shadow-md active:scale-95"
+            style={{ borderColor: "var(--color-border)" }}
+          >
             Continue Shopping <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

@@ -141,6 +141,35 @@ const AdminOrders = () => {
                 </div>
             </div>
 
+            {/* Summary Stats */}
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                    <p className="text-sm text-gray-500">Total Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                    <p className="text-sm text-gray-500">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                        {orders.filter((o) => o.orderStatus === "Pending").length}
+                    </p>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                    <p className="text-sm text-gray-500">Delivered</p>
+                    <p className="text-2xl font-bold text-green-600">
+                        {orders.filter((o) => o.orderStatus === "Delivered").length}
+                    </p>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                    <p className="text-sm text-gray-500">Total Revenue</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                        ${orders
+                            .filter((o) => o.paymentStatus === "Paid")
+                            .reduce((acc, order) => acc + (order.totalPrice || 0), 0)
+                            .toFixed(2)}
+                    </p>
+                </div>
+            </div>
+
             {/* Filters */}
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -278,34 +307,6 @@ const AdminOrders = () => {
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow-sm p-4">
-                    <p className="text-sm text-gray-500">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-4">
-                    <p className="text-sm text-gray-500">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                        {orders.filter((o) => o.orderStatus === "Pending").length}
-                    </p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-4">
-                    <p className="text-sm text-gray-500">Delivered</p>
-                    <p className="text-2xl font-bold text-green-600">
-                        {orders.filter((o) => o.orderStatus === "Delivered").length}
-                    </p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-4">
-                    <p className="text-sm text-gray-500">Total Revenue</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                        ${orders
-                            .filter((o) => o.paymentStatus === "Paid")
-                            .reduce((acc, order) => acc + (order.totalPrice || 0), 0)
-                            .toFixed(2)}
-                    </p>
-                </div>
-            </div>
         </div>
     );
 };

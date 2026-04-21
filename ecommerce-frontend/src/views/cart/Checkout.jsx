@@ -400,7 +400,7 @@ const Checkout = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {["BAKONG_KHQR", "Cash on Delivery", "Credit Card", "PayPal", "Bank Transfer"].map(
+                  {["BAKONG_KHQR", "Cash on Delivery"].map(
                     (method) => (
                       <label
                         key={method}

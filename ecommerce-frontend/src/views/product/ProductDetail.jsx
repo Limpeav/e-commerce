@@ -79,23 +79,23 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className={`min-h-screen pt-16 sm:pt-20 md:pt-28 pb-20 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+    <div className={`min-h-screen pt-14 sm:pt-16 md:pt-22 pb-16 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
 
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
         {/* Back Button */}
-        <div className="mb-6 sm:mb-8">
+        <div className="mb-3 sm:mb-4">
           <button
             onClick={() => navigate(-1)}
-            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-300 group active:scale-95 ${isDark ? "bg-slate-900 border-slate-700 hover:bg-slate-800" : "bg-white border-stone-200 hover:shadow-md hover:border-stone-300"}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm shadow-sm transition-all duration-300 group active:scale-95 ${isDark ? "bg-slate-900 border-slate-700 hover:bg-slate-800" : "bg-white border-stone-200 hover:shadow-md hover:border-stone-300"}`}
             aria-label="Go back"
           >
-            <ArrowLeft className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors stroke-[2.5] ${isDark ? "text-slate-400 group-hover:text-white" : "text-stone-500 group-hover:text-stone-800"}`} />
-            <span className={`text-sm sm:text-base font-bold transition-colors ${isDark ? "text-slate-300 group-hover:text-white" : "text-stone-600 group-hover:text-stone-900"}`}>Back</span>
+            <ArrowLeft className={`h-4 w-4 transition-colors stroke-[2.5] ${isDark ? "text-slate-400 group-hover:text-white" : "text-stone-500 group-hover:text-stone-800"}`} />
+            <span className={`font-bold transition-colors ${isDark ? "text-slate-300 group-hover:text-white" : "text-stone-600 group-hover:text-stone-900"}`}>Back</span>
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6 sm:gap-10 md:gap-16 mb-10 sm:mb-20">
+        <div className="grid lg:grid-cols-2 items-start gap-4 sm:gap-6 md:gap-10 mb-8 sm:mb-12">
           {/* Product Image Section */}
           <ProductImage
             product={product}

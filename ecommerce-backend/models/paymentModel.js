@@ -15,7 +15,7 @@ const paymentSchema = new mongoose.Schema(
         paymentMethod: {
             type: String,
             required: true,
-            enum: ["BAKONG_KHQR", "Cash on Delivery", "Credit Card", "Bank Transfer"],
+            enum: ["BAKONG_KHQR", "Cash on Delivery"],
         },
         amount: {
             type: Number,

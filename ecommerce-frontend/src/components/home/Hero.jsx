@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
-import bannerImage from "../../assets/banner.jpg";
-import { fetchBanners } from "../../services/bannerService";
+import { BannerController } from "../../controllers/bannerController";
 
 export default function Hero() {
     const [isDark] = useDarkMode();
@@ -10,12 +9,7 @@ export default function Hero() {
     const [containerWidth, setContainerWidth] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
-    const [slides, setSlides] = useState([
-        {
-            image: bannerImage,
-            alt: "Featured shopping banner",
-        },
-    ]);
+    const [slides, setSlides] = useState([]);
     const sliderRef = useRef(null);
     const dragStartXRef = useRef(0);
     const dragDeltaRef = useRef(0);
@@ -42,23 +36,14 @@ export default function Hero() {
         let isMounted = true;
 
         const loadBanners = async () => {
-            try {
-                const banners = await fetchBanners();
+            const result = await BannerController.getHomepageBanners();
 
-                if (!isMounted || !Array.isArray(banners) || banners.length === 0) {
-                    return;
-                }
-
-                setSlides(
-                    banners.map((banner, index) => ({
-                        image: banner.image,
-                        alt: banner.alt || banner.title || `Homepage banner ${index + 1}`,
-                    }))
-                );
-                setActiveSlide(0);
-            } catch (error) {
-                console.error("Failed to load banners:", error);
+            if (!isMounted) {
+                return;
             }
+
+            setSlides(result.data);
+            setActiveSlide(0);
         };
 
         loadBanners();

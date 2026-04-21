@@ -27,7 +27,7 @@ const ProductCard = ({
       className={`group relative flex flex-col h-full rounded-[2rem] overflow-hidden transition-shadow duration-500 border ${
         isDark
           ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
-          : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)]'
+          : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(122,150,126,0.25)]'
       }`}
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
@@ -51,7 +51,7 @@ const ProductCard = ({
               Sold Out
             </span>
           ) : hasDiscount && (
-            <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm shadow-rose-200">
+            <span className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm shadow-primary/30">
               Save {discountPercent}%
             </span>
           )}
@@ -63,7 +63,7 @@ const ProductCard = ({
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
           className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 cursor-pointer ${inWishlist
             ? `${isDark ? '[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]'} border-transparent shadow-md text-indigo-600`
-            : `${isDark ? 'bg-slate-900/80 border-slate-600 text-slate-400 hover:text-indigo-400 hover:border-indigo-500' : 'bg-transparent border-stone-300 text-stone-400 hover:text-indigo-600 hover:border-indigo-600'}`
+            : `${isDark ? 'bg-slate-900/80 border-slate-600 text-slate-400 hover:text-primary-light hover:border-primary' : 'bg-transparent border-stone-300 text-stone-400 hover:text-primary hover:border-primary'}`
             }`}
         >
           <Heart className="w-4 h-4" strokeWidth={2.5} />
@@ -80,7 +80,7 @@ const ProductCard = ({
             disabled={!user || outOfStock}
             className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
               ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
-              : 'bg-indigo-600 text-white shadow-indigo-200 cursor-pointer'
+              : 'bg-primary text-white shadow-primary/30 cursor-pointer'
               }`}
             title="Quick Add"
           >
@@ -90,7 +90,7 @@ const ProductCard = ({
 
         {/* Category & Rating */}
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-500">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
             {product.category || 'Essentials'}
           </span>
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
@@ -102,7 +102,7 @@ const ProductCard = ({
         </div>
 
         {/* Title */}
-        <Link to={`/products/${product._id}`} className="group-hover:text-indigo-600 transition-colors duration-300 cursor-pointer">
+        <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
           <h3 className={`font-bold text-lg leading-snug line-clamp-2 min-h-[2.75rem] ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {product.name || product.title}
           </h3>
@@ -133,13 +133,13 @@ const ProductCard = ({
           <button
             onClick={() => onAddToCart(product)}
             disabled={!user || outOfStock}
-            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-indigo-300 bg-indigo-500/15' : 'text-indigo-600 bg-indigo-50'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
             {outOfStock ? 'Sold Out' : 'Add'}
           </button>
 
           {/* Desktop: View Details Arrow */}
-          <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-indigo-600 ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
+          <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
             Details <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

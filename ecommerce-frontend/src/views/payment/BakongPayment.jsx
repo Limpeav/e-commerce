@@ -1,11 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  generateBakongQR,
-  getPaymentStatus,
-  cancelPayment,
-} from "../../services/paymentService";
-import { getOrderById } from "../../services/orderService";
+import { useBakongPayment } from "../../hooks/useBakongPayment";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const CheckCircleIcon = () => (
@@ -74,100 +68,18 @@ const PulseRing = () => (
 export default function BakongPayment() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-
-  const [order, setOrder] = useState(null);
-  const [payment, setPayment] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending | completed | failed | expired
-
-  // ── Fetch order + generate QR ──────────────────────────────────────────────
-  const fetchOrderAndGenerateQR = useCallback(async (isRefresh = false) => {
-    try {
-      isRefresh ? setRefreshing(true) : setLoading(true);
-      setError(null);
-      setPaymentStatus("pending");
-
-      const orderData = await getOrderById(orderId);
-      setOrder(orderData);
-
-      const paymentData = await generateBakongQR(orderId);
-      setPayment(paymentData);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to generate payment QR code. Please try again.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [orderId]);
-
-  useEffect(() => {
-    fetchOrderAndGenerateQR();
-  }, [fetchOrderAndGenerateQR]);
-
-  // ── Poll payment status every 5s ──────────────────────────────────────────
-  useEffect(() => {
-    if (!payment || paymentStatus !== "pending") return;
-
-    const interval = setInterval(async () => {
-      try {
-        const updated = await getPaymentStatus(payment._id);
-        setPayment(updated);
-        if (updated.status === "Completed") {
-          setPaymentStatus("completed");
-          clearInterval(interval);
-          setTimeout(() => navigate(`/orders/${orderId}`), 3000);
-        } else if (updated.status === "Failed") {
-          setPaymentStatus("failed");
-          clearInterval(interval);
-        } else if (updated.status === "Expired") {
-          setPaymentStatus("expired");
-          clearInterval(interval);
-        }
-      } catch (err) {
-        console.error("Status poll error:", err);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [payment, paymentStatus, orderId, navigate]);
-
-  // ── Countdown timer ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!payment?.khqrData?.expiresAt) return;
-
-    const interval = setInterval(() => {
-      const diff = new Date(payment.khqrData.expiresAt) - new Date();
-      if (diff <= 0) {
-        setTimeLeft("00:00");
-        setPaymentStatus("expired");
-        clearInterval(interval);
-      } else {
-        const m = Math.floor(diff / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        setTimeLeft(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [payment]);
-
-  // ── Cancel ────────────────────────────────────────────────────────────────
-  const handleCancel = async () => {
-    try {
-      setCancelling(true);
-      if (payment?._id && paymentStatus === "pending") {
-        await cancelPayment(payment._id);
-      }
-    } catch (err) {
-      console.error("Cancel error:", err);
-    } finally {
-      navigate(`/orders/${orderId}`);
-    }
-  };
+  const {
+    order,
+    payment,
+    loading,
+    refreshing,
+    cancelling,
+    error,
+    timeLeft,
+    paymentStatus,
+    fetchOrderAndGenerateQR,
+    handleCancel,
+  } = useBakongPayment(orderId, navigate);
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {
