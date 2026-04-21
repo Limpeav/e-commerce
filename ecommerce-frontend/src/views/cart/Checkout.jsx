@@ -22,6 +22,22 @@ import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
+const CAMBODIA_DIAL_CODE = "+855";
+
+const toLocalPhoneDigits = (phone = "") => {
+  const digits = String(phone).replace(/\D/g, "");
+
+  if (digits.startsWith("855")) {
+    return digits.slice(3);
+  }
+
+  return digits.replace(/^0/, "");
+};
+
+const toCambodiaPhone = (phone = "") => {
+  const localDigits = toLocalPhoneDigits(phone);
+  return localDigits ? `${CAMBODIA_DIAL_CODE}${localDigits}` : "";
+};
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -57,7 +73,7 @@ const Checkout = () => {
     fullName: user?.name || "",
     address: "",
     city: "",
-    phone: user?.phone || "",
+    phone: toLocalPhoneDigits(user?.phone || ""),
     latitude: null,
     longitude: null,
   });
@@ -75,7 +91,7 @@ const Checkout = () => {
     const { name, value } = e.target;
     setShippingAddress((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "phone" ? toLocalPhoneDigits(value) : value,
     }));
     setError("");
   };
@@ -151,7 +167,10 @@ const Checkout = () => {
         `${API_URL}/orders`,
         {
           orderItems,
-          shippingAddress,
+          shippingAddress: {
+            ...shippingAddress,
+            phone: toCambodiaPhone(shippingAddress.phone),
+          },
           paymentMethod,
           taxPrice: parseFloat(taxPrice.toFixed(2)),
           shippingPrice: parseFloat(shippingPrice.toFixed(2)),
@@ -322,14 +341,17 @@ const Checkout = () => {
                       </label>
                       <div className="relative">
                         <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
+                        <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-text-main"}`}>
+                          {CAMBODIA_DIAL_CODE}
+                        </span>
                         <input
                           type="tel"
                           name="phone"
                           value={shippingAddress.phone}
                           onChange={handleInputChange}
                           required
-                          placeholder="+1 (555) 000-0000"
-                          className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
+                          placeholder="16568335"
+                          className={`w-full pl-28 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
                         />
                       </div>
                     </div>

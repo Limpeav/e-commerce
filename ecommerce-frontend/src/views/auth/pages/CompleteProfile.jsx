@@ -13,6 +13,23 @@ import {
     LogOut,
 } from "lucide-react";
 
+const CAMBODIA_DIAL_CODE = "+855";
+
+const toLocalPhoneDigits = (phone = "") => {
+    const digits = String(phone).replace(/\D/g, "");
+
+    if (digits.startsWith("855")) {
+        return digits.slice(3);
+    }
+
+    return digits.replace(/^0/, "");
+};
+
+const toCambodiaPhone = (phone = "") => {
+    const localDigits = toLocalPhoneDigits(phone);
+    return localDigits ? `${CAMBODIA_DIAL_CODE}${localDigits}` : "";
+};
+
 const CompleteProfile = () => {
     const { user, login, logout } = useAuth();
     const { success } = useToast();
@@ -49,7 +66,7 @@ const CompleteProfile = () => {
         try {
             if (!user?.token) throw new Error("Authentication error. Please login again.");
 
-            const { data } = await savePhoneNumber(user.token, phone);
+            const { data } = await savePhoneNumber(user.token, toCambodiaPhone(phone));
 
             // Update local user state with new phone
             const updatedUser = { ...user, phone: data.phone };
@@ -123,14 +140,17 @@ const CompleteProfile = () => {
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40">
                                         <Phone className="w-5 h-5" />
                                     </div>
+                                    <span className="absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold text-text-main">
+                                        {CAMBODIA_DIAL_CODE}
+                                    </span>
                                     <input
                                         type="tel"
-                                        placeholder="e.g. 012345678"
+                                        placeholder="16568335"
                                         value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
+                                        onChange={(e) => setPhone(toLocalPhoneDigits(e.target.value))}
                                         required
                                         autoFocus
-                                        className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold bg-stone-50/50 focus:bg-white"
+                                        className="w-full pl-28 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold bg-stone-50/50 focus:bg-white"
                                     />
                                 </div>
                             </div>

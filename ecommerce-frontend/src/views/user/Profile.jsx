@@ -31,6 +31,22 @@ import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
+const CAMBODIA_DIAL_CODE = "+855";
+
+const toLocalPhoneDigits = (phone = "") => {
+  const digits = String(phone).replace(/\D/g, "");
+
+  if (digits.startsWith("855")) {
+    return digits.slice(3);
+  }
+
+  return digits.replace(/^0/, "");
+};
+
+const toCambodiaPhone = (phone = "") => {
+  const localDigits = toLocalPhoneDigits(phone);
+  return localDigits ? `${CAMBODIA_DIAL_CODE}${localDigits}` : "";
+};
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -79,7 +95,7 @@ const Profile = () => {
       setFormData({
         name: user.name || "",
         email: user.email || "",
-        phone: user.phone || "",
+        phone: toLocalPhoneDigits(user.phone || ""),
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -143,7 +159,10 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "phone" ? toLocalPhoneDigits(value) : value,
+    }));
     setError("");
     setSuccess("");
   };
@@ -173,7 +192,7 @@ const Profile = () => {
       const updateData = {
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phone: toCambodiaPhone(formData.phone),
       };
 
       if (formData.newPassword) {
@@ -550,11 +569,14 @@ const Profile = () => {
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                             <Phone className="h-5 w-5" />
                           </div>
+                          <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-stone-800"}`}>
+                            {CAMBODIA_DIAL_CODE}
+                          </span>
                           <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required
-                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                            className={`block w-full pl-28 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder="+1 (555) 000-0000"
+                            placeholder="16568335"
                           />
                         </div>
                       </div>
