@@ -71,7 +71,7 @@ const CartItem = ({
                 className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md sm:rounded-lg shadow-sm border transition-all active:scale-95 ${isDark ? "bg-slate-900 border-slate-600 text-slate-300 hover:text-red-400" : "bg-white border-stone-200 text-stone-500 hover:text-red-500"}`}
                 aria-label="Decrease"
               >
-                {item.quantity === 1 ? <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
               <span className="w-5 sm:w-6 text-center font-bold text-sm sm:text-base text-text-main">{item.quantity}</span>
               <button
