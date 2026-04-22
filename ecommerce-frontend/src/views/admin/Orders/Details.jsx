@@ -13,6 +13,7 @@ import {
     ExternalLink,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
+import Loading from "../../../components/common/Loading";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -94,14 +95,7 @@ const OrderDetails = () => {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading order details...</p>
-                </div>
-            </div>
-        );
+        return <Loading message="Loading order details..." />;
     }
 
     if (error || !order) {

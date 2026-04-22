@@ -16,6 +16,7 @@ import {
 import axios from "axios";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
+import Loading from "../../components/common/Loading";
 
 const API_URL = config.API_BASE_URL;
 
@@ -159,14 +160,7 @@ const Orders = () => {
   }
 
   if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center font-sans transition-colors ${pageClassName}`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/10 border-t-primary mx-auto mb-6"></div>
-          <p className="text-primary font-black uppercase tracking-[0.2em] text-[10px] animate-pulse">Syncing History...</p>
-        </div>
-      </div>
-    );
+    return <Loading message="Syncing history..." />;
   }
 
   return (

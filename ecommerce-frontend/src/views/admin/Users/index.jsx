@@ -9,6 +9,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
+import Loading from "../../../components/common/Loading";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -124,14 +125,7 @@ const UserManagement = () => {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading users...</p>
-                </div>
-            </div>
-        );
+        return <Loading message="Loading users..." />;
     }
 
     if (error) {

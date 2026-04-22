@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { config } from "../../config/index.js";
+import Loading from "../../components/common/Loading";
 
 const API_URL = config.API_BASE_URL;
 
@@ -89,14 +90,7 @@ const OrderDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-base font-sans">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary/20 border-t-primary mx-auto mb-4"></div>
-          <p className="text-primary font-bold text-xs uppercase tracking-wide">Loading Order...</p>
-        </div>
-      </div>
-    );
+    return <Loading message="Loading order..." />;
   }
 
   if (error || !order) {
