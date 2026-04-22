@@ -1,9 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, ShoppingBag } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 
 export default function OrderSuccess() {
+  const location = useLocation();
   const [isDark] = useDarkMode();
+  const stateOrderId = location.state?.orderId;
+  const queryOrderId = new URLSearchParams(location.search).get("orderId");
+  const storedOrderId = typeof window !== "undefined"
+    ? localStorage.getItem("latestOrderId")
+    : null;
+  const orderId = stateOrderId || queryOrderId || storedOrderId;
+  const orderLink = orderId ? `/orders/${orderId}` : "/orders";
+  const orderLabel = orderId ? "View Order" : "View Orders";
+  const orderNumber = orderId
+    ? `#${orderId.slice(-8).toUpperCase()}`
+    : `#ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+
   return (
     <div className={`min-h-screen flex items-center justify-center py-20 px-6 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="max-w-xl mx-auto text-center">
@@ -23,7 +36,7 @@ export default function OrderSuccess() {
           <div className="space-y-4">
             <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Order Number</span>
-              <span className={`font-mono text-sm font-bold text-text-main px-3 py-1 rounded-lg border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>#ORD-{new Date().getFullYear()}-{Math.floor(Math.random() * 9000 + 1000)}</span>
+              <span className={`font-mono text-sm font-bold text-text-main px-3 py-1 rounded-lg border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>{orderNumber}</span>
             </div>
             <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Date</span>
@@ -38,11 +51,11 @@ export default function OrderSuccess() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
-            to="/orders"
+            to={orderLink}
             className="flex-1 bg-primary text-white px-8 py-4 rounded-xl hover:bg-primary-dark transition-all shadow-md font-bold text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <ShoppingBag className="w-4 h-4" />
-            View Orders
+            {orderLabel}
           </Link>
 
           <Link

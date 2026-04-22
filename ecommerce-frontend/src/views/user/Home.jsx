@@ -109,11 +109,9 @@ export default function Home() {
                 products: newArrivals,
             },
             {
-                title: "All Products",
-                description: searchQuery
-                    ? `Showing everything that matches "${searchQuery}".`
-                    : "Browse the full collection in one place.",
-                products: normalizedProducts,
+                title: "Deal",
+                description: "Current discounted items with the strongest savings.",
+                products: deals,
             },
             {
                 title: "Best Seller",
@@ -121,9 +119,11 @@ export default function Home() {
                 products: bestSellers,
             },
             {
-                title: "Deal",
-                description: "Current discounted items with the strongest savings.",
-                products: deals,
+                title: "All Products",
+                description: searchQuery
+                    ? `Showing everything that matches "${searchQuery}".`
+                    : "Browse the full collection in one place.",
+                products: normalizedProducts,
             },
         ].filter((section) => section.products.length > 0);
     }, [filteredProducts, searchQuery]);

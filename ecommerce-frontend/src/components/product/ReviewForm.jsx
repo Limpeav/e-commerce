@@ -41,11 +41,11 @@ const ReviewForm = ({ reviewData, onSubmit }) => {
               onChange={(e) => setRating(e.target.value)}
               className={`w-full border-2 rounded-2xl p-4 focus:outline-none focus:border-primary transition-all font-black text-text-main ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
             >
-              <option value="5">5 - Exceptional</option>
-              <option value="4">4 - High Quality</option>
-              <option value="3">3 - Satisfactory</option>
-              <option value="2">2 - Improving</option>
-              <option value="1">1 - Substandard</option>
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Very Good</option>
+              <option value="3">3 - Good</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Bad</option>
             </select>
           </div>
           

@@ -71,23 +71,41 @@ const Orders = () => {
     const colors = {
       Pending: isDark
         ? "bg-slate-800/90 text-slate-300 border-slate-700"
-        : "bg-stone-50 text-stone-500 border-stone-100",
+        : "bg-amber-50 text-amber-700 border-amber-200",
       Processing: isDark
         ? "bg-indigo-500/12 text-indigo-200 border-indigo-500/20"
-        : "bg-primary/5 text-primary border-primary/10",
+        : "bg-blue-50 text-blue-700 border-blue-200",
       Shipped: isDark
         ? "bg-blue-500/12 text-blue-200 border-blue-500/20"
-        : "bg-blue-50 text-blue-600 border-blue-100",
+        : "bg-sky-50 text-sky-700 border-sky-200",
       Delivered: isDark
         ? "bg-emerald-500/12 text-emerald-200 border-emerald-500/20"
-        : "bg-green-50 text-green-600 border-green-100",
+        : "bg-emerald-50 text-emerald-700 border-emerald-200",
       Cancelled: isDark
         ? "bg-rose-500/12 text-rose-200 border-rose-500/20"
-        : "bg-red-50 text-red-600 border-red-100",
+        : "bg-rose-50 text-rose-700 border-rose-200",
     };
     return colors[status] || (isDark
       ? "bg-slate-800/90 text-slate-300 border-slate-700"
-      : "bg-stone-50 text-stone-500 border-stone-100");
+      : "bg-stone-100 text-stone-700 border-stone-200");
+  };
+
+  const getPaymentStatusClass = (status) => {
+    if (status === "Paid") {
+      return isDark ? "text-emerald-300 font-bold" : "text-emerald-700 font-bold";
+    }
+
+    if (status === "Pending") {
+      return isDark ? "text-amber-300 font-bold" : "text-amber-700 font-bold";
+    }
+
+    return isDark ? "text-slate-300 font-bold" : "text-stone-700 font-bold";
+  };
+
+  const getPaymentStatusDotClass = (status) => {
+    if (status === "Paid") return "bg-emerald-500";
+    if (status === "Pending") return "bg-amber-500";
+    return isDark ? "bg-slate-400" : "bg-stone-400";
   };
 
   const getStatusIcon = (status) => {
@@ -229,8 +247,8 @@ const Orders = () => {
                             </div>
                             {order.paymentStatus && (
                               <div className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-green-500' : 'bg-secondary'}`}></div>
-                                Status: <span className={order.paymentStatus === 'Paid' ? (isDark ? 'text-emerald-300 font-bold' : 'text-green-600 font-bold') : 'text-secondary font-bold'}>{order.paymentStatus}</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${getPaymentStatusDotClass(order.paymentStatus)}`}></div>
+                                Status: <span className={getPaymentStatusClass(order.paymentStatus)}>{order.paymentStatus}</span>
                               </div>
                             )}
                           </div>

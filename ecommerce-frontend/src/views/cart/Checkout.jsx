@@ -204,8 +204,10 @@ const Checkout = () => {
       // Clear cart after successful order
       await clearCart();
 
-      // Set order placed state
+      // Preserve the latest order id so shared success flows can deep-link
+      // back to the specific order detail page.
       setOrderId(response.data._id);
+      localStorage.setItem("latestOrderId", response.data._id);
 
       // Redirect to BAKONG payment if BAKONG KHQR is selected
       if (paymentMethod === "BAKONG_KHQR") {
@@ -225,9 +227,6 @@ const Checkout = () => {
   const handleViewOrderDetails = () => {
     if (!orderId) return;
 
-    // Clear the local success state before routing so the checkout success
-    // screen cannot remain visible if the route transition is delayed.
-    setOrderPlaced(false);
     navigate(`/orders/${orderId}`, { replace: true });
   };
 
