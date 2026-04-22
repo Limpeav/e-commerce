@@ -80,7 +80,7 @@ const ProductCard = ({
             disabled={!user || outOfStock}
             className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
               ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
-              : 'bg-primary text-white shadow-primary/30 cursor-pointer'
+              : 'bg-primary text-white shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] cursor-pointer'
               }`}
             title="Quick Add"
           >

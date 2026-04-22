@@ -39,6 +39,7 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
+      const productLabel = product?.title || product?.name || "This product";
       const result = await CartController.addToCart(product, quantity);
       if (!result.success) {
         throw new Error(result.error);
@@ -46,7 +47,7 @@ export const CartProvider = ({ children }) => {
 
       setCart(result.data || []);
 
-      success("Added to Cart", `${product.name} has been added to your cart.`);
+      success("Added to Cart", `${productLabel} has been added to your cart.`);
     } catch (error) {
       console.error("Error adding to cart:", error);
       toastError("Action Failed", "Could not add item to cart. Please try again.");

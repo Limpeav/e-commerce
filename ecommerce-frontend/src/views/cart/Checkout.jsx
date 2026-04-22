@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useAuth } from "../../context/useAuth";
@@ -24,6 +24,8 @@ import { useDarkMode } from "../../hooks";
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
 
+const displayValue = (value, fallback) => value || fallback;
+
 const toLocalPhoneDigits = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");
 
@@ -48,6 +50,7 @@ const Checkout = () => {
   const [error, setError] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  const errorRef = useRef(null);
 
   // Filter valid cart items
   const validCartItems = cart.filter((item) => item.product);
@@ -101,6 +104,8 @@ const Checkout = () => {
       ...prev,
       latitude: location.lat,
       longitude: location.lng,
+      address: location.address || prev.address,
+      city: location.city || prev.city,
     }));
     setError("");
   };
@@ -112,6 +117,15 @@ const Checkout = () => {
       return userData.token;
     }
     return null;
+  };
+
+  const scrollToError = () => {
+    window.requestAnimationFrame(() => {
+      errorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
   };
 
   const handlePlaceOrder = async (e) => {
@@ -126,8 +140,9 @@ const Checkout = () => {
       !shippingAddress.city ||
       !shippingAddress.phone
     ) {
-      setError("Please fill in all shipping address fields");
+      setError("Please complete your shipping details before placing the order.");
       setLoading(false);
+      scrollToError();
       return;
     }
 
@@ -136,14 +151,16 @@ const Checkout = () => {
       shippingAddress.latitude == null ||
       shippingAddress.longitude == null
     ) {
-      setError("Please pin your location on the map");
+      setError("Please select your delivery location on the map before placing the order.");
       setLoading(false);
+      scrollToError();
       return;
     }
 
     if (validCartItems.length === 0) {
-      setError("Your cart is empty");
+      setError("Your cart is empty. Add an item before placing the order.");
       setLoading(false);
+      scrollToError();
       return;
     }
 
@@ -205,6 +222,15 @@ const Checkout = () => {
     }
   };
 
+  const handleViewOrderDetails = () => {
+    if (!orderId) return;
+
+    // Clear the local success state before routing so the checkout success
+    // screen cannot remain visible if the route transition is delayed.
+    setOrderPlaced(false);
+    navigate(`/orders/${orderId}`, { replace: true });
+  };
+
   // Order success view
   if (orderPlaced) {
     return (
@@ -233,7 +259,7 @@ const Checkout = () => {
 
           <div className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate(`/orders/${orderId}`)}
+              onClick={handleViewOrderDetails}
               type="button"
               className="px-8 py-4 bg-text-main text-white rounded-xl hover:bg-primary transition-all font-bold text-sm shadow-xl shadow-primary/10 hover:-translate-y-1 active:scale-95"
             >
@@ -287,17 +313,41 @@ const Checkout = () => {
                     <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                       Full Name
                     </label>
-                    <div className="relative">
+                    <div className={`relative flex items-center w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
                       <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={shippingAddress.fullName}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="John Doe"
-                        className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
-                      />
+                      <span>{displayValue(shippingAddress.fullName, "No name provided")}</span>
+                    </div>
+                  </div>
+
+                  <div className="group">
+                    <div className={`pt-2 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Pin Location
+                          <span className="text-red-500">*</span>
+                        </label>
+                        {shippingAddress.latitude && shippingAddress.longitude && (
+                          <span className="text-[10px] text-green-600 font-bold flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full border border-green-100 uppercase tracking-wide">
+                            <CheckCircle className="w-3 h-3" />
+                            Location Selected
+                          </span>
+                        )}
+                      </div>
+                      <div className={`rounded-2xl overflow-hidden border shadow-sm ${isDark ? "border-slate-700" : "border-stone-200"}`}>
+                        <GoogleMapPicker
+                          onSelectLocation={handleLocationSelect}
+                          initialLocation={
+                            shippingAddress.latitude && shippingAddress.longitude
+                              ? {
+                                lat: shippingAddress.latitude,
+                                lng: shippingAddress.longitude,
+                              }
+                              : null
+                          }
+                          address={`${shippingAddress.address}, ${shippingAddress.city}`}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -305,17 +355,9 @@ const Checkout = () => {
                     <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                       Address
                     </label>
-                    <div className="relative">
+                    <div className={`relative flex items-center w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
                       <Building className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
-                      <input
-                        type="text"
-                        name="address"
-                        value={shippingAddress.address}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="123 Street Name"
-                        className={`w-full pl-12 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
-                      />
+                      <span>{displayValue(shippingAddress.address, "Select a location on the map")}</span>
                     </div>
                   </div>
 
@@ -324,69 +366,25 @@ const Checkout = () => {
                       <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                         City
                       </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={shippingAddress.city}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Phnom Penh"
-                        className={`w-full px-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
-                      />
+                      <div className={`flex items-center w-full px-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
+                        <span>{displayValue(shippingAddress.city, "City will appear here")}</span>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                         Phone Number
                       </label>
-                      <div className="relative">
+                      <div className={`relative flex items-center w-full pl-28 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
                         <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                         <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-text-main"}`}>
                           {CAMBODIA_DIAL_CODE}
                         </span>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={shippingAddress.phone}
-                          onChange={handleInputChange}
-                          required
-                          placeholder="16568335"
-                          className={`w-full pl-28 pr-6 py-3.5 border rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-main ${isDark ? "bg-slate-800 border-slate-700 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 placeholder:text-stone-400"}`}
-                        />
+                        <span>{displayValue(shippingAddress.phone, "No phone number")}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Google Maps Location Picker */}
-                  <div className={`pt-8 border-t ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Pin Location
-                        <span className="text-red-500">*</span>
-                      </label>
-                      {shippingAddress.latitude && shippingAddress.longitude && (
-                        <span className="text-[10px] text-green-600 font-bold flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full border border-green-100 uppercase tracking-wide">
-                          <CheckCircle className="w-3 h-3" />
-                          Location Selected
-                        </span>
-                      )}
-                    </div>
-                    <div className={`rounded-2xl overflow-hidden border shadow-sm ${isDark ? "border-slate-700" : "border-stone-200"}`}>
-                      <GoogleMapPicker
-                        onSelectLocation={handleLocationSelect}
-                        initialLocation={
-                          shippingAddress.latitude && shippingAddress.longitude
-                            ? {
-                              lat: shippingAddress.latitude,
-                              lng: shippingAddress.longitude,
-                            }
-                            : null
-                        }
-                        address={`${shippingAddress.address}, ${shippingAddress.city}`}
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -431,9 +429,23 @@ const Checkout = () => {
 
               {/* Error Message */}
               {error && (
-                <div className={`border rounded-2xl p-4 flex items-center gap-3 animate-shake ${isDark ? "bg-red-500/10 border-red-500/20" : "bg-red-50 border-red-100"}`}>
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <p className={`font-medium text-sm ${isDark ? "text-red-300" : "text-red-700"}`}>{error}</p>
+                <div
+                  ref={errorRef}
+                  className={`border rounded-2xl p-4 flex items-center gap-3 animate-shake ${
+                    isDark ? "bg-red-500/10 border-red-500/20" : "border-red-200"
+                  }`}
+                  style={!isDark ? { backgroundColor: "#FDE8DD" } : undefined}
+                >
+                  <AlertCircle
+                    className="w-5 h-5"
+                    style={{ color: isDark ? "#FCA5A5" : "#B45309" }}
+                  />
+                  <p
+                    className="font-medium text-sm"
+                    style={{ color: isDark ? "#FECACA" : "#7C2D12" }}
+                  >
+                    {error}
+                  </p>
                 </div>
               )}
             </div>

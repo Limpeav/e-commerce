@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { adminService } from "../../../services/adminService";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  PRODUCT_CATEGORY_OPTIONS,
+  normalizeProductCategory,
+} from "../../../constants/productCategories";
+import {
   ArrowLeft,
   Upload,
   Package,
@@ -43,7 +47,7 @@ const EditProduct = () => {
           title: data.title || "",
           price: data.price || "",
           discountPrice: data.discountPrice || "",
-          category: data.category || "",
+          category: normalizeProductCategory(data.category),
           description: data.description || "",
           stock: data.stock || "",
           image: null,
@@ -103,7 +107,7 @@ const EditProduct = () => {
     if (form.discountPrice) {
       formData.append("discountPrice", form.discountPrice);
     }
-    formData.append("category", form.category);
+    formData.append("category", normalizeProductCategory(form.category));
     formData.append("description", form.description);
     formData.append("stock", form.stock);
 
@@ -331,14 +335,20 @@ const EditProduct = () => {
                 </label>
                 <div className="relative">
                   <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                  <select
                     name="category"
-                    placeholder="e.g., Electronics, Clothing, Books"
                     value={form.category}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer font-medium"
                     required
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {PRODUCT_CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

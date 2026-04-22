@@ -39,13 +39,14 @@ export const WishlistProvider = ({ children }) => {
     }
 
     try {
+      const productLabel = product?.title || product?.name || "This product";
       const result = await WishlistController.addToWishlist(product);
       if (!result.success) {
         throw new Error(result.error);
       }
 
       setWishlist(result.data || []);
-      success("Saved to Wishlist", `${product.name} has been saved.`);
+      success("Saved to Wishlist", `${productLabel} has been saved.`);
     } catch (error) {
       console.error("Error adding to wishlist:", error);
       toastError("Action Failed", "Could not add item to wishlist.");

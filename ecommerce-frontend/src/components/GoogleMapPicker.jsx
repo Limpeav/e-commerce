@@ -17,16 +17,100 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const [locationError, setLocationError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [addressName, setAddressName] = useState("");
+  const [selectedDetails, setSelectedDetails] = useState(null);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(true);
+  const [isConfirmingLocation, setIsConfirmingLocation] = useState(false);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  const extractLocationDetails = (result, fallbackLocation = selectedLocation) => {
+    const addressComponents = result?.address_components || [];
+    const streetNumber = addressComponents.find((component) =>
+      component.types.includes("street_number")
+    )?.long_name;
+    const route = addressComponents.find((component) =>
+      component.types.includes("route")
+    )?.long_name;
+    const neighborhood =
+      addressComponents.find((component) =>
+        component.types.includes("sublocality_level_1")
+      )?.long_name ||
+      addressComponents.find((component) =>
+        component.types.includes("sublocality")
+      )?.long_name ||
+      addressComponents.find((component) =>
+        component.types.includes("neighborhood")
+      )?.long_name;
+    const cityComponent =
+      addressComponents.find((component) =>
+        component.types.includes("locality")
+      ) ||
+      addressComponents.find((component) =>
+        component.types.includes("administrative_area_level_1")
+      ) ||
+      addressComponents.find((component) =>
+        component.types.includes("administrative_area_level_2")
+      );
+
+    const addressLine = [streetNumber, route].filter(Boolean).join(" ");
+    const fallbackAddress =
+      addressLine ||
+      neighborhood ||
+      result?.formatted_address ||
+      result?.name ||
+      "";
+
+    return {
+      lat:
+        result?.geometry?.location?.lat?.() ??
+        fallbackLocation.lat,
+      lng:
+        result?.geometry?.location?.lng?.() ??
+        fallbackLocation.lng,
+      address: fallbackAddress,
+      city: cityComponent?.long_name || "",
+      formattedAddress: result?.formatted_address || result?.name || "",
+    };
+  };
+
+  const reverseGeocodeLocation = (location) =>
+    new Promise((resolve) => {
+      if (!window.google?.maps?.Geocoder) {
+        resolve(null);
+        return;
+      }
+
+      try {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location }, (results, status) => {
+          if (status === "OK" && results[0]) {
+            resolve(extractLocationDetails(results[0], location));
+            return;
+          }
+          resolve(null);
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+
+  const emitLocationSelection = (details) => {
+    setSelectedDetails(details);
+    if (details?.formattedAddress || details?.address) {
+      setAddressName(details.formattedAddress || details.address);
+      setSearchQuery(details.formattedAddress || details.address);
+    }
+    if (typeof onSelectLocation === "function") {
+      onSelectLocation(details);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) return;
@@ -38,6 +122,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     setLocationError("");
     setShowBottomSheet(true);
     setSearchQuery("");
+    setAddressName("");
+    setSelectedDetails(null);
+    setIsConfirmingLocation(false);
   };
 
   const cleanupMapInstance = () => {
@@ -80,6 +167,17 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       document.body.style.top = "";
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      cleanupMapInstance();
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.top = "";
+      document.body.style.pointerEvents = "";
+    };
+  }, []);
 
   // Load Google Maps Script
   useEffect(() => {
@@ -199,22 +297,19 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
       markerRef.current = marker;
 
-      const updateAddress = (latLng) => {
-        try {
-          if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
-            return;
-          }
-          const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ location: latLng }, (results, status) => {
-            if (status === "OK" && results[0]) {
-              setAddressName(results[0].formatted_address);
-              setSearchQuery(results[0].formatted_address);
-            } else if (status === "REQUEST_DENIED") {
-              console.warn("Geocoding API not enabled.");
-            }
+      const updateAddress = async (location) => {
+        const details = await reverseGeocodeLocation(location);
+        if (details) {
+          emitLocationSelection(details);
+          setLocationError("");
+        } else {
+          setSelectedDetails((prev) => prev || {
+            lat: location.lat,
+            lng: location.lng,
+            address: "",
+            city: "",
+            formattedAddress: "",
           });
-        } catch (error) {
-          console.warn("Geocoding failed:", error);
         }
       };
 
@@ -228,7 +323,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         marker.setPosition(e.latLng);
         marker.setAnimation(window.google.maps.Animation.BOUNCE);
         setTimeout(() => marker.setAnimation(null), 750);
-        updateAddress(e.latLng);
+        updateAddress(newLocation);
         setShowBottomSheet(true);
       });
 
@@ -240,7 +335,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         };
         setSelectedLocation(newLocation);
         map.panTo(e.latLng);
-        updateAddress(e.latLng);
+        updateAddress(newLocation);
         setShowBottomSheet(true);
       });
 
@@ -250,7 +345,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           const autocomplete = new window.google.maps.places.Autocomplete(
             searchInputRef.current,
             {
-              fields: ["geometry", "formatted_address", "name"],
+              fields: ["geometry", "formatted_address", "name", "address_components"],
             }
           );
 
@@ -270,6 +365,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
               setAddressName(place.formatted_address || place.name);
               setSearchQuery(place.formatted_address || place.name || "");
               setIsSearchFocused(false);
+              emitLocationSelection(extractLocationDetails(place, newLocation));
               // Blur search input on mobile after selection
               if (searchInputRef.current) {
                 searchInputRef.current.blur();
@@ -356,6 +452,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
             if (status === "OK" && results[0]) {
               setAddressName(results[0].formatted_address);
               setSearchQuery(results[0].formatted_address);
+              emitLocationSelection(extractLocationDetails(results[0], location));
             }
           });
         } catch {
@@ -411,8 +508,29 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     );
   };
 
-  const handleConfirmLocation = () => {
-    onSelectLocation(selectedLocation);
+  const handleConfirmLocation = async () => {
+    setIsConfirmingLocation(true);
+    let details = selectedDetails;
+
+    if (!details?.address || !details?.city) {
+      const resolvedDetails = await reverseGeocodeLocation(selectedLocation);
+      if (resolvedDetails) {
+        details = resolvedDetails;
+      }
+    }
+
+    if (!details) {
+      details = {
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng,
+        address: addressName || "",
+        city: "",
+        formattedAddress: addressName || "",
+      };
+    }
+
+    emitLocationSelection(details);
+    setIsConfirmingLocation(false);
     cleanupMapInstance();
     setIsOpen(false);
   };
@@ -499,7 +617,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search location..."
-                    className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 rounded-2xl border-0 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 text-sm md:text-base font-medium"
+                    className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 rounded-2xl border-0 bg-white text-gray-900 placeholder:text-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 text-sm md:text-base font-medium"
                     style={{
                       boxShadow: isSearchFocused
                         ? "0 8px 30px rgba(59, 130, 246, 0.15), 0 4px 10px rgba(0,0,0,0.08)"
@@ -608,10 +726,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                     <button
                       type="button"
                       onClick={handleConfirmLocation}
-                      className="flex-[2] md:flex-none px-6 py-3.5 md:py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl md:rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl text-sm active:scale-95"
+                      disabled={isConfirmingLocation}
+                      className="flex-[2] md:flex-none px-6 py-3.5 md:py-3 rounded-2xl md:rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl text-sm active:scale-95"
+                      style={{
+                        background: "linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%)",
+                        color: "#ffffff",
+                      }}
                     >
                       <Check className="w-4 h-4 md:w-5 md:h-5" />
-                      Confirm Location
+                      {isConfirmingLocation ? "Saving..." : "Confirm Location"}
                     </button>
                   </div>
                 </div>
@@ -661,6 +784,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           display: flex !important;
           align-items: center !important;
           min-height: 48px !important; /* Touch target */
+          color: #4b5563 !important;
+          background: #ffffff !important;
         }
 
         .pac-item:last-child {
@@ -676,6 +801,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           font-weight: 600 !important;
           font-size: 14px !important;
           color: #1f2937 !important;
+        }
+
+        .pac-item span,
+        .pac-item div {
+          color: inherit !important;
         }
 
         .pac-icon {

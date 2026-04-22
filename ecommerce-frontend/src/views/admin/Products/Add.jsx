@@ -2,6 +2,10 @@ import { useState } from "react";
 import { adminService } from "../../../services/adminService";
 import { useNavigate } from "react-router-dom";
 import {
+  PRODUCT_CATEGORY_OPTIONS,
+  normalizeProductCategory,
+} from "../../../constants/productCategories";
+import {
   ArrowLeft,
   Upload,
   Package,
@@ -61,7 +65,9 @@ const AddProduct = () => {
 
     const formData = new FormData();
     Object.keys(form).forEach((key) => {
-      formData.append(key, form[key]);
+      const value =
+        key === "category" ? normalizeProductCategory(form[key]) : form[key];
+      formData.append(key, value);
     });
 
     try {
@@ -332,11 +338,14 @@ const AddProduct = () => {
                     value={form.category}
                     onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer font-medium text-gray-900"
+                    required
                   >
                     <option value="">Select a category</option>
-                    <option value="Cloth">Cloth</option>
-                    <option value="Toy">Toy</option>
-                    <option value="Milk">Milk</option>
+                    {PRODUCT_CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

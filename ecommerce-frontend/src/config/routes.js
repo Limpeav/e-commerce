@@ -2,6 +2,7 @@
 export const lazyComponents = {
   // User routes
   Home: () => import("../views/user/Home"),
+  ProductCatalog: () => import("../views/product/ProductCatalog"),
   ProductDetail: () => import("../views/product/ProductDetail"),
   Cart: () => import("../views/cart/Cart"),
   Wishlist: () => import("../views/wishlist/Wishlist"),
@@ -52,6 +53,7 @@ export const publicRoutes = [
   { path: "/forgot-password", component: "ForgotPassword" },
   { path: "/reset-password", component: "ResetPassword" },
   { path: "/", component: "Home" },
+  { path: "/products", component: "ProductCatalog" },
   { path: "/products/:id", component: "ProductDetail" },
   { path: "/cart", component: "Cart" },
 ];

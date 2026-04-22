@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
 import Notification from "../models/notificationModel.js";
@@ -20,41 +21,76 @@ export const createOrder = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("No order items");
     } else {
-        const order = new Order({
-            user: req.user._id,
-            orderItems,
-            shippingAddress,
-            paymentMethod,
-            taxPrice,
-            shippingPrice,
-            totalPrice,
-        });
+        const session = await mongoose.startSession();
 
-        const createdOrder = await order.save();
+        try {
+            let createdOrder;
 
-        // Populate user details for notification
-        await createdOrder.populate("user", "name email");
+            await session.withTransaction(async () => {
+                const productIds = orderItems.map((item) => item.product);
+                const products = await Product.find({ _id: { $in: productIds } }).session(session);
+                const productMap = new Map(
+                    products.map((product) => [product._id.toString(), product])
+                );
 
-        // Create Google Maps link if coordinates are available
-        let googleMapsLink = "";
-        if (shippingAddress.latitude && shippingAddress.longitude) {
-            googleMapsLink = `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`;
+                for (const item of orderItems) {
+                    const product = productMap.get(String(item.product));
+
+                    if (!product) {
+                        throw new Error(`Product not found for item: ${item.name}`);
+                    }
+
+                    if (product.stock < item.quantity) {
+                        throw new Error(
+                            `Not enough stock for ${product.title}. Available: ${product.stock}, requested: ${item.quantity}`
+                        );
+                    }
+                }
+
+                for (const item of orderItems) {
+                    const product = productMap.get(String(item.product));
+                    product.stock -= item.quantity;
+                    await product.save({ session });
+                }
+
+                const order = new Order({
+                    user: req.user._id,
+                    orderItems,
+                    shippingAddress,
+                    paymentMethod,
+                    taxPrice,
+                    shippingPrice,
+                    totalPrice,
+                    stockReduced: true,
+                    stockRestored: false,
+                });
+
+                [createdOrder] = await Order.create([order], { session });
+            });
+
+            await createdOrder.populate("user", "name email");
+
+            let googleMapsLink = "";
+            if (shippingAddress.latitude && shippingAddress.longitude) {
+                googleMapsLink = `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`;
+            }
+
+            const notification = new Notification({
+                type: "order",
+                title: "New Order Received",
+                message: `${createdOrder.user.name} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalPrice.toFixed(2)}`,
+                orderId: createdOrder._id,
+                userId: req.user._id,
+                link: `/admin/orders/${createdOrder._id}`,
+                googleMapsLink: googleMapsLink,
+            });
+
+            await notification.save();
+
+            res.status(201).json(createdOrder);
+        } finally {
+            await session.endSession();
         }
-
-        // Create notification for admin
-        const notification = new Notification({
-            type: "order",
-            title: "New Order Received",
-            message: `${createdOrder.user.name} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalPrice.toFixed(2)}`,
-            orderId: createdOrder._id,
-            userId: req.user._id,
-            link: `/admin/orders/${createdOrder._id}`,
-            googleMapsLink: googleMapsLink,
-        });
-
-        await notification.save();
-
-        res.status(201).json(createdOrder);
     }
 });
 
@@ -97,22 +133,50 @@ export const getOrderById = asyncHandler(async (req, res) => {
 // @route   PUT /api/orders/:id/status
 // @access  Private/Admin
 export const updateOrderStatus = asyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id);
+    const session = await mongoose.startSession();
 
-    if (order) {
-        order.orderStatus = req.body.orderStatus || order.orderStatus;
+    try {
+        let updatedOrder;
 
-        // Update delivery status when order is delivered
-        if (req.body.orderStatus === "Delivered") {
-            order.isDelivered = true;
-            order.deliveredAt = Date.now();
-        }
+        await session.withTransaction(async () => {
+            const order = await Order.findById(req.params.id).session(session);
 
-        const updatedOrder = await order.save();
+            if (!order) {
+                res.status(404);
+                throw new Error("Order not found");
+            }
+
+            const nextStatus = req.body.orderStatus || order.orderStatus;
+            const previousStatus = order.orderStatus;
+            order.orderStatus = nextStatus;
+
+            if (nextStatus === "Delivered") {
+                order.isDelivered = true;
+                order.deliveredAt = Date.now();
+            }
+
+            if (
+                nextStatus === "Cancelled" &&
+                previousStatus !== "Cancelled" &&
+                order.stockReduced &&
+                !order.stockRestored
+            ) {
+                for (const item of order.orderItems) {
+                    await Product.findByIdAndUpdate(
+                        item.product,
+                        { $inc: { stock: item.quantity } },
+                        { session }
+                    );
+                }
+                order.stockRestored = true;
+            }
+
+            updatedOrder = await order.save({ session });
+        });
+
         res.json(updatedOrder);
-    } else {
-        res.status(404);
-        throw new Error("Order not found");
+    } finally {
+        await session.endSession();
     }
 });
 

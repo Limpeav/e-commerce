@@ -83,6 +83,13 @@ export const adminService = {
       },
     });
   },
+  upsertProductsCsv: (fileData) => {
+    return api.post("/products/upsert-csv", fileData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
   updateProduct: (id, productData) => {
     return api.put(`/products/${id}`, productData, {
       headers: {

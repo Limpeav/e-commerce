@@ -7,6 +7,7 @@ import {
   createProduct,
   createProductReview,
   importProductsFromCsv,
+  upsertProductsFromCsv,
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
 import Product from '../models/Product.js';
@@ -21,6 +22,7 @@ const csvUpload = multer({
 // CREATE
 router.post("/", protect, admin, upload.single("image"), createProduct);
 router.post("/import-csv", protect, admin, csvUpload.single("file"), importProductsFromCsv);
+router.post("/upsert-csv", protect, admin, csvUpload.single("file"), upsertProductsFromCsv);
 
 // REVIEWS
 router.route("/:id/reviews").post(protect, createProductReview);

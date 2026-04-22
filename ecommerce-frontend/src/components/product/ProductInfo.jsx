@@ -111,7 +111,7 @@ const ProductInfo = ({
           <button
             onClick={onAddToCart}
             className={`group relative flex w-full flex-1 items-center justify-center gap-3 overflow-hidden rounded-[1.15rem] border-2 py-3.5 text-base font-bold transition-all duration-300 active:scale-95 sm:py-0 ${user
-              ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 shadow-xl shadow-indigo-600/20 cursor-pointer'
+              ? 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
               : isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
               }`}
           >

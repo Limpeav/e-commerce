@@ -1,13 +1,34 @@
 import Product from "../models/Product.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
+const CSV_HEADER_ALIASES = {
+  discountprice: "discountPrice",
+};
+
+const parseOptionalNumber = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const stringValue = String(value).trim();
+  if (!stringValue) {
+    return null;
+  }
+
+  const parsedValue = Number.parseFloat(stringValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
 
 const normalizeCsvHeader = (header = "") =>
-  header
-    .trim()
-    .replace(/^\uFEFF/, "")
-    .toLowerCase()
-    .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+  {
+    const normalizedHeader = header
+      .trim()
+      .replace(/^\uFEFF/, "")
+      .toLowerCase()
+      .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+
+    return CSV_HEADER_ALIASES[normalizedHeader] || normalizedHeader;
+  };
 
 const parseCsvLine = (line) => {
   const values = [];
@@ -128,7 +149,7 @@ export const createProduct = async (req, res) => {
     const product = new Product({
       title,
       price,
-      discountPrice: discountPrice ? parseFloat(discountPrice) : null,
+      discountPrice: parseOptionalNumber(discountPrice),
       category,
       description,
       stock,
@@ -200,6 +221,84 @@ export const importProductsFromCsv = async (req, res) => {
     return res.status(201).json({
       message: `Imported ${createdProducts.length} products successfully`,
       count: createdProducts.length,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const upsertProductsFromCsv = async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "CSV file is required" });
+    }
+
+    const content = req.file.buffer.toString("utf-8");
+    const { headers, rows } = parseCsv(content);
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        message: "CSV must include a header row and at least one product row",
+      });
+    }
+
+    const missingColumns = REQUIRED_CSV_COLUMNS.filter(
+      (column) => !headers.includes(column)
+    );
+
+    if (missingColumns.length > 0) {
+      return res.status(400).json({
+        message: `Missing required CSV columns: ${missingColumns.join(", ")}`,
+      });
+    }
+
+    const productsToUpsert = [];
+    const errors = [];
+
+    rows.forEach((row) => {
+      const result = validateAndBuildProductRow(row);
+      if (typeof result === "string") {
+        errors.push(result);
+      } else {
+        productsToUpsert.push(result);
+      }
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: "CSV validation failed",
+        errors,
+      });
+    }
+
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    for (const productData of productsToUpsert) {
+      const existingProduct = await Product.findOne({
+        title: productData.title,
+        category: productData.category,
+      }).sort({ createdAt: -1, _id: -1 });
+
+      if (existingProduct) {
+        existingProduct.price = productData.price;
+        existingProduct.discountPrice = productData.discountPrice;
+        existingProduct.description = productData.description;
+        existingProduct.stock = productData.stock;
+        existingProduct.image = productData.image;
+        await existingProduct.save();
+        updatedCount += 1;
+      } else {
+        await Product.create(productData);
+        createdCount += 1;
+      }
+    }
+
+    return res.status(200).json({
+      message: `Applied ${productsToUpsert.length} products successfully`,
+      count: productsToUpsert.length,
+      createdCount,
+      updatedCount,
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -295,7 +394,7 @@ export const updateProduct = async (req, res) => {
 
     product.title = req.body.title;
     product.price = req.body.price;
-    product.discountPrice = req.body.discountPrice ? parseFloat(req.body.discountPrice) : null;
+    product.discountPrice = parseOptionalNumber(req.body.discountPrice);
     product.category = req.body.category;
     product.description = req.body.description;
     product.stock = req.body.stock;

@@ -1,30 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ProductController } from '../controllers/productController';
-
-const CATEGORY_ORDER = [
-  "All",
-  "Milk",
-  "Toy",
-  "Clothing",
-  "Feeding & Nursing",
-  "Diapering & Care",
-  "Nursery & Decor",
-  "Travel & Gear",
-  "Bath & Skin",
-  "Play & Learn",
-];
-
-const CATEGORY_ALIASES = {
-  Clothing: ["Clothing", "Cloth"],
-  Toy: ["Toy", "Toys"],
-  Milk: ["Milk", "Formula", "Feeding & Nursing"],
-  "Feeding & Nursing": ["Feeding & Nursing", "Feeding", "Nursing", "Milk"],
-  "Diapering & Care": ["Diapering & Care", "Diaper", "Care"],
-  "Nursery & Decor": ["Nursery & Decor", "Nursery", "Decor"],
-  "Travel & Gear": ["Travel & Gear", "Travel", "Gear"],
-  "Bath & Skin": ["Bath & Skin", "Bath", "Skin"],
-  "Play & Learn": ["Play & Learn", "Play", "Learn", "Toy", "Toys"],
-};
+import {
+  PRODUCT_CATEGORY_ALIASES,
+  PRODUCT_CATEGORY_OPTIONS_WITH_ALL,
+  normalizeProductCategory,
+} from "../constants/productCategories";
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -60,17 +40,24 @@ export const useProductFilters = (products) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const categories = useMemo(() => {
-    const productCategories = [...new Set(products.map((p) => p.category).filter(Boolean))];
-    const remainingCategories = productCategories.filter((category) => !CATEGORY_ORDER.includes(category));
-    return [...CATEGORY_ORDER, ...remainingCategories];
+    const productCategories = [
+      ...new Set(products.map((p) => normalizeProductCategory(p.category)).filter(Boolean)),
+    ];
+    const remainingCategories = productCategories.filter(
+      (category) => !PRODUCT_CATEGORY_OPTIONS_WITH_ALL.includes(category)
+    );
+    return [...PRODUCT_CATEGORY_OPTIONS_WITH_ALL, ...remainingCategories];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     let result = products;
 
     if (selectedCategory !== "All") {
-      const acceptedCategories = CATEGORY_ALIASES[selectedCategory] || [selectedCategory];
-      result = result.filter((p) => acceptedCategories.includes(p.category));
+      const acceptedCategories =
+        PRODUCT_CATEGORY_ALIASES[selectedCategory] || [selectedCategory];
+      result = result.filter((p) =>
+        acceptedCategories.includes(normalizeProductCategory(p.category))
+      );
     }
 
     if (searchQuery) {

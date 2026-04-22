@@ -8,10 +8,15 @@ export class ProductModel {
   }
 
   static sanitize(data) {
+    const discountPriceValue =
+      data.discountPrice === null || data.discountPrice === undefined || data.discountPrice === ""
+        ? null
+        : Number(data.discountPrice);
+
     return {
       title: data.title?.trim() || "",
       price: Number(data.price) || 0,
-      discountPrice: Number(data.discountPrice) || null,
+      discountPrice: Number.isFinite(discountPriceValue) ? discountPriceValue : null,
       category: data.category?.trim() || "",
       image: data.image?.trim() || "",
       description: data.description?.trim() || "",

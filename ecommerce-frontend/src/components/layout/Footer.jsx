@@ -70,10 +70,9 @@ export default function Footer() {
             <ul className="space-y-2.5 sm:space-y-4">
               {[
                 { name: 'All Products', to: '/products' },
-                { name: 'New Arrivals', to: '/new-arrivals' },
-                { name: 'Best Sellers', to: '/bestsellers' },
-                { name: 'Deals', to: '/deals' },
-                { name: 'Categories', to: '/categories' }
+                { name: 'New Arrivals', to: '/products?view=new-arrivals' },
+                { name: 'Best Sellers', to: '/products?view=best-sellers' },
+                { name: 'Deals', to: '/products?view=deals' }
               ].map((link) => (
                 <li key={link.name}>
                   <Link

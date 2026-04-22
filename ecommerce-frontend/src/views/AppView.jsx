@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
@@ -39,6 +39,15 @@ export default function AppView() {
   const location = useLocation();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
+
+  useEffect(() => {
+    // Clear any leftover global page-lock styles from modals when routes change.
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.width = "";
+    document.body.style.top = "";
+    document.body.style.pointerEvents = "";
+  }, [location.pathname]);
 
   const isAdminRoute =
     location.pathname.startsWith("/admin") &&

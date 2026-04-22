@@ -25,9 +25,15 @@ export const PAYMENT_STATUS = {
 // Product Categories
 export const PRODUCT_CATEGORIES = {
   TOY: 'Toy',
-  CLOTH: 'Cloth',
+  CLOTHING: 'Clothing',
   MILK: 'Milk',
-  ALL: 'all'
+  FEEDING_AND_NURSING: 'Feeding & Nursing',
+  DIAPERING_AND_CARE: 'Diapering & Care',
+  NURSERY_AND_DECOR: 'Nursery & Decor',
+  TRAVEL_AND_GEAR: 'Travel & Gear',
+  BATH_AND_SKIN: 'Bath & Skin',
+  PLAY_AND_LEARN: 'Play & Learn',
+  ALL: 'All'
 };
 
 // API Endpoints

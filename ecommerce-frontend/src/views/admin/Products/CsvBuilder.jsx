@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminService } from "../../../services/adminService";
 import {
+  PRODUCT_CATEGORY_OPTIONS,
+  normalizeProductCategory,
+} from "../../../constants/productCategories";
+import {
   ArrowLeft,
   Copy,
   Download,
@@ -20,7 +24,7 @@ const CSV_COLUMNS = [
   { key: "title", label: "Title", placeholder: "Baby Bottle Set" },
   { key: "price", label: "Price", placeholder: "24.99" },
   { key: "discountPrice", label: "Discount Price", placeholder: "19.99" },
-  { key: "category", label: "Category", placeholder: "Milk" },
+  { key: "category", label: "Category", placeholder: "Select a category" },
   { key: "description", label: "Description", placeholder: "Soft silicone baby bottle set" },
   { key: "stock", label: "Stock", placeholder: "30" },
   {
@@ -29,6 +33,10 @@ const CSV_COLUMNS = [
     placeholder: "https://example.com/images/product.jpg",
   },
 ];
+
+const CSV_HEADER_ALIASES = {
+  discountprice: "discountPrice",
+};
 
 const createEmptyRow = () => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -52,11 +60,15 @@ const escapeCsvValue = (value = "") => {
 };
 
 const normalizeCsvHeader = (header = "") =>
-  header
-    .trim()
-    .replace(/^\uFEFF/, "")
-    .toLowerCase()
-    .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+  {
+    const normalizedHeader = header
+      .trim()
+      .replace(/^\uFEFF/, "")
+      .toLowerCase()
+      .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+
+    return CSV_HEADER_ALIASES[normalizedHeader] || normalizedHeader;
+  };
 
 const parseCsvLine = (line = "") => {
   const values = [];
@@ -140,7 +152,7 @@ const mapDraftRow = (row = {}) => ({
   title: row.title || "",
   price: row.price || "",
   discountPrice: row.discountPrice || "",
-  category: row.category || "",
+  category: normalizeProductCategory(row.category),
   description: row.description || "",
   stock: row.stock || "",
   image: row.image || "",
@@ -160,14 +172,22 @@ const buildDraftPayload = (rows = []) =>
     imageName,
   }));
 
+const autoResizeTextarea = (element) => {
+  if (!element) {
+    return;
+  }
+
+  element.style.height = "0px";
+  element.style.height = `${element.scrollHeight}px`;
+};
+
 const CsvBuilder = () => {
   const navigate = useNavigate();
   const [rows, setRows] = useState([createEmptyRow()]);
   const [fileName, setFileName] = useState("products-import-ready.csv");
-  const [copiedRowId, setCopiedRowId] = useState("");
-  const [copiedCsv, setCopiedCsv] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isApplyingProducts, setIsApplyingProducts] = useState(false);
   const [draftStatus, setDraftStatus] = useState("Loading saved draft...");
   const fileInputRefs = useRef({});
   const csvFilePickerRef = useRef(null);
@@ -180,24 +200,14 @@ const CsvBuilder = () => {
     );
   };
 
-  const addRow = () => {
-    setRows((currentRows) => [...currentRows, createEmptyRow()]);
-  };
-
-  const duplicateRow = (rowId) => {
+  const insertRowAfter = (rowId) => {
     setRows((currentRows) => {
-      const row = currentRows.find((item) => item.id === rowId);
-      if (!row) return currentRows;
-
-      const duplicate = {
-        ...row,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      };
-
       const index = currentRows.findIndex((item) => item.id === rowId);
+      if (index === -1) return currentRows;
+
       return [
         ...currentRows.slice(0, index + 1),
-        duplicate,
+        createEmptyRow(),
         ...currentRows.slice(index + 1),
       ];
     });
@@ -297,33 +307,67 @@ const CsvBuilder = () => {
 
     try {
       await navigator.clipboard.writeText(imageUrl);
-      setCopiedRowId(rowId);
-      window.setTimeout(() => setCopiedRowId(""), 2000);
     } catch (error) {
       console.error("Failed to copy image URL", error);
       alert("Failed to copy image URL");
     }
   };
 
-  const copyCsv = async () => {
-    try {
-      await navigator.clipboard.writeText(csvContent);
-      setCopiedCsv(true);
-      window.setTimeout(() => setCopiedCsv(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy CSV", error);
-      alert("Failed to copy CSV content");
-    }
-  };
-
   const downloadCsv = () => {
+    const suggestedFileName = sanitizeFileName(fileName);
+    const providedFileName = window.prompt(
+      "Enter a file name for this CSV export",
+      suggestedFileName
+    );
+
+    if (providedFileName === null) {
+      return;
+    }
+
+    const nextFileName = sanitizeFileName(providedFileName);
+    setFileName(nextFileName);
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = sanitizeFileName(fileName);
+    link.download = nextFileName;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const applyToProducts = async () => {
+    if (filledRowsCount === 0) {
+      alert("Add at least one product row before applying to products");
+      return;
+    }
+
+    const formData = new FormData();
+    const csvFile = new File([csvContent], sanitizeFileName(fileName), {
+      type: "text/csv;charset=utf-8;",
+    });
+    formData.append("file", csvFile);
+
+    try {
+      setIsApplyingProducts(true);
+      const response = await adminService.upsertProductsCsv(formData);
+      alert(
+        response.data?.message
+          ? `${response.data.message}\nUpdated: ${response.data.updatedCount || 0}\nCreated: ${response.data.createdCount || 0}`
+          : "Products applied successfully"
+      );
+      navigate("/admin/products");
+    } catch (error) {
+      console.error("Failed to apply CSV builder rows to products", error);
+      const message =
+        error.response?.data?.errors?.join("\n") ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to apply products";
+      alert(message);
+    } finally {
+      setIsApplyingProducts(false);
+    }
   };
 
   const createNewFile = () => {
@@ -435,7 +479,7 @@ const CsvBuilder = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="border-b border-gray-200 bg-white shadow-lg">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex w-full items-center gap-4 px-4 py-6 sm:px-6 xl:px-8">
           <button
             className="group rounded-xl p-3 transition-all duration-200 hover:bg-gray-100"
             onClick={() => navigate("/admin/products")}
@@ -461,7 +505,7 @@ const CsvBuilder = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-8 sm:px-6 xl:px-8">
         <div className="mb-8 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
             <p className="text-sm font-medium text-gray-600">Prepared Rows</p>
@@ -495,20 +539,9 @@ const CsvBuilder = () => {
                 Work on this like a simple spreadsheet. Open an existing CSV file, create
                 a new one, edit cells directly, and save the current sheet back to CSV.
               </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  File Name
-                </label>
-                <input
-                  type="text"
-                  value={fileName}
-                  onChange={(event) => setFileName(event.target.value)}
-                  className="min-w-[260px] rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-xs text-gray-500">
-                  Saved with your draft and used for export.
-                </span>
-              </div>
+              <p className="mt-4 text-xs text-gray-500">
+                The export file name is entered after you click <span className="font-semibold">Save File</span>.
+              </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <input
@@ -536,19 +569,16 @@ const CsvBuilder = () => {
               </button>
               <button
                 type="button"
-                onClick={addRow}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-5 py-3 font-semibold text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)]"
+                onClick={applyToProducts}
+                disabled={isApplyingProducts || filledRowsCount === 0}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-primary)] bg-white px-5 py-3 font-semibold text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Plus className="h-4 w-4" />
-                <span>Add Row</span>
-              </button>
-              <button
-                type="button"
-                onClick={copyCsv}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-5 py-3 font-semibold text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)]"
-              >
-                <Copy className="h-4 w-4" />
-                <span>{copiedCsv ? "Copied CSV" : "Copy CSV"}</span>
+                {isApplyingProducts ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4" />
+                )}
+                <span>{isApplyingProducts ? "Applying..." : "Apply to Products"}</span>
               </button>
               <button
                 type="button"
@@ -571,7 +601,9 @@ const CsvBuilder = () => {
                   {CSV_COLUMNS.map((column) => (
                     <th
                       key={column.key}
-                      className="border border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                      className={`border border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 ${
+                        column.key === "description" ? "min-w-[420px]" : ""
+                      }`}
                     >
                       {column.label}
                     </th>
@@ -589,21 +621,54 @@ const CsvBuilder = () => {
                     </td>
                     {CSV_COLUMNS.map((column) => (
                       <td key={column.key} className="border border-gray-200 bg-white px-3 py-3 align-top">
-                        <div className="flex min-w-[180px] items-center gap-2">
-                          <input
-                            type="text"
-                            value={row[column.key]}
-                            onChange={(event) =>
-                              updateRow(row.id, column.key, event.target.value)
-                            }
-                            placeholder={column.placeholder}
-                            readOnly={column.key === "image"}
-                            className={`w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all duration-200 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              column.key === "image"
-                                ? "cursor-default bg-gray-100 text-gray-500"
-                                : "bg-gray-50"
-                            }`}
-                          />
+                        <div
+                          className={`flex items-center gap-2 ${
+                            column.key === "description" ? "min-w-[420px]" : "min-w-[150px]"
+                          }`}
+                        >
+                          {column.key === "category" ? (
+                            <select
+                              value={row[column.key]}
+                              onChange={(event) =>
+                                updateRow(row.id, column.key, event.target.value)
+                              }
+                              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 transition-all duration-200 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Select a category</option>
+                              {PRODUCT_CATEGORY_OPTIONS.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
+                          ) : column.key === "description" ? (
+                            <textarea
+                              ref={(element) => autoResizeTextarea(element)}
+                              value={row[column.key]}
+                              onChange={(event) => {
+                                updateRow(row.id, column.key, event.target.value);
+                                autoResizeTextarea(event.target);
+                              }}
+                              placeholder={column.placeholder}
+                              rows={1}
+                              className="min-h-[42px] w-full min-w-[320px] resize-none overflow-y-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 transition-all duration-200 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={row[column.key]}
+                              onChange={(event) =>
+                                updateRow(row.id, column.key, event.target.value)
+                              }
+                              placeholder={column.placeholder}
+                              readOnly={column.key === "image"}
+                              className={`w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all duration-200 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                column.key === "image"
+                                  ? "cursor-default bg-gray-100 text-gray-500"
+                                  : "bg-gray-50"
+                              }`}
+                            />
+                          )}
                           {column.key === "image" && (
                             <>
                               <input
@@ -676,19 +741,19 @@ const CsvBuilder = () => {
                       </td>
                     ))}
                     <td className="border border-gray-200 bg-white px-3 py-3 align-top">
-                      <div className="flex min-w-[132px] gap-2">
+                      <div className="flex min-w-[120px] gap-2">
                         <button
                           type="button"
-                          onClick={() => duplicateRow(row.id)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                          onClick={() => insertRowAfter(row.id)}
+                          className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                         >
                           <Plus className="h-4 w-4" />
-                          <span>Copy</span>
+                          <span>Add Row</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => removeRow(row.id)}
-                          className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
+                          className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
                           style={{
                             border: "1px solid #e7b396",
                             backgroundColor: "#fff4ee",
