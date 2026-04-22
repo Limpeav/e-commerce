@@ -60,7 +60,7 @@ export default function AppView() {
     if (isAdmin) {
       return (
         <AdminRoute>
-          <div className="min-h-screen">
+          <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
             <AdminSidebar />
             <div className="lg:ml-64">
               <PageTransition>

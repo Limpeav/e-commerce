@@ -1,5 +1,126 @@
 import Product from "../models/Product.js";
 
+const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
+
+const normalizeCsvHeader = (header = "") =>
+  header
+    .trim()
+    .replace(/^\uFEFF/, "")
+    .toLowerCase()
+    .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+
+const parseCsvLine = (line) => {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current);
+  return values.map((value) => value.trim());
+};
+
+const parseCsv = (content = "") => {
+  const lines = content
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .filter((line) => line.trim().length > 0);
+
+  if (lines.length < 2) {
+    return { headers: [], rows: [] };
+  }
+
+  const rawHeaders = parseCsvLine(lines[0]);
+  const headers = rawHeaders.map(normalizeCsvHeader);
+  const rows = lines.slice(1).map((line, index) => {
+    const values = parseCsvLine(line);
+    const row = {};
+
+    headers.forEach((header, columnIndex) => {
+      row[header] = values[columnIndex] ?? "";
+    });
+
+    return {
+      rowNumber: index + 2,
+      data: row,
+    };
+  });
+
+  return { headers, rows };
+};
+
+const validateAndBuildProductRow = ({ data, rowNumber }) => {
+  const title = data.title?.trim();
+  const category = data.category?.trim();
+  const description = data.description?.trim() || "";
+  const image = data.image?.trim();
+  const price = Number.parseFloat(data.price);
+  const discountPrice = data.discountPrice?.trim()
+    ? Number.parseFloat(data.discountPrice)
+    : null;
+  const stock = data.stock?.trim() ? Number.parseInt(data.stock, 10) : 0;
+
+  if (!title) {
+    return `Row ${rowNumber}: title is required`;
+  }
+
+  if (!Number.isFinite(price) || price < 0) {
+    return `Row ${rowNumber}: price must be a valid non-negative number`;
+  }
+
+  if (!category) {
+    return `Row ${rowNumber}: category is required`;
+  }
+
+  if (!image) {
+    return `Row ${rowNumber}: image is required and must be a URL`;
+  }
+
+  if (discountPrice !== null && (!Number.isFinite(discountPrice) || discountPrice < 0)) {
+    return `Row ${rowNumber}: discountPrice must be a valid non-negative number`;
+  }
+
+  if (
+    discountPrice !== null &&
+    Number.isFinite(discountPrice) &&
+    discountPrice >= price
+  ) {
+    return `Row ${rowNumber}: discountPrice must be less than price`;
+  }
+
+  if (!Number.isInteger(stock) || stock < 0) {
+    return `Row ${rowNumber}: stock must be a valid non-negative integer`;
+  }
+
+  return {
+    title,
+    price,
+    discountPrice,
+    category,
+    description,
+    stock,
+    image,
+  };
+};
+
 export const createProduct = async (req, res) => {
   try {
     const { title, price, discountPrice, category, description, stock } = req.body;
@@ -27,6 +148,61 @@ export const getProducts = async (req, res) => {
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const importProductsFromCsv = async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "CSV file is required" });
+    }
+
+    const content = req.file.buffer.toString("utf-8");
+    const { headers, rows } = parseCsv(content);
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        message: "CSV must include a header row and at least one product row",
+      });
+    }
+
+    const missingColumns = REQUIRED_CSV_COLUMNS.filter(
+      (column) => !headers.includes(column)
+    );
+
+    if (missingColumns.length > 0) {
+      return res.status(400).json({
+        message: `Missing required CSV columns: ${missingColumns.join(", ")}`,
+      });
+    }
+
+    const productsToInsert = [];
+    const errors = [];
+
+    rows.forEach((row) => {
+      const result = validateAndBuildProductRow(row);
+      if (typeof result === "string") {
+        errors.push(result);
+      } else {
+        productsToInsert.push(result);
+      }
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: "CSV validation failed",
+        errors,
+      });
+    }
+
+    const createdProducts = await Product.insertMany(productsToInsert);
+
+    return res.status(201).json({
+      message: `Imported ${createdProducts.length} products successfully`,
+      count: createdProducts.length,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 

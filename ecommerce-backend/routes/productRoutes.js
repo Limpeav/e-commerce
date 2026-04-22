@@ -1,19 +1,26 @@
 import express from "express";
+import multer from "multer";
 import {
   getProducts,
   getProductById,
   updateProduct,
   createProduct,
   createProductReview,
+  importProductsFromCsv,
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
 import Product from '../models/Product.js';
 import { protect, admin, optionalAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
 
 // CREATE
 router.post("/", protect, admin, upload.single("image"), createProduct);
+router.post("/import-csv", protect, admin, csvUpload.single("file"), importProductsFromCsv);
 
 // REVIEWS
 router.route("/:id/reviews").post(protect, createProductReview);

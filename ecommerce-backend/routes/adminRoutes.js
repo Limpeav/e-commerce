@@ -1,5 +1,10 @@
 import express from "express";
-import { getDashboardData } from "../controllers/adminController.js";
+import {
+    getDashboardData,
+    getCsvBuilderDraft,
+    saveCsvBuilderDraft,
+    uploadProductImage,
+} from "../controllers/adminController.js";
 import { registerAdmin, loginAdmin, getAdminProfile } from "../controllers/adminAuthController.js";
 import {
     getAllUsers,
@@ -10,8 +15,10 @@ import {
 } from "../controllers/userManagementController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
+import { createUpload } from "../middleware/upload.js";
 
 const router = express.Router();
+const productImageUpload = createUpload("products/csv-builder");
 
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
@@ -20,6 +27,15 @@ router.get("/me", protect, admin, getAdminProfile);
 
 // Dashboard
 router.get("/dashboard", protect, admin, getDashboardData);
+router.get("/csv-builder-draft", protect, admin, getCsvBuilderDraft);
+router.put("/csv-builder-draft", protect, admin, saveCsvBuilderDraft);
+router.post(
+    "/uploads/product-image",
+    protect,
+    admin,
+    productImageUpload.single("image"),
+    uploadProductImage
+);
 
 // User management routes
 router.get("/users", protect, admin, getAllUsers);

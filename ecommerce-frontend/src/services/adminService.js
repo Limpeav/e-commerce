@@ -48,6 +48,16 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
+  getCsvBuilderDraft: () => api.get("/admin/csv-builder-draft"),
+  saveCsvBuilderDraft: ({ rows, fileName }) =>
+    api.put("/admin/csv-builder-draft", { rows, fileName }),
+  uploadProductImage: (fileData) => {
+    return api.post("/admin/uploads/product-image", fileData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 
   // Users
   getUsers: () => api.get("/admin/users"),
@@ -61,6 +71,13 @@ export const adminService = {
   getProductById: (id) => api.get(`/products/${id}`),
   createProduct: (productData) => {
     return api.post("/products", productData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+  importProductsCsv: (fileData) => {
+    return api.post("/products/import-csv", fileData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

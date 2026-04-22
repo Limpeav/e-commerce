@@ -9,6 +9,7 @@ import {
   Tag,
   FileText,
   Boxes,
+  FileSpreadsheet,
 } from "lucide-react";
 
 const AddProduct = () => {
@@ -25,6 +26,8 @@ const AddProduct = () => {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvLoading, setCsvLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,6 +75,36 @@ const AddProduct = () => {
     }
   };
 
+  const handleCsvFileChange = (e) => {
+    setCsvFile(e.target.files?.[0] || null);
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvFile) {
+      alert("Please choose a CSV file first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", csvFile);
+
+    try {
+      setCsvLoading(true);
+      const response = await adminService.importProductsCsv(formData);
+      alert(response.data?.message || "Products imported successfully");
+      navigate("/admin/products");
+    } catch (err) {
+      const message =
+        err.response?.data?.errors?.join("\n") ||
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to import CSV";
+      alert(message);
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -85,7 +118,7 @@ const AddProduct = () => {
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-[var(--color-text-main)]">
                 Add New Product
               </h1>
               <p className="mt-1 text-sm text-gray-500">
@@ -98,6 +131,48 @@ const AddProduct = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="flex items-center text-xl font-bold text-gray-900">
+                <FileSpreadsheet className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                Import Products From CSV
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Skip manual entry by uploading a CSV. Required columns: <code>title</code>, <code>price</code>, <code>category</code>, <code>image</code>.
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                The <code>image</code> column must contain a public image URL. CSV import creates multiple products at once and does not upload image files from your computer.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto]">
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-base)] px-4 py-4 text-sm text-gray-600 transition hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)]">
+              <Upload className="h-5 w-5 text-[var(--color-primary)]" />
+              <span className="font-medium text-gray-700">
+                {csvFile ? csvFile.name : "Choose CSV file"}
+              </span>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleCsvFileChange}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleCsvImport}
+              disabled={csvLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:bg-[var(--color-primary-light)]"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>{csvLoading ? "Importing..." : "Import CSV"}</span>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Product Image Upload */}
           <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
@@ -119,7 +194,7 @@ const AddProduct = () => {
                       setImagePreview(null);
                       setForm({ ...form, image: null });
                     }}
-                    className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    className="absolute top-3 right-3 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 shadow-lg hover:bg-red-700 hover:shadow-xl transform hover:-translate-y-0.5"
                   >
                     Remove
                   </button>
@@ -299,7 +374,7 @@ const AddProduct = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold disabled:from-blue-400 disabled:to-blue-500 disabled:cursor-not-allowed flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="flex items-center space-x-3 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 font-semibold shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[var(--color-primary-light)]"
               >
                 {loading ? (
                   <>

@@ -1,4 +1,5 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
+import { motion } from "framer-motion";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -7,9 +8,8 @@ import Loading from "../common/Loading";
 // Components
 import Hero from "../../components/home/Hero";
 import SearchBar from "../../components/home/SearchBar";
-import ProductsGrid from "../../components/product/ProductsGrid";
-import SectionHeader from "../../components/product/SectionHeader";
 import ErrorState from "../../components/product/ErrorState";
+import ProductCard from "../../components/product/ProductCard";
 import { useDarkMode } from "../../hooks";
 
 // Hooks
@@ -60,6 +60,74 @@ export default function Home() {
         setSelectedCategory("All");
     };
 
+    const gridContainerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.08
+            }
+        }
+    };
+
+    const gridItemVariants = {
+        hidden: { opacity: 0, y: 24 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: { type: "spring", stiffness: 110 }
+        }
+    };
+
+    const productSections = useMemo(() => {
+        const normalizedProducts = [...filteredProducts];
+        const newArrivals = [...normalizedProducts]
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+            .slice(0, 8);
+
+        const bestSellers = [...normalizedProducts]
+            .sort((a, b) => {
+                const soldDelta = Number(b.sold || 0) - Number(a.sold || 0);
+                if (soldDelta !== 0) return soldDelta;
+                return Number(b.rating || 0) - Number(a.rating || 0);
+            })
+            .slice(0, 8);
+
+        const deals = normalizedProducts
+            .filter((product) => product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price)
+            .sort((a, b) => {
+                const discountA = ((Number(a.price || 0) - Number(a.discountPrice || 0)) / Math.max(Number(a.price || 1), 1)) * 100;
+                const discountB = ((Number(b.price || 0) - Number(b.discountPrice || 0)) / Math.max(Number(b.price || 1), 1)) * 100;
+                return discountB - discountA;
+            })
+            .slice(0, 8);
+
+        return [
+            {
+                title: "New Arrival",
+                description: "Fresh picks recently added to the collection.",
+                products: newArrivals,
+            },
+            {
+                title: "All Products",
+                description: searchQuery
+                    ? `Showing everything that matches "${searchQuery}".`
+                    : "Browse the full collection in one place.",
+                products: normalizedProducts,
+            },
+            {
+                title: "Best Seller",
+                description: "Popular products ranked by demand and ratings.",
+                products: bestSellers,
+            },
+            {
+                title: "Deal",
+                description: "Current discounted items with the strongest savings.",
+                products: deals,
+            },
+        ].filter((section) => section.products.length > 0);
+    }, [filteredProducts, searchQuery]);
+
     if (loading) {
         return <Loading />;
     }
@@ -89,23 +157,66 @@ export default function Home() {
                 <Hero />
 
                 <div ref={productsRef} className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
-                    {/* Section Header */}
-                    <SectionHeader
-                        searchQuery={searchQuery}
-                        filteredProductsLength={filteredProducts.length}
-                    />
+                    {productSections.length > 0 ? (
+                        <div className="space-y-12 sm:space-y-16">
+                            {productSections.map((section) => (
+                                <section key={section.title} className="space-y-6">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                                                <span className="h-[2px] w-8 bg-primary/30"></span>
+                                                Home Collection
+                                            </div>
+                                            <h2 className="text-3xl font-bold tracking-tight text-text-main md:text-4xl font-display">
+                                                {section.title}
+                                            </h2>
+                                            <p className="max-w-2xl text-sm text-text-muted sm:text-base">
+                                                {section.description}
+                                            </p>
+                                        </div>
 
-                    {/* Products Grid */}
-                    <ProductsGrid
-                        filteredProducts={filteredProducts}
-                        onAddToCart={handleAddToCart}
-                        onWishlistToggle={toggleWishlist}
-                        isInWishlist={isInWishlist}
-                        user={user}
-                        searchQuery={searchQuery}
-                        selectedCategory={selectedCategory}
-                        onClearFilters={handleClearFilters}
-                    />
+                                        <div className={`inline-flex items-center gap-2 self-start rounded-2xl border px-5 py-3 text-sm font-bold tracking-tight sm:self-auto ${isDark ? 'border-slate-800 bg-slate-900 text-slate-300 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.8)]' : 'border-stone-100 bg-white text-text-muted shadow-sm'}`}>
+                                            <span className="h-2 w-2 rounded-full bg-primary"></span>
+                                            {section.products.length} Items
+                                        </div>
+                                    </div>
+
+                                    <motion.div
+                                        variants={gridContainerVariants}
+                                        initial="hidden"
+                                        whileInView="show"
+                                        viewport={{ once: true, amount: 0.15 }}
+                                        className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16"
+                                    >
+                                        {section.products.map((product) => (
+                                            <ProductCard
+                                                key={`${section.title}-${product._id}`}
+                                                product={product}
+                                                onAddToCart={handleAddToCart}
+                                                onWishlistToggle={toggleWishlist}
+                                                isInWishlist={isInWishlist}
+                                                user={user}
+                                                variants={gridItemVariants}
+                                            />
+                                        ))}
+                                    </motion.div>
+                                </section>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={`text-center py-16 sm:py-32 rounded-2xl sm:rounded-[3rem] px-4 border ${isDark ? 'bg-slate-900 border-slate-800 shadow-[0_20px_60px_-24px_rgba(2,6,23,0.7)]' : 'bg-white border-stone-100 shadow-sm'}`}>
+                            <h2 className="text-2xl sm:text-4xl font-bold text-text-main font-display">No products found</h2>
+                            <p className="mt-3 text-sm sm:text-lg text-text-muted max-w-xl mx-auto">
+                                We couldn&apos;t find products for the current search or category filter.
+                            </p>
+                            <button
+                                onClick={handleClearFilters}
+                                className="mt-6 sm:mt-10 px-6 sm:px-10 py-3 sm:py-4 bg-primary text-white rounded-xl sm:rounded-2xl font-bold text-sm hover:bg-primary-dark transition-all hover:shadow-xl active:scale-95"
+                            >
+                                Explore Everything
+                            </button>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

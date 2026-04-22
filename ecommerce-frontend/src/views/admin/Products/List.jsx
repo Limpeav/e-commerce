@@ -104,7 +104,7 @@ const ProductList = () => {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Product Management</h1>
+                <h1 className="text-3xl font-bold text-[var(--color-text-main)]">Product Management</h1>
                 <p className="mt-1 text-sm text-gray-500">
                   Manage your inventory with ease
                 </p>
@@ -113,14 +113,14 @@ const ProductList = () => {
             <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 onClick={() => navigate("/admin/banners")}
-                className="flex items-center space-x-2 rounded-xl border border-blue-200 bg-white px-6 py-3 text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md"
+                className="flex items-center space-x-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-6 py-3 text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)] hover:shadow-md"
               >
                 <Images className="w-5 h-5" />
                 <span className="font-semibold">Add Banner</span>
               </button>
               <button
                 onClick={() => navigate("/admin/products/add")}
-                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="flex items-center space-x-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white transition-all duration-200 shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <Plus className="w-5 h-5" />
                 <span className="font-semibold">Add Product</span>
@@ -227,7 +227,7 @@ const ProductList = () => {
             </p>
             <button
               onClick={() => navigate("/admin/products/add")}
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+              className="inline-flex items-center space-x-2 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
             >
               <Plus className="w-5 h-5" />
               <span>Add Your First Product</span>
@@ -302,14 +302,14 @@ const ProductList = () => {
                       onClick={() =>
                         navigate(`/admin/products/edit/${product._id}`)
                       }
-                      className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-600 px-4 py-2.5 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-200 font-medium group"
+                      className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-blue-600 px-4 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg font-medium group"
                     >
                       <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                       <span className="text-sm">Edit</span>
                     </button>
                     <button
                       onClick={() => handleDelete(product._id)}
-                      className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-red-50 to-red-100 text-red-600 px-4 py-2.5 rounded-xl hover:from-red-100 hover:to-red-200 transition-all duration-200 font-medium group"
+                      className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-red-600 px-4 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-red-700 hover:shadow-lg font-medium group"
                     >
                       <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                       <span className="text-sm">Delete</span>

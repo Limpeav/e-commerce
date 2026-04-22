@@ -16,37 +16,41 @@ export default function Wishlist() {
   // Empty Wishlist State
   if (wishlist.length === 0) {
     return (
-      <div className="min-h-screen bg-bg-base px-4 py-20 pb-24 font-sans transition-colors duration-300 sm:px-6 md:pb-20">
-        <div
-          className={`relative mx-auto max-w-lg overflow-hidden rounded-3xl border p-8 text-center shadow-2xl sm:rounded-[4rem] sm:p-16 ${isDark ? "bg-bg-card shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]" : "bg-bg-card shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"}`}
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16"></div>
+      <div className="min-h-screen bg-bg-base flex items-center justify-center overflow-hidden font-sans transition-colors duration-300">
+        <div className="relative mx-auto max-w-4xl px-6">
+          <div className="absolute top-1/2 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px] pointer-events-none"></div>
 
-          <div className="relative mb-8 sm:mb-10">
-            <div
-              className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-[color:var(--color-surface-soft)] shadow-inner sm:h-32 sm:w-32 sm:rounded-[2.5rem]"
-              style={{ borderColor: "var(--color-border)" }}
-            >
-              <Heart className="h-10 w-10 text-primary/30 sm:h-14 sm:w-14" />
-            </div>
-          </div>
-
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-main mb-4 sm:mb-6 font-display tracking-tight leading-tight">
-            Your wishlist is empty
-          </h2>
-          <p className="text-base sm:text-lg text-text-muted mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed px-2 sm:px-0">
-            Save your favorite items here to find them easily later. <br className="hidden md:block" />
-            Start exploring our collection today.
-          </p>
-
-          <Link
-            to="/"
-            className="inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
+          <div
+            className={`relative z-10 mx-auto max-w-lg overflow-hidden rounded-3xl border p-8 text-center shadow-2xl sm:rounded-[4rem] sm:p-16 ${isDark ? "bg-bg-card shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]" : "bg-bg-card shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"}`}
+            style={{ borderColor: "var(--color-border)" }}
           >
-            <ShoppingBag className="h-5 w-5" />
-            <span>Start Shopping</span>
-          </Link>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16"></div>
+
+            <div className="relative mb-8 sm:mb-10">
+              <div
+                className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-[color:var(--color-surface-soft)] shadow-inner sm:h-32 sm:w-32 sm:rounded-[2.5rem]"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                <Heart className="h-10 w-10 text-primary/30 sm:h-14 sm:w-14" />
+              </div>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-main mb-4 sm:mb-6 font-display tracking-tight leading-tight">
+              Your wishlist is empty
+            </h2>
+            <p className="text-base sm:text-lg text-text-muted mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed px-2 sm:px-0">
+              Save your favorite items here to find them easily later. <br className="hidden md:block" />
+              Start exploring our collection today.
+            </p>
+
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              <span>Start Shopping</span>
+            </Link>
+          </div>
         </div>
       </div>
     );

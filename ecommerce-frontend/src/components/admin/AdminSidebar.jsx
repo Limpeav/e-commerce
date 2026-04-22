@@ -6,7 +6,7 @@ import {
   Package,
   Users,
   ShoppingCart,
-  Settings,
+  FileSpreadsheet,
   LogOut,
   Menu,
   X,
@@ -32,6 +32,11 @@ const AdminSidebar = () => {
       icon: Package
     },
     {
+      path: '/admin/products/csv-builder',
+      name: 'CSV Builder',
+      icon: FileSpreadsheet
+    },
+    {
       path: '/admin/users',
       name: 'Users',
       icon: Users
@@ -54,7 +59,7 @@ const AdminSidebar = () => {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-3 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-200 group"
+          className="p-3 rounded-xl bg-[var(--color-text-main)] text-white shadow-lg transition-all duration-200 group"
         >
           {isSidebarOpen ? <X className="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" /> : <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />}
         </button>
@@ -62,31 +67,31 @@ const AdminSidebar = () => {
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-gray-900 to-gray-800 transform transition-transform duration-300 ease-in-out shadow-2xl
+        fixed inset-y-0 left-0 z-40 w-64 border-r border-[var(--color-border)] bg-[var(--color-bg-card)] transform transition-transform duration-300 ease-in-out shadow-xl
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 bg-gradient-to-r from-blue-600 to-blue-700 border-b border-gray-700">
+          <div className="flex items-center justify-center h-16 border-b border-[var(--color-border)] bg-[var(--color-surface-soft)]">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="w-5 h-5 text-blue-600" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-card)] flex items-center justify-center border border-[var(--color-border)]">
+                <LayoutDashboard className="w-5 h-5 text-[var(--color-primary)]" />
               </div>
-              <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-[var(--color-text-main)]">Admin Panel</h1>
             </div>
           </div>
 
           {/* User info */}
-          <div className="p-4 border-b border-gray-700 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
+          <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm bg-[var(--color-primary)]">
                 <span className="text-white font-bold text-lg">
                   {adminUser?.name?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="text-white font-semibold">{adminUser?.name}</p>
-                <p className="text-blue-300 text-sm font-medium">Administrator</p>
+                <p className="font-semibold text-[var(--color-text-main)]">{adminUser?.name}</p>
+                <p className="text-sm font-medium text-[var(--color-primary)]">Administrator</p>
               </div>
             </div>
           </div>
@@ -95,7 +100,11 @@ const AdminSidebar = () => {
           <nav className="flex-1 px-4 py-6 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon
-              const isActive = location.pathname === item.path
+              const isActive =
+                location.pathname === item.path ||
+                (item.path === '/admin/products' &&
+                  location.pathname.startsWith('/admin/products/') &&
+                  location.pathname !== '/admin/products/csv-builder')
 
               return (
                 <Link
@@ -105,15 +114,15 @@ const AdminSidebar = () => {
                   className={`
                     flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
                     ${isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
-                      : 'text-gray-300 hover:bg-gray-700/50 hover:text-white hover:translate-x-1'
+                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)] hover:translate-x-1'
                     }
                   `}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
-                  <span className={`font-medium ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{item.name}</span>
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
+                  <span className={`font-medium ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'}`}>{item.name}</span>
                   {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse" />
+                    <div className="ml-auto w-2 h-2 bg-[var(--color-secondary-light)] rounded-full animate-pulse" />
                   )}
                 </Link>
               )
@@ -121,12 +130,12 @@ const AdminSidebar = () => {
           </nav>
 
           {/* Logout */}
-          <div className="p-4 border-t border-gray-700 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
+          <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]">
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-3 w-full px-4 py-3 text-gray-300 rounded-xl hover:bg-red-600/20 hover:text-red-400 transition-all duration-200 group font-medium"
+              className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl text-[var(--color-text-muted)] hover:bg-red-50 hover:text-red-600 transition-all duration-200 group font-medium"
             >
-              <LogOut className="h-5 w-5 text-gray-400 group-hover:text-red-400" />
+              <LogOut className="h-5 w-5 text-[var(--color-text-muted)] group-hover:text-red-600" />
               <span>Logout</span>
             </button>
           </div>
