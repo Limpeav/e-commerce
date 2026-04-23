@@ -72,6 +72,10 @@ const AdminOrders = () => {
         }
     };
 
+    const handleRowNavigation = (orderId) => {
+        navigate(`/admin/orders/${orderId}`);
+    };
+
     const getStatusColor = (status) => {
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800",
@@ -237,7 +241,18 @@ const AdminOrders = () => {
                                 </tr>
                             ) : (
                                 filteredOrders.map((order) => (
-                                    <tr key={order._id} className="hover:bg-gray-50">
+                                    <tr
+                                        key={order._id}
+                                        onClick={() => handleRowNavigation(order._id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                handleRowNavigation(order._id);
+                                            }
+                                        }}
+                                        tabIndex={0}
+                                        className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-sm font-mono text-gray-900">
                                                 #{order._id.slice(-8)}
@@ -278,14 +293,20 @@ const AdminOrders = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex items-center space-x-2">
                                                 <button
-                                                    onClick={() => navigate(`/admin/orders/${order._id}`)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRowNavigation(order._id);
+                                                    }}
                                                     className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteOrder(order._id)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteOrder(order._id);
+                                                    }}
                                                     className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
                                                     title="Delete Order"
                                                 >

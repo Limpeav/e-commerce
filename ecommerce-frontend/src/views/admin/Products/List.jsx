@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 
+const LOW_STOCK_THRESHOLD = 5;
+
 const getNumericDiscount = (product) => {
   const price = Number(product?.price);
   const discountPrice = Number(product?.discountPrice);
@@ -31,6 +33,7 @@ const ProductList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,8 +74,12 @@ const ProductList = () => {
       );
     }
 
+    if (showLowStockOnly) {
+      filtered = filtered.filter((p) => Number(p.stock) <= LOW_STOCK_THRESHOLD);
+    }
+
     setFilteredProducts(filtered);
-  }, [searchTerm, categoryFilter, products]);
+  }, [searchTerm, categoryFilter, showLowStockOnly, products]);
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
@@ -90,6 +97,7 @@ const ProductList = () => {
     "all",
     ...new Set(products.map((p) => normalizeProductCategory(p.category)).filter(Boolean)),
   ];
+  const lowStockCount = products.filter((p) => Number(p.stock) <= LOW_STOCK_THRESHOLD).length;
 
   if (loading) {
     return <Loading message="Loading products..." />;
@@ -171,20 +179,30 @@ const ProductList = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+          <button
+            type="button"
+            onClick={() => setShowLowStockOnly((current) => !current)}
+            className={`text-left rounded-2xl p-6 border shadow-lg transition-all duration-300 hover:shadow-xl ${
+              showLowStockOnly
+                ? "bg-orange-50 border-orange-200 ring-2 ring-orange-200"
+                : "bg-white border-gray-100"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Low Stock Alert</p>
                 <p className="text-3xl font-bold text-orange-600 mt-1">
-                  {products.filter((p) => p.stock < 10).length}
+                  {lowStockCount}
                 </p>
-                <p className="text-xs text-orange-500 mt-2">Items need restocking</p>
+                <p className="text-xs text-orange-500 mt-2">
+                  {showLowStockOnly ? "Showing low stock products" : "Click to show low stock products"}
+                </p>
               </div>
               <div className="bg-orange-100 p-3 rounded-xl">
                 <Package className="w-8 h-8 text-orange-600" />
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Filters */}
@@ -218,6 +236,20 @@ const ProductList = () => {
               </select>
             </div>
           </div>
+          {showLowStockOnly && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+              <p className="text-sm font-medium text-orange-700">
+                Filtering low stock products with stock at or below {LOW_STOCK_THRESHOLD}.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowLowStockOnly(false)}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-orange-700 shadow-sm transition-colors hover:bg-orange-100"
+              >
+                Clear Filter
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Products Grid */}
@@ -261,7 +293,7 @@ const ProductList = () => {
                         alt={product.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      {product.stock < 10 && (
+                      {Number(product.stock) <= LOW_STOCK_THRESHOLD && (
                         <span className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
                           Low Stock
                         </span>
@@ -305,7 +337,7 @@ const ProductList = () => {
                             </p>
                           )}
                           <p className="text-sm text-gray-600">
-                            Stock: <span className={`font-semibold ${product.stock < 10 ? 'text-orange-600' : 'text-green-600'}`}>{product.stock}</span>
+                            Stock: <span className={`font-semibold ${Number(product.stock) <= LOW_STOCK_THRESHOLD ? 'text-orange-600' : 'text-green-600'}`}>{product.stock}</span>
                           </p>
                         </div>
                       </div>

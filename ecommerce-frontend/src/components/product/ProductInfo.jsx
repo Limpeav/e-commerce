@@ -12,6 +12,7 @@ const ProductInfo = ({
   const [isDark] = useDarkMode();
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
   const discountPercent = hasDiscount ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0;
+  const isInStock = Number(product.stock || 0) > 0;
 
   return (
     <div className="flex flex-col justify-center space-y-4 font-sans sm:space-y-4.5">
@@ -22,7 +23,19 @@ const ProductInfo = ({
           {product.category || 'Essentials'}
         </span>
         <div className={`h-1.5 w-1.5 rounded-full ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
-        <span className={`text-[11px] font-black tracking-[0.18em] uppercase px-3 py-1 rounded-full border ${isDark ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/20" : "text-emerald-600 bg-emerald-50 border-emerald-100"}`}>In Stock</span>
+        <span
+          className={`text-[11px] font-black tracking-[0.18em] uppercase px-3 py-1 rounded-full border ${
+            isInStock
+              ? isDark
+                ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/20"
+                : "text-emerald-700 bg-emerald-50 border-emerald-200"
+              : isDark
+                ? "text-rose-300 bg-rose-500/10 border-rose-500/20"
+                : "text-rose-700 bg-rose-50 border-rose-200"
+          }`}
+        >
+          {isInStock ? "In Stock" : "Out of Stock"}
+        </span>
       </div>
 
       {/* Product Title & Rating */}

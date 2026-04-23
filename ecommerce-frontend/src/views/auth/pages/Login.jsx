@@ -92,7 +92,8 @@ const Login = () => {
   };
 
   // Google Login Handler - First step: get user info
-  const handleGoogleLogin = useGoogleLogin({
+  const startGoogleLogin = useGoogleLogin({
+    scope: "openid profile email",
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
@@ -126,6 +127,11 @@ const Login = () => {
       setLoading(false);
     },
   });
+
+  const handleGoogleLogin = () => {
+    setError("");
+    startGoogleLogin();
+  };
 
   // Continue with Google login after confirmation
   const handleGoogleContinue = async () => {

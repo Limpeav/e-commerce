@@ -46,6 +46,10 @@ const productSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lowStockAlertSent: {
+      type: Boolean,
+      default: false,
+    },
     reviews: [reviewSchema],
     rating: {
       type: Number,

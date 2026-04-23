@@ -116,7 +116,7 @@ export default function Navbar() {
                   to="/wishlist"
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border-2 relative ${isActive("/wishlist")
                     ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box] text-text-main' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box] text-primary'} border-transparent shadow-lg shadow-primary/10`
-                    : `bg-transparent border-transparent ${mutedTextClassName} hover:text-primary`
+                    : `bg-transparent border-transparent ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                     }`}
                 >
                   <div className="relative">
@@ -276,7 +276,7 @@ export default function Navbar() {
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <Link to="/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:text-primary`}`}>
+            <Link to="/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
               <Heart className="w-5 h-5" />
               {wishlistItemCount > 0 && (
                 <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>

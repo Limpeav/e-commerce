@@ -156,7 +156,7 @@ const EditProduct = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Product Image Upload */}
           <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
             <label className="block text-lg font-bold text-gray-900 mb-6 flex items-center">
@@ -237,7 +237,7 @@ const EditProduct = () => {
                     placeholder="Enter product title"
                     value={form.title}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -266,7 +266,7 @@ const EditProduct = () => {
                         setForm({ ...form, price: '' });
                       }
                     }}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -296,7 +296,7 @@ const EditProduct = () => {
                         setForm({ ...form, discountPrice: '' });
                       }
                     }}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 {form.discountPrice && form.price && parseFloat(form.discountPrice) >= parseFloat(form.price) && (
@@ -317,7 +317,7 @@ const EditProduct = () => {
                     placeholder="0"
                     value={form.stock}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
               </div>
@@ -333,7 +333,7 @@ const EditProduct = () => {
                     name="category"
                     value={form.category}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer font-medium text-gray-900"
                     required
                   >
                     <option value="">Select a category</option>
@@ -359,7 +359,7 @@ const EditProduct = () => {
                     value={form.description}
                     onChange={handleChange}
                     rows="4"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-gray-50 focus:bg-white font-medium"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
               </div>
@@ -377,10 +377,9 @@ const EditProduct = () => {
                 Cancel
               </button>
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={loading}
-                className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-semibold disabled:from-green-400 disabled:to-green-500 disabled:cursor-not-allowed flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="flex items-center space-x-3 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 font-semibold shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[var(--color-primary-light)]"
               >
                 {loading ? (
                   <>
@@ -396,7 +395,7 @@ const EditProduct = () => {
               </button>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

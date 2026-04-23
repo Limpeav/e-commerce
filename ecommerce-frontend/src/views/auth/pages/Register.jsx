@@ -89,7 +89,8 @@ const Register = () => {
   };
 
   // Google Sign Up Handler - First step: get user info
-  const handleGoogleSignUp = useGoogleLogin({
+  const startGoogleSignUp = useGoogleLogin({
+    scope: "openid profile email",
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
@@ -123,6 +124,11 @@ const Register = () => {
       setLoading(false);
     },
   });
+
+  const handleGoogleSignUp = () => {
+    setError("");
+    startGoogleSignUp();
+  };
 
   // Continue with Google sign up after confirmation
   const handleGoogleContinue = async () => {

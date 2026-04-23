@@ -3,6 +3,13 @@ import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
 import Notification from "../models/notificationModel.js";
+import {
+    shouldSendLowStockAlert,
+    syncLowStockAlertFlag,
+} from "../utils/stockAlerts.js";
+import {
+    sendLowStockTelegramAlert,
+} from "../utils/sendTelegramMessage.js";
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -22,6 +29,7 @@ export const createOrder = asyncHandler(async (req, res) => {
         throw new Error("No order items");
     } else {
         const session = await mongoose.startSession();
+        const lowStockAlerts = [];
 
         try {
             let createdOrder;
@@ -49,8 +57,26 @@ export const createOrder = asyncHandler(async (req, res) => {
 
                 for (const item of orderItems) {
                     const product = productMap.get(String(item.product));
+                    const previousStock = product.stock;
                     product.stock -= item.quantity;
+                    syncLowStockAlertFlag(product);
                     await product.save({ session });
+
+                    if (
+                        shouldSendLowStockAlert({
+                            previousStock,
+                            currentStock: product.stock,
+                            lowStockAlertSent: product.lowStockAlertSent,
+                        })
+                    ) {
+                        lowStockAlerts.push({
+                            productId: product._id,
+                            title: product.title,
+                            category: product.category,
+                            stock: product.stock,
+                            imageUrl: product.image,
+                        });
+                    }
                 }
 
                 const order = new Order({
@@ -86,6 +112,25 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
 
             await notification.save();
+
+            for (const alert of lowStockAlerts) {
+                try {
+                    await sendLowStockTelegramAlert({
+                        title: alert.title,
+                        category: alert.category,
+                        stock: alert.stock,
+                        productId: alert.productId.toString(),
+                        imageUrl: alert.imageUrl,
+                    });
+
+                    await Product.updateOne(
+                        { _id: alert.productId },
+                        { $set: { lowStockAlertSent: true } }
+                    );
+                } catch (telegramError) {
+                    console.error("Telegram low stock alert failed:", telegramError.message);
+                }
+            }
 
             res.status(201).json(createdOrder);
         } finally {
@@ -162,11 +207,13 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 !order.stockRestored
             ) {
                 for (const item of order.orderItems) {
-                    await Product.findByIdAndUpdate(
-                        item.product,
-                        { $inc: { stock: item.quantity } },
-                        { session }
-                    );
+                    const product = await Product.findById(item.product).session(session);
+
+                    if (product) {
+                        product.stock += item.quantity;
+                        syncLowStockAlertFlag(product);
+                        await product.save({ session });
+                    }
                 }
                 order.stockRestored = true;
             }

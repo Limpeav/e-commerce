@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -156,6 +157,7 @@ export const createProduct = async (req, res) => {
       image: req.file?.path || "",
     });
 
+    syncLowStockAlertFlag(product);
     const saved = await product.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -286,10 +288,13 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.description = productData.description;
         existingProduct.stock = productData.stock;
         existingProduct.image = productData.image;
+        syncLowStockAlertFlag(existingProduct);
         await existingProduct.save();
         updatedCount += 1;
       } else {
-        await Product.create(productData);
+        const product = new Product(productData);
+        syncLowStockAlertFlag(product);
+        await product.save();
         createdCount += 1;
       }
     }
@@ -404,6 +409,7 @@ export const updateProduct = async (req, res) => {
       product.image = req.file.path;
     }
 
+    syncLowStockAlertFlag(product);
     await product.save();
     res.json(product);
   } catch (err) {
