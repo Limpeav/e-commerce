@@ -39,6 +39,7 @@ export default function AppView() {
   const location = useLocation();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
+  const authenticatedRedirect = user?.phone ? "/" : "/complete-profile";
 
   useEffect(() => {
     // Clear any leftover global page-lock styles from modals when routes change.
@@ -65,7 +66,14 @@ export default function AppView() {
     return <Navigate to="/complete-profile" replace />;
   }
 
-  const renderRouteElement = (Component, isProtected, isAdmin) => {
+  const renderRouteElement = (route, isProtected, isAdmin) => {
+    const Component = LazyComponents[route.component];
+    const isUserAuthPage =
+      route.path === "/login" ||
+      route.path === "/register" ||
+      route.path === "/forgot-password" ||
+      route.path === "/reset-password";
+
     if (isAdmin) {
       return (
         <AdminRoute>
@@ -91,6 +99,10 @@ export default function AppView() {
       );
     }
 
+    if (isUserAuthPage && user) {
+      return <Navigate to={authenticatedRedirect} replace />;
+    }
+
     return (
       <PageTransition>
         <Component />
@@ -99,13 +111,11 @@ export default function AppView() {
   };
 
   const renderRoute = (route, isProtected = false, isAdmin = false) => {
-    const Component = LazyComponents[route.component];
-
     return (
       <Route
         key={route.path}
         path={route.path}
-        element={renderRouteElement(Component, isProtected, isAdmin)}
+        element={renderRouteElement(route, isProtected, isAdmin)}
       />
     );
   };

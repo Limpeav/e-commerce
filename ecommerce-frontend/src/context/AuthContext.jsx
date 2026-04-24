@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthController } from "../controllers/index.js";
 import { AuthContext } from "./auth-context";
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    setUser(AuthController.getCurrentUser());
-  }, []);
+  const [user, setUser] = useState(() => AuthController.getCurrentUser());
 
   const login = (userData) => {
     localStorage.setItem("user", JSON.stringify(userData));
