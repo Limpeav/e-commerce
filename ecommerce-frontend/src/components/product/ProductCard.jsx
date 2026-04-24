@@ -12,9 +12,11 @@ const ProductCard = ({
   user,
   variants
 }) => {
-  const hasDiscount = product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price;
-  const discountPercent = hasDiscount ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0;
-  const finalPrice = hasDiscount ? product.discountPrice : product.price;
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  const hasDiscount = discountPrice > 0 && discountPrice < price;
+  const discountPercent = hasDiscount ? Math.round(((price - discountPrice) / price) * 100) : 0;
+  const finalPrice = hasDiscount ? discountPrice : price;
   const inWishlist = isInWishlist(product._id);
   const outOfStock = product.stock === 0;
   const [isDark] = useDarkMode();
@@ -121,11 +123,11 @@ const ProductCard = ({
           <div className="flex flex-col">
             {hasDiscount && (
               <span className={`text-xs font-bold line-through ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
-                ${product.price?.toFixed(2)}
+                ${price.toFixed(2)}
               </span>
             )}
             <span className={`text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-stone-900'}`}>
-              ${finalPrice?.toFixed(2)}
+              ${finalPrice.toFixed(2)}
             </span>
           </div>
 

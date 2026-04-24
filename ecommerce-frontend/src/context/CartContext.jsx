@@ -100,7 +100,6 @@ export const CartProvider = ({ children }) => {
       }
 
       setCart(result.data || []);
-      info("Cart Cleared", "All items have been removed from your cart.");
     } catch (error) {
       console.error("Error clearing cart:", error);
       toastError("Clear Failed", "Could not clear cart.");

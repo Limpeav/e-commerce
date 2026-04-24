@@ -167,7 +167,9 @@ export const createProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1, _id: -1 });
+    const isAdmin = req.user?.role === "admin";
+    const filters = isAdmin ? {} : { stock: { $gt: 0 } };
+    const products = await Product.find(filters).sort({ createdAt: -1, _id: -1 });
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -315,6 +317,11 @@ export const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product)
       return res.status(404).json({ message: "Product not found" });
+
+    const isAdmin = req.user?.role === "admin";
+    if (!isAdmin && Number(product.stock || 0) <= 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     // Filter out reviews from deleted users and update user names
     const validReviews = [];

@@ -7,11 +7,13 @@ import { useDarkMode } from "../../hooks";
 const formatPrice = (price) => `$${Number(price || 0).toFixed(2)}`;
 
 const getPricing = (product) => {
-  const hasDiscount = product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price;
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  const hasDiscount = discountPrice > 0 && discountPrice < price;
   return {
     hasDiscount,
-    basePrice: Number(product.price || 0),
-    finalPrice: hasDiscount ? Number(product.discountPrice || 0) : Number(product.price || 0),
+    basePrice: price,
+    finalPrice: hasDiscount ? discountPrice : price,
   };
 };
 

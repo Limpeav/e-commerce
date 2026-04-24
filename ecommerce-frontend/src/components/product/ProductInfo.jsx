@@ -10,8 +10,10 @@ const ProductInfo = ({
   user
 }) => {
   const [isDark] = useDarkMode();
-  const hasDiscount = product.discountPrice && product.discountPrice < product.price;
-  const discountPercent = hasDiscount ? Math.round(((product.price - product.discountPrice) / product.price) * 100) : 0;
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  const hasDiscount = discountPrice > 0 && discountPrice < price;
+  const discountPercent = hasDiscount ? Math.round(((price - discountPrice) / price) * 100) : 0;
   const isInStock = Number(product.stock || 0) > 0;
 
   return (
@@ -73,10 +75,10 @@ const ProductInfo = ({
         {hasDiscount ? (
           <>
             <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-              ${product.discountPrice?.toFixed(2)}
+              ${discountPrice.toFixed(2)}
             </span>
             <span className={`mb-1 line-through text-lg font-bold decoration-2 sm:mb-1.5 sm:text-xl ${isDark ? "text-slate-500" : "text-stone-400"}`}>
-              ${product.price?.toFixed(2)}
+              ${price.toFixed(2)}
             </span>
             <div className="mb-1.5 rounded-xl bg-rose-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-sm shadow-rose-200 sm:mb-2">
               Save {discountPercent}%
@@ -84,7 +86,7 @@ const ProductInfo = ({
           </>
         ) : (
           <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-            ${product.price?.toFixed(2) || "0.00"}
+            ${price.toFixed(2)}
           </span>
         )}
       </div>

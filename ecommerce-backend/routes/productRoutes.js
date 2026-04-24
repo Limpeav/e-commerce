@@ -28,7 +28,7 @@ router.post("/upsert-csv", protect, admin, csvUpload.single("file"), upsertProdu
 router.route("/:id/reviews").post(protect, createProductReview);
 
 // READ ALL
-router.get("/", getProducts);
+router.get("/", optionalAuth, getProducts);
 
 // READ ONE (🔥 THIS FIXES YOUR ERROR)
 router.get("/:id", optionalAuth, getProductById);

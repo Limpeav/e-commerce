@@ -23,6 +23,7 @@ import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
+const ORDER_REQUEST_TIMEOUT_MS = 10000;
 
 const displayValue = (value, fallback) => value || fallback;
 
@@ -198,11 +199,9 @@ const Checkout = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          timeout: ORDER_REQUEST_TIMEOUT_MS,
         }
       );
-
-      // Clear cart after successful order
-      await clearCart();
 
       // Preserve the latest order id so shared success flows can deep-link
       // back to the specific order detail page.
@@ -215,10 +214,25 @@ const Checkout = () => {
       } else {
         setOrderPlaced(true);
       }
+
+      // Cart cleanup should not block order success UI.
+      clearCart().catch((clearCartError) => {
+        console.error("Cart clear failed after order:", clearCartError);
+      });
     } catch (err) {
+      const errorMessage =
+        err.code === "ECONNABORTED"
+          ? "Order request timed out. Please check the backend server and try again."
+          : err.response?.data?.message ||
+            (err.message === "Network Error"
+              ? "Cannot reach the backend API. Check that the backend server is running and VITE_API_URL is correct."
+              : err.message) ||
+            "Failed to place order";
+
       setError(
-        err.response?.data?.message || err.message || "Failed to place order"
+        errorMessage
       );
+      scrollToError();
     } finally {
       setLoading(false);
     }
@@ -283,6 +297,7 @@ const Checkout = () => {
         {/* Header */}
         <div className="mb-12">
           <button
+            type="button"
             onClick={() => navigate("/cart")}
             className={`flex items-center gap-2 font-bold text-sm mb-8 transition-all px-5 py-2.5 rounded-full w-fit border ${isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-primary hover:bg-slate-800" : "bg-white border-stone-100 text-text-muted hover:text-primary hover:shadow-md"} `}
           >
@@ -312,9 +327,20 @@ const Checkout = () => {
                     <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                       Full Name
                     </label>
-                    <div className={`relative flex items-center w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
+                    <div className="relative">
                       <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
-                      <span>{displayValue(shippingAddress.fullName, "No name provided")}</span>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={shippingAddress.fullName}
+                        onChange={handleInputChange}
+                        placeholder="Enter your full name"
+                        className={`w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${
+                          isDark
+                            ? "bg-slate-800 border-slate-700 placeholder:text-slate-500"
+                            : "bg-stone-50 border-stone-200 placeholder:text-stone-400"
+                        }`}
+                      />
                     </div>
                   </div>
 
@@ -363,10 +389,10 @@ const Checkout = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
-                        City
+                        City / Province
                       </label>
                       <div className={`flex items-center w-full px-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
-                        <span>{displayValue(shippingAddress.city, "City will appear here")}</span>
+                        <span>{displayValue(shippingAddress.city, "City / Province will appear here")}</span>
                       </div>
                     </div>
 
@@ -374,12 +400,24 @@ const Checkout = () => {
                       <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
                         Phone Number
                       </label>
-                      <div className={`relative flex items-center w-full pl-28 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
+                      <div className="relative">
                         <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                         <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-text-main"}`}>
                           {CAMBODIA_DIAL_CODE}
                         </span>
-                        <span>{displayValue(shippingAddress.phone, "No phone number")}</span>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={shippingAddress.phone}
+                          onChange={handleInputChange}
+                          placeholder="12 345 678"
+                          inputMode="numeric"
+                          className={`w-full pl-28 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${
+                            isDark
+                              ? "bg-slate-800 border-slate-700 placeholder:text-slate-500"
+                              : "bg-stone-50 border-stone-200 placeholder:text-stone-400"
+                          }`}
+                        />
                       </div>
                     </div>
                   </div>

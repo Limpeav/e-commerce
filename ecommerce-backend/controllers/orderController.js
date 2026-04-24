@@ -9,7 +9,67 @@ import {
 } from "../utils/stockAlerts.js";
 import {
     sendLowStockTelegramAlert,
+    sendOrderTelegramAlert,
 } from "../utils/sendTelegramMessage.js";
+
+const createHttpError = (statusCode, message) =>
+    Object.assign(new Error(message), { statusCode });
+
+const dispatchOrderAlerts = ({
+    createdOrder,
+    shippingAddress,
+    paymentMethod,
+    totalPrice,
+    orderItems,
+    googleMapsLink,
+    lowStockAlerts,
+}) => {
+    setImmediate(async () => {
+        try {
+            await sendOrderTelegramAlert({
+                orderId: createdOrder._id.toString().slice(-8).toUpperCase(),
+                customerName: createdOrder.user?.name || shippingAddress.fullName,
+                customerPhone: shippingAddress.phone,
+                totalPrice,
+                paymentMethod,
+                itemCount: orderItems.reduce(
+                    (totalItems, item) => totalItems + Number(item.quantity || 0),
+                    0
+                ),
+                shippingAddress: [
+                    shippingAddress.address,
+                    shippingAddress.city,
+                    shippingAddress.postalCode,
+                    shippingAddress.country,
+                ]
+                    .filter(Boolean)
+                    .join(", "),
+                googleMapsLink,
+            });
+        } catch (telegramError) {
+            console.error("Telegram order alert failed:", telegramError.message);
+        }
+
+        for (const alert of lowStockAlerts) {
+            try {
+                await sendLowStockTelegramAlert({
+                    title: alert.title,
+                    category: alert.category,
+                    stock: alert.stock,
+                    productId: alert.productId.toString(),
+                    imageUrl: alert.imageUrl,
+                });
+
+                await Product.updateOne(
+                    { _id: alert.productId },
+                    { $set: { lowStockAlertSent: true } }
+                );
+            } catch (telegramError) {
+                console.error("Telegram low stock alert failed:", telegramError.message);
+            }
+        }
+    });
+};
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -45,12 +105,13 @@ export const createOrder = asyncHandler(async (req, res) => {
                     const product = productMap.get(String(item.product));
 
                     if (!product) {
-                        throw new Error(`Product not found for item: ${item.name}`);
+                        throw createHttpError(404, `Product not found for item: ${item.name}`);
                     }
 
                     if (product.stock < item.quantity) {
-                        throw new Error(
-                            `Not enough stock for ${product.title}. Available: ${product.stock}, requested: ${item.quantity}`
+                        throw createHttpError(
+                            409,
+                            `${product.title} only has ${product.stock} left, but ${item.quantity} were requested. Please update your cart and try again.`
                         );
                     }
                 }
@@ -113,26 +174,26 @@ export const createOrder = asyncHandler(async (req, res) => {
 
             await notification.save();
 
-            for (const alert of lowStockAlerts) {
-                try {
-                    await sendLowStockTelegramAlert({
-                        title: alert.title,
-                        category: alert.category,
-                        stock: alert.stock,
-                        productId: alert.productId.toString(),
-                        imageUrl: alert.imageUrl,
-                    });
+            res.status(201).json(createdOrder);
 
-                    await Product.updateOne(
-                        { _id: alert.productId },
-                        { $set: { lowStockAlertSent: true } }
-                    );
-                } catch (telegramError) {
-                    console.error("Telegram low stock alert failed:", telegramError.message);
-                }
+            dispatchOrderAlerts({
+                createdOrder,
+                shippingAddress,
+                paymentMethod,
+                totalPrice,
+                orderItems,
+                googleMapsLink,
+                lowStockAlerts,
+            });
+        } catch (error) {
+            if (!res.headersSent) {
+                res.status(error.statusCode || 500).json({
+                    message: error.message || "Failed to create order",
+                });
+                return;
             }
 
-            res.status(201).json(createdOrder);
+            throw error;
         } finally {
             await session.endSession();
         }

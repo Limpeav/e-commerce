@@ -5,13 +5,24 @@ import { MapPin, X, Check, Search, Navigation } from "lucide-react";
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
 
 const DEFAULT_LOCATION = { lat: 11.5564, lng: 104.9282 };
+const CAMBODIA_COUNTRY_CODE = "kh";
+const CAMBODIA_BOUNDS = {
+  north: 14.7083,
+  south: 10.3436,
+  west: 102.3338,
+  east: 107.6277,
+};
+
+const isWithinCambodiaBounds = ({ lat, lng }) =>
+  lat >= CAMBODIA_BOUNDS.south &&
+  lat <= CAMBODIA_BOUNDS.north &&
+  lng >= CAMBODIA_BOUNDS.west &&
+  lng <= CAMBODIA_BOUNDS.east;
 
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
-  const initialLat = initialLocation?.lat ?? DEFAULT_LOCATION.lat;
-  const initialLng = initialLocation?.lng ?? DEFAULT_LOCATION.lng;
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
-    { lat: initialLat, lng: initialLng }
+    DEFAULT_LOCATION
   );
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -30,8 +41,17 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
 
+  const setCambodiaOnlyError = () => {
+    setLocationError("Please choose a location inside Cambodia only.");
+  };
+
   const extractLocationDetails = (result, fallbackLocation = selectedLocation) => {
     const addressComponents = result?.address_components || [];
+    const getAddressComponent = (...types) =>
+      addressComponents.find((component) =>
+        types.some((type) => component.types.includes(type))
+      )?.long_name || "";
+
     const streetNumber = addressComponents.find((component) =>
       component.types.includes("street_number")
     )?.long_name;
@@ -39,30 +59,31 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       component.types.includes("route")
     )?.long_name;
     const neighborhood =
-      addressComponents.find((component) =>
-        component.types.includes("sublocality_level_1")
-      )?.long_name ||
-      addressComponents.find((component) =>
-        component.types.includes("sublocality")
-      )?.long_name ||
-      addressComponents.find((component) =>
-        component.types.includes("neighborhood")
-      )?.long_name;
-    const cityComponent =
-      addressComponents.find((component) =>
-        component.types.includes("locality")
-      ) ||
-      addressComponents.find((component) =>
-        component.types.includes("administrative_area_level_1")
-      ) ||
-      addressComponents.find((component) =>
-        component.types.includes("administrative_area_level_2")
-      );
+      getAddressComponent("sublocality_level_1", "sublocality", "neighborhood");
+    const district =
+      getAddressComponent("administrative_area_level_2", "administrative_area_level_3");
+    const province = getAddressComponent("administrative_area_level_1");
+    const locality = getAddressComponent("locality");
 
     const addressLine = [streetNumber, route].filter(Boolean).join(" ");
+    const baseAddress = addressLine || neighborhood || result?.name || "";
+    const cityProvince = [locality || district, province]
+      .filter(Boolean)
+      .filter((value, index, values) => values.indexOf(value) === index)
+      .join(" / ");
+    const formattedAddress = [
+      baseAddress,
+      district && district !== baseAddress ? district : "",
+      province && province !== district ? province : "",
+      "Cambodia",
+    ]
+      .filter(Boolean)
+      .join(", ");
     const fallbackAddress =
-      addressLine ||
-      neighborhood ||
+      baseAddress ||
+      district ||
+      province ||
+      locality ||
       result?.formatted_address ||
       result?.name ||
       "";
@@ -75,8 +96,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         result?.geometry?.location?.lng?.() ??
         fallbackLocation.lng,
       address: fallbackAddress,
-      city: cityComponent?.long_name || "",
-      formattedAddress: result?.formatted_address || result?.name || "",
+      city: cityProvince || province || locality || district,
+      formattedAddress: formattedAddress || result?.formatted_address || result?.name || "",
     };
   };
 
@@ -114,11 +135,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
   useEffect(() => {
     if (isOpen) return;
-    setSelectedLocation({ lat: initialLat, lng: initialLng });
-  }, [initialLat, initialLng, isOpen]);
+    setSelectedLocation(DEFAULT_LOCATION);
+  }, [isOpen]);
 
   const resetDraftState = () => {
-    setSelectedLocation({ lat: initialLat, lng: initialLng });
+    setSelectedLocation(DEFAULT_LOCATION);
     setLocationError("");
     setShowBottomSheet(true);
     setSearchQuery("");
@@ -243,25 +264,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
     try {
       setIsMapLoading(true);
-
-      // Detect if mobile
       const isMobile = window.innerWidth < 768;
 
       const map = new window.google.maps.Map(mapRef.current, {
         center: selectedLocation,
         zoom: 15,
-        // Simplified controls on mobile
-        mapTypeControl: !isMobile,
-        mapTypeControlOptions: {
-          style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-          position: window.google.maps.ControlPosition.TOP_RIGHT,
-        },
-        streetViewControl: false, // Hide on mobile for cleaner UI
+        minZoom: 7,
+        mapTypeControl: false,
+        streetViewControl: false,
         fullscreenControl: false, // We already have full screen modal
-        zoomControl: !isMobile, // Hide zoom buttons on mobile (pinch to zoom)
-        zoomControlOptions: {
-          position: window.google.maps.ControlPosition.RIGHT_CENTER,
-        },
+        zoomControl: false,
         gestureHandling: "greedy", // Allow single-finger map panning on mobile
         styles: [
           {
@@ -275,6 +287,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
             stylers: [{ visibility: "simplified" }],
           },
         ],
+        restriction: {
+          latLngBounds: CAMBODIA_BOUNDS,
+          strictBounds: true,
+        },
       });
 
       mapInstanceRef.current = map;
@@ -285,13 +301,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         map: map,
         draggable: true,
         animation: window.google.maps.Animation.DROP,
+        zIndex: 1000,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          scale: isMobile ? 14 : 12,
+          scale: isMobile ? 16 : 14,
           fillColor: "#3B82F6",
           fillOpacity: 1,
           strokeColor: "#FFFFFF",
-          strokeWeight: 3,
+          strokeWeight: 4,
         },
       });
 
@@ -319,6 +336,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
         };
+        if (!isWithinCambodiaBounds(newLocation)) {
+          setCambodiaOnlyError();
+          return;
+        }
         setSelectedLocation(newLocation);
         marker.setPosition(e.latLng);
         marker.setAnimation(window.google.maps.Animation.BOUNCE);
@@ -333,6 +354,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
         };
+        if (!isWithinCambodiaBounds(newLocation)) {
+          marker.setPosition(selectedLocation);
+          map.panTo(selectedLocation);
+          setCambodiaOnlyError();
+          return;
+        }
         setSelectedLocation(newLocation);
         map.panTo(e.latLng);
         updateAddress(newLocation);
@@ -346,6 +373,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
             searchInputRef.current,
             {
               fields: ["geometry", "formatted_address", "name", "address_components"],
+              bounds: CAMBODIA_BOUNDS,
+              componentRestrictions: { country: CAMBODIA_COUNTRY_CODE },
+              strictBounds: true,
             }
           );
 
@@ -356,6 +386,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng(),
               };
+              if (!isWithinCambodiaBounds(newLocation)) {
+                setCambodiaOnlyError();
+                return;
+              }
               setSelectedLocation(newLocation);
               map.setCenter(newLocation);
               map.setZoom(17);
@@ -380,15 +414,22 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       }
 
       // Geocode initial address if provided
-      if (address && window.google.maps.Geocoder) {
+      if (initialLocation && address && window.google.maps.Geocoder) {
         try {
           const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ address: address }, (results, status) => {
+          geocoder.geocode({
+            address,
+            componentRestrictions: { country: CAMBODIA_COUNTRY_CODE },
+          }, (results, status) => {
             if (status === "OK" && results[0]) {
               const location = {
                 lat: results[0].geometry.location.lat(),
                 lng: results[0].geometry.location.lng(),
               };
+              if (!isWithinCambodiaBounds(location)) {
+                setCambodiaOnlyError();
+                return;
+              }
               setSelectedLocation(location);
               map.setCenter(location);
               marker.setPosition(results[0].geometry.location);
@@ -432,10 +473,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      if (!isWithinCambodiaBounds(location)) {
+        setDetectingLocation(false);
+        setCambodiaOnlyError();
+        return;
+      }
       setSelectedLocation(location);
 
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.setCenter(location);
+        mapInstanceRef.current.panTo(location);
         mapInstanceRef.current.setZoom(17);
       }
 
@@ -462,22 +508,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
       setDetectingLocation(false);
       setShowBottomSheet(true);
+
+      if (mapInstanceRef.current) {
+        window.setTimeout(() => {
+          mapInstanceRef.current?.panBy(0, -120);
+        }, 250);
+      }
     };
 
-    const handleLocationError = (error, hasRetried) => {
-      if (!hasRetried && error.code === error.POSITION_UNAVAILABLE) {
-        navigator.geolocation.getCurrentPosition(
-          applyDetectedLocation,
-          (retryError) => handleLocationError(retryError, true),
-          {
-            enableHighAccuracy: false,
-            timeout: 15000,
-            maximumAge: 300000,
-          }
-        );
-        return;
-      }
-
+    const handleLocationError = (error) => {
       setDetectingLocation(false);
       let errorMessage = "Could not detect your location.";
       switch (error.code) {
@@ -499,11 +538,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
     navigator.geolocation.getCurrentPosition(
       applyDetectedLocation,
-      (error) => handleLocationError(error, false),
+      handleLocationError,
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: false,
+        timeout: 12000,
+        maximumAge: 300000,
       }
     );
   };
@@ -636,7 +675,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                 className="absolute right-3 md:right-4 flex flex-col items-end gap-2.5"
                 style={{
                   zIndex: 15,
-                  bottom: showBottomSheet && addressName ? "200px" : "140px",
+                  bottom: showBottomSheet && addressName ? "228px" : "168px",
                   transition: "bottom 0.3s ease",
                 }}
               >
@@ -647,20 +686,20 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   </div>
                 )}
 
-                {/* My Location FAB */}
+                {/* Current Location FAB */}
                 <button
                   type="button"
                   onClick={detectUserLocation}
                   disabled={detectingLocation}
                   className="w-12 h-12 md:w-auto md:h-auto md:px-4 md:py-3 bg-white rounded-full md:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 disabled:opacity-50 flex items-center justify-center md:gap-2.5 font-semibold text-gray-900 active:scale-90 group"
-                  title="Use my current location"
+                  title="Use current location"
                 >
                   {detectingLocation ? (
                     <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
                       <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="hidden md:inline text-sm">My Location</span>
+                      <span className="hidden md:inline text-sm">Current Location</span>
                     </>
                   )}
                 </button>
