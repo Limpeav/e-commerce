@@ -490,10 +490,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={handleGoogleCancel}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all appearance-none ${
                     isDark 
-                      ? "bg-slate-700 text-slate-300 hover:bg-slate-600" 
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-slate-700 text-slate-100 hover:bg-slate-600" 
+                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                   }`}
                 >
                   Cancel
@@ -502,7 +502,8 @@ const Login = () => {
                   type="button"
                   onClick={handleGoogleContinue}
                   disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none border border-transparent bg-[var(--color-primary)] text-white shadow-sm shadow-black/10 transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ color: "#FFFFFF" }}
                 >
                   {loading && <Loader className="w-4 h-4 animate-spin" />}
                   Continue

@@ -495,7 +495,7 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={handleGoogleCancel}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none bg-gray-100 text-gray-900 hover:bg-gray-200 transition-all"
                 >
                   Cancel
                 </button>
@@ -503,7 +503,8 @@ const Register = () => {
                   type="button"
                   onClick={handleGoogleContinue}
                   disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none border border-transparent bg-[var(--color-primary)] text-white shadow-sm shadow-black/10 transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ color: "#FFFFFF" }}
                 >
                   {loading && <Loader className="w-4 h-4 animate-spin" />}
                   Continue
