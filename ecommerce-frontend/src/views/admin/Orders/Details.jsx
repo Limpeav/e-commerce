@@ -52,6 +52,7 @@ const OrderDetails = () => {
         }
 
         await fetchOrderDetails();
+        window.dispatchEvent(new Event("admin-orders-updated"));
         setUpdating(false);
     };
 
@@ -70,6 +71,7 @@ const OrderDetails = () => {
         }
 
         await fetchOrderDetails();
+        window.dispatchEvent(new Event("admin-orders-updated"));
         setUpdating(false);
     };
 
@@ -83,15 +85,49 @@ const OrderDetails = () => {
         return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
     };
 
+    const normalizeOrderStatus = (status) => {
+        if (!status) return "Pending";
+
+        const trimmedStatus = String(status).trim();
+        if (!trimmedStatus) return "Pending";
+
+        const normalized = trimmedStatus.toLowerCase();
+        if (normalized === "canceled" || normalized === "cancelled") {
+            return "Cancelled";
+        }
+
+        if (normalized === "pending") return "Pending";
+        if (normalized === "processing") return "Processing";
+        if (normalized === "shipped") return "Shipped";
+        if (normalized === "delivered") return "Delivered";
+
+        return trimmedStatus;
+    };
+
     const getStatusColor = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
             Processing: "bg-blue-100 text-blue-800 border-blue-300",
             Shipped: "bg-purple-100 text-purple-800 border-purple-300",
             Delivered: "bg-green-100 text-green-800 border-green-300",
-            Cancelled: "bg-red-100 text-red-800 border-red-300",
+            Cancelled: "",
         };
-        return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
+        return colors[normalizedStatus] || "bg-gray-100 text-gray-800 border-gray-300";
+    };
+
+    const getStatusStyle = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
+
+        if (normalizedStatus === "Cancelled") {
+            return {
+                backgroundColor: "#F6D2C0",
+                color: "#9A3412",
+                borderColor: "#E9A47E",
+            };
+        }
+
+        return undefined;
     };
 
     if (loading) {
@@ -136,8 +172,11 @@ const OrderDetails = () => {
                                 </p>
                             </div>
                         </div>
-                        <div className={`px-4 py-2 rounded-lg border-2 ${getStatusColor(order.orderStatus)}`}>
-                            <span className="text-sm font-semibold">{order.orderStatus}</span>
+                        <div
+                            className={`px-4 py-2 rounded-lg border-2 ${getStatusColor(order.orderStatus)}`}
+                            style={getStatusStyle(order.orderStatus)}
+                        >
+                            <span className="text-sm font-semibold">{normalizeOrderStatus(order.orderStatus)}</span>
                         </div>
                     </div>
                 </div>

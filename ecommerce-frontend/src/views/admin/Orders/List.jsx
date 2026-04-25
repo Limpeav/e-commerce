@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Package,
-    Eye,
     Trash2,
     Search,
     Filter,
@@ -65,6 +64,7 @@ const AdminOrders = () => {
         if (window.confirm("Are you sure you want to delete this order?")) {
             try {
                 await adminService.deleteOrder(id);
+                window.dispatchEvent(new Event("admin-orders-updated"));
                 fetchOrders();
             } catch (err) {
                 alert(err.response?.data?.message || "Failed to delete order");
@@ -76,15 +76,48 @@ const AdminOrders = () => {
         navigate(`/admin/orders/${orderId}`);
     };
 
+    const normalizeOrderStatus = (status) => {
+        if (!status) return "Pending";
+
+        const trimmedStatus = String(status).trim();
+        if (!trimmedStatus) return "Pending";
+
+        const normalized = trimmedStatus.toLowerCase();
+        if (normalized === "canceled" || normalized === "cancelled") {
+            return "Cancelled";
+        }
+
+        if (normalized === "pending") return "Pending";
+        if (normalized === "processing") return "Processing";
+        if (normalized === "shipped") return "Shipped";
+        if (normalized === "delivered") return "Delivered";
+
+        return trimmedStatus;
+    };
+
     const getStatusColor = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800",
             Processing: "bg-blue-100 text-blue-800",
             Shipped: "bg-purple-100 text-purple-800",
             Delivered: "bg-green-100 text-green-800",
-            Cancelled: "bg-red-100 text-red-800",
+            Cancelled: "",
         };
-        return colors[status] || "bg-gray-100 text-gray-800";
+        return colors[normalizedStatus] || "bg-gray-100 text-gray-800";
+    };
+
+    const getStatusStyle = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
+
+        if (normalizedStatus === "Cancelled") {
+            return {
+                backgroundColor: "#F6D2C0",
+                color: "#9A3412",
+            };
+        }
+
+        return undefined;
     };
 
     const getPaymentColor = (status) => {
@@ -286,22 +319,13 @@ const AdminOrders = () => {
                                                 className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                                                     order.orderStatus
                                                 )}`}
+                                                style={getStatusStyle(order.orderStatus)}
                                             >
-                                                {order.orderStatus || "Pending"}
+                                                {normalizeOrderStatus(order.orderStatus)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleRowNavigation(order._id);
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                                                    title="View Details"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();

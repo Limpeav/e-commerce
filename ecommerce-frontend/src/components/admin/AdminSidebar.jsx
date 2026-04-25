@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { clearAdminSession, getStoredAdminUser } from '../../utils/adminSession'
+import { adminService } from '../../services/adminService'
 import {
   LayoutDashboard,
   Package,
@@ -16,9 +17,63 @@ const AdminSidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
+  const [orderCount, setOrderCount] = React.useState(0)
 
   // Get admin user data
   const adminUser = getStoredAdminUser()
+
+  const normalizeStatus = React.useCallback((status) => {
+    if (!status) return ''
+
+    const normalized = String(status).trim().toLowerCase()
+    if (normalized === 'canceled' || normalized === 'cancelled') return 'cancelled'
+
+    return normalized
+  }, [])
+
+  const getPendingOrderCount = React.useCallback((orders) => {
+    if (!Array.isArray(orders)) return 0
+
+    return orders.filter((order) => {
+      const orderStatus = normalizeStatus(order?.orderStatus)
+      const paymentStatus = normalizeStatus(order?.paymentStatus)
+
+      const isFinishedOrder = orderStatus === 'delivered' || orderStatus === 'cancelled'
+      const isSettledPayment =
+        paymentStatus === 'paid' ||
+        paymentStatus === 'refunded' ||
+        paymentStatus === 'failed'
+
+      return !isFinishedOrder || !isSettledPayment
+    }).length
+  }, [normalizeStatus])
+
+  React.useEffect(() => {
+    let isMounted = true
+
+    const loadOrderCount = async () => {
+      try {
+        const response = await adminService.getOrders()
+        if (isMounted) {
+          setOrderCount(getPendingOrderCount(response.data))
+        }
+      } catch (error) {
+        if (isMounted) {
+          setOrderCount(0)
+        }
+      }
+    }
+
+    loadOrderCount()
+    const interval = window.setInterval(loadOrderCount, 30000)
+    window.addEventListener('admin-orders-updated', loadOrderCount)
+
+    return () => {
+      isMounted = false
+      window.clearInterval(interval)
+      window.removeEventListener('admin-orders-updated', loadOrderCount)
+    }
+  }, [getPendingOrderCount])
 
   const menuItems = [
     {
@@ -44,7 +99,8 @@ const AdminSidebar = () => {
     {
       path: '/admin/orders',
       name: 'Orders',
-      icon: ShoppingCart
+      icon: ShoppingCart,
+      badge: orderCount
     }
   ]
 
@@ -121,9 +177,21 @@ const AdminSidebar = () => {
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
                   <span className={`font-medium ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'}`}>{item.name}</span>
-                  {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-[var(--color-secondary-light)] rounded-full animate-pulse" />
-                  )}
+                  <div className="ml-auto flex items-center gap-2">
+                    {item.name === 'Orders' && item.badge > 0 && (
+                      <span
+                        className={`
+                          inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none shadow-sm
+                          ${isActive ? 'bg-[#ff8a8a] text-white' : 'bg-[#ff7b7b] text-white'}
+                        `}
+                      >
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="w-2 h-2 bg-[var(--color-secondary-light)] rounded-full animate-pulse" />
+                    )}
+                  </div>
                 </Link>
               )
             })}

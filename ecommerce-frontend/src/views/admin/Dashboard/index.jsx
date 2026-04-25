@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/adminService'
-import NotificationPanel from '../../../components/NotificationPanel'
 import Loading from '../../../components/common/Loading'
 
 const AdminDashboard = () => {
@@ -79,7 +78,6 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Admin Dashboard</h1>
-          <NotificationPanel />
         </div>
 
         {stats && (
