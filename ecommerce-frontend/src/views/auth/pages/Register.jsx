@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
 import { motion } from "framer-motion";
-import axios from "axios";
 import {
   User,
   Mail,
@@ -47,18 +46,11 @@ const Register = () => {
         email: form.email,
         phone: `+855${form.phone}`,
         password: form.password,
-        role: "user",
       };
 
-      console.log("Sending data:", formData);
-
-      const response = await registerUser(formData);
-      console.log("Registration successful:", response);
+      await registerUser(formData);
       navigate("/login");
     } catch (err) {
-      console.error("Registration error:", err);
-      console.error("Error response:", err.response);
-
       let errorMessage = "Registration failed. Please try again.";
 
       if (err.response?.data?.message) {
@@ -88,36 +80,11 @@ const Register = () => {
     );
   };
 
-  // Google Sign Up Handler - First step: get user info
   const startGoogleSignUp = useGoogleLogin({
     scope: "openid profile email",
     onSuccess: async (tokenResponse) => {
-      try {
-        setLoading(true);
-        setError("");
-
-        // Get user info from Google
-        const userInfoResponse = await axios.get(
-          "https://www.googleapis.com/oauth2/v3/userinfo",
-          {
-            headers: {
-              Authorization: `Bearer ${tokenResponse.access_token}`,
-            },
-          }
-        );
-
-        const { email, name, picture, sub } = userInfoResponse.data;
-
-        // Store Google user info and show confirmation modal
-        setGoogleUser({ email, name, picture, sub, accessToken: tokenResponse.access_token });
-        setShowGoogleConfirm(true);
-        setLoading(false);
-      } catch (err) {
-        setError(
-          "Google sign up failed. Please try again."
-        );
-        setLoading(false);
-      }
+      setGoogleUser({ accessToken: tokenResponse.access_token });
+      setShowGoogleConfirm(true);
     },
     onError: () => {
       setError("Google sign up failed. Please try again.");
@@ -139,10 +106,7 @@ const Register = () => {
       setError("");
 
       const { data } = await googleAuth({
-        email: googleUser.email,
-        name: googleUser.name,
-        picture: googleUser.picture,
-        sub: googleUser.sub,
+        accessToken: googleUser.accessToken,
       });
 
       if (data.role !== "user") {
@@ -452,17 +416,7 @@ const Register = () => {
           >
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                {googleUser.picture ? (
-                  <img 
-                    src={googleUser.picture} 
-                    alt={googleUser.name}
-                    className="w-14 h-14 rounded-full"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-white">
-                    {googleUser.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <ShieldCheck className="w-8 h-8 text-white" />
               </div>
               
               <h3 className="text-xl font-bold mb-1 text-gray-900">
@@ -470,23 +424,16 @@ const Register = () => {
               </h3>
               
               <p className="text-sm mb-6 text-gray-500">
-                You're signing up with
+                Google will be verified on the server before account creation completes.
               </p>
               
               <div className="flex items-center justify-center gap-3 p-3 rounded-xl mb-6 bg-gray-100">
-                {googleUser.picture && (
-                  <img 
-                    src={googleUser.picture} 
-                    alt={googleUser.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                )}
                 <div className="text-left">
                   <p className="font-medium text-gray-900">
-                    {googleUser.name}
+                    Continue with your selected Google account
                   </p>
                   <p className="text-sm text-gray-500">
-                    {googleUser.email}
+                    You can cancel and choose a different account if needed.
                   </p>
                 </div>
               </div>

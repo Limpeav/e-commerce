@@ -4,6 +4,35 @@ import Order from "../models/orderModel.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
 
+const getWebhookSignature = (headers = {}) =>
+    headers["x-bakong-signature"]
+    || headers["x-webhook-signature"]
+    || headers["x-signature"]
+    || "";
+
+const verifyWebhookSignature = (req) => {
+    const secret = process.env.BAKONG_WEBHOOK_SECRET;
+    const signature = getWebhookSignature(req.headers);
+
+    if (!secret || !signature || !req.rawBody) {
+        return false;
+    }
+
+    const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(req.rawBody)
+        .digest("hex");
+
+    try {
+        return crypto.timingSafeEqual(
+            Buffer.from(signature, "hex"),
+            Buffer.from(expectedSignature, "hex")
+        );
+    } catch {
+        return false;
+    }
+};
+
 // @desc    Generate BAKONG KHQR code for payment
 // @route   POST /api/payments/bakong/generate
 // @access  Private
@@ -144,6 +173,11 @@ function generateKHQRString(data) {
 export const verifyBakongPayment = asyncHandler(async (req, res) => {
     const { transactionId, ackId, status, payerName, payerAccount, responseCode } = req.body;
 
+    if (!verifyWebhookSignature(req)) {
+        res.status(401);
+        throw new Error("Invalid webhook signature");
+    }
+
     // Find payment by transaction ID
     const payment = await Payment.findOne({
         "khqrData.transactionId": transactionId,
@@ -153,13 +187,6 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error("Payment not found");
     }
-
-    // Verify webhook signature (in production)
-    // const isValid = verifyWebhookSignature(req.headers, req.body);
-    // if (!isValid) {
-    //     res.status(401);
-    //     throw new Error("Invalid webhook signature");
-    // }
 
     // Update payment status
     if (status === "SUCCESS" || responseCode === "00") {

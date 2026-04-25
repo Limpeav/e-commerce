@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/useAuth";
 import { useToast } from "../../../context/ToastContext";
-import { savePhoneNumber } from "../../../services/authApi";
+import {
+    startPhoneVerification,
+    verifyPhone,
+} from "../../../services/authApi";
 import {
     Phone,
     AlertCircle,
@@ -11,6 +14,7 @@ import {
     Smartphone,
     ArrowRight,
     LogOut,
+    ShieldCheck,
 } from "lucide-react";
 
 const CAMBODIA_DIAL_CODE = "+855";
@@ -39,6 +43,8 @@ const CompleteProfile = () => {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [completed, setCompleted] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
 
     // Redirect if user not logged in
     useEffect(() => {
@@ -50,7 +56,6 @@ const CompleteProfile = () => {
         }
     }, [user, navigate]);
 
-    // Handle phone submission - directly save without OTP
     const handlePhoneSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -65,23 +70,45 @@ const CompleteProfile = () => {
 
         try {
             if (!user?.token) throw new Error("Authentication error. Please login again.");
+            await startPhoneVerification(user.token, toCambodiaPhone(phone));
+            setOtpSent(true);
+            success("Verification Sent", "Enter the code sent to your phone to finish setup.");
+        } catch (err) {
+            setError(
+                err.response?.data?.message || "Failed to send verification code."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const { data } = await savePhoneNumber(user.token, toCambodiaPhone(phone));
+    const handleVerifyCode = async (e) => {
+        e.preventDefault();
+        setError("");
 
-            // Update local user state with new phone
+        if (!otpCode || otpCode.length !== 6) {
+            setError("Please enter the 6-digit verification code");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            if (!user?.token) throw new Error("Authentication error. Please login again.");
+
+            const { data } = await verifyPhone(user.token, otpCode);
             const updatedUser = { ...user, phone: data.phone };
-            login(updatedUser); // Update context
+            login(updatedUser);
 
-            success("Profile Completed", "Phone number saved successfully!");
+            success("Profile Completed", "Phone number verified successfully.");
             setCompleted(true);
 
-            // Redirect after short delay
             setTimeout(() => {
                 navigate("/");
             }, 1500);
         } catch (err) {
             setError(
-                err.response?.data?.message || "Failed to save phone number."
+                err.response?.data?.message || "Failed to verify phone number."
             );
         } finally {
             setLoading(false);
@@ -124,11 +151,11 @@ const CompleteProfile = () => {
                     )}
 
                     {/* Enter Phone Form */}
-                    {!completed && (
+                    {!completed && !otpSent && (
                         <form onSubmit={handlePhoneSubmit} className="space-y-6">
                             <div className="bg-primary/5 rounded-2xl p-4 text-center">
                                 <p className="text-sm text-text-muted font-medium">
-                                    Please enter your phone number to continue shopping.
+                                    Please verify your phone number before continuing.
                                 </p>
                             </div>
 
@@ -163,11 +190,11 @@ const CompleteProfile = () => {
                                 {loading ? (
                                     <>
                                         <Loader className="w-4 h-4 animate-spin" />
-                                        Saving...
+                                        Sending Code...
                                     </>
                                 ) : (
                                     <>
-                                        Continue
+                                        Send Verification Code
                                         <ArrowRight className="w-4 h-4" />
                                     </>
                                 )}
@@ -180,6 +207,71 @@ const CompleteProfile = () => {
                             >
                                 <LogOut className="w-3 h-3" />
                                 Logout and Try Later
+                            </button>
+                        </form>
+                    )}
+
+                    {!completed && otpSent && (
+                        <form onSubmit={handleVerifyCode} className="space-y-6">
+                            <div className="bg-primary/5 rounded-2xl p-4">
+                                <div className="flex items-start gap-3">
+                                    <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
+                                    <p className="text-sm text-text-muted font-medium">
+                                        Enter the 6-digit code sent to {toCambodiaPhone(phone)}.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="group">
+                                <label className="block text-xs font-black text-primary uppercase tracking-widest mb-3 ml-1">
+                                    Verification Code
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40">
+                                        <ShieldCheck className="w-5 h-5" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        placeholder="123456"
+                                        value={otpCode}
+                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                        required
+                                        autoFocus
+                                        className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold bg-stone-50/50 focus:bg-white tracking-[0.4em]"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading || otpCode.length !== 6}
+                                className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        Verifying...
+                                    </>
+                                ) : (
+                                    <>
+                                        Verify Phone
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setOtpSent(false);
+                                    setOtpCode("");
+                                    setError("");
+                                }}
+                                className="w-full py-3 text-xs font-bold text-stone-400 hover:text-primary transition-colors"
+                            >
+                                Change Phone Number
                             </button>
                         </form>
                     )}

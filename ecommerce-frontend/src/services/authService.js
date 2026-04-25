@@ -5,7 +5,6 @@ import {
   registerUser,
   resendResetCode,
   resetPassword,
-  savePhoneNumber,
   startPhoneVerification,
   verifyPhone,
   verifyResetCode,
@@ -75,12 +74,6 @@ export const authService = {
     const response = await verifyPhone(token, code);
     return response.data;
   },
-
-  async savePhoneNumber(token, phone) {
-    const response = await savePhoneNumber(token, phone);
-    return response.data;
-  },
-
   persistUser(authData) {
     if (!authData?.user) {
       return null;

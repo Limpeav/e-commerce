@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import {
     generateBakongQR,
     verifyBakongPayment,
@@ -11,9 +12,15 @@ import {
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+const paymentWebhookLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Public routes
-router.post("/bakong/verify", verifyBakongPayment); // Webhook endpoint
+router.post("/bakong/verify", paymentWebhookLimiter, verifyBakongPayment);
 
 // Protected routes (User)
 router.post("/bakong/generate", protect, generateBakongQR);

@@ -15,7 +15,6 @@ import bannerRoutes from "./routes/bannerRoutes.js";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import mongoSanitize from "express-mongo-sanitize";
 
 import http from "http";
 import { initializeSocket } from "./realtime/socket.js";
@@ -28,12 +27,86 @@ await connectDB();
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.json());
+const parseAllowedOrigins = () => {
+  const rawOrigins = process.env.ALLOWED_ORIGINS
+    || [process.env.FRONTEND_URL, process.env.ADMIN_FRONTEND_URL]
+      .filter(Boolean)
+      .join(",");
+
+  const origins = String(rawOrigins || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (origins.length > 0) {
+    return origins;
+  }
+
+  return [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ];
+};
+
+const allowedOrigins = parseAllowedOrigins();
+
+const sanitizeMongoOperators = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeMongoOperators);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value).reduce((accumulator, [key, nestedValue]) => {
+      const sanitizedKey = key.replace(/^\$+/g, "").replace(/\./g, "");
+      accumulator[sanitizedKey] = sanitizeMongoOperators(nestedValue);
+      return accumulator;
+    }, {});
+  }
+
+  return value;
+};
+
+const mongoSanitizeMiddleware = (req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    req.body = sanitizeMongoOperators(req.body);
+  }
+
+  if (req.params && typeof req.params === "object") {
+    req.params = sanitizeMongoOperators(req.params);
+  }
+
+  const query = req.query;
+  if (query && typeof query === "object") {
+    const sanitizedQuery = sanitizeMongoOperators(query);
+    Object.keys(query).forEach((key) => {
+      delete query[key];
+    });
+    Object.assign(query, sanitizedQuery);
+  }
+
+  next();
+};
+
+app.use(express.json({
+  limit: "1mb",
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer.toString("utf8");
+  },
+}));
 
 // CORS Configuration
 app.use(
   cors({
-    origin: true, // true reflects the exact request origin, effectively allowing all while working with credentials
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -43,12 +116,12 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginOpenerPolicy: false // Allows OAuth popups (like Google) to communicate back to the app
 }));
-// app.use(mongoSanitize());
+app.use(mongoSanitizeMiddleware);
 
 // Rate Limiting - More lenient for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs (increased for development)
+  max: process.env.NODE_ENV === "production" ? 300 : 1000,
   message: "Too many requests from this IP, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
@@ -56,7 +129,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Initialize Socket.io
-initializeSocket(server, true);
+initializeSocket(server, allowedOrigins);
 
 
 // ROUTES

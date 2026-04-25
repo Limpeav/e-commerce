@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import {
     getDashboardData,
     getCsvBuilderDraft,
@@ -19,10 +20,16 @@ import { createUpload } from "../middleware/upload.js";
 
 const router = express.Router();
 const productImageUpload = createUpload("products/csv-builder");
+const adminLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
-router.post("/login", loginAdmin);
+router.post("/login", adminLoginLimiter, loginAdmin);
 router.get("/me", protect, admin, getAdminProfile);
 
 // Dashboard

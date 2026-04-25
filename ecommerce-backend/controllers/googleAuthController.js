@@ -1,5 +1,6 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 // Generate token
 const generateToken = (id) => {
@@ -13,18 +14,32 @@ const generateToken = (id) => {
 // @access  Public
 export const googleAuth = async (req, res) => {
   try {
-    const { email, name, picture, sub } = req.body;
+    const { accessToken } = req.body;
 
-    if (!email || !name) {
-      return res.status(400).json({ message: "Missing required information from Google" });
+    if (!accessToken) {
+      return res.status(400).json({ message: "Google access token is required" });
+    }
+
+    const googleResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        timeout: 10000,
+      }
+    );
+
+    const { email, name, sub, email_verified: emailVerified } = googleResponse.data;
+
+    if (!email || !name || !sub || !emailVerified) {
+      return res.status(400).json({ message: "Invalid Google account response" });
     }
 
     // Check if user exists
     let user = await User.findOne({ email });
 
     if (user) {
-      // User exists, generate token and login
-      // Update googleId if not already set
       if (sub && !user.googleId) {
         user.googleId = sub;
         await user.save();
@@ -39,13 +54,11 @@ export const googleAuth = async (req, res) => {
         token: generateToken(user._id),
       });
     } else {
-      // User doesn't exist, create new user
-      // Don't set password for Google users - they'll use Google to login
       user = await User.create({
         name,
         email,
         role: "user",
-        googleId: sub, // Store Google ID
+        googleId: sub,
       });
 
       res.status(201).json({
@@ -60,6 +73,7 @@ export const googleAuth = async (req, res) => {
     }
   } catch (error) {
     console.error("Google auth error:", error);
-    res.status(500).json({ message: error.message || "Google authentication failed" });
+    const statusCode = error.response?.status === 401 ? 401 : 500;
+    res.status(statusCode).json({ message: "Google authentication failed" });
   }
 };

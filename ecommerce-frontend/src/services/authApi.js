@@ -29,11 +29,3 @@ export const verifyPhone = (token, code) =>
     { code },
     { headers: { Authorization: `Bearer ${token}` } }
   );
-
-// Save phone number directly (without OTP verification)
-export const savePhoneNumber = (token, phone) =>
-  API.post(
-    "/save-phone",
-    { phone },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );

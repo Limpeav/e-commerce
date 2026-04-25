@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
   try {
-    const { name, phone, email, password, role } = req.body;
+    const { name, phone, email, password } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -32,7 +32,7 @@ export const registerUser = async (req, res) => {
       phone,
       email,
       password,
-      role, // send "admin" from Postman
+      role: "user",
     });
 
     res.status(201).json({
@@ -61,6 +61,11 @@ export const loginUser = async (req, res) => {
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (user.password && !user.password.startsWith("$2")) {
+      user.password = password;
+      await user.save();
     }
 
     res.json({
@@ -152,9 +157,8 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      // Return error so user knows the account doesn't exist (like Facebook)
-      return res.status(404).json({
-        message: "No account found with that email address.",
+      return res.json({
+        message: "If an account exists for that email, a reset code has been sent.",
       });
     }
 
@@ -179,15 +183,15 @@ export const forgotPassword = async (req, res) => {
       }
     );
 
-    console.log(`\n📧 [MOCK EMAIL] Password Reset Code for ${user.email}: ${resetCode}\n`);
-
     // Send password reset code email
     try {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code sent to: ${user.email}`);
     } catch (emailError) {
       console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
-      // We continue to allow the flow because the code is shown in the console
+      return res.status(500).json({
+        message: "Unable to send reset code at the moment. Please try again later.",
+      });
     }
 
     // Mask the email for display (like Facebook)
@@ -272,8 +276,8 @@ export const resendResetCode = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({
-        message: "No account found with that email address.",
+      return res.json({
+        message: "If an account exists for that email, a new reset code has been sent.",
       });
     }
 
@@ -298,15 +302,13 @@ export const resendResetCode = async (req, res) => {
       }
     );
 
-    console.log(`\n📧 [MOCK EMAIL] Resent Password Reset Code for ${user.email}: ${resetCode}\n`);
-
     // Send password reset code email
     try {
       await sendPasswordResetCode(user.email, user.name, resetCode);
       console.log(`✅ Password reset code resent to: ${user.email}`);
     } catch (emailError) {
       console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
-      // We continue to allow the flow because the code is shown in the console
+      return res.status(500).json({ message: "Unable to resend code right now." });
     }
 
     res.json({
@@ -402,21 +404,8 @@ export const startPhoneVerification = async (req, res) => {
 
     await user.save();
 
-    // MOCK SMS sending (since we don't have SMS provider)
-    // In production, integrate Twilio here
-    console.log(`📱 [MOCK SMS] Verification code for ${phone}: ${verificationCode}`);
-
-    // For now, we will ALSO send it to email if possible to simulate "sending"
-    // or just return success and let frontend ask for code (dev mode)
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`\n📱 PHONE VERIFICATION CODE for ${phone}: ${verificationCode}\n`);
-    }
-
-    // Response
     res.json({
-      message: "Verification code sent to phone (mocked)",
-      // In dev mode, return code for easier testing if email fails
-      devCode: process.env.NODE_ENV !== "production" ? verificationCode : undefined
+      message: "Verification code sent to phone.",
     });
 
   } catch (error) {
@@ -475,41 +464,6 @@ export const verifyPhone = async (req, res) => {
   }
 };
 
-// 3. Save Phone Number Directly (without OTP)
-export const savePhoneNumber = async (req, res) => {
-  try {
-    const { phone } = req.body;
-
-    if (!phone) {
-      return res.status(400).json({ message: "Phone number is required" });
-    }
-
-    // Check if phone is already taken by ANOTHER user
-    const existingUser = await User.findOne({ phone: phone, _id: { $ne: req.user._id } });
-    if (existingUser) {
-      return res.status(400).json({ message: "Phone number already in use by another account" });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Directly save the phone number
-    user.phone = phone;
-    await user.save();
-
-    res.json({
-      message: "Phone number saved successfully",
-      phone: user.phone
-    });
-
-  } catch (error) {
-    console.error("Save phone error:", error);
-    res.status(500).json({ message: error.message || "Failed to save phone number" });
-  }
-};
-
 // 📧 REQUEST DELETE ACCOUNT OTP (Google users only)
 export const requestDeleteOtp = async (req, res) => {
   try {
@@ -538,16 +492,13 @@ export const requestDeleteOtp = async (req, res) => {
       }
     );
 
-    // Log the OTP to the console for development testing
-    console.log(`\n📧 [MOCK EMAIL] Delete Account OTP for ${user.email}: ${otp}\n`);
-
     // Send the OTP email
     try {
       await sendDeleteAccountOtp(user.email, user.name, otp);
       console.log(`✅ Delete account OTP sent to: ${user.email}`);
     } catch (emailError) {
       console.error(`⚠️ Could not send email: ${emailError.message}. Please check your EMAIL_PASSWORD or email provider settings.`);
-      // We continue to allow the flow because the OTP is shown in the console
+      return res.status(500).json({ message: "Unable to send confirmation code right now." });
     }
 
     res.json({
