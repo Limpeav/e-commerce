@@ -23,6 +23,10 @@
     - `JWT_SECRET`: A secret string (e.g., `mysecret123`).
     - `CLOUDINARY_...`: Your Cloudinary keys.
     - `GOOGLE_...`: Your Google OAuth keys.
+    - `ALLOWED_ORIGINS`: Your deployed frontend origin.
+      - Example: `https://baby-products-wtux.onrender.com`
+    - `FRONTEND_URL`: Same value as your deployed frontend origin.
+      - Example: `https://baby-products-wtux.onrender.com`
     - `PORT`: `10000` (Render sets this automatically, but good to know).
 7.  Deploy! You will get a URL like `https://my-ecommerce-backend.onrender.com`.
 
@@ -46,5 +50,5 @@
 - If something fails, check the "Console" in your browser (F12) or the logs in Render/Vercel dashboard.
 
 ## Important Note on CORS
-Your backend currently allows requests from *anywhere*.
-If you want to secure it later, update `ecommerce-backend/server.js` to only allow your Vercel domain.
+The backend reads allowed origins from `ALLOWED_ORIGINS`, or falls back to `FRONTEND_URL` and `ADMIN_FRONTEND_URL`.
+For production, set these values explicitly in Render so browser requests from your frontend pass CORS checks.

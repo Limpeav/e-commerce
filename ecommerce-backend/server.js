@@ -36,21 +36,18 @@ const parseAllowedOrigins = () => {
   const origins = String(rawOrigins || "")
     .split(",")
     .map((origin) => origin.trim())
+    .map((origin) => origin.replace(/\/+$/, ""))
     .filter(Boolean);
 
   if (origins.length > 0) {
     return origins;
   }
 
-  return [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-  ];
+  return [];
 };
 
 const allowedOrigins = parseAllowedOrigins();
+const hasConfiguredOrigins = allowedOrigins.length > 0;
 
 const sanitizeMongoOperators = (value) => {
   if (Array.isArray(value)) {
@@ -97,19 +94,30 @@ app.use(express.json({
 }));
 
 // CORS Configuration
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
 
-      callback(new Error("Origin not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
+    const normalizedOrigin = origin.replace(/\/+$/, "");
+
+    if (!hasConfiguredOrigins || allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin not allowed by CORS: ${normalizedOrigin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 // Security Middleware
 app.use(helmet({
