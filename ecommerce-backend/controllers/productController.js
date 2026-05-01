@@ -1,9 +1,11 @@
 import Product from "../models/Product.js";
+import Order from "../models/orderModel.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
+  isnewarrival: "isNewArrival",
 };
 
 const parseOptionalNumber = (value) => {
@@ -18,6 +20,58 @@ const parseOptionalNumber = (value) => {
 
   const parsedValue = Number.parseFloat(stringValue);
   return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const parseBoolean = (value) =>
+  value === true || value === "true" || value === "1" || value === 1;
+
+const attachSalesMetrics = async (products) => {
+  const productDocs = Array.isArray(products) ? products : [products];
+  const productIds = productDocs.map((product) => product._id);
+
+  if (productIds.length === 0) {
+    return products;
+  }
+
+  const salesTotals = await Order.aggregate([
+    {
+      $match: {
+        orderStatus: { $ne: "Cancelled" },
+        "orderItems.product": { $in: productIds },
+      },
+    },
+    { $unwind: "$orderItems" },
+    {
+      $match: {
+        "orderItems.product": { $in: productIds },
+      },
+    },
+    {
+      $group: {
+        _id: "$orderItems.product",
+        sold: { $sum: "$orderItems.quantity" },
+      },
+    },
+  ]);
+
+  const soldByProductId = new Map(
+    salesTotals.map((item) => [item._id.toString(), Number(item.sold || 0)])
+  );
+
+  const withMetrics = productDocs.map((product) => {
+    const productData =
+      typeof product.toObject === "function" ? product.toObject() : product;
+    const sold = soldByProductId.get(productData._id.toString()) || Number(productData.totalSold || 0);
+
+    return {
+      ...productData,
+      sold,
+      totalSold: sold,
+      isBestSeller: sold > 0,
+    };
+  });
+
+  return Array.isArray(products) ? withMetrics : withMetrics[0];
 };
 
 const normalizeCsvHeader = (header = "") =>
@@ -99,6 +153,7 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     ? Number.parseFloat(data.discountPrice)
     : null;
   const stock = data.stock?.trim() ? Number.parseInt(data.stock, 10) : 0;
+  const isNewArrival = parseBoolean(data.isNewArrival);
 
   if (!title) {
     return `Row ${rowNumber}: title is required`;
@@ -140,12 +195,13 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     description,
     stock,
     image,
+    isNewArrival,
   };
 };
 
 export const createProduct = async (req, res) => {
   try {
-    const { title, price, discountPrice, category, description, stock } = req.body;
+    const { title, price, discountPrice, category, description, stock, isNewArrival } = req.body;
 
     const product = new Product({
       title,
@@ -154,6 +210,7 @@ export const createProduct = async (req, res) => {
       category,
       description,
       stock,
+      isNewArrival: parseBoolean(isNewArrival),
       image: req.file?.path || "",
     });
 
@@ -170,7 +227,7 @@ export const getProducts = async (req, res) => {
     const isAdmin = req.user?.role === "admin";
     const filters = isAdmin ? {} : { stock: { $gt: 0 } };
     const products = await Product.find(filters).sort({ createdAt: -1, _id: -1 });
-    res.json(products);
+    res.json(await attachSalesMetrics(products));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -392,7 +449,7 @@ export const getProductById = async (req, res) => {
     const productData = product.toObject();
     productData.alreadyReviewed = alreadyReviewed;
 
-    res.json(productData);
+    res.json(await attachSalesMetrics(productData));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -410,6 +467,7 @@ export const updateProduct = async (req, res) => {
     product.category = req.body.category;
     product.description = req.body.description;
     product.stock = req.body.stock;
+    product.isNewArrival = parseBoolean(req.body.isNewArrival);
 
     // 🔥 update image ONLY if new one uploaded
     if (req.file) {

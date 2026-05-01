@@ -14,6 +14,7 @@ import {
   FileText,
   Boxes,
   FileSpreadsheet,
+  Sparkles,
 } from "lucide-react";
 
 const AddProduct = () => {
@@ -26,6 +27,7 @@ const AddProduct = () => {
     image: null,
     description: "",
     stock: "",
+    isNewArrival: false,
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -34,7 +36,12 @@ const AddProduct = () => {
   const [csvLoading, setCsvLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, checked, type } = e.target;
+    if (type === "checkbox") {
+      setForm({ ...form, [name]: checked });
+      return;
+    }
+
     // For number fields, ensure we only store numeric values or empty string
     if (name === 'price' || name === 'discountPrice' || name === 'stock') {
       // Allow empty string or valid number (including decimals)
@@ -145,7 +152,7 @@ const AddProduct = () => {
                 Import Products From CSV
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                Skip manual entry by uploading a CSV. Required columns: <code>title</code>, <code>price</code>, <code>category</code>, <code>image</code>.
+                Skip manual entry by uploading a CSV. Required columns: <code>title</code>, <code>price</code>, <code>category</code>, <code>image</code>. Optional: <code>isNewArrival</code>.
               </p>
               <p className="mt-2 text-sm text-gray-500">
                 The <code>image</code> column must contain a public image URL. CSV import creates multiple products at once and does not upload image files from your computer.
@@ -324,6 +331,28 @@ const AddProduct = () => {
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
+              </div>
+
+              {/* New Arrival */}
+              <div className="md:col-span-2">
+                <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50">
+                  <input
+                    name="isNewArrival"
+                    type="checkbox"
+                    checked={form.isNewArrival}
+                    onChange={handleChange}
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>
+                    <span className="flex items-center text-sm font-semibold text-gray-800">
+                      <Sparkles className="mr-2 h-4 w-4 text-blue-600" />
+                      Show as New Arrival
+                    </span>
+                    <span className="mt-1 block text-sm text-gray-500">
+                      Products marked here appear in the storefront New Arrival section.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {/* Category */}

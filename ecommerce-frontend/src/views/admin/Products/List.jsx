@@ -10,6 +10,8 @@ import {
   Trash2,
   Search,
   Filter,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 
@@ -98,6 +100,8 @@ const ProductList = () => {
     ...new Set(products.map((p) => normalizeProductCategory(p.category)).filter(Boolean)),
   ];
   const lowStockCount = products.filter((p) => Number(p.stock) <= LOW_STOCK_THRESHOLD).length;
+  const newArrivalCount = products.filter((p) => p.isNewArrival).length;
+  const bestSellerCount = products.filter((p) => Number(p.sold || p.totalSold || 0) > 0).length;
 
   if (loading) {
     return <Loading message="Loading products..." />;
@@ -150,7 +154,7 @@ const ProductList = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
             <div className="flex items-center justify-between">
               <div>
@@ -203,6 +207,34 @@ const ProductList = () => {
               </div>
             </div>
           </button>
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Best Sellers</p>
+                <p className="text-3xl font-bold text-emerald-600 mt-1">
+                  {bestSellerCount}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">Based on sold quantity</p>
+              </div>
+              <div className="bg-emerald-100 p-3 rounded-xl">
+                <TrendingUp className="w-8 h-8 text-emerald-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">New Arrivals</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {newArrivalCount}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">Set manually by admin</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-xl">
+                <Sparkles className="w-8 h-8 text-blue-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
@@ -280,6 +312,7 @@ const ProductList = () => {
               (() => {
                 const price = Number(product.price) || 0;
                 const discountPrice = getNumericDiscount(product);
+                const sold = Number(product.sold || product.totalSold || 0);
 
                 return (
                   <div
@@ -298,6 +331,11 @@ const ProductList = () => {
                           Low Stock
                         </span>
                       )}
+                      {sold > 0 && (
+                        <span className="absolute left-3 top-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                          Best Seller
+                        </span>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
 
@@ -307,6 +345,11 @@ const ProductList = () => {
                         <span className="inline-block bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
                           {normalizeProductCategory(product.category)}
                         </span>
+                        {product.isNewArrival && (
+                          <span className="ml-2 inline-block rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
+                            New Arrival
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors duration-200">
                         {product.title}
@@ -338,6 +381,9 @@ const ProductList = () => {
                           )}
                           <p className="text-sm text-gray-600">
                             Stock: <span className={`font-semibold ${Number(product.stock) <= LOW_STOCK_THRESHOLD ? 'text-orange-600' : 'text-green-600'}`}>{product.stock}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Sold: <span className={`font-semibold ${sold > 0 ? "text-emerald-600" : "text-gray-500"}`}>{sold}</span>
                           </p>
                         </div>
                       </div>

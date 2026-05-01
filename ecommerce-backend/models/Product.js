@@ -46,6 +46,15 @@ const productSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    totalSold: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    isNewArrival: {
+      type: Boolean,
+      default: false,
+    },
     lowStockAlertSent: {
       type: Boolean,
       default: false,

@@ -15,6 +15,7 @@ import {
   Boxes,
   Save,
   X,
+  Sparkles,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 
@@ -30,6 +31,7 @@ const EditProduct = () => {
     description: "",
     image: null,
     stock: "",
+    isNewArrival: false,
     currentImage: "",
   });
 
@@ -51,6 +53,7 @@ const EditProduct = () => {
           category: normalizeProductCategory(data.category),
           description: data.description || "",
           stock: data.stock || "",
+          isNewArrival: Boolean(data.isNewArrival),
           image: null,
           currentImage: data.image || "",
         });
@@ -68,7 +71,12 @@ const EditProduct = () => {
   }, [id]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, checked, type } = e.target;
+    if (type === "checkbox") {
+      setForm({ ...form, [name]: checked });
+      return;
+    }
+
     // For number fields, ensure we only store numeric values or empty string
     if (name === 'price' || name === 'discountPrice' || name === 'stock') {
       // Allow empty string or valid number (including decimals)
@@ -111,6 +119,7 @@ const EditProduct = () => {
     formData.append("category", normalizeProductCategory(form.category));
     formData.append("description", form.description);
     formData.append("stock", form.stock);
+    formData.append("isNewArrival", form.isNewArrival);
 
     if (form.image) {
       formData.append("image", form.image);
@@ -320,6 +329,28 @@ const EditProduct = () => {
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
+              </div>
+
+              {/* New Arrival */}
+              <div className="md:col-span-2">
+                <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50">
+                  <input
+                    name="isNewArrival"
+                    type="checkbox"
+                    checked={form.isNewArrival}
+                    onChange={handleChange}
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>
+                    <span className="flex items-center text-sm font-semibold text-gray-800">
+                      <Sparkles className="mr-2 h-4 w-4 text-blue-600" />
+                      Show as New Arrival
+                    </span>
+                    <span className="mt-1 block text-sm text-gray-500">
+                      Products marked here appear in the storefront New Arrival section.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {/* Category */}

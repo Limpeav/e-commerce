@@ -82,12 +82,14 @@ export default function Home() {
     const productSections = useMemo(() => {
         const normalizedProducts = [...filteredProducts];
         const newArrivals = [...normalizedProducts]
+            .filter((product) => product.isNewArrival)
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
             .slice(0, 8);
 
         const bestSellers = [...normalizedProducts]
+            .filter((product) => Number(product.sold || product.totalSold || 0) > 0)
             .sort((a, b) => {
-                const soldDelta = Number(b.sold || 0) - Number(a.sold || 0);
+                const soldDelta = Number(b.sold || b.totalSold || 0) - Number(a.sold || a.totalSold || 0);
                 if (soldDelta !== 0) return soldDelta;
                 return Number(b.rating || 0) - Number(a.rating || 0);
             })

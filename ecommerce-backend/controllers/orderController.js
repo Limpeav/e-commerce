@@ -120,6 +120,10 @@ export const createOrder = asyncHandler(async (req, res) => {
                     const product = productMap.get(String(item.product));
                     const previousStock = product.stock;
                     product.stock -= item.quantity;
+                    product.totalSold = Math.max(
+                        0,
+                        Number(product.totalSold || 0) + Number(item.quantity || 0)
+                    );
                     syncLowStockAlertFlag(product);
                     await product.save({ session });
 
@@ -272,6 +276,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
                     if (product) {
                         product.stock += item.quantity;
+                        product.totalSold = Math.max(
+                            0,
+                            Number(product.totalSold || 0) - Number(item.quantity || 0)
+                        );
                         syncLowStockAlertFlag(product);
                         await product.save({ session });
                     }
