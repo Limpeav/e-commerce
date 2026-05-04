@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   LogOut,
   Menu,
+  BriefcaseBusiness,
   X,
 } from 'lucide-react'
 
@@ -84,25 +85,34 @@ const AdminSidebar = () => {
     {
       path: '/admin/products',
       name: 'Products',
-      icon: Package
+      icon: Package,
+      adminOnly: true
     },
     {
       path: '/admin/products/csv-builder',
       name: 'CSV Builder',
-      icon: FileSpreadsheet
+      icon: FileSpreadsheet,
+      adminOnly: true
     },
     {
       path: '/admin/users',
       name: 'Users',
-      icon: Users
+      icon: Users,
+      adminOnly: true
     },
     {
       path: '/admin/orders',
       name: 'Orders',
       icon: ShoppingCart,
       badge: orderCount
+    },
+    {
+      path: '/admin/staff',
+      name: 'Staff',
+      icon: BriefcaseBusiness,
+      adminOnly: true
     }
-  ]
+  ].filter((item) => !item.adminOnly || adminUser?.role === 'admin')
 
   const handleLogout = () => {
     clearAdminSession()
@@ -133,7 +143,9 @@ const AdminSidebar = () => {
               <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-card)] flex items-center justify-center border border-[var(--color-border)]">
                 <LayoutDashboard className="w-5 h-5 text-[var(--color-primary)]" />
               </div>
-              <h1 className="text-xl font-bold text-[var(--color-text-main)]">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-[var(--color-text-main)]">
+                {adminUser?.role === 'admin' ? 'Admin Panel' : 'Staff Panel'}
+              </h1>
             </div>
           </div>
 
@@ -147,7 +159,13 @@ const AdminSidebar = () => {
               </div>
               <div>
                 <p className="font-semibold text-[var(--color-text-main)]">{adminUser?.name}</p>
-                <p className="text-sm font-medium text-[var(--color-primary)]">Administrator</p>
+                <p className="text-sm font-medium text-[var(--color-primary)]">
+                  {adminUser?.role === 'admin'
+                    ? 'Administrator'
+                    : adminUser?.role === 'delivery'
+                      ? 'Delivery'
+                      : 'Staff'}
+                </p>
               </div>
             </div>
           </div>

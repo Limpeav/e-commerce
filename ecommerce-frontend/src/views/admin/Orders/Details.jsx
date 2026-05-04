@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -11,9 +11,18 @@ import {
     Truck,
     CheckCircle,
     ExternalLink,
+    Printer,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
+
+const escapeHtml = (value) =>
+    String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -23,11 +32,7 @@ const OrderDetails = () => {
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
 
-    useEffect(() => {
-        fetchOrderDetails();
-    }, [id]);
-
-    const fetchOrderDetails = async () => {
+    const fetchOrderDetails = useCallback(async () => {
         setLoading(true);
         const result = await AdminController.getOrderById(id);
 
@@ -39,7 +44,12 @@ const OrderDetails = () => {
         }
 
         setLoading(false);
-    };
+    }, [id]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchOrderDetails();
+    }, [fetchOrderDetails]);
 
     const handleStatusUpdate = async (newStatus) => {
         setUpdating(true);
@@ -130,6 +140,37 @@ const OrderDetails = () => {
         return undefined;
     };
 
+    const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+
+    const getDeliveryFee = (currentOrder) => {
+        const storedFee = Number(currentOrder?.shippingPrice || 0);
+        return storedFee > 0 ? storedFee : 2;
+    };
+
+    const formatAddress = (shippingAddress = {}) =>
+        [
+            shippingAddress.address,
+            shippingAddress.city,
+            shippingAddress.postalCode,
+            shippingAddress.country,
+        ]
+            .filter(Boolean)
+            .join(", ") || "N/A";
+
+    const formatPhoneNumber = (phone) => {
+        if (!phone) return "N/A";
+
+        const digits = String(phone).replace(/\D/g, "");
+        const localDigits = digits.startsWith("855") ? `0${digits.slice(3)}` : digits;
+
+        if (localDigits.length <= 3) return localDigits;
+        if (localDigits.length <= 6) {
+            return `${localDigits.slice(0, 3)} ${localDigits.slice(3)}`;
+        }
+
+        return `${localDigits.slice(0, 3)} ${localDigits.slice(3, 6)} ${localDigits.slice(6)}`;
+    };
+
     if (loading) {
         return <Loading message="Loading order details..." />;
     }
@@ -150,95 +191,224 @@ const OrderDetails = () => {
         );
     }
 
+    const subtotal = order.orderItems.reduce(
+        (acc, item) => acc + Number(item.price || 0) * Number(item.quantity || 0),
+        0
+    );
+    const deliveryFee = getDeliveryFee(order);
+    const taxPrice = Number(order.taxPrice || 0);
+    const displayedTotal = subtotal + taxPrice + deliveryFee;
+    const customerName = order.shippingAddress?.fullName || order.user?.name || "N/A";
+    const customerPhone = formatPhoneNumber(order.shippingAddress?.phone);
+    const fullAddress = formatAddress(order.shippingAddress);
+    const displayOrderId = order._id.slice(-8);
+    const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
+    const orderStatuses = ["Pending", "Processing", "Delivered", "Cancelled"];
+    const paymentStatuses = ["Pending", "Paid", "Failed"];
+    const summaryRows = [
+        ["Order ID", `#${displayOrderId}`],
+        ["Customer Name", customerName],
+        ["Phone Number", customerPhone],
+        ["Payment Method", order.paymentMethod || "N/A"],
+        ["Address", fullAddress],
+        ["Subtotal", formatCurrency(subtotal)],
+        ["Delivery Fee", formatCurrency(deliveryFee)],
+        ["Tax", formatCurrency(taxPrice)],
+        ["Total", formatCurrency(displayedTotal)],
+    ];
+
+    const handlePrintOrderSummary = () => {
+        const printWindow = window.open("", "_blank", "width=720,height=900");
+
+        if (!printWindow) {
+            window.print();
+            return;
+        }
+
+        const rowsHtml = summaryRows
+            .map(
+                ([label, value], index) => `
+                    <div class="row ${index === summaryRows.length - 1 ? "total" : ""}">
+                        <span>${escapeHtml(label)}</span>
+                        <strong>${escapeHtml(value)}</strong>
+                    </div>
+                `
+            )
+            .join("");
+
+        printWindow.document.write(`
+            <!doctype html>
+            <html>
+                <head>
+                    <title>Order Summary #${escapeHtml(displayOrderId)}</title>
+                    <style>
+                        body {
+                            color: #2f332f;
+                            font-family: Arial, sans-serif;
+                            margin: 32px;
+                        }
+                        .summary {
+                            border: 1px solid #d9d2c8;
+                            border-radius: 12px;
+                            max-width: 520px;
+                            padding: 24px;
+                        }
+                        h1 {
+                            font-size: 24px;
+                            margin: 0 0 8px;
+                        }
+                        .placed {
+                            color: #6f756d;
+                            font-size: 14px;
+                            margin: 0 0 24px;
+                        }
+                        .row {
+                            display: flex;
+                            gap: 24px;
+                            justify-content: space-between;
+                            padding: 8px 0;
+                        }
+                        .row span {
+                            color: #6f756d;
+                        }
+                        .row strong {
+                            font-weight: 600;
+                            text-align: right;
+                        }
+                        .row:nth-last-child(4) {
+                            border-top: 1px solid #bbb4ab;
+                            margin-top: 8px;
+                            padding-top: 14px;
+                        }
+                        .total {
+                            border-top: 1px solid #bbb4ab;
+                            font-size: 18px;
+                            margin-top: 8px;
+                            padding-top: 14px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <section class="summary">
+                        <h1>Order Summary</h1>
+                        <p class="placed">Placed on ${escapeHtml(new Date(order.createdAt).toLocaleString())}</p>
+                        ${rowsHtml}
+                    </section>
+                    <script>
+                        window.addEventListener("load", () => {
+                            window.print();
+                            window.close();
+                        });
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[var(--color-bg-base)]">
             {/* Header */}
-            <div className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+            <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
+                <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-start gap-4">
                             <button
                                 onClick={() => navigate("/admin/orders")}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
+                                aria-label="Back to orders"
                             >
-                                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                                <ArrowLeft className="h-5 w-5" />
                             </button>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">
-                                    Order #{order._id.slice(-8)}
+                                <h1 className="text-3xl font-bold leading-tight text-[var(--color-text-main)] sm:text-4xl">
+                                    Order #{displayOrderId}
                                 </h1>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Placed on {new Date(order.createdAt).toLocaleString()}
-                                </p>
                             </div>
                         </div>
-                        <div
-                            className={`px-4 py-2 rounded-lg border-2 ${getStatusColor(order.orderStatus)}`}
-                            style={getStatusStyle(order.orderStatus)}
-                        >
-                            <span className="text-sm font-semibold">{normalizeOrderStatus(order.orderStatus)}</span>
+                        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                            <div
+                                className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(order.paymentStatus)}`}
+                            >
+                                <span className="text-sm font-bold">Payment: {order.paymentStatus}</span>
+                            </div>
+                            <div
+                                className={`rounded-lg border px-4 py-2 ${getStatusColor(order.orderStatus)}`}
+                                style={getStatusStyle(order.orderStatus)}
+                            >
+                                <span className="text-sm font-bold">Order: {currentOrderStatus}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
                     {/* Left Column - Order Items & Details */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-6">
                         {/* Order Items */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <Package className="w-5 h-5 mr-2" />
-                                Order Items
-                            </h2>
-                            <div className="space-y-4">
+                        <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm">
+                            <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
+                                <h2 className="flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                    <Package className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                    Order Items
+                                </h2>
+                                <span className="rounded-md bg-[var(--color-surface-soft)] px-2.5 py-1 text-sm font-bold text-[var(--color-text-muted)]">
+                                    {order.orderItems.length} item{order.orderItems.length === 1 ? "" : "s"}
+                                </span>
+                            </div>
+                            <div className="divide-y divide-[var(--color-border)]">
                                 {order.orderItems.map((item, index) => (
                                     <div
                                         key={index}
-                                        className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg"
+                                        className="grid grid-cols-[72px_minmax(0,1fr)] gap-4 p-5 sm:grid-cols-[88px_minmax(0,1fr)_120px]"
                                     >
                                         <img
                                             src={item.image}
                                             alt={item.name}
-                                            className="w-20 h-20 object-cover rounded-lg"
+                                            className="h-[72px] w-[72px] rounded-lg border border-[var(--color-border)] object-cover sm:h-[88px] sm:w-[88px]"
                                         />
-                                        <div className="flex-1">
-                                            <h3 className="font-medium text-gray-900">{item.name}</h3>
-                                            <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-gray-900">
-                                                ${(item.price * item.quantity).toFixed(2)}
+                                        <div className="min-w-0 self-center">
+                                            <h3 className="font-bold leading-snug text-[var(--color-text-main)]">{item.name}</h3>
+                                            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                                                Quantity {item.quantity} · {formatCurrency(item.price)} each
                                             </p>
-                                            <p className="text-sm text-gray-500">${item.price} each</p>
+                                        </div>
+                                        <div className="col-span-2 flex items-center justify-between rounded-lg bg-[var(--color-surface-soft)] px-4 py-3 sm:col-span-1 sm:block sm:self-center sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
+                                            <p className="text-sm font-medium text-[var(--color-text-muted)] sm:hidden">Line total</p>
+                                            <p className="font-bold text-[var(--color-text-main)]">
+                                                {formatCurrency(item.price * item.quantity)}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </section>
 
                         {/* Shipping Address */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <MapPin className="w-5 h-5 mr-2" />
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <MapPin className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Shipping Address
                             </h2>
-                            <div className="text-gray-700">
-                                <p className="font-medium">{order.shippingAddress.fullName}</p>
-                                <p>{order.shippingAddress.address}</p>
-                                <p>{order.shippingAddress.city}</p>
+                            <div className="grid gap-4 text-[var(--color-text-muted)] md:grid-cols-[minmax(0,1fr)_auto]">
+                                <div className="space-y-1 leading-7">
+                                    <p className="font-bold text-[var(--color-text-main)]">{order.shippingAddress.fullName}</p>
+                                    <p>{order.shippingAddress.address}</p>
+                                    <p>{order.shippingAddress.city}</p>
                                 {order.shippingAddress.postalCode && (
                                     <p>{order.shippingAddress.postalCode}</p>
                                 )}
                                 {order.shippingAddress.country && (
                                     <p>{order.shippingAddress.country}</p>
                                 )}
-                                <p className="mt-2">
-                                    <span className="font-medium">Phone:</span>{" "}
-                                    {order.shippingAddress.phone}
-                                </p>
+                                    <p className="pt-2">
+                                        <span className="font-bold text-[var(--color-text-main)]">Phone:</span>{" "}
+                                        {customerPhone}
+                                    </p>
+                                </div>
 
                                 {/* Google Maps Link */}
                                 {order.shippingAddress.latitude && order.shippingAddress.longitude && (
@@ -246,118 +416,131 @@ const OrderDetails = () => {
                                         href={`https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium border border-blue-200"
+                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 text-sm font-bold text-[var(--color-primary-dark)] transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-card)]"
                                     >
                                         <MapPin className="w-4 h-4" />
-                                        View Location on Google Maps
+                                        View Map
                                         <ExternalLink className="w-4 h-4" />
                                     </a>
                                 )}
                             </div>
-                        </div>
+                        </section>
 
                         {/* Payment Information */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <CreditCard className="w-5 h-5 mr-2" />
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Payment Information
                             </h2>
-                            <div className="space-y-2 text-gray-700">
-                                <div className="flex justify-between">
-                                    <span>Payment Method:</span>
-                                    <span className="font-medium">{order.paymentMethod}</span>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
+                                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Method</p>
+                                    <p className="mt-1 font-bold text-[var(--color-text-main)]">{order.paymentMethod || "N/A"}</p>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span>Payment Status:</span>
+                                <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
+                                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
                                     <span
-                                        className={`px-2 py-1 rounded text-sm font-semibold ${order.paymentStatus === "Paid"
-                                            ? "bg-green-100 text-green-800"
-                                            : order.paymentStatus === "Pending"
-                                                ? "bg-yellow-100 text-yellow-800"
-                                                : "bg-red-100 text-red-800"
-                                            }`}
+                                        className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(order.paymentStatus)}`}
                                     >
                                         {order.paymentStatus}
                                     </span>
                                 </div>
                                 {order.isPaid && (
-                                    <div className="flex justify-between">
-                                        <span>Paid At:</span>
-                                        <span className="font-medium">
+                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4 sm:col-span-2">
+                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
+                                        <p className="mt-1 font-bold text-[var(--color-text-main)]">
                                             {new Date(order.paidAt).toLocaleString()}
-                                        </span>
+                                        </p>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </section>
+
+                        {/* Order Summary */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <div className="mb-5 flex items-center justify-between gap-3">
+                                <h2 className="flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                    <DollarSign className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                    Order Summary
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={handlePrintOrderSummary}
+                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
+                                    title="Print order summary"
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    Print
+                                </button>
+                            </div>
+                            <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
+                                {summaryRows.slice(0, 5).map(([label, value]) => (
+                                    <div key={label} className="grid grid-cols-[130px_minmax(0,1fr)] gap-4">
+                                        <span>{label}</span>
+                                        <span className="text-right font-bold text-[var(--color-text-main)]">{value}</span>
+                                    </div>
+                                ))}
+                                <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
+                                    <div className="flex justify-between gap-4">
+                                        <span>Subtotal:</span>
+                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <span>Delivery Fee:</span>
+                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(deliveryFee)}</span>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <span>Tax:</span>
+                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
+                                    </div>
+                                    <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
+                                        <span>Total:</span>
+                                        <span>{formatCurrency(displayedTotal)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
                     {/* Right Column - Summary & Actions */}
-                    <div className="space-y-6">
+                    <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
                         {/* Customer Info */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <User className="w-5 h-5 mr-2" />
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <User className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Customer
                             </h2>
-                            <div className="text-gray-700">
-                                <p className="font-medium">{order.user?.name || "N/A"}</p>
-                                <p className="text-sm text-gray-500">{order.user?.email || "N/A"}</p>
-                            </div>
-                        </div>
-
-                        {/* Order Summary */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <DollarSign className="w-5 h-5 mr-2" />
-                                Order Summary
-                            </h2>
-                            <div className="space-y-2 text-gray-700">
-                                <div className="flex justify-between">
-                                    <span>Subtotal:</span>
-                                    <span>
-                                        $
-                                        {order.orderItems
-                                            .reduce((acc, item) => acc + item.price * item.quantity, 0)
-                                            .toFixed(2)}
-                                    </span>
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)] text-lg font-bold text-white">
+                                    {(customerName || "N").charAt(0).toUpperCase()}
                                 </div>
-                                <div className="flex justify-between">
-                                    <span>Tax:</span>
-                                    <span>${order.taxPrice.toFixed(2)}</span>
-                                </div>
-                                <div className="border-t pt-2 mt-2 flex justify-between text-lg font-bold">
-                                    <span>Total:</span>
-                                    <span>${order.totalPrice.toFixed(2)}</span>
+                                <div className="min-w-0">
+                                    <p className="truncate font-bold text-[var(--color-text-main)]">{order.user?.name || customerName}</p>
+                                    <p className="truncate text-sm text-[var(--color-text-muted)]">{order.user?.email || "N/A"}</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
                         {/* Update Payment Status */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <CreditCard className="w-5 h-5 mr-2" />
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Update Payment Status
                             </h2>
-                            <div className="mb-4">
-                                <div className={`px-3 py-2 rounded-lg border-2 ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                    <span className="text-sm font-semibold">Current: {order.paymentStatus}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                {["Pending", "Paid", "Failed"].map(
+                            <div className="grid gap-2">
+                                {paymentStatuses.map(
                                     (paymentStatus) => (
                                         <button
                                             key={paymentStatus}
                                             onClick={() => handlePaymentStatusUpdate(paymentStatus)}
                                             disabled={updating || order.paymentStatus === paymentStatus}
-                                                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${order.paymentStatus === paymentStatus
-                                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${order.paymentStatus === paymentStatus
+                                                        ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                                         : paymentStatus === "Paid"
-                                                            ? "bg-green-600 text-white hover:bg-green-700"
+                                                            ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                                             : paymentStatus === "Failed"
-                                                                ? "bg-red-600 text-white hover:bg-red-700"
-                                                                : "bg-yellow-600 text-white hover:bg-yellow-700"
+                                                                ? "bg-[var(--color-secondary)] text-white hover:opacity-90"
+                                                                : "border border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
                                                     }`}
                                             >
                                             {order.paymentStatus === paymentStatus ? (
@@ -372,27 +555,48 @@ const OrderDetails = () => {
                                     )
                                 )}
                             </div>
-                        </div>
+                        </section>
 
                         {/* Update Order Status */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <Truck className="w-5 h-5 mr-2" />
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <Truck className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Update Order Status
                             </h2>
-                            <div className="space-y-2">
-                                {["Pending", "Processing", "Delivered", "Cancelled"].map(
+                            <div className="mb-5 grid grid-cols-4 gap-2">
+                                {orderStatuses.map((status, index) => {
+                                    const isActive = currentOrderStatus === status;
+                                    const isPast =
+                                        orderStatuses.indexOf(currentOrderStatus) >= index &&
+                                        currentOrderStatus !== "Cancelled";
+
+                                    return (
+                                        <div key={status} className="min-w-0">
+                                            <div
+                                                className={`h-2 rounded-full ${isActive || isPast ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-soft)]"}`}
+                                            />
+                                            <p className="mt-2 truncate text-center text-[11px] font-bold text-[var(--color-text-muted)]">
+                                                {status}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {orderStatuses.map(
                                     (status) => (
                                         <button
                                             key={status}
                                             onClick={() => handleStatusUpdate(status)}
-                                            disabled={updating || order.orderStatus === status}
-                                            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${order.orderStatus === status
-                                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                                : "bg-blue-600 text-white hover:bg-blue-700"
+                                            disabled={updating || currentOrderStatus === status}
+                                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${currentOrderStatus === status
+                                                ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
+                                                : status === "Cancelled"
+                                                    ? "bg-[var(--color-secondary)] text-white hover:opacity-90"
+                                                    : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                                 }`}
                                         >
-                                            {order.orderStatus === status ? (
+                                            {currentOrderStatus === status ? (
                                                 <span className="flex items-center justify-center">
                                                     <CheckCircle className="w-4 h-4 mr-2" />
                                                     Current Status
@@ -404,49 +608,49 @@ const OrderDetails = () => {
                                     )
                                 )}
                             </div>
-                        </div>
+                        </section>
 
                         {/* Timeline */}
                         {order.isDelivered && (
-                            <div className="bg-white rounded-xl shadow-sm p-6">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                    <Calendar className="w-5 h-5 mr-2" />
+                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                    <Calendar className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                     Timeline
                                 </h2>
                                 <div className="space-y-3 text-sm">
-                                    <div className="flex items-center text-gray-700">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                                    <div className="flex items-center text-[var(--color-text-muted)]">
+                                        <div className="mr-3 h-2 w-2 rounded-full bg-[var(--color-primary)]"></div>
                                         <div>
-                                            <p className="font-medium">Order Delivered</p>
-                                            <p className="text-gray-500">
+                                            <p className="font-bold text-[var(--color-text-main)]">Order Delivered</p>
+                                            <p>
                                                 {new Date(order.deliveredAt).toLocaleString()}
                                             </p>
                                         </div>
                                     </div>
                                     {order.isPaid && (
-                                        <div className="flex items-center text-gray-700">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                                        <div className="flex items-center text-[var(--color-text-muted)]">
+                                            <div className="mr-3 h-2 w-2 rounded-full bg-[var(--color-primary-light)]"></div>
                                             <div>
-                                                <p className="font-medium">Payment Received</p>
-                                                <p className="text-gray-500">
+                                                <p className="font-bold text-[var(--color-text-main)]">Payment Received</p>
+                                                <p>
                                                     {new Date(order.paidAt).toLocaleString()}
                                                 </p>
                                             </div>
                                         </div>
                                     )}
-                                    <div className="flex items-center text-gray-700">
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full mr-3"></div>
+                                    <div className="flex items-center text-[var(--color-text-muted)]">
+                                        <div className="mr-3 h-2 w-2 rounded-full bg-[var(--color-surface-soft)]"></div>
                                         <div>
-                                            <p className="font-medium">Order Placed</p>
-                                            <p className="text-gray-500">
+                                            <p className="font-bold text-[var(--color-text-main)]">Order Placed</p>
+                                            <p>
                                                 {new Date(order.createdAt).toLocaleString()}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
                         )}
-                    </div>
+                    </aside>
                 </div>
             </div>
         </div>

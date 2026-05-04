@@ -4,7 +4,7 @@ import Loading from "../../components/common/Loading";
 import { AdminController } from "../../controllers/adminController";
 
 // Admin Route - Only allows admin users
-const AdminRoute = ({ children }) => {
+const AdminRoute = ({ children, allowedRoles }) => {
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
@@ -17,7 +17,17 @@ const AdminRoute = ({ children }) => {
         return;
       }
 
-      setStatus(result.success ? "authorized" : "unauthorized");
+      if (!result.success) {
+        setStatus("unauthorized");
+        return;
+      }
+
+      if (allowedRoles?.length && !allowedRoles.includes(result.data?.role)) {
+        setStatus("unauthorized");
+        return;
+      }
+
+      setStatus("authorized");
     };
 
     validateAdminSession();
@@ -25,7 +35,7 @@ const AdminRoute = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [allowedRoles]);
 
   if (status === "checking") {
     return <Loading />;

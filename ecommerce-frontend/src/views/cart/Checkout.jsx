@@ -68,7 +68,7 @@ const Checkout = () => {
     (acc, item) => acc + getEffectivePrice(item.product) * item.quantity,
     0
   );
-  const shippingPrice = 0; // Free shipping
+  const shippingPrice = 2; // Fixed delivery fee
   const taxPrice = subtotal * 0.08; // 8% tax
   const totalPrice = subtotal + shippingPrice + taxPrice;
 

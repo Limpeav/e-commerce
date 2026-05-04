@@ -228,10 +228,10 @@ export const getOrderById = asyncHandler(async (req, res) => {
         throw new Error("Order not found");
     }
 
-    const isAdmin = req.user?.role === "admin";
+    const isPortalUser = ["admin", "seller", "delivery"].includes(req.user?.role);
     const isOwner = order.user?._id?.toString() === req.user?._id?.toString();
 
-    if (!isAdmin && !isOwner) {
+    if (!isPortalUser && !isOwner) {
         res.status(403);
         throw new Error("Not authorized to view this order");
     }

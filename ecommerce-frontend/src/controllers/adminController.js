@@ -189,15 +189,17 @@ export class AdminController {
     const adminToken = getStoredAdminToken();
     const adminUser = getStoredAdminUser();
 
-    if (!adminToken || !adminUser || adminUser.role !== "admin") {
+    const portalRoles = ["admin", "seller", "delivery"];
+
+    if (!adminToken || !adminUser || !portalRoles.includes(adminUser.role)) {
       return { success: false, error: "Unauthorized" };
     }
 
     try {
       const { data } = await adminService.getCurrentAdmin();
 
-      if (!data || data.role !== "admin") {
-        throw new Error("Invalid admin session");
+      if (!data || !portalRoles.includes(data.role)) {
+        throw new Error("Invalid seller portal session");
       }
 
       setAdminSession(adminToken, { ...adminUser, ...data });

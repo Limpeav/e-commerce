@@ -31,6 +31,10 @@ const phoneExemptPaths = [
   "/login",
   "/register",
   "/admin/login",
+  "/seller",
+  "/seller/login",
+  "/staff",
+  "/staff/login",
   "/forgot-password",
   "/reset-password",
 ];
@@ -76,7 +80,7 @@ export default function AppView() {
 
     if (isAdmin) {
       return (
-        <AdminRoute>
+        <AdminRoute allowedRoles={route.allowedRoles}>
           <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
             <AdminSidebar />
             <div className="lg:ml-64">

@@ -8,13 +8,14 @@ import {
 } from "../controllers/adminController.js";
 import { registerAdmin, loginAdmin, getAdminProfile } from "../controllers/adminAuthController.js";
 import {
+    createStaffLogin,
     getAllUsers,
     getUserById,
     updateUserRole,
     deleteUser,
     getUserStats,
 } from "../controllers/userManagementController.js";
-import { protect, admin } from "../middleware/authMiddleware.js";
+import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 import { createUpload } from "../middleware/upload.js";
 
@@ -30,10 +31,10 @@ const adminLoginLimiter = rateLimit({
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
-router.get("/me", protect, admin, getAdminProfile);
+router.get("/me", protect, portalAccess, getAdminProfile);
 
 // Dashboard
-router.get("/dashboard", protect, admin, getDashboardData);
+router.get("/dashboard", protect, portalAccess, getDashboardData);
 router.get("/csv-builder-draft", protect, admin, getCsvBuilderDraft);
 router.put("/csv-builder-draft", protect, admin, saveCsvBuilderDraft);
 router.post(
@@ -46,6 +47,7 @@ router.post(
 
 // User management routes
 router.get("/users", protect, admin, getAllUsers);
+router.post("/users", protect, admin, createStaffLogin);
 router.get("/users/stats", protect, admin, getUserStats); // ← must be before /:id
 router.get("/users/:id", protect, admin, getUserById);
 router.put("/users/:id/role", protect, admin, updateUserRole);

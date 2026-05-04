@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { USER_ROLES } from "../constants/roles.js";
 
 const userSchema = mongoose.Schema(
   {
@@ -8,7 +9,7 @@ const userSchema = mongoose.Schema(
     password: { type: String },
     phone: { type: String },
     isAdmin: { type: Boolean, default: false },
-    role: { type: String, enum: ["admin", "user"], default: "user" },
+    role: { type: String, enum: USER_ROLES, default: "user" },
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpires: { type: Date },
@@ -24,15 +25,13 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   if (!this.isModified("password") || !this.password) {
-    next();
     return;
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

@@ -1,5 +1,6 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import { PORTAL_ROLES } from "../constants/roles.js";
 
 // Generate token
 const generateToken = (id) => {
@@ -41,7 +42,7 @@ export const registerAdmin = async (req, res) => {
     }
 };
 
-// @desc    Admin login
+// @desc    Seller portal login
 // @route   POST /api/admin/login
 // @access  Public
 export const loginAdmin = async (req, res) => {
@@ -58,9 +59,8 @@ export const loginAdmin = async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        // Check if user is admin
-        if (user.role !== "admin") {
-            return res.status(403).json({ message: "Access denied. Admin only." });
+        if (!PORTAL_ROLES.includes(user.role)) {
+            return res.status(403).json({ message: "Access denied. Seller portal only." });
         }
 
         const isMatch = await user.matchPassword(password);

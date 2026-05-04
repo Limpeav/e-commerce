@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import { PORTAL_ROLES } from "../constants/roles.js";
 
 export const protect = async (req, res, next) => {
   let token;
@@ -35,6 +36,14 @@ export const admin = (req, res, next) => {
     next();
   } else {
     res.status(403).json({ message: "Admin access only" });
+  }
+};
+
+export const portalAccess = (req, res, next) => {
+  if (req.user && PORTAL_ROLES.includes(req.user.role)) {
+    next();
+  } else {
+    res.status(403).json({ message: "Seller portal access only" });
   }
 };
 

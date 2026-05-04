@@ -1,6 +1,9 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import Product from "../models/Product.js";
+import { USER_ROLES } from "../constants/roles.js";
+
+const STAFF_LOGIN_ROLES = ["seller", "delivery", "admin"];
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -8,6 +11,54 @@ import Product from "../models/Product.js";
 export const getAllUsers = asyncHandler(async (req, res) => {
     const users = await User.find({}).select("-password").sort({ createdAt: -1 });
     res.json(users);
+});
+
+// @desc    Create a seller portal login
+// @route   POST /api/admin/users
+// @access  Private/Admin
+export const createStaffLogin = asyncHandler(async (req, res) => {
+    const name = req.body.name?.trim();
+    const email = req.body.email?.trim().toLowerCase();
+    const password = req.body.password;
+    const phone = req.body.phone?.trim();
+    const role = req.body.role || "seller";
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    if (!STAFF_LOGIN_ROLES.includes(role)) {
+        return res.status(400).json({ message: "Role must be admin, seller, or delivery" });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+        return res.status(400).json({
+            message: "A user with this email already exists. Change that user's role instead.",
+        });
+    }
+
+    const user = await User.create({
+        name,
+        email,
+        password,
+        ...(phone ? { phone } : {}),
+        role,
+        isVerified: true,
+    });
+
+    res.status(201).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+    });
 });
 
 // @desc    Get user by ID
@@ -33,7 +84,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
     if (user) {
         const { role } = req.body;
 
-        if (role && !["admin", "user"].includes(role)) {
+        if (role && !USER_ROLES.includes(role)) {
             res.status(400);
             throw new Error("Invalid role");
         }
@@ -47,7 +98,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
             throw new Error("Cannot remove your own admin access");
         }
 
-        user.role = role || user.role; // "admin" or "user"
+        user.role = role || user.role;
         const updatedUser = await user.save();
 
         res.json({
@@ -115,7 +166,9 @@ export const deleteUser = asyncHandler(async (req, res) => {
 export const getUserStats = asyncHandler(async (req, res) => {
     const totalUsers = await User.countDocuments();
     const adminUsers = await User.countDocuments({ role: "admin" });
-    const regularUsers = totalUsers - adminUsers;
+    const sellerUsers = await User.countDocuments({ role: "seller" });
+    const deliveryUsers = await User.countDocuments({ role: "delivery" });
+    const regularUsers = await User.countDocuments({ role: "user" });
 
     // Get recent users (last 5)
     const recentUsers = await User.find({})
@@ -126,6 +179,9 @@ export const getUserStats = asyncHandler(async (req, res) => {
     res.json({
         totalUsers,
         adminUsers,
+        sellerUsers,
+        staffUsers: sellerUsers,
+        deliveryUsers,
         regularUsers,
         recentUsers,
     });
