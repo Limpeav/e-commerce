@@ -1,0 +1,41 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS theme variables."
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS source detection."
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS custom utility."
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind CSS variant wrapper."
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Tailwind CSS custom variant."
+    },
+    {
+      "name": "@apply",
+      "description": "Tailwind CSS utility composition."
+    },
+    {
+      "name": "@reference",
+      "description": "Tailwind CSS style reference."
+    },
+    {
+      "name": "@config",
+      "description": "Tailwind CSS config reference."
+    },
+    {
+      "name": "@plugin",
+      "description": "Tailwind CSS plugin reference."
+    }
+  ]
+}

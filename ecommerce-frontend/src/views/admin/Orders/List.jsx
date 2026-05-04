@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+    CalendarDays,
+    ChevronDown,
     Package,
     Trash2,
     Search,
@@ -17,6 +19,7 @@ const AdminOrders = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
+    const [expandedOrderDates, setExpandedOrderDates] = useState({});
 
     useEffect(() => {
         fetchOrders();
@@ -25,6 +28,87 @@ const AdminOrders = () => {
     useEffect(() => {
         filterOrders();
     }, [searchTerm, statusFilter, orders]);
+
+    const getOrderDateKey = (createdAt) => {
+        const date = createdAt ? new Date(createdAt) : null;
+
+        if (!date || Number.isNaN(date.getTime())) {
+            return "unknown";
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatOrderDate = (dateKey) => {
+        if (dateKey === "unknown") {
+            return "Date unknown";
+        }
+
+        return new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
+    const groupedOrders = useMemo(() => {
+        const groupsByDate = filteredOrders.reduce((groups, order) => {
+            const dateKey = getOrderDateKey(order.createdAt);
+
+            if (!groups[dateKey]) {
+                groups[dateKey] = {
+                    dateKey,
+                    label: formatOrderDate(dateKey),
+                    orders: [],
+                    total: 0,
+                };
+            }
+
+            groups[dateKey].orders.push(order);
+            groups[dateKey].total += order.totalPrice || 0;
+
+            return groups;
+        }, {});
+
+        return Object.values(groupsByDate)
+            .map((group) => ({
+                ...group,
+                orders: group.orders.sort(
+                    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+                ),
+            }))
+            .sort((a, b) => {
+                if (a.dateKey === "unknown") return 1;
+                if (b.dateKey === "unknown") return -1;
+                return new Date(`${b.dateKey}T00:00:00`) - new Date(`${a.dateKey}T00:00:00`);
+            });
+    }, [filteredOrders]);
+
+    useEffect(() => {
+        if (groupedOrders.length === 0) {
+            setExpandedOrderDates({});
+            return;
+        }
+
+        setExpandedOrderDates((current) => {
+            const next = groupedOrders.reduce((dates, group) => {
+                dates[group.dateKey] = current[group.dateKey] || false;
+                return dates;
+            }, {});
+
+            const hasOpenVisibleGroup = groupedOrders.some((group) => next[group.dateKey]);
+
+            if (!hasOpenVisibleGroup) {
+                next[groupedOrders[0].dateKey] = true;
+            }
+
+            return next;
+        });
+    }, [groupedOrders]);
 
     const fetchOrders = async () => {
         try {
@@ -74,6 +158,13 @@ const AdminOrders = () => {
 
     const handleRowNavigation = (orderId) => {
         navigate(`/admin/orders/${orderId}`);
+    };
+
+    const toggleOrderDate = (dateKey) => {
+        setExpandedOrderDates((current) => ({
+            ...current,
+            [dateKey]: !current[dateKey],
+        }));
     };
 
     const normalizeOrderStatus = (status) => {
@@ -273,73 +364,113 @@ const AdminOrders = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredOrders.map((order) => (
-                                    <tr
-                                        key={order._id}
-                                        onClick={() => handleRowNavigation(order._id)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
-                                                handleRowNavigation(order._id);
-                                            }
-                                        }}
-                                        tabIndex={0}
-                                        className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                                    >
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm font-mono text-gray-900">
-                                                #{order._id.slice(-8)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {order.user?.name || "N/A"}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {order.user?.email || "N/A"}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(order.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                            ${order.totalPrice?.toFixed(2) || "0.00"}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentColor(
-                                                    order.paymentStatus
-                                                )}`}
-                                            >
-                                                {order.paymentStatus || "Pending"}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                                                    order.orderStatus
-                                                )}`}
-                                                style={getStatusStyle(order.orderStatus)}
-                                            >
-                                                {normalizeOrderStatus(order.orderStatus)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteOrder(order._id);
+                                groupedOrders.map((group) => {
+                                    const isExpanded = expandedOrderDates[group.dateKey];
+
+                                    return (
+                                        <Fragment key={group.dateKey}>
+                                            <tr className="bg-gray-50">
+                                                <td colSpan="7" className="px-6 py-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleOrderDate(group.dateKey)}
+                                                        className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        aria-expanded={isExpanded}
+                                                    >
+                                                        <span className="flex min-w-0 items-center gap-3">
+                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                                                <CalendarDays className="h-4 w-4" />
+                                                            </span>
+                                                            <span className="min-w-0">
+                                                                <span className="block text-sm font-bold text-gray-900">
+                                                                    {group.label}
+                                                                </span>
+                                                                <span className="block text-xs text-gray-500">
+                                                                    {group.orders.length} {group.orders.length === 1 ? "order" : "orders"} on this day
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                        <span className="flex shrink-0 items-center gap-4">
+                                                            <span className="hidden text-sm font-semibold text-gray-900 sm:inline">
+                                                                ${group.total.toFixed(2)}
+                                                            </span>
+                                                            <ChevronDown
+                                                                className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                                            />
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && group.orders.map((order) => (
+                                                <tr
+                                                    key={order._id}
+                                                    onClick={() => handleRowNavigation(order._id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            handleRowNavigation(order._id);
+                                                        }
                                                     }}
-                                                    className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
-                                                    title="Delete Order"
+                                                    tabIndex={0}
+                                                    className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-mono text-gray-900">
+                                                            #{order._id.slice(-8)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">
+                                                            {order.user?.name || "N/A"}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">
+                                                            {order.user?.email || "N/A"}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {new Date(order.createdAt).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                                        ${order.totalPrice?.toFixed(2) || "0.00"}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span
+                                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentColor(
+                                                                order.paymentStatus
+                                                            )}`}
+                                                        >
+                                                            {order.paymentStatus || "Pending"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span
+                                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                                                order.orderStatus
+                                                            )}`}
+                                                            style={getStatusStyle(order.orderStatus)}
+                                                        >
+                                                            {normalizeOrderStatus(order.orderStatus)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteOrder(order._id);
+                                                                }}
+                                                                className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
+                                                                title="Delete Order"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </Fragment>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
