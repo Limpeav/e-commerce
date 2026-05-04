@@ -323,10 +323,6 @@ const OrderDetails = () => {
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span>Shipping:</span>
-                                    <span>${order.shippingPrice.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between">
                                     <span>Tax:</span>
                                     <span>${order.taxPrice.toFixed(2)}</span>
                                 </div>
@@ -349,23 +345,21 @@ const OrderDetails = () => {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                {["Pending", "Paid", "Failed", "Refunded"].map(
+                                {["Pending", "Paid", "Failed"].map(
                                     (paymentStatus) => (
                                         <button
                                             key={paymentStatus}
                                             onClick={() => handlePaymentStatusUpdate(paymentStatus)}
                                             disabled={updating || order.paymentStatus === paymentStatus}
-                                            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${order.paymentStatus === paymentStatus
-                                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                                    : paymentStatus === "Paid"
-                                                        ? "bg-green-600 text-white hover:bg-green-700"
-                                                        : paymentStatus === "Failed"
-                                                            ? "bg-red-600 text-white hover:bg-red-700"
-                                                            : paymentStatus === "Refunded"
-                                                                ? "bg-orange-600 text-white hover:bg-orange-700"
+                                                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${order.paymentStatus === paymentStatus
+                                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                        : paymentStatus === "Paid"
+                                                            ? "bg-green-600 text-white hover:bg-green-700"
+                                                            : paymentStatus === "Failed"
+                                                                ? "bg-red-600 text-white hover:bg-red-700"
                                                                 : "bg-yellow-600 text-white hover:bg-yellow-700"
-                                                }`}
-                                        >
+                                                    }`}
+                                            >
                                             {order.paymentStatus === paymentStatus ? (
                                                 <span className="flex items-center justify-center">
                                                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -387,7 +381,7 @@ const OrderDetails = () => {
                                 Update Order Status
                             </h2>
                             <div className="space-y-2">
-                                {["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].map(
+                                {["Pending", "Processing", "Delivered", "Cancelled"].map(
                                     (status) => (
                                         <button
                                             key={status}

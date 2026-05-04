@@ -147,46 +147,46 @@ export default function KnowledgeBase() {
             badgeColor="secondary"
             maxWidth="7xl"
         >
-            <div className="space-y-24">
-                <section className="relative overflow-hidden rounded-[3rem] border border-transparent">
+            <div className="space-y-16 md:space-y-20 lg:space-y-24">
+                <section className="relative overflow-hidden rounded-[2rem] border border-transparent sm:rounded-[2.5rem] lg:rounded-[3rem]">
                     <div className={`absolute inset-0 ${isDark ? "bg-[radial-gradient(circle_at_top_left,_rgba(167,199,173,0.16),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(212,163,139,0.14),_transparent_30%)]" : "bg-[radial-gradient(circle_at_top_left,_rgba(141,170,145,0.16),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(230,186,163,0.18),_transparent_30%)]"}`}></div>
-                    <div className={`relative overflow-hidden rounded-[3rem] border p-8 md:p-10 lg:p-14 ${isDark ? "bg-bg-card/90" : "bg-[color:var(--color-surface-soft)]/80"}`} style={{ borderColor: "var(--color-border)" }}>
+                    <div className={`relative overflow-hidden rounded-[2rem] border p-5 sm:p-7 md:rounded-[2.5rem] md:p-10 lg:rounded-[3rem] lg:p-14 ${isDark ? "bg-bg-card/90" : "bg-[color:var(--color-surface-soft)]/80"}`} style={{ borderColor: "var(--color-border)" }}>
                         <div className="pointer-events-none absolute inset-0 opacity-40" style={{ backgroundImage: isDark ? "linear-gradient(to right, rgba(226,227,222,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(226,227,222,0.05) 1px, transparent 1px)" : "linear-gradient(to right, rgba(45,49,46,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(45,49,46,0.05) 1px, transparent 1px)", backgroundSize: "48px 48px" }}></div>
-                        <div className="relative z-10 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-                            <div className="space-y-8">
-                                <div className="inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/8 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-primary">
+                        <div className="relative z-10 grid gap-6 md:gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+                            <div className="space-y-6 md:space-y-8">
+                                <div className="inline-flex w-fit items-center gap-3 rounded-full border border-primary/20 bg-primary/8 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary sm:text-xs sm:tracking-[0.22em]">
                                     <Sparkles className="h-4 w-4" />
                                     Customer support hub
                                 </div>
 
-                                <div className="max-w-3xl space-y-5">
-                                    <h2 className="text-4xl font-bold tracking-tight text-text-main md:text-5xl lg:text-6xl">
+                                <div className="max-w-3xl space-y-4 md:space-y-5">
+                                    <h2 className="max-w-[12ch] text-3xl font-bold tracking-tight text-text-main sm:text-4xl md:max-w-none md:text-5xl lg:text-6xl">
                                         Find answers before your order becomes a support ticket.
                                     </h2>
-                                    <p className="max-w-2xl text-sm font-medium leading-7 text-text-muted md:text-base">
+                                    <p className="max-w-2xl text-sm font-medium leading-6 text-text-muted sm:leading-7 md:text-base">
                                         Search the most common delivery, billing, account, and product questions. The page is structured for quick scanning first, then deeper reading when you need specifics.
                                     </p>
                                 </div>
 
                                 <div className="relative max-w-2xl">
-                                    <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
+                                    <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted sm:left-5" />
                                     <input
                                         type="text"
                                         placeholder="Search articles, topics, or questions..."
-                                        className="w-full rounded-2xl border bg-bg-card py-4 pl-14 pr-5 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
+                                        className="w-full rounded-2xl border bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20 sm:py-4 sm:pl-14 sm:pr-5"
                                         style={{ borderColor: "var(--color-border)" }}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </div>
 
-                                <div className="flex flex-wrap gap-3">
+                                <div className="flex flex-wrap gap-2.5 sm:gap-3">
                                     {["Tracking", "Refunds", "Delivery time", "Security", "Order changes"].map((tag) => (
                                         <button
                                             key={tag}
                                             type="button"
                                             onClick={() => setSearchQuery(tag)}
-                                            className="rounded-full border bg-bg-card px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-text-muted transition-colors hover:border-primary/40 hover:bg-primary/8 hover:text-primary"
+                                            className="rounded-full border bg-bg-card px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted transition-colors hover:border-primary/40 hover:bg-primary/8 hover:text-primary sm:px-4 sm:text-xs sm:tracking-[0.18em]"
                                             style={{ borderColor: "var(--color-border)" }}
                                         >
                                             {tag}
@@ -196,17 +196,17 @@ export default function KnowledgeBase() {
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-                                <div className="rounded-[2rem] border bg-bg-card p-6" style={{ borderColor: "var(--color-border)" }}>
+                                <div className="rounded-[1.5rem] border bg-bg-card p-5 sm:rounded-[2rem] sm:p-6" style={{ borderColor: "var(--color-border)" }}>
                                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Coverage</p>
-                                    <p className="mt-3 text-4xl font-bold text-text-main">24/7</p>
+                                    <p className="mt-3 text-3xl font-bold text-text-main sm:text-4xl">24/7</p>
                                     <p className="mt-2 text-sm leading-6 text-text-muted">Self-service support with quick article discovery.</p>
                                 </div>
-                                <div className="rounded-[2rem] border bg-bg-card p-6" style={{ borderColor: "var(--color-border)" }}>
+                                <div className="rounded-[1.5rem] border bg-bg-card p-5 sm:rounded-[2rem] sm:p-6" style={{ borderColor: "var(--color-border)" }}>
                                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Popular topics</p>
-                                    <p className="mt-3 text-4xl font-bold text-text-main">{knowledgeSections.length}</p>
+                                    <p className="mt-3 text-3xl font-bold text-text-main sm:text-4xl">{knowledgeSections.length}</p>
                                     <p className="mt-2 text-sm leading-6 text-text-muted">Shipping, payments, orders, and account safety.</p>
                                 </div>
-                                <div className="rounded-[2rem] border border-primary/20 bg-primary/10 p-6">
+                                <div className="rounded-[1.5rem] border border-primary/20 bg-primary/10 p-5 sm:rounded-[2rem] sm:p-6">
                                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Need a person?</p>
                                     <Link to="/contact" className="mt-3 inline-flex items-center gap-2 text-lg font-bold text-text-main">
                                         Contact support
@@ -221,11 +221,11 @@ export default function KnowledgeBase() {
 
                 <section className="space-y-8">
                     <SectionHeader number={1} title="Browse By Topic" icon={BookOpen} />
-                    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-6">
                         {knowledgeSections.map((section) => (
                             <article
                                 key={section.title}
-                                className="group relative overflow-hidden rounded-[2rem] border bg-bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8"
+                                className="group relative overflow-hidden rounded-[1.5rem] border bg-bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8 sm:rounded-[2rem] sm:p-6"
                                 style={{ borderColor: "var(--color-border)" }}
                             >
                                 <div className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${section.accent}`}></div>
@@ -265,23 +265,23 @@ export default function KnowledgeBase() {
 
                 <section className="space-y-8">
                     <SectionHeader number={2} title="Featured Answers" icon={HelpCircle} />
-                    <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr]">
-                        <div className={`rounded-[2.5rem] border p-8 md:p-10 ${isDark ? "bg-bg-card" : "bg-[color:var(--color-surface-soft)]/85"}`} style={{ borderColor: "var(--color-border)" }}>
+                    <div className="grid gap-5 md:gap-6 lg:grid-cols-[0.88fr_1.12fr] lg:gap-8">
+                        <div className={`rounded-[1.75rem] border p-5 sm:rounded-[2rem] sm:p-7 md:rounded-[2.5rem] md:p-10 ${isDark ? "bg-bg-card" : "bg-[color:var(--color-surface-soft)]/85"}`} style={{ borderColor: "var(--color-border)" }}>
                             <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">Fast path</p>
-                            <h3 className="mt-4 text-3xl font-bold tracking-tight text-text-main">
+                            <h3 className="mt-4 text-2xl font-bold tracking-tight text-text-main sm:text-3xl">
                                 Start with the questions customers open most.
                             </h3>
-                            <p className="mt-4 text-sm leading-7 text-text-muted">
+                            <p className="mt-4 text-sm leading-6 text-text-muted sm:leading-7">
                                 These answers cover the highest-volume issues across delivery, checkout, and order management. Expand one to read the details without leaving the page.
                             </p>
 
-                            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                                <div className="rounded-[1.75rem] border bg-bg-card p-5" style={{ borderColor: "var(--color-border)" }}>
+                            <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2">
+                                <div className="rounded-[1.5rem] border bg-bg-card p-4 sm:rounded-[1.75rem] sm:p-5" style={{ borderColor: "var(--color-border)" }}>
                                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Search results</p>
-                                    <p className="mt-3 text-3xl font-bold text-text-main">{filteredCount}</p>
+                                    <p className="mt-3 text-2xl font-bold text-text-main sm:text-3xl">{filteredCount}</p>
                                     <p className="mt-2 text-sm text-text-muted">Questions match your current search.</p>
                                 </div>
-                                <div className="rounded-[1.75rem] border bg-bg-card p-5" style={{ borderColor: "var(--color-border)" }}>
+                                <div className="rounded-[1.5rem] border bg-bg-card p-4 sm:rounded-[1.75rem] sm:p-5" style={{ borderColor: "var(--color-border)" }}>
                                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Support route</p>
                                     <div className="mt-3 inline-flex items-center gap-3 text-lg font-bold text-text-main">
                                         <MessageSquare className="h-5 w-5 text-primary" />
@@ -301,20 +301,20 @@ export default function KnowledgeBase() {
                                         key={faq.question}
                                         type="button"
                                         onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                                        className={`w-full rounded-[2rem] border bg-bg-card px-6 py-5 text-left transition-all duration-300 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/8 ${isOpen ? "ring-2 ring-primary/20" : ""}`}
+                                        className={`w-full rounded-[1.5rem] border bg-bg-card px-4 py-4 text-left transition-all duration-300 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/8 sm:rounded-[2rem] sm:px-6 sm:py-5 ${isOpen ? "ring-2 ring-primary/20" : ""}`}
                                         style={{ borderColor: "var(--color-border)" }}
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
-                                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Featured question</p>
-                                                <h4 className="mt-3 text-xl font-bold leading-tight text-text-main md:text-2xl">
+                                                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary sm:text-xs sm:tracking-[0.18em]">Featured question</p>
+                                                <h4 className="mt-2 text-lg font-bold leading-tight text-text-main sm:mt-3 sm:text-xl md:text-2xl">
                                                     {faq.question}
                                                 </h4>
                                             </div>
                                             <ChevronDown className={`mt-1 h-5 w-5 shrink-0 text-primary transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
                                         </div>
                                         {isOpen && (
-                                            <p className="mt-4 max-w-2xl text-sm leading-7 text-text-muted md:text-base">
+                                            <p className="mt-3 max-w-2xl pr-6 text-sm leading-6 text-text-muted sm:mt-4 sm:pr-8 sm:leading-7 md:text-base">
                                                 {faq.answer}
                                             </p>
                                         )}
@@ -325,34 +325,34 @@ export default function KnowledgeBase() {
                     </div>
                 </section>
 
-                <section className="space-y-10">
+                <section className="space-y-8 md:space-y-10">
                     <SectionHeader number={3} title="Knowledge Library" icon={HelpCircle} />
                     {filteredSections.length > 0 ? (
-                        <div className="space-y-12">
+                        <div className="space-y-10 md:space-y-12">
                             {filteredSections.map((section) => (
-                                <div key={section.category} className="space-y-6">
+                                <div key={section.category} className="space-y-5 md:space-y-6">
                                     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                                         <div>
                                             <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Category</p>
-                                            <h3 className="mt-2 text-2xl font-bold text-text-main">{section.category}</h3>
+                                            <h3 className="mt-2 text-xl font-bold text-text-main sm:text-2xl">{section.category}</h3>
                                         </div>
                                         <p className="text-sm text-text-muted">
                                             {section.questions.length} article{section.questions.length > 1 ? "s" : ""} found
                                         </p>
                                     </div>
 
-                                    <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
                                         {section.questions.map((faq) => (
                                             <article
                                                 key={faq.q}
-                                                className="group rounded-[2rem] border bg-bg-card p-7 transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8"
+                                                className="group rounded-[1.5rem] border bg-bg-card p-5 transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8 sm:rounded-[2rem] sm:p-6 md:p-7"
                                                 style={{ borderColor: "var(--color-border)" }}
                                             >
                                                 <div className="flex items-start justify-between gap-4">
-                                                    <h4 className="text-lg font-bold leading-7 text-text-main">{faq.q}</h4>
+                                                    <h4 className="text-base font-bold leading-6 text-text-main sm:text-lg sm:leading-7">{faq.q}</h4>
                                                     <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
                                                 </div>
-                                                <p className="mt-4 text-sm leading-7 text-text-muted">
+                                                <p className="mt-3 text-sm leading-6 text-text-muted sm:mt-4 sm:leading-7">
                                                     {faq.a}
                                                 </p>
                                             </article>
@@ -362,10 +362,10 @@ export default function KnowledgeBase() {
                             ))}
                         </div>
                     ) : (
-                        <div className={`rounded-[2.5rem] border p-10 text-center ${isDark ? "bg-bg-card" : "bg-[color:var(--color-surface-soft)]/85"}`} style={{ borderColor: "var(--color-border)" }}>
+                        <div className={`rounded-[1.75rem] border p-6 text-center sm:rounded-[2.5rem] sm:p-10 ${isDark ? "bg-bg-card" : "bg-[color:var(--color-surface-soft)]/85"}`} style={{ borderColor: "var(--color-border)" }}>
                             <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">No matches</p>
-                            <h3 className="mt-4 text-3xl font-bold text-text-main">No articles matched that search.</h3>
-                            <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-text-muted">
+                            <h3 className="mt-4 text-2xl font-bold text-text-main sm:text-3xl">No articles matched that search.</h3>
+                            <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-text-muted sm:leading-7">
                                 Try a broader keyword like tracking, refund, delivery, or account. If the issue is specific, contact support directly instead of guessing.
                             </p>
                         </div>
@@ -373,22 +373,22 @@ export default function KnowledgeBase() {
                 </section>
 
                 <section>
-                    <div className={`rounded-[2.5rem] border p-8 md:p-10 lg:p-12 ${isDark ? "bg-[linear-gradient(135deg,#242723_0%,#20231F_55%,#1A1C19_100%)]" : "bg-[linear-gradient(135deg,#F6EFE7_0%,#FFFFFF_55%,#FCF9F5_100%)]"}`} style={{ borderColor: "var(--color-border)" }}>
+                    <div className={`rounded-[1.75rem] border p-5 sm:rounded-[2rem] sm:p-7 md:rounded-[2.5rem] md:p-10 lg:p-12 ${isDark ? "bg-[linear-gradient(135deg,#242723_0%,#20231F_55%,#1A1C19_100%)]" : "bg-[linear-gradient(135deg,#F6EFE7_0%,#FFFFFF_55%,#FCF9F5_100%)]"}`} style={{ borderColor: "var(--color-border)" }}>
                         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                             <div className="max-w-2xl">
                                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">Escalation path</p>
-                                <h3 className="mt-4 text-3xl font-bold tracking-tight text-text-main md:text-4xl">
+                                <h3 className="mt-4 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">
                                     Still need help with your order, account, or refund?
                                 </h3>
-                                <p className="mt-4 text-sm leading-7 text-text-muted md:text-base">
+                                <p className="mt-4 text-sm leading-6 text-text-muted sm:leading-7 md:text-base">
                                     Use the contact page for issues that need account access, manual order review, or a billing investigation. The help center is for quick answers; support handles exceptions.
                                 </p>
                             </div>
 
-                            <div className="flex flex-col gap-4 sm:flex-row">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                                 <Link
                                     to="/contact"
-                                    className="inline-flex items-center justify-center gap-3 rounded-2xl bg-text-main px-7 py-4 text-sm font-bold text-white transition-all hover:bg-primary"
+                                    className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-text-main px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-primary sm:px-7 sm:py-4"
                                 >
                                     Contact support
                                     <ArrowRight className="h-4 w-4" />
@@ -396,7 +396,7 @@ export default function KnowledgeBase() {
                                 <button
                                     type="button"
                                     onClick={() => setSearchQuery("")}
-                                    className="rounded-2xl border bg-bg-card px-7 py-4 text-sm font-bold text-text-main transition-colors hover:border-primary/25 hover:bg-primary/8"
+                                    className="min-h-12 rounded-2xl border bg-bg-card px-6 py-3.5 text-sm font-bold text-text-main transition-colors hover:border-primary/25 hover:bg-primary/8 sm:px-7 sm:py-4"
                                     style={{ borderColor: "var(--color-border)" }}
                                 >
                                     Reset search

@@ -83,7 +83,11 @@ const Register = () => {
   const startGoogleSignUp = useGoogleLogin({
     scope: "openid profile email",
     onSuccess: async (tokenResponse) => {
-      setGoogleUser({ accessToken: tokenResponse.access_token });
+      const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+      });
+      const profile = await profileRes.json();
+      setGoogleUser({ accessToken: tokenResponse.access_token, picture: profile.picture, name: profile.name, email: profile.email });
       setShowGoogleConfirm(true);
     },
     onError: () => {
@@ -415,10 +419,14 @@ const Register = () => {
             className="relative w-full max-w-sm p-6 rounded-2xl shadow-2xl bg-white"
           >
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <ShieldCheck className="w-8 h-8 text-white" />
-              </div>
-              
+              {googleUser.picture && (
+                <img
+                  src={googleUser.picture}
+                  alt={googleUser.name || "Google user"}
+                  className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                />
+              )}
+
               <h3 className="text-xl font-bold mb-1 text-gray-900">
                 Continue with Google?
               </h3>

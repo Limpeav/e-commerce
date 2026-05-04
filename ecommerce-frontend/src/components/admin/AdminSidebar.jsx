@@ -57,7 +57,7 @@ const AdminSidebar = () => {
         if (isMounted) {
           setOrderCount(getPendingOrderCount(response.data))
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
           setOrderCount(0)
         }
@@ -175,19 +175,21 @@ const AdminSidebar = () => {
                     }
                   `}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
-                  <span className={`font-medium ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'}`}>{item.name}</span>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                    <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
                     {item.name === 'Orders' && item.badge > 0 && (
                       <span
                         className={`
-                          inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none shadow-sm
-                          ${isActive ? 'bg-[#ff8a8a] text-white' : 'bg-[#ff7b7b] text-white'}
+                          absolute -right-3 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-sm ring-2
+                          ${isActive ? 'bg-[#ff8a8a] text-white ring-[var(--color-primary)]' : 'bg-[#ff7b7b] text-white ring-[var(--color-bg-card)]'}
                         `}
                       >
                         {item.badge > 99 ? '99+' : item.badge}
                       </span>
                     )}
+                  </div>
+                  <span className={`font-medium ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]'}`}>{item.name}</span>
+                  <div className="ml-auto flex items-center gap-2">
                     {isActive && (
                       <div className="w-2 h-2 bg-[var(--color-secondary-light)] rounded-full animate-pulse" />
                     )}

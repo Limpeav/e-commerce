@@ -310,7 +310,7 @@ html.dark {
 }
 
 :is(.text-red-500, .text-red-600, .text-red-700, .text-red-800, .text-rose-500, .text-orange-600) {
-    color: var(--color-secondary) !important;
+    color: #ffffff !important;
 }
 
 :is(.border-red-500, .border-red-600) {
