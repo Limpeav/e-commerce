@@ -13,6 +13,8 @@ import {
     CheckCircle,
     ExternalLink,
     Image as ImageIcon,
+    Navigation,
+    Phone,
     Printer,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
@@ -244,6 +246,13 @@ const OrderDetails = () => {
         ? ["Processing", "Delivered"]
         : ["Pending", "Processing", "Delivered", "Cancelled"];
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid", "Failed"];
+    const mapUrl =
+        order.shippingAddress?.latitude && order.shippingAddress?.longitude
+            ? `https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`
+            : "";
+    const phoneHref = order.shippingAddress?.phone
+        ? `tel:${String(order.shippingAddress.phone).replace(/\s/g, "")}`
+        : "";
     const summaryRows = [
         ["Order ID", `#${displayOrderId}`],
         ["Customer Name", customerName],
@@ -346,26 +355,26 @@ const OrderDetails = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--color-bg-base)]">
+        <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {/* Header */}
             <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
-                <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 pb-5 pt-20 sm:px-6 lg:px-8 lg:pt-5">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
                                 onClick={() => navigate("/admin/orders")}
-                                className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
+                                className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
                                 aria-label="Back to orders"
                             >
                                 <ArrowLeft className="h-5 w-5" />
                             </button>
                             <div>
-                                <h1 className="text-3xl font-bold leading-tight text-[var(--color-text-main)] sm:text-4xl">
+                                <h1 className="text-2xl font-black leading-tight text-[var(--color-text-main)] sm:text-4xl">
                                     Order #{displayOrderId}
                                 </h1>
                                 {isDelivery && (
                                     <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                        Delivery account: update progress, open map, print summary, and collect COD payments.
+                                        {customerName} · {formatCurrency(displayedTotal)}
                                     </p>
                                 )}
                             </div>
@@ -388,10 +397,69 @@ const OrderDetails = () => {
             </div>
 
             {/* Main Content */}
-            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                {isDelivery && (
+                    <section className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 shadow-sm xl:hidden">
+                        <div className="mb-4 flex items-start gap-3">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-lg font-black text-white">
+                                {(customerName || "N").charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="truncate text-lg font-black text-[var(--color-text-main)]">{customerName}</p>
+                                <p className="text-sm font-semibold text-[var(--color-text-muted)]">{customerPhone}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            {mapUrl ? (
+                                <a
+                                    href={mapUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 text-sm font-black text-white"
+                                >
+                                    <Navigation className="h-5 w-5" />
+                                    Map
+                                </a>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled
+                                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gray-100 px-3 text-sm font-black text-gray-400"
+                                >
+                                    <Navigation className="h-5 w-5" />
+                                    Map
+                                </button>
+                            )}
+                            {phoneHref ? (
+                                <a
+                                    href={phoneHref}
+                                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gray-950 px-3 text-sm font-black text-white"
+                                >
+                                    <Phone className="h-5 w-5" />
+                                    Call
+                                </a>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled
+                                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gray-100 px-3 text-sm font-black text-gray-400"
+                                >
+                                    <Phone className="h-5 w-5" />
+                                    Call
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mt-3 rounded-xl bg-[var(--color-surface-soft)] p-3 text-sm font-semibold text-[var(--color-text-muted)]">
+                            <p className="line-clamp-2">{fullAddress}</p>
+                        </div>
+                    </section>
+                )}
+
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
                     {/* Left Column - Order Items & Details */}
-                    <div className="space-y-6">
+                    <div className={`${isDelivery ? "space-y-4 xl:order-1" : "space-y-6"}`}>
                         {/* Order Items */}
                         <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm">
                             <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
@@ -455,14 +523,14 @@ const OrderDetails = () => {
                                 </div>
 
                                 {/* Google Maps Link */}
-                                {order.shippingAddress.latitude && order.shippingAddress.longitude && (
+                                {mapUrl && (
                                     <a
-                                        href={`https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`}
+                                        href={mapUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 text-sm font-bold text-[var(--color-primary-dark)] transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-card)]"
+                                        className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 text-sm font-bold text-[var(--color-primary-dark)] transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-card)]"
                                     >
-                                        <MapPin className="w-4 h-4" />
+                                        <Navigation className="w-4 h-4" />
                                         View Map
                                         <ExternalLink className="w-4 h-4" />
                                     </a>
@@ -547,7 +615,7 @@ const OrderDetails = () => {
                     </div>
 
                     {/* Right Column - Summary & Actions */}
-                    <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+                    <aside className={`${isDelivery ? "order-first space-y-4 xl:order-2" : "space-y-6"} xl:sticky xl:top-6 xl:self-start`}>
                         {/* Customer Info */}
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
@@ -782,6 +850,62 @@ const OrderDetails = () => {
                     </aside>
                 </div>
             </div>
+
+            {isDelivery && (
+                <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 px-3 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
+                    <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2">
+                        {mapUrl ? (
+                            <a
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl bg-blue-600 text-xs font-black text-white"
+                            >
+                                <Navigation className="h-5 w-5" />
+                                Map
+                            </a>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled
+                                className="inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl bg-gray-100 text-xs font-black text-gray-400"
+                            >
+                                <Navigation className="h-5 w-5" />
+                                Map
+                            </button>
+                        )}
+                        <label className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                            uploadingProof
+                                ? "bg-gray-100 text-gray-400"
+                                : "bg-gray-950 text-white"
+                        }`}>
+                            <Camera className="h-5 w-5" />
+                            Photo
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                className="sr-only"
+                                disabled={uploadingProof}
+                                onChange={handleDeliveryProofCapture}
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => handleStatusUpdate("Delivered")}
+                            disabled={updating || currentOrderStatus === "Delivered"}
+                            className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                                currentOrderStatus === "Delivered"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-green-600 text-white"
+                            }`}
+                        >
+                            <CheckCircle className="h-5 w-5" />
+                            Done
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

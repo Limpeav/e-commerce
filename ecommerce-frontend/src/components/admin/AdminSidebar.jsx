@@ -23,6 +23,8 @@ const AdminSidebar = () => {
 
   // Get admin user data
   const adminUser = getStoredAdminUser()
+  const isDelivery = adminUser?.role === 'delivery'
+  const isOrderDetail = /^\/admin\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
     if (!status) return ''
@@ -201,7 +203,7 @@ const AdminSidebar = () => {
                 >
                   <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
-                    {item.name === 'Orders' && item.badge > 0 && (
+                    {(item.name === 'Orders' || item.name === 'Deliveries') && item.badge > 0 && (
                       <span
                         className={`
                           absolute -right-3 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-sm ring-2
@@ -235,6 +237,48 @@ const AdminSidebar = () => {
           </div>
         </div>
       </div>
+
+      {isDelivery && !isOrderDetail && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
+          <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
+            <Link
+              to="/admin"
+              className={`flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                location.pathname === '/admin'
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              Hub
+            </Link>
+            <Link
+              to="/admin/orders"
+              className={`relative flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                location.pathname === '/admin/orders'
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
+            >
+              <Truck className="h-5 w-5" />
+              Runs
+              {orderCount > 0 && (
+                <span className="absolute right-5 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[9px] font-black leading-none text-white">
+                  {orderCount > 99 ? '99+' : orderCount}
+                </span>
+              )}
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black text-[var(--color-text-muted)]"
+            >
+              <LogOut className="h-5 w-5" />
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Overlay for mobile */}
       {isSidebarOpen && (

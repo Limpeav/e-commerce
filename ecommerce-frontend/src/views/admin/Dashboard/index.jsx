@@ -88,36 +88,36 @@ const AdminDashboard = () => {
     ]
 
     return (
-      <div className="min-h-screen bg-gray-50 p-6 lg:p-8">
+      <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Delivery Hub</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-2xl font-black text-gray-950 sm:text-3xl">Delivery Hub</h1>
+              <p className="mt-1 text-sm font-medium text-gray-500">
                 View customer orders, open delivery locations, print summaries, and update delivery progress.
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate('/admin/orders')}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              className="inline-flex h-[52px] items-center justify-center rounded-xl bg-blue-600 px-4 text-base font-black text-white hover:bg-blue-700"
             >
               Open Deliveries
             </button>
           </div>
 
-          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {deliveryCards.map((card) => (
-              <div key={card.label} className={`${card.bg} rounded-xl border border-gray-100 p-5 shadow-sm`}>
-                <p className="text-sm font-semibold text-gray-600">{card.label}</p>
-                <p className={`mt-2 text-3xl font-bold ${card.color}`}>{card.value}</p>
+              <div key={card.label} className={`${card.bg} rounded-2xl border border-gray-100 p-4 shadow-sm sm:p-5`}>
+                <p className="text-xs font-black uppercase text-gray-600 sm:text-sm">{card.label}</p>
+                <p className={`mt-2 truncate text-2xl font-black sm:text-3xl ${card.color}`}>{card.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-lg font-bold text-gray-900">Latest Orders</h2>
+              <h2 className="text-lg font-black text-gray-950">Latest Orders</h2>
             </div>
             {recentDeliveryOrders.length > 0 ? (
               <div className="divide-y divide-gray-100">
@@ -126,17 +126,17 @@ const AdminDashboard = () => {
                       key={activity.id}
                       type="button"
                       onClick={() => navigate(`/admin/orders/${activity.id}`)}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-gray-50"
+                      className="flex w-full flex-col gap-3 px-5 py-4 text-left hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-black text-gray-950">
                           #{activity.id.slice(-8)} · {activity.userName || 'Customer'}
                         </p>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm font-semibold text-gray-500">
                           {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · {formatCurrency(activity.amount || 0)}
                         </p>
                       </div>
-                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                      <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                         <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(activity.orderStatus)}`}>
                           {activity.orderStatus || 'Pending'}
                         </span>
