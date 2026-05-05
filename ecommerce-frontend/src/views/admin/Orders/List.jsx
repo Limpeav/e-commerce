@@ -7,9 +7,11 @@ import {
     Trash2,
     Search,
     Filter,
+    Eye,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import { getStoredAdminUser } from "../../../utils/adminSession";
 
 const AdminOrders = () => {
     const navigate = useNavigate();
@@ -20,6 +22,8 @@ const AdminOrders = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [expandedOrderDates, setExpandedOrderDates] = useState({});
+    const adminUser = getStoredAdminUser();
+    const isDelivery = adminUser?.role === "delivery";
 
     useEffect(() => {
         fetchOrders();
@@ -248,16 +252,18 @@ const AdminOrders = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
-                            Order Management
+                            {isDelivery ? "Delivery Control" : "Order Management"}
                         </h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Manage and track all customer orders
+                            {isDelivery
+                                ? "View orders, customer locations, and update delivery progress"
+                                : "Manage and track all customer orders"}
                         </p>
                     </div>
                     <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
                         <Package className="w-4 h-4" />
                         <span className="text-sm font-medium">
-                            {filteredOrders.length} Orders
+                            {filteredOrders.length} {isDelivery ? "Deliveries" : "Orders"}
                         </span>
                     </div>
                 </div>
@@ -282,10 +288,19 @@ const AdminOrders = () => {
                     </p>
                 </div>
                 <div className="bg-white rounded-lg shadow-sm p-4">
-                    <p className="text-sm text-gray-500">Total Revenue</p>
+                    <p className="text-sm text-gray-500">
+                        {isDelivery ? "Cash To Collect" : "Total Revenue"}
+                    </p>
                     <p className="text-2xl font-bold text-blue-600">
                         ${orders
-                            .filter((o) => o.paymentStatus === "Paid")
+                            .filter((o) =>
+                                isDelivery
+                                    ? o.paymentMethod === "Cash on Delivery" &&
+                                      o.paymentStatus !== "Paid" &&
+                                      o.orderStatus !== "Delivered" &&
+                                      normalizeOrderStatus(o.orderStatus) !== "Cancelled"
+                                    : o.paymentStatus === "Paid"
+                            )
                             .reduce((acc, order) => acc + (order.totalPrice || 0), 0)
                             .toFixed(2)}
                     </p>
@@ -318,7 +333,6 @@ const AdminOrders = () => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
@@ -454,16 +468,29 @@ const AdminOrders = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDeleteOrder(order._id);
-                                                                }}
-                                                                className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
-                                                                title="Delete Order"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            {isDelivery ? (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleRowNavigation(order._id);
+                                                                    }}
+                                                                    className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
+                                                                    title="View Delivery"
+                                                                >
+                                                                    <Eye className="w-4 h-4" />
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteOrder(order._id);
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
+                                                                    title="Delete Order"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>

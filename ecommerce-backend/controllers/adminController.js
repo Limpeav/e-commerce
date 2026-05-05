@@ -40,6 +40,18 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const pendingOrdersCount = await Order.countDocuments({
     orderStatus: "Pending",
   });
+  const processingOrdersCount = await Order.countDocuments({
+    orderStatus: "Processing",
+  });
+  const shippedOrdersCount = await Order.countDocuments({
+    orderStatus: "Shipped",
+  });
+  const deliveredOrdersCount = await Order.countDocuments({
+    orderStatus: "Delivered",
+  });
+  const cancelledOrdersCount = await Order.countDocuments({
+    orderStatus: "Cancelled",
+  });
 
   // Count paid and unpaid orders
   const paidOrdersCount = await Order.countDocuments({
@@ -47,6 +59,11 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   });
   const unpaidOrdersCount = await Order.countDocuments({
     paymentStatus: { $ne: "Paid" },
+  });
+  const cashToCollectCount = await Order.countDocuments({
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: { $ne: "Paid" },
+    orderStatus: { $nin: ["Delivered", "Cancelled"] },
   });
 
   // Calculate total revenue from paid orders
@@ -114,8 +131,13 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     orders: ordersCount,
     revenue: totalRevenue,
     pendingOrders: pendingOrdersCount,
+    processingOrders: processingOrdersCount,
+    shippedOrders: shippedOrdersCount,
+    deliveredOrders: deliveredOrdersCount,
+    cancelledOrders: cancelledOrdersCount,
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
+    cashToCollect: cashToCollectCount,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
 });

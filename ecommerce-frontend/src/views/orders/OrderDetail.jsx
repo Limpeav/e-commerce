@@ -229,7 +229,7 @@ const OrderDetail = () => {
                 </span>
               </p>
               <p>
-                Status:{" "}
+                Payment:{" "}
                 <span className="font-semibold text-text-main">
                   {order.paymentStatus
                     ? order.paymentStatus.toUpperCase()

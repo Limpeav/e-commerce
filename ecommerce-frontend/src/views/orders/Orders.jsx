@@ -242,7 +242,7 @@ const Orders = () => {
                             {order.paymentStatus && (
                               <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${getPaymentStatusDotClass(order.paymentStatus)}`}></div>
-                                Status: <span className={getPaymentStatusClass(order.paymentStatus)}>{order.paymentStatus}</span>
+                                Payment: <span className={getPaymentStatusClass(order.paymentStatus)}>{order.paymentStatus}</span>
                               </div>
                             )}
                           </div>

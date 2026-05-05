@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
+    Camera,
     Package,
     User,
     MapPin,
@@ -11,10 +12,12 @@ import {
     Truck,
     CheckCircle,
     ExternalLink,
+    Image as ImageIcon,
     Printer,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
+import { getStoredAdminUser } from "../../../utils/adminSession";
 
 const escapeHtml = (value) =>
     String(value ?? "")
@@ -31,6 +34,9 @@ const OrderDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
+    const [uploadingProof, setUploadingProof] = useState(false);
+    const adminUser = getStoredAdminUser();
+    const isDelivery = adminUser?.role === "delivery";
 
     const fetchOrderDetails = useCallback(async () => {
         setLoading(true);
@@ -67,6 +73,14 @@ const OrderDetails = () => {
     };
 
     const handlePaymentStatusUpdate = async (newPaymentStatus) => {
+        if (
+            isDelivery &&
+            (newPaymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
+        ) {
+            alert("Delivery accounts can only mark cash on delivery orders as paid.");
+            return;
+        }
+
         if (!window.confirm(`Are you sure you want to mark this order as ${newPaymentStatus}?`)) {
             return;
         }
@@ -83,6 +97,28 @@ const OrderDetails = () => {
         await fetchOrderDetails();
         window.dispatchEvent(new Event("admin-orders-updated"));
         setUpdating(false);
+    };
+
+    const handleDeliveryProofCapture = async (event) => {
+        const proofPhoto = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!proofPhoto) {
+            return;
+        }
+
+        setUploadingProof(true);
+        const result = await AdminController.uploadDeliveryProof(id, proofPhoto);
+
+        if (!result.success) {
+            alert(result.error || "Failed to upload delivery proof photo");
+            setUploadingProof(false);
+            return;
+        }
+
+        setOrder(result.data);
+        window.dispatchEvent(new Event("admin-orders-updated"));
+        setUploadingProof(false);
     };
 
     const getPaymentStatusColor = (status) => {
@@ -203,8 +239,11 @@ const OrderDetails = () => {
     const fullAddress = formatAddress(order.shippingAddress);
     const displayOrderId = order._id.slice(-8);
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
-    const orderStatuses = ["Pending", "Processing", "Delivered", "Cancelled"];
-    const paymentStatuses = ["Pending", "Paid", "Failed"];
+    const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
+    const orderStatuses = isDelivery
+        ? ["Processing", "Delivered"]
+        : ["Pending", "Processing", "Delivered", "Cancelled"];
+    const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid", "Failed"];
     const summaryRows = [
         ["Order ID", `#${displayOrderId}`],
         ["Customer Name", customerName],
@@ -324,6 +363,11 @@ const OrderDetails = () => {
                                 <h1 className="text-3xl font-bold leading-tight text-[var(--color-text-main)] sm:text-4xl">
                                     Order #{displayOrderId}
                                 </h1>
+                                {isDelivery && (
+                                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                                        Delivery account: update progress, open map, print summary, and collect COD payments.
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
@@ -522,10 +566,11 @@ const OrderDetails = () => {
                         </section>
 
                         {/* Update Payment Status */}
+                        {(!isDelivery || order.paymentMethod === "Cash on Delivery") && (
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
                                 <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                Update Payment Status
+                                {isDelivery ? "Collect Cash Payment" : "Update Payment Status"}
                             </h2>
                             <div className="grid gap-2">
                                 {paymentStatuses.map(
@@ -534,19 +579,29 @@ const OrderDetails = () => {
                                             key={paymentStatus}
                                             onClick={() => handlePaymentStatusUpdate(paymentStatus)}
                                             disabled={updating || order.paymentStatus === paymentStatus}
+                                            aria-label={
+                                                order.paymentStatus === paymentStatus
+                                                    ? `Current payment status: ${paymentStatus}`
+                                                    : `Mark payment as ${paymentStatus}`
+                                            }
+                                            title={
+                                                order.paymentStatus === paymentStatus
+                                                    ? `Current payment status: ${paymentStatus}`
+                                                    : `Mark as ${paymentStatus}`
+                                            }
                                                 className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${order.paymentStatus === paymentStatus
                                                         ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                                         : paymentStatus === "Paid"
                                                             ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                                             : paymentStatus === "Failed"
                                                                 ? "bg-[var(--color-secondary)] text-white hover:opacity-90"
-                                                                : "border border-yellow-300 bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
+                                                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                                     }`}
                                             >
                                             {order.paymentStatus === paymentStatus ? (
                                                 <span className="flex items-center justify-center">
-                                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Current Status
+                                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
+                                                    {paymentStatus}
                                                 </span>
                                             ) : (
                                                 `Mark as ${paymentStatus}`
@@ -556,14 +611,22 @@ const OrderDetails = () => {
                                 )}
                             </div>
                         </section>
+                        )}
 
                         {/* Update Order Status */}
+                        {canManageOrderStatus && (
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
                                 <Truck className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
                                 Update Order Status
                             </h2>
-                            <div className="mb-5 grid grid-cols-4 gap-2">
+                            <div
+                                className={`mb-5 grid gap-2 ${
+                                    orderStatuses.length === 2
+                                        ? "grid-cols-2"
+                                        : "grid-cols-4"
+                                }`}
+                            >
                                 {orderStatuses.map((status, index) => {
                                     const isActive = currentOrderStatus === status;
                                     const isPast =
@@ -589,6 +652,16 @@ const OrderDetails = () => {
                                             key={status}
                                             onClick={() => handleStatusUpdate(status)}
                                             disabled={updating || currentOrderStatus === status}
+                                            aria-label={
+                                                currentOrderStatus === status
+                                                    ? `Current order status: ${status}`
+                                                    : `Mark order as ${status}`
+                                            }
+                                            title={
+                                                currentOrderStatus === status
+                                                    ? `Current order status: ${status}`
+                                                    : `Mark as ${status}`
+                                            }
                                             className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${currentOrderStatus === status
                                                 ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                                 : status === "Cancelled"
@@ -598,8 +671,8 @@ const OrderDetails = () => {
                                         >
                                             {currentOrderStatus === status ? (
                                                 <span className="flex items-center justify-center">
-                                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Current Status
+                                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
+                                                    {status}
                                                 </span>
                                             ) : (
                                                 `Mark as ${status}`
@@ -608,6 +681,62 @@ const OrderDetails = () => {
                                     )
                                 )}
                             </div>
+                        </section>
+                        )}
+
+                        {/* Delivery Proof */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                <Camera className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                Delivery Proof
+                            </h2>
+                            {order.deliveryProof?.imageUrl ? (
+                                <div className="space-y-3">
+                                    <a
+                                        href={order.deliveryProof.imageUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]"
+                                    >
+                                        <img
+                                            src={order.deliveryProof.imageUrl}
+                                            alt={`Delivery proof for order #${displayOrderId}`}
+                                            className="h-56 w-full object-cover"
+                                        />
+                                    </a>
+                                    {order.deliveryProof.uploadedAt && (
+                                        <p className="text-sm font-medium text-[var(--color-text-muted)]">
+                                            Uploaded {new Date(order.deliveryProof.uploadedAt).toLocaleString()}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5 text-center">
+                                    <ImageIcon className="mx-auto mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                                    <p className="text-sm font-medium text-[var(--color-text-muted)]">
+                                        No delivery proof photo uploaded yet.
+                                    </p>
+                                </div>
+                            )}
+
+                            {isDelivery && (
+                                <label className={`mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 font-bold transition-colors ${
+                                    uploadingProof
+                                        ? "cursor-wait bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
+                                        : "cursor-pointer bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                                }`}>
+                                    <Camera className="h-5 w-5" />
+                                    {uploadingProof ? "Uploading..." : order.deliveryProof?.imageUrl ? "Retake Photo" : "Take a Photo"}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="sr-only"
+                                        disabled={uploadingProof}
+                                        onChange={handleDeliveryProofCapture}
+                                    />
+                                </label>
+                            )}
                         </section>
 
                         {/* Timeline */}

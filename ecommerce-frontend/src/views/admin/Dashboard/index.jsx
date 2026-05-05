@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/adminService'
 import Loading from '../../../components/common/Loading'
+import { getStoredAdminUser } from '../../../utils/adminSession'
 
 const AdminDashboard = () => {
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const adminUser = getStoredAdminUser()
+  const isDelivery = adminUser?.role === 'delivery'
 
 
   useEffect(() => {
@@ -73,6 +76,86 @@ const AdminDashboard = () => {
     )
   }
 
+  if (isDelivery) {
+    const recentDeliveryOrders = (stats?.recentActivity || []).filter(
+      (activity) => activity.type === 'order'
+    )
+    const deliveryCards = [
+      { label: 'Ready To Prepare', value: stats?.pendingOrders || 0, color: 'text-yellow-700', bg: 'bg-yellow-50' },
+      { label: 'In Progress', value: stats?.processingOrders || 0, color: 'text-blue-700', bg: 'bg-blue-50' },
+      { label: 'Out For Delivery', value: stats?.shippedOrders || 0, color: 'text-indigo-700', bg: 'bg-indigo-50' },
+      { label: 'Cash To Collect', value: stats?.cashToCollect || 0, color: 'text-green-700', bg: 'bg-green-50' },
+    ]
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Delivery Hub</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                View customer orders, open delivery locations, print summaries, and update delivery progress.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/orders')}
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Open Deliveries
+            </button>
+          </div>
+
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {deliveryCards.map((card) => (
+              <div key={card.label} className={`${card.bg} rounded-xl border border-gray-100 p-5 shadow-sm`}>
+                <p className="text-sm font-semibold text-gray-600">{card.label}</p>
+                <p className={`mt-2 text-3xl font-bold ${card.color}`}>{card.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <h2 className="text-lg font-bold text-gray-900">Latest Orders</h2>
+            </div>
+            {recentDeliveryOrders.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {recentDeliveryOrders.map((activity) => (
+                    <button
+                      key={activity.id}
+                      type="button"
+                      onClick={() => navigate(`/admin/orders/${activity.id}`)}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-gray-50"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900">
+                          #{activity.id.slice(-8)} · {activity.userName || 'Customer'}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · {formatCurrency(activity.amount || 0)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(activity.orderStatus)}`}>
+                          {activity.orderStatus || 'Pending'}
+                        </span>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(activity.paymentStatus)}`}>
+                          {activity.paymentStatus || 'Pending'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            ) : (
+              <div className="px-5 py-12 text-center text-gray-500">No delivery activity yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -103,34 +186,34 @@ const AdminDashboard = () => {
 
             {/* Payment Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl shadow-lg border-2 border-green-200">
+              <div className="bg-[#f0fdf4] p-6 rounded-2xl shadow-lg border-2 border-[#bbf7d0]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-green-700 mb-1">Paid Orders</h3>
-                    <p className="text-3xl font-bold text-green-700">{stats.paidOrders || 0}</p>
-                    <p className="text-xs text-green-600 mt-1">
+                    <h3 className="text-sm font-semibold text-[#15803d] mb-1">Paid Orders</h3>
+                    <p className="text-3xl font-bold text-[#15803d]">{stats.paidOrders || 0}</p>
+                    <p className="text-xs text-[#16a34a] mt-1">
                       {stats.orders > 0 ? Math.round(((stats.paidOrders || 0) / stats.orders) * 100) : 0}% of total orders
                     </p>
                   </div>
-                  <div className="w-16 h-16 rounded-full bg-green-200 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 rounded-full bg-[#bbf7d0] flex items-center justify-center">
+                    <svg className="w-8 h-8 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg border-2 border-red-200">
+              <div className="bg-[#fef2f2] p-6 rounded-2xl shadow-lg border-2 border-[#fecaca]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-red-700 mb-1">Unpaid Orders</h3>
-                    <p className="text-3xl font-bold text-red-700">{stats.unpaidOrders || 0}</p>
-                    <p className="text-xs text-red-600 mt-1">
+                    <h3 className="text-sm font-semibold text-[#b91c1c] mb-1">Unpaid Orders</h3>
+                    <p className="text-3xl font-bold text-[#b91c1c]">{stats.unpaidOrders || 0}</p>
+                    <p className="text-xs text-[#dc2626] mt-1">
                       {stats.orders > 0 ? Math.round(((stats.unpaidOrders || 0) / stats.orders) * 100) : 0}% of total orders
                     </p>
                   </div>
-                  <div className="w-16 h-16 rounded-full bg-red-200 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 rounded-full bg-[#fecaca] flex items-center justify-center">
+                    <svg className="w-8 h-8 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>

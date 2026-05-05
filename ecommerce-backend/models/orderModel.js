@@ -85,6 +85,15 @@ const orderSchema = new mongoose.Schema(
         deliveredAt: {
             type: Date,
         },
+        deliveryProof: {
+            imageUrl: { type: String },
+            uploadedAt: { type: Date },
+            uploadedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+            publicId: { type: String },
+        },
         stockReduced: {
             type: Boolean,
             required: true,

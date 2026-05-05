@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
 import Notification from "../models/notificationModel.js";
+import { emitNotificationCreated, emitOrderUpdated } from "../realtime/socket.js";
 import {
     shouldSendLowStockAlert,
     syncLowStockAlertFlag,
@@ -14,6 +15,8 @@ import {
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
+
+const DELIVERY_ORDER_STATUSES = ["Processing", "Shipped", "Delivered"];
 
 const dispatchOrderAlerts = ({
     createdOrder,
@@ -257,6 +260,20 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             }
 
             const nextStatus = req.body.orderStatus || order.orderStatus;
+
+            if (req.user?.role === "seller") {
+                res.status(403);
+                throw new Error("Cashier accounts cannot update order delivery status");
+            }
+
+            if (
+                req.user?.role === "delivery" &&
+                !DELIVERY_ORDER_STATUSES.includes(nextStatus)
+            ) {
+                res.status(403);
+                throw new Error("Delivery accounts can only update active delivery statuses");
+            }
+
             const previousStatus = order.orderStatus;
             order.orderStatus = nextStatus;
 
@@ -312,6 +329,14 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
             throw new Error("Invalid payment status");
         }
 
+        if (
+            req.user?.role === "delivery" &&
+            (paymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
+        ) {
+            res.status(403);
+            throw new Error("Delivery accounts can only mark cash on delivery orders as paid");
+        }
+
         order.paymentStatus = paymentStatus;
 
         // Update isPaid and paidAt when marked as Paid
@@ -329,6 +354,53 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error("Order not found");
     }
+});
+
+// @desc    Upload delivery proof photo
+// @route   PUT /api/orders/:id/delivery-proof
+// @access  Private/Portal
+export const uploadDeliveryProof = asyncHandler(async (req, res) => {
+    if (req.user?.role !== "delivery" && req.user?.role !== "admin") {
+        res.status(403);
+        throw new Error("Only delivery or admin accounts can upload delivery proof");
+    }
+
+    if (!req.file?.path) {
+        res.status(400);
+        throw new Error("Delivery proof photo is required");
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+        res.status(404);
+        throw new Error("Order not found");
+    }
+
+    order.deliveryProof = {
+        imageUrl: req.file.path,
+        uploadedAt: Date.now(),
+        uploadedBy: req.user._id,
+        publicId: req.file.filename,
+    };
+
+    const updatedOrder = await order.save();
+
+    const notification = await Notification.create({
+        type: "order",
+        title: "Delivery proof uploaded",
+        message: `${req.user.name || "Delivery rider"} uploaded proof photo for order #${updatedOrder._id.toString().slice(-8).toUpperCase()}.`,
+        orderId: updatedOrder._id,
+        userId: req.user._id,
+        link: `/admin/orders/${updatedOrder._id}`,
+    });
+
+    emitOrderUpdated(updatedOrder, {
+        deliveryProof: updatedOrder.deliveryProof,
+    });
+    emitNotificationCreated(notification);
+
+    res.json(updatedOrder);
 });
 
 // @desc    Update order to paid

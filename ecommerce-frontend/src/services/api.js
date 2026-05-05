@@ -1,6 +1,8 @@
 import axios from "axios";
 import {
     clearAdminSession,
+    getPortalLoginPath,
+    getStoredAdminUser,
     getStoredAdminToken,
 } from "../utils/adminSession.js";
 
@@ -32,8 +34,9 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
+            const loginPath = getPortalLoginPath(getStoredAdminUser());
             clearAdminSession();
-            window.location.href = "/admin/login";
+            window.location.href = loginPath;
         }
         return Promise.reject(error);
     }

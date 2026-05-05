@@ -35,6 +35,18 @@ export const clearAdminSession = () => {
   localStorage.removeItem(ADMIN_KEY);
 };
 
+export const getPortalLoginPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "delivery") {
+    return "/delivery/login";
+  }
+
+  if (admin?.role === "seller") {
+    return "/staff/login";
+  }
+
+  return "/admin/login";
+};
+
 export const getStoredAdmin = () => {
   const adminStr = localStorage.getItem(ADMIN_KEY);
   if (!adminStr || adminStr === "undefined") return null;

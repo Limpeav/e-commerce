@@ -35,6 +35,8 @@ const phoneExemptPaths = [
   "/seller/login",
   "/staff",
   "/staff/login",
+  "/delivery",
+  "/delivery/login",
   "/forgot-password",
   "/reset-password",
 ];

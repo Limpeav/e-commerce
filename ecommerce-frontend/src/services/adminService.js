@@ -2,6 +2,8 @@ import axios from "axios";
 import { config } from "../config/index.js";
 import {
   clearAdminSession,
+  getPortalLoginPath,
+  getStoredAdminUser,
   getStoredAdminToken,
 } from "../utils/adminSession.js";
 
@@ -33,8 +35,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const loginPath = getPortalLoginPath(getStoredAdminUser());
       clearAdminSession();
-      window.location.href = "/admin/login";
+      window.location.href = loginPath;
     }
     return Promise.reject(error);
   }
@@ -123,6 +126,12 @@ export const adminService = {
   getOrderById: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { orderStatus: status }),
   updatePaymentStatus: (orderId, paymentStatus) => api.put(`/orders/${orderId}/payment-status`, { paymentStatus }),
+  uploadDeliveryProof: (orderId, fileData) =>
+    api.put(`/orders/${orderId}/delivery-proof`, fileData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
   // Analytics

@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Loading from "../../components/common/Loading";
 import { AdminController } from "../../controllers/adminController";
+import { getPortalLoginPath, getStoredAdminUser } from "../../utils/adminSession";
 
 // Admin Route - Only allows admin users
 const AdminRoute = ({ children, allowedRoles }) => {
   const [status, setStatus] = useState("checking");
+  const [redirectPath, setRedirectPath] = useState("/admin/login");
 
   useEffect(() => {
     let isMounted = true;
 
     const validateAdminSession = async () => {
+      const storedAdminUser = getStoredAdminUser();
+      setRedirectPath(getPortalLoginPath(storedAdminUser));
       const result = await AdminController.validateSession();
 
       if (!isMounted) {
@@ -23,6 +27,7 @@ const AdminRoute = ({ children, allowedRoles }) => {
       }
 
       if (allowedRoles?.length && !allowedRoles.includes(result.data?.role)) {
+        setRedirectPath(getPortalLoginPath(result.data));
         setStatus("unauthorized");
         return;
       }
@@ -42,7 +47,7 @@ const AdminRoute = ({ children, allowedRoles }) => {
   }
 
   if (status !== "authorized") {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to={redirectPath} replace />;
   }
 
   return children;

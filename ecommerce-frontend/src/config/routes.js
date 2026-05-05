@@ -56,6 +56,8 @@ export const publicRoutes = [
   { path: "/seller/login", component: "StaffLogin" },
   { path: "/staff", component: "StaffLogin" },
   { path: "/staff/login", component: "StaffLogin" },
+  { path: "/delivery", component: "StaffLogin" },
+  { path: "/delivery/login", component: "StaffLogin" },
   { path: "/forgot-password", component: "ForgotPassword" },
   { path: "/reset-password", component: "ResetPassword" },
   { path: "/", component: "Home" },
@@ -111,6 +113,8 @@ export const hideNavFooterPaths = [
   "/seller/login",
   "/staff",
   "/staff/login",
+  "/delivery",
+  "/delivery/login",
   "/forgot-password",
   "/reset-password",
   "/complete-profile"

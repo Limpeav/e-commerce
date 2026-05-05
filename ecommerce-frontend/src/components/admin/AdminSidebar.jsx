@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { clearAdminSession, getStoredAdminUser } from '../../utils/adminSession'
+import { clearAdminSession, getPortalLoginPath, getStoredAdminUser } from '../../utils/adminSession'
 import { adminService } from '../../services/adminService'
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   BriefcaseBusiness,
+  Truck,
   X,
 } from 'lucide-react'
 
@@ -79,7 +80,7 @@ const AdminSidebar = () => {
   const menuItems = [
     {
       path: '/admin',
-      name: 'Dashboard',
+      name: adminUser?.role === 'delivery' ? 'Delivery Hub' : 'Dashboard',
       icon: LayoutDashboard
     },
     {
@@ -102,8 +103,8 @@ const AdminSidebar = () => {
     },
     {
       path: '/admin/orders',
-      name: 'Orders',
-      icon: ShoppingCart,
+      name: adminUser?.role === 'delivery' ? 'Deliveries' : 'Orders',
+      icon: adminUser?.role === 'delivery' ? Truck : ShoppingCart,
       badge: orderCount
     },
     {
@@ -115,8 +116,9 @@ const AdminSidebar = () => {
   ].filter((item) => !item.adminOnly || adminUser?.role === 'admin')
 
   const handleLogout = () => {
+    const loginPath = getPortalLoginPath(adminUser)
     clearAdminSession()
-    navigate("/admin/login")
+    navigate(loginPath)
   }
 
   return (
@@ -144,7 +146,11 @@ const AdminSidebar = () => {
                 <LayoutDashboard className="w-5 h-5 text-[var(--color-primary)]" />
               </div>
               <h1 className="text-xl font-bold text-[var(--color-text-main)]">
-                {adminUser?.role === 'admin' ? 'Admin Panel' : 'Staff Panel'}
+                {adminUser?.role === 'admin'
+                  ? 'Admin Panel'
+                  : adminUser?.role === 'delivery'
+                    ? 'Delivery Panel'
+                    : 'Staff Panel'}
               </h1>
             </div>
           </div>

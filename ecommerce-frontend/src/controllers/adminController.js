@@ -52,7 +52,10 @@ export class AdminController {
       const response = await adminService.updateOrderStatus(orderId, status);
       return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
     }
   }
 
@@ -64,7 +67,25 @@ export class AdminController {
       );
       return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
+  static async uploadDeliveryProof(orderId, proofPhoto) {
+    try {
+      const formData = new FormData();
+      formData.append("proofPhoto", proofPhoto);
+
+      const response = await adminService.uploadDeliveryProof(orderId, formData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
     }
   }
 

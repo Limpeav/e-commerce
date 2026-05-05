@@ -213,6 +213,11 @@ const Checkout = () => {
         navigate(`/payment/bakong/${response.data._id}`);
       } else {
         setOrderPlaced(true);
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        navigate("/cart/success", {
+          replace: true,
+          state: { orderId: response.data._id },
+        });
       }
 
       // Cart cleanup should not block order success UI.

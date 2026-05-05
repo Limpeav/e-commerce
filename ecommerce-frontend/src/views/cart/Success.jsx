@@ -1,69 +1,106 @@
-import { Link, useLocation } from 'react-router-dom';
-import { CheckCircle, ShoppingBag } from 'lucide-react';
-import { useDarkMode } from '../../hooks';
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { CheckCircle } from "lucide-react";
+import { useDarkMode } from "../../hooks";
 
 export default function OrderSuccess() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDark] = useDarkMode();
   const stateOrderId = location.state?.orderId;
   const queryOrderId = new URLSearchParams(location.search).get("orderId");
-  const storedOrderId = typeof window !== "undefined"
-    ? localStorage.getItem("latestOrderId")
-    : null;
+  const storedOrderId =
+    typeof window !== "undefined" ? localStorage.getItem("latestOrderId") : null;
   const orderId = stateOrderId || queryOrderId || storedOrderId;
-  const orderLink = orderId ? `/orders/${orderId}` : "/orders";
-  const orderLabel = orderId ? "View Order" : "View Orders";
-  const orderNumber = orderId
-    ? `#${orderId.slice(-8).toUpperCase()}`
-    : `#ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  const viewOrderDetails = () => {
+    if (orderId) {
+      navigate(`/orders/${orderId}`);
+      return;
+    }
+
+    navigate("/orders");
+  };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center py-20 px-6 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
-      <div className="max-w-xl mx-auto text-center">
-        <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-primary/10 border-4 ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-white"}`}>
-          <CheckCircle className="w-12 h-12 text-primary" />
-        </div>
+    <div
+      className={`min-h-screen flex items-center justify-center px-6 py-24 font-sans transition-colors duration-300 ${
+        isDark ? "bg-slate-950" : "bg-bg-base"
+      }`}
+    >
+      <div
+        className={`max-w-2xl w-full rounded-[3rem] p-8 text-center border relative overflow-hidden transition-colors duration-300 sm:p-12 ${
+          isDark
+            ? "bg-slate-900 border-slate-800 shadow-[0_32px_80px_-36px_rgba(2,6,23,0.95)]"
+            : "bg-white border-stone-100 shadow-xl"
+        }`}
+      >
+        <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-        <h1 className="text-4xl font-bold text-text-main mb-3 tracking-tight">
-          Order Confirmed!
-        </h1>
-
-        <p className="text-text-muted font-medium text-base mb-10">
-          Thank you for your purchase.
-        </p>
-
-        <div className={`rounded-3xl border p-8 mb-10 text-left ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-lg"}`}>
-          <div className="space-y-4">
-            <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Order Number</span>
-              <span className={`font-mono text-sm font-bold text-text-main px-3 py-1 rounded-lg border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>{orderNumber}</span>
-            </div>
-            <div className={`flex justify-between items-center border-b pb-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Date</span>
-              <span className="font-bold text-text-main text-sm">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">Estimated Delivery</span>
-              <span className="font-bold text-primary text-sm bg-primary/5 px-3 py-1 rounded-full border border-primary/10">3-5 Business Days</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link
-            to={orderLink}
-            className="flex-1 bg-primary text-white px-8 py-4 rounded-xl hover:bg-primary-dark transition-all shadow-md font-bold text-sm flex items-center justify-center gap-2 active:scale-95"
+        <div className="relative z-10 mb-10">
+          <div
+            className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border ${
+              isDark
+                ? "bg-slate-800 border-slate-700"
+                : "bg-stone-50 border-stone-100"
+            }`}
           >
-            <ShoppingBag className="w-4 h-4" />
-            {orderLabel}
-          </Link>
+            <CheckCircle className="w-10 h-10 text-green-500" />
+          </div>
+          <h1 className="text-3xl font-bold text-text-main mb-3 font-display tracking-tight sm:text-4xl">
+            Order Placed Successfully!
+          </h1>
+          <p
+            className={`font-medium text-base max-w-md mx-auto sm:text-lg ${
+              isDark ? "text-slate-400" : "text-text-muted"
+            }`}
+          >
+            Thank you for your order. We are preparing your items for shipment.
+          </p>
+        </div>
 
-          <Link
-            to="/"
-            className={`flex-1 border px-8 py-4 rounded-xl transition-all font-bold text-sm flex items-center justify-center active:scale-95 ${isDark ? "bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800" : "bg-white text-text-muted border-stone-200 hover:bg-stone-50"}`}
+        <div
+          className={`relative z-10 rounded-2xl p-6 mb-8 border inline-block w-full max-w-sm ${
+            isDark
+              ? "bg-slate-800 border-slate-700"
+              : "bg-stone-50 border-stone-100"
+          }`}
+        >
+          <p
+            className={`text-xs font-bold uppercase tracking-wider mb-2 ${
+              isDark ? "text-slate-400" : "text-text-muted"
+            }`}
+          >
+            Order ID
+          </p>
+          <p className="text-2xl font-bold text-text-main font-mono tracking-tight">
+            {orderId ? `#${orderId.slice(-8).toUpperCase()}` : "Order Created"}
+          </p>
+        </div>
+
+        <div className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={viewOrderDetails}
+            type="button"
+            className="px-8 py-4 bg-text-main text-white rounded-xl hover:bg-primary transition-all font-bold text-sm shadow-xl shadow-primary/10 hover:-translate-y-1 active:scale-95"
+          >
+            View Order Details
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            type="button"
+            className={`px-8 py-4 border rounded-xl transition-all font-bold text-sm hover:border-primary hover:text-primary active:scale-95 ${
+              isDark
+                ? "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800"
+                : "bg-white text-text-muted border-stone-200 hover:shadow-lg"
+            }`}
           >
             Continue Shopping
-          </Link>
+          </button>
         </div>
       </div>
     </div>
