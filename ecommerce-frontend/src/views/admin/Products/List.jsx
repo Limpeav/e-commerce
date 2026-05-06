@@ -1,36 +1,20 @@
-import { useEffect, useState } from "react";
-import { adminService } from "../../../services/adminService";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { normalizeProductCategory } from "../../../constants/productCategories";
-import {
-  Package,
-  Plus,
-  Images,
-  Pencil,
-  Trash2,
-  Search,
-  Filter,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
+import ProductCard from "../../../components/admin/products/ProductCard";
+import ProductFilters from "../../../components/admin/products/ProductFilters";
+import ProductListHeader from "../../../components/admin/products/ProductListHeader";
+import ProductStatsGrid from "../../../components/admin/products/ProductStatsGrid";
 import Loading from "../../../components/common/Loading";
-
-const LOW_STOCK_THRESHOLD = 5;
-
-const getNumericDiscount = (product) => {
-  const price = Number(product?.price);
-  const discountPrice = Number(product?.discountPrice);
-
-  if (!Number.isFinite(price) || !Number.isFinite(discountPrice)) {
-    return null;
-  }
-
-  return discountPrice > 0 && discountPrice < price ? discountPrice : null;
-};
+import { AdminProductController } from "../../../controllers/adminProductController";
+import {
+  filterAdminProducts,
+  getProductCategories,
+  getProductStats,
+} from "../../../utils/adminProducts";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,68 +24,51 @@ const ProductList = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const res = await adminService.getProducts();
-        setProducts(res.data);
-        setFilteredProducts(res.data);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || "Failed to fetch products");
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      const result = await AdminProductController.getProducts();
+
+      if (result.success) {
+        setProducts(result.data);
+        setError("");
+      } else {
+        setError(result.error);
       }
+
+      setLoading(false);
     };
 
     fetchProducts();
   }, []);
 
-  // Filter products based on search and category
-  useEffect(() => {
-    let filtered = products;
+  const categories = useMemo(() => getProductCategories(products), [products]);
+  const stats = useMemo(() => getProductStats(products, categories), [products, categories]);
+  const filteredProducts = useMemo(
+    () =>
+      filterAdminProducts(products, {
+        searchTerm,
+        categoryFilter,
+        showLowStockOnly,
+      }),
+    [products, searchTerm, categoryFilter, showLowStockOnly]
+  );
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (p) =>
-          p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          normalizeProductCategory(p.category).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (p) => normalizeProductCategory(p.category).toLowerCase() === categoryFilter.toLowerCase()
-      );
-    }
-
-    if (showLowStockOnly) {
-      filtered = filtered.filter((p) => Number(p.stock) <= LOW_STOCK_THRESHOLD);
-    }
-
-    setFilteredProducts(filtered);
-  }, [searchTerm, categoryFilter, showLowStockOnly, products]);
+  const goToAddProduct = () => navigate("/admin/products/add");
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
-    try {
-      await adminService.deleteProduct(id);
-      setProducts(products.filter((p) => p._id !== id));
-    } catch (err) {
-      alert(err.response?.data?.message || err.message || "Delete failed");
+    if (!confirm("Are you sure you want to delete this product?")) {
+      return;
     }
-  };
 
-  // Get unique categories
-  const categories = [
-    "all",
-    ...new Set(products.map((p) => normalizeProductCategory(p.category)).filter(Boolean)),
-  ];
-  const lowStockCount = products.filter((p) => Number(p.stock) <= LOW_STOCK_THRESHOLD).length;
-  const newArrivalCount = products.filter((p) => p.isNewArrival).length;
-  const bestSellerCount = products.filter((p) => Number(p.sold || p.totalSold || 0) > 0).length;
+    const result = await AdminProductController.deleteProduct(id);
+    if (result.success) {
+      setProducts((currentProducts) =>
+        currentProducts.filter((product) => product._id !== id)
+      );
+      return;
+    }
+
+    alert(result.error);
+  };
 
   if (loading) {
     return <Loading message="Loading products..." />;
@@ -119,298 +86,44 @@ const ProductList = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div>
-                <h1 className="text-3xl font-bold text-[var(--color-text-main)]">Product Management</h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  Manage your inventory with ease
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                onClick={() => navigate("/admin/banners")}
-                className="flex items-center space-x-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-6 py-3 text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)] hover:shadow-md"
-              >
-                <Images className="w-5 h-5" />
-                <span className="font-semibold">Add Banner</span>
-              </button>
-              <button
-                onClick={() => navigate("/admin/products/add")}
-                className="flex items-center space-x-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-white transition-all duration-200 shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="font-semibold">Add Product</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ProductListHeader
+        onAddBanner={() => navigate("/admin/banners")}
+        onAddProduct={goToAddProduct}
+      />
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Products</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {products.length}
-                </p>
-                <p className="text-xs text-green-600 mt-2">+12% from last month</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <Package className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Categories</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {categories.length - 1}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">Active categories</p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-xl">
-                <Filter className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowLowStockOnly((current) => !current)}
-            className={`text-left rounded-2xl p-6 border shadow-lg transition-all duration-300 hover:shadow-xl ${
-              showLowStockOnly
-                ? "bg-orange-50 border-orange-200 ring-2 ring-orange-200"
-                : "bg-white border-gray-100"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Low Stock Alert</p>
-                <p className="text-3xl font-bold text-orange-600 mt-1">
-                  {lowStockCount}
-                </p>
-                <p className="text-xs text-orange-500 mt-2">
-                  {showLowStockOnly ? "Showing low stock products" : "Click to show low stock products"}
-                </p>
-              </div>
-              <div className="bg-orange-100 p-3 rounded-xl">
-                <Package className="w-8 h-8 text-orange-600" />
-              </div>
-            </div>
-          </button>
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Best Sellers</p>
-                <p className="text-3xl font-bold text-emerald-600 mt-1">
-                  {bestSellerCount}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">Based on sold quantity</p>
-              </div>
-              <div className="bg-emerald-100 p-3 rounded-xl">
-                <TrendingUp className="w-8 h-8 text-emerald-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">New Arrivals</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {newArrivalCount}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">Set manually by admin</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <Sparkles className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProductStatsGrid
+          stats={stats}
+          showLowStockOnly={showLowStockOnly}
+          onToggleLowStock={() => setShowLowStockOnly((current) => !current)}
+        />
 
-        {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search products by name or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-              />
-            </div>
+        <ProductFilters
+          categories={categories}
+          searchTerm={searchTerm}
+          categoryFilter={categoryFilter}
+          showLowStockOnly={showLowStockOnly}
+          onSearchChange={setSearchTerm}
+          onCategoryChange={setCategoryFilter}
+          onClearLowStock={() => setShowLowStockOnly(false)}
+        />
 
-            {/* Category Filter */}
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === "all" ? "All Categories" : cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {showLowStockOnly && (
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-              <p className="text-sm font-medium text-orange-700">
-                Filtering low stock products with stock at or below {LOW_STOCK_THRESHOLD}.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowLowStockOnly(false)}
-                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-orange-700 shadow-sm transition-colors hover:bg-orange-100"
-              >
-                Clear Filter
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Products Grid */}
         {filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-16 text-center border border-gray-100">
-            <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Package className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              No products found
-            </h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              {searchTerm || categoryFilter !== "all"
-                ? "Try adjusting your search or filters to find what you're looking for"
-                : "Start building your inventory by adding your first product"}
-            </p>
-            <button
-              onClick={() => navigate("/admin/products/add")}
-              className="inline-flex items-center space-x-2 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Your First Product</span>
-            </button>
-          </div>
+          <EmptyProductsState
+            hasActiveFilters={
+              Boolean(searchTerm) || categoryFilter !== "all" || showLowStockOnly
+            }
+            onAddProduct={goToAddProduct}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              (() => {
-                const price = Number(product.price) || 0;
-                const discountPrice = getNumericDiscount(product);
-                const sold = Number(product.sold || product.totalSold || 0);
-
-                return (
-                  <div
-                    key={product._id}
-                    className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 group hover:-translate-y-1"
-                  >
-                    {/* Product Image */}
-                    <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                      <img
-                        src={product.image}
-                        alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {Number(product.stock) <= LOW_STOCK_THRESHOLD && (
-                        <span className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          Low Stock
-                        </span>
-                      )}
-                      {sold > 0 && (
-                        <span className="absolute left-3 top-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          Best Seller
-                        </span>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="p-5">
-                      <div className="mb-3">
-                        <span className="inline-block bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
-                          {normalizeProductCategory(product.category)}
-                        </span>
-                        {product.isNewArrival && (
-                          <span className="ml-2 inline-block rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
-                            New Arrival
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors duration-200">
-                        {product.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {product.description || "No description available"}
-                      </p>
-
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          {discountPrice !== null ? (
-                            <div>
-                              <div className="flex items-baseline gap-2">
-                                <p className="text-2xl font-bold text-gray-900">
-                                  ${discountPrice.toFixed(2)}
-                                </p>
-                                <p className="text-sm text-gray-500 line-through">
-                                  ${price.toFixed(2)}
-                                </p>
-                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
-                                  {Math.round(((price - discountPrice) / price) * 100)}% OFF
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-2xl font-bold text-gray-900">
-                              ${price.toFixed(2)}
-                            </p>
-                          )}
-                          <p className="text-sm text-gray-600">
-                            Stock: <span className={`font-semibold ${Number(product.stock) <= LOW_STOCK_THRESHOLD ? 'text-orange-600' : 'text-green-600'}`}>{product.stock}</span>
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Sold: <span className={`font-semibold ${sold > 0 ? "text-emerald-600" : "text-gray-500"}`}>{sold}</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() =>
-                            navigate(`/admin/products/edit/${product._id}`)
-                          }
-                          className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-blue-600 px-4 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg font-medium group"
-                        >
-                          <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-                          <span className="text-sm">Edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product._id)}
-                          className="flex-1 flex items-center justify-center space-x-2 rounded-xl bg-red-600 px-4 py-2.5 text-white shadow-md transition-all duration-200 hover:bg-red-700 hover:shadow-lg font-medium group"
-                        >
-                          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-                          <span className="text-sm">Delete</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
+              <ProductCard
+                key={product._id}
+                product={product}
+                onEdit={(id) => navigate(`/admin/products/edit/${id}`)}
+                onDelete={handleDelete}
+              />
             ))}
           </div>
         )}
