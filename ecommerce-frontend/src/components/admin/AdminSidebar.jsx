@@ -82,8 +82,9 @@ const AdminSidebar = () => {
   const menuItems = [
     {
       path: '/admin',
-      name: adminUser?.role === 'delivery' ? 'Delivery Hub' : 'Dashboard',
-      icon: LayoutDashboard
+      name: 'Dashboard',
+      icon: LayoutDashboard,
+      adminOnly: true
     },
     {
       path: '/admin/products',
@@ -244,18 +245,7 @@ const AdminSidebar = () => {
 
       {isDelivery && !isOrderDetail && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
-            <Link
-              to="/admin"
-              className={`flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
-                location.pathname === '/admin'
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'text-[var(--color-text-muted)]'
-              }`}
-            >
-              <LayoutDashboard className="h-5 w-5" />
-              Hub
-            </Link>
+          <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
             <Link
               to="/admin/orders"
               className={`relative flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${

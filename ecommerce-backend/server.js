@@ -48,6 +48,34 @@ const parseAllowedOrigins = () => {
 
 const allowedOrigins = parseAllowedOrigins();
 const hasConfiguredOrigins = allowedOrigins.length > 0;
+const isDevelopment = process.env.NODE_ENV !== "production";
+const localNetworkOriginPattern =
+  /^https?:\/\/(?:(?:localhost|127\.0\.0\.1|\[::1\])|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/;
+
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, "");
+
+const isOriginAllowed = (origin) => {
+  if (!origin) {
+    return true;
+  }
+
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  return (
+    !hasConfiguredOrigins ||
+    allowedOrigins.includes(normalizedOrigin) ||
+    (isDevelopment && localNetworkOriginPattern.test(normalizedOrigin))
+  );
+};
+
+const corsOrigin = (origin, callback) => {
+  if (isOriginAllowed(origin)) {
+    callback(null, true);
+    return;
+  }
+
+  callback(new Error(`Origin not allowed by CORS: ${normalizeOrigin(origin)}`));
+};
 
 const sanitizeMongoOperators = (value) => {
   if (Array.isArray(value)) {
@@ -95,21 +123,7 @@ app.use(express.json({
 
 // CORS Configuration
 const corsOptions = {
-  origin(origin, callback) {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-
-    const normalizedOrigin = origin.replace(/\/+$/, "");
-
-    if (!hasConfiguredOrigins || allowedOrigins.includes(normalizedOrigin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error(`Origin not allowed by CORS: ${normalizedOrigin}`));
-  },
+  origin: corsOrigin,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -137,7 +151,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Initialize Socket.io
-initializeSocket(server, allowedOrigins);
+initializeSocket(server, corsOrigin);
 
 
 // ROUTES

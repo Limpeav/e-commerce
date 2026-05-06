@@ -12,8 +12,17 @@ const AdminDashboard = () => {
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
 
+  useEffect(() => {
+    if (isDelivery) {
+      navigate('/admin/orders', { replace: true })
+    }
+  }, [isDelivery, navigate])
 
   useEffect(() => {
+    if (isDelivery) {
+      return
+    }
+
     const fetchStats = async () => {
       try {
         const response = await adminService.getDashboardStats()
@@ -26,7 +35,7 @@ const AdminDashboard = () => {
     }
 
     fetchStats()
-  }, [])
+  }, [isDelivery])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {

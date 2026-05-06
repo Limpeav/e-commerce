@@ -252,7 +252,26 @@ const AdminOrders = () => {
             return "";
         }
 
-        return `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`;
+        return `https://www.google.com/maps/search/?api=1&query=${shippingAddress.latitude},${shippingAddress.longitude}`;
+    };
+
+    const handleOpenGoogleMaps = (shippingAddress = {}) => {
+        const { latitude, longitude } = shippingAddress;
+
+        if (!latitude || !longitude) {
+            return;
+        }
+
+        const userAgent = navigator.userAgent || "";
+        const iosGoogleMapsAppUrl = `comgooglemaps://?q=${latitude},${longitude}&center=${latitude},${longitude}&zoom=16`;
+        const androidGoogleMapsAppUrl = `google.navigation:q=${latitude},${longitude}`;
+
+        if (/Android/i.test(userAgent)) {
+            window.location.href = androidGoogleMapsAppUrl;
+            return;
+        }
+
+        window.location.href = iosGoogleMapsAppUrl;
     };
 
     const deliveryStats = [
@@ -269,8 +288,7 @@ const AdminOrders = () => {
                 orders
                     .filter((order) =>
                         order.paymentMethod === "Cash on Delivery" &&
-                        order.paymentStatus !== "Paid" &&
-                        normalizeOrderStatus(order.orderStatus) !== "Delivered" &&
+                        order.paymentStatus === "Paid" &&
                         normalizeOrderStatus(order.orderStatus) !== "Cancelled"
                     )
                     .reduce((acc, order) => acc + Number(order.totalPrice || 0), 0)
@@ -349,7 +367,6 @@ const AdminOrders = () => {
                                     <option value="All">All status</option>
                                     <option value="Pending">Pending</option>
                                     <option value="Processing">Processing</option>
-                                    <option value="Shipped">Shipped</option>
                                     <option value="Delivered">Delivered</option>
                                     <option value="Cancelled">Cancelled</option>
                                 </select>
@@ -441,19 +458,18 @@ const AdminOrders = () => {
 
                                                     <div className="grid grid-cols-2 border-t border-gray-100">
                                                         {mapUrl ? (
-                                                            <a
-                                                                href={mapUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenGoogleMaps(order.shippingAddress)}
                                                                 className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700"
                                                             >
                                                                 <Navigation className="h-5 w-5" />
-                                                                Map
-                                                            </a>
+                                                                View Map
+                                                            </button>
                                                         ) : (
                                                             <div className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-gray-400">
                                                                 <Navigation className="h-5 w-5" />
-                                                                Map
+                                                                View Map
                                                             </div>
                                                         )}
                                                         <button

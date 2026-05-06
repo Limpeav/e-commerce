@@ -9,6 +9,10 @@ const normalizeOrigins = (origins) => {
     return true;
   }
 
+  if (typeof origins === "function") {
+    return origins;
+  }
+
   if (Array.isArray(origins)) {
     return origins;
   }
