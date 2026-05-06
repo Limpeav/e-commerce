@@ -87,49 +87,45 @@ const StaffLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950/40"></div>
-      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
-
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F9FAFB] p-4 font-sans text-[#1F2937]">
       <div
         className={`w-full max-w-lg relative z-10 transition-all duration-700 ease-out transform ${
           isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         }`}
       >
-        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="px-8 pt-12 pb-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800 mb-6 shadow-md ring-1 ring-slate-700/50">
-              <Truck className="w-8 h-8 text-sky-400" />
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+          <div className="px-8 pb-8 pt-12 text-center sm:px-10">
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 shadow-sm ring-1 ring-blue-100">
+              <Truck className="h-8 w-8 text-[#2563EB]" />
             </div>
 
-            <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">
+            <h1 className="font-sans text-2xl font-bold tracking-normal text-[#1F2937]">
               Staff Login
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="mt-2 text-sm font-medium text-gray-500">
               Sign in with your staff or delivery account
             </p>
           </div>
 
-          <form onSubmit={submitHandler} className="px-8 pb-10 space-y-5">
+          <form onSubmit={submitHandler} className="space-y-5 px-8 pb-10 sm:px-10">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/10 rounded-lg p-3 flex gap-3 items-start animate-fade-in">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-red-400 text-sm leading-snug">{error}</p>
+              <div className="flex animate-fade-in items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <p className="text-sm leading-snug text-red-700">{error}</p>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+              <label className="ml-1 text-sm font-semibold text-[#1F2937]">Email Address</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-sky-400 transition-colors">
-                  <Mail className="w-5 h-5" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors group-focus-within:text-[#2563EB]">
+                  <Mail className="h-5 w-5" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-lg focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-slate-200 placeholder-slate-600 transition-all shadow-sm"
+                  className="w-full rounded-lg border border-[#D1D5DB] bg-white py-3 pl-10 pr-4 text-[#1F2937] shadow-sm transition-all placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-4 focus:ring-blue-100"
                   placeholder="staff@company.com"
                   required
                 />
@@ -137,25 +133,25 @@ const StaffLogin = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+              <label className="ml-1 text-sm font-semibold text-[#1F2937]">Password</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-sky-400 transition-colors">
-                  <Lock className="w-5 h-5" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors group-focus-within:text-[#2563EB]">
+                  <Lock className="h-5 w-5" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950/50 border border-slate-700 rounded-lg focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 text-slate-200 placeholder-slate-600 transition-all shadow-sm"
+                  className="w-full rounded-lg border border-[#D1D5DB] bg-white py-3 pl-10 pr-10 text-[#1F2937] shadow-sm transition-all placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-4 focus:ring-blue-100"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                  className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-gray-400 transition-colors hover:text-[#1F2937]"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -163,35 +159,35 @@ const StaffLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium shadow-lg hover:shadow-sky-500/25 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-3.5 font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.22)] transition-all duration-200 hover:bg-blue-700 hover:shadow-[0_14px_30px_rgba(37,99,235,0.28)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
                 <>
-                  <Loader className="w-5 h-5 animate-spin" />
+                  <Loader className="h-5 w-5 animate-spin" />
                   <span>Verifying...</span>
                 </>
               ) : (
                 <>
                   <span>Sign In</span>
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="bg-slate-950/30 px-8 py-5 border-t border-slate-800 flex items-center justify-center">
+          <div className="flex items-center justify-center border-t border-gray-100 bg-gray-50 px-8 py-5">
             <a
               href="/login"
-              className="text-sm text-slate-500 hover:text-sky-400 transition-colors flex items-center gap-2 font-medium"
+              className="flex items-center gap-2 text-sm font-semibold text-gray-500 transition-colors hover:text-[#2563EB]"
             >
               Back to Customer Login
             </a>
           </div>
         </div>
 
-        <div className="mt-8 text-center opacity-70">
-          <p className="text-slate-600 text-xs flex items-center justify-center gap-2 font-medium uppercase tracking-wider">
-            <Truck className="w-3 h-3" />
+        <div className="mt-8 text-center">
+          <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+            <Truck className="h-3 w-3 text-[#2563EB]" />
             Staff And Delivery Access
           </p>
         </div>

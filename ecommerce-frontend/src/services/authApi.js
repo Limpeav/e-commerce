@@ -16,6 +16,12 @@ export const forgotPassword = (data) => API.post("/forgot-password", data);
 export const verifyResetCode = (data) => API.post("/verify-reset-code", data);
 export const resendResetCode = (data) => API.post("/resend-reset-code", data);
 export const resetPassword = (data) => API.post("/reset-password", data);
+export const updateUserProfile = (token, data) =>
+  API.put(
+    "/profile",
+    data,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 export const startPhoneVerification = (token, phone) =>
   API.post(
     "/start-phone-verification",

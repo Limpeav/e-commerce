@@ -22,8 +22,6 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [googleUser, setGoogleUser] = useState(null);
-  const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [isDark] = useDarkMode();
@@ -86,37 +84,13 @@ const Login = () => {
     }
   };
 
-  const startGoogleLogin = useGoogleLogin({
-    scope: "openid profile email",
-    onSuccess: async (tokenResponse) => {
-      const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const profile = await profileRes.json();
-      setGoogleUser({ accessToken: tokenResponse.access_token, picture: profile.picture, name: profile.name, email: profile.email });
-      setShowGoogleConfirm(true);
-    },
-    onError: () => {
-      setError("Google login failed. Please try again.");
-      setLoading(false);
-    },
-  });
-
-  const handleGoogleLogin = () => {
-    setError("");
-    startGoogleLogin();
-  };
-
-  // Continue with Google login after confirmation
-  const handleGoogleContinue = async () => {
-    if (!googleUser) return;
-    
+  const completeGoogleLogin = async (accessToken) => {
     try {
       setLoading(true);
       setError("");
 
       const { data } = await googleAuth({
-        accessToken: googleUser.accessToken,
+        accessToken,
       });
 
       if (data.role !== "user") {
@@ -139,9 +113,20 @@ const Login = () => {
     }
   };
 
-  const handleGoogleCancel = () => {
-    setGoogleUser(null);
-    setShowGoogleConfirm(false);
+  const startGoogleLogin = useGoogleLogin({
+    scope: "openid profile email",
+    onSuccess: (tokenResponse) => {
+      completeGoogleLogin(tokenResponse.access_token);
+    },
+    onError: () => {
+      setError("Google login failed. Please try again.");
+      setLoading(false);
+    },
+  });
+
+  const handleGoogleLogin = () => {
+    setError("");
+    startGoogleLogin();
   };
 
   return (
@@ -400,77 +385,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Google Account Confirmation Modal */}
-      {showGoogleConfirm && googleUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={handleGoogleCancel}
-          />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={`relative w-full max-w-sm p-6 rounded-2xl shadow-2xl ${
-              isDark ? "bg-slate-800" : "bg-white"
-            }`}
-          >
-            <div className="text-center">
-              {googleUser.picture && (
-                <img
-                  src={googleUser.picture}
-                  alt={googleUser.name || "Google user"}
-                  className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-gray-200 shadow-sm"
-                />
-              )}
-
-              <h3 className={`text-xl font-bold mb-1 ${isDark ? "text-white" : "text-gray-900"}`}>
-                Continue with Google?
-              </h3>
-              
-              <p className={`text-sm mb-6 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-                Google will be verified on the server before sign-in completes.
-              </p>
-              
-              <div className={`flex items-center justify-center gap-3 p-3 rounded-xl mb-6 ${
-                isDark ? "bg-slate-700/50" : "bg-gray-100"
-              }`}>
-                <div className="text-left">
-                  <p className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
-                    Continue with your selected Google account
-                  </p>
-                  <p className={`text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}>
-                    You can cancel and choose a different account if needed.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleGoogleCancel}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all appearance-none ${
-                    isDark 
-                      ? "bg-slate-700 text-slate-100 hover:bg-slate-600" 
-                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGoogleContinue}
-                  disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none border border-transparent bg-[var(--color-primary)] text-white shadow-sm shadow-black/10 transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ color: "#FFFFFF" }}
-                >
-                  {loading && <Loader className="w-4 h-4 animate-spin" />}
-                  Continue
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

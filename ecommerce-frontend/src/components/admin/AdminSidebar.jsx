@@ -118,6 +118,8 @@ const AdminSidebar = () => {
   ].filter((item) => !item.adminOnly || adminUser?.role === 'admin')
 
   const handleLogout = () => {
+    if (!window.confirm('Are you sure you want to logout?')) return
+
     const loginPath = getPortalLoginPath(adminUser)
     clearAdminSession()
     navigate(loginPath)
@@ -126,14 +128,16 @@ const AdminSidebar = () => {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-3 rounded-xl bg-[var(--color-text-main)] text-white shadow-lg transition-all duration-200 group"
-        >
-          {isSidebarOpen ? <X className="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" /> : <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />}
-        </button>
-      </div>
+      {!isDelivery && (
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-3 rounded-xl bg-[var(--color-text-main)] text-white shadow-lg transition-all duration-200 group"
+          >
+            {isSidebarOpen ? <X className="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" /> : <Menu className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />}
+          </button>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div className={`
@@ -274,7 +278,7 @@ const AdminSidebar = () => {
               className="flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black text-[var(--color-text-muted)]"
             >
               <LogOut className="h-5 w-5" />
-              Exit
+              Logout
             </button>
           </div>
         </div>

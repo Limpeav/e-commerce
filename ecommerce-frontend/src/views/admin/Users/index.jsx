@@ -2,41 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
     Users,
     Search,
-    Shield,
     Trash2,
     UserCheck,
     RefreshCw,
-    Truck,
-    BriefcaseBusiness,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 
-const ROLE_OPTIONS = [
-    { value: "user", label: "User" },
-    { value: "seller", label: "Seller" },
-    { value: "delivery", label: "Delivery" },
-    { value: "admin", label: "Admin" },
-];
-
 const roleMeta = {
-    admin: {
-        label: "Admin",
-        className: "bg-green-100 text-green-800",
-        Icon: Shield,
-    },
-    seller: {
-        label: "Seller",
-        className: "bg-blue-100 text-blue-800",
-        Icon: BriefcaseBusiness,
-    },
-    delivery: {
-        label: "Delivery",
-        className: "bg-amber-100 text-amber-800",
-        Icon: Truck,
-    },
     user: {
-        label: "User",
+        label: "Customer",
         className: "bg-gray-100 text-gray-800",
         Icon: UserCheck,
     },
@@ -50,19 +25,24 @@ const UserManagement = () => {
     const [stats, setStats] = useState({});
     const [refreshing, setRefreshing] = useState(false);
 
+    const customerUsers = useMemo(
+        () => users.filter((user) => (user.role || "user") === "user"),
+        [users]
+    );
+
     const filteredUsers = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
 
         if (!term) {
-            return users;
+            return customerUsers;
         }
 
-        return users.filter(
+        return customerUsers.filter(
             (user) =>
                 user.name?.toLowerCase().includes(term) ||
                 user.email?.toLowerCase().includes(term)
         );
-    }, [searchTerm, users]);
+    }, [customerUsers, searchTerm]);
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -101,24 +81,6 @@ const UserManagement = () => {
         const interval = setInterval(() => refresh(false), 30000);
         return () => clearInterval(interval);
     }, [fetchStats, fetchUsers, refresh]);
-
-    const handleRoleUpdate = async (userId, newRole) => {
-        if (!newRole) return;
-
-        if (
-            window.confirm(
-                `Are you sure you want to change this user's role to ${newRole}?`
-            )
-        ) {
-            try {
-                await adminService.updateUserRole(userId, newRole);
-                await fetchUsers();
-                await fetchStats();
-            } catch (err) {
-                alert(err.response?.data?.message || "Failed to update user role");
-            }
-        }
-    };
 
     const renderRoleBadge = (role = "user") => {
         const meta = roleMeta[role] || roleMeta.user;
@@ -171,10 +133,10 @@ const UserManagement = () => {
                         <div className="flex items-center space-x-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">
-                                    User Management
+                                    Customer Management
                                 </h1>
                                 <p className="mt-1 text-sm text-gray-500">
-                                    Manage user accounts and permissions
+                                    Manage customer accounts only
                                 </p>
                             </div>
                         </div>
@@ -182,7 +144,7 @@ const UserManagement = () => {
                             <div className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
                                 <Users className="w-4 h-4" />
                                 <span className="text-sm font-medium">
-                                    {filteredUsers.length} Users
+                                    {filteredUsers.length} Customers
                                 </span>
                             </div>
                             <button
@@ -202,13 +164,13 @@ const UserManagement = () => {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Total Users</p>
+                                <p className="text-sm text-gray-500">Total Customers</p>
                                 <p className="text-3xl font-bold text-gray-900">
-                                    {stats.totalUsers || 0}
+                                    {customerUsers.length}
                                 </p>
                             </div>
                             <Users className="w-12 h-12 text-blue-500" />
@@ -217,45 +179,12 @@ const UserManagement = () => {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Admin Users</p>
-                                <p className="text-3xl font-bold text-green-600">
-                                    {stats.adminUsers || 0}
-                                </p>
-                            </div>
-                            <Shield className="w-12 h-12 text-green-500" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Regular Users</p>
+                                <p className="text-sm text-gray-500">Visible Customers</p>
                                 <p className="text-3xl font-bold text-purple-600">
-                                    {stats.regularUsers || 0}
+                                    {filteredUsers.length}
                                 </p>
                             </div>
                             <UserCheck className="w-12 h-12 text-purple-500" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Staff Users</p>
-                                <p className="text-3xl font-bold text-blue-600">
-                                    {stats.sellerUsers || stats.staffUsers || 0}
-                                </p>
-                            </div>
-                            <BriefcaseBusiness className="w-12 h-12 text-blue-500" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Delivery Users</p>
-                                <p className="text-3xl font-bold text-amber-600">
-                                    {stats.deliveryUsers || 0}
-                                </p>
-                            </div>
-                            <Truck className="w-12 h-12 text-amber-500" />
                         </div>
                     </div>
                 </div>
@@ -281,7 +210,7 @@ const UserManagement = () => {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        User
+                                        Customer
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Email
@@ -302,7 +231,7 @@ const UserManagement = () => {
                                     <tr>
                                         <td colSpan="5" className="px-6 py-12 text-center">
                                             <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                            <p className="text-gray-500">No users found</p>
+                                            <p className="text-gray-500">No customers found</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -333,24 +262,13 @@ const UserManagement = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center space-x-2">
-                                                    <select
-                                                        value={user.role || "user"}
-                                                        onChange={(event) => handleRoleUpdate(user._id, event.target.value)}
-                                                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                        title="Change role"
-                                                    >
-                                                        {ROLE_OPTIONS.map((role) => (
-                                                            <option key={role.value} value={role.value}>
-                                                                {role.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
                                                     <button
                                                         onClick={() => handleDeleteUser(user._id)}
-                                                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
-                                                        title="Delete User"
+                                                        className="inline-flex items-center gap-2 rounded-lg border border-[#FECACA] bg-[#FFFFFF] px-3 py-2 text-sm font-semibold text-[#B42318] shadow-sm transition-all hover:border-[#B42318] hover:bg-[#B42318] hover:text-[#FFFFFF] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#FECACA]"
+                                                        title="Delete Customer"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </td>
@@ -363,13 +281,13 @@ const UserManagement = () => {
                 </div>
 
                 {/* Recent Users */}
-                {stats.recentUsers && stats.recentUsers.length > 0 && (
+                {stats.recentUsers?.filter((user) => (user.role || "user") === "user").length > 0 && (
                     <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            Recently Joined
+                            Recently Joined Customers
                         </h2>
                         <div className="space-y-3">
-                            {stats.recentUsers.map((user) => (
+                            {stats.recentUsers.filter((user) => (user.role || "user") === "user").map((user) => (
                                 <div
                                     key={user._id}
                                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"

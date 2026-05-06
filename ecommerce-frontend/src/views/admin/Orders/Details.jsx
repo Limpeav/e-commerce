@@ -357,8 +357,12 @@ const OrderDetails = () => {
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {/* Header */}
-            <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
-                <div className="mx-auto max-w-7xl px-4 pb-5 pt-20 sm:px-6 lg:px-8 lg:pt-5">
+            <div className={`border-b border-[var(--color-border)] bg-[var(--color-bg-card)] ${
+                isDelivery ? "sticky top-0 z-30 shadow-sm" : ""
+            }`}>
+                <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${
+                    isDelivery ? "py-3" : "pb-5 pt-20 lg:pt-5"
+                }`}>
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
@@ -568,50 +572,51 @@ const OrderDetails = () => {
                             </div>
                         </section>
 
-                        {/* Order Summary */}
-                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                            <div className="mb-5 flex items-center justify-between gap-3">
-                                <h2 className="flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <DollarSign className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Order Summary
-                                </h2>
-                                <button
-                                    type="button"
-                                    onClick={handlePrintOrderSummary}
-                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
-                                    title="Print order summary"
-                                >
-                                    <Printer className="h-4 w-4" />
-                                    Print
-                                </button>
-                            </div>
-                            <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
-                                {summaryRows.slice(0, 5).map(([label, value]) => (
-                                    <div key={label} className="grid grid-cols-[130px_minmax(0,1fr)] gap-4">
-                                        <span>{label}</span>
-                                        <span className="text-right font-bold text-[var(--color-text-main)]">{value}</span>
-                                    </div>
-                                ))}
-                                <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
-                                    <div className="flex justify-between gap-4">
-                                        <span>Subtotal:</span>
-                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(subtotal)}</span>
-                                    </div>
-                                    <div className="flex justify-between gap-4">
-                                        <span>Delivery Fee:</span>
-                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(deliveryFee)}</span>
-                                    </div>
-                                    <div className="flex justify-between gap-4">
-                                        <span>Tax:</span>
-                                        <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
-                                    </div>
-                                    <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
-                                        <span>Total:</span>
-                                        <span>{formatCurrency(displayedTotal)}</span>
+                        {!isDelivery && (
+                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                                <div className="mb-5 flex items-center justify-between gap-3">
+                                    <h2 className="flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                        <DollarSign className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                        Order Summary
+                                    </h2>
+                                    <button
+                                        type="button"
+                                        onClick={handlePrintOrderSummary}
+                                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
+                                        title="Print order summary"
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                        Print
+                                    </button>
+                                </div>
+                                <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
+                                    {summaryRows.slice(0, 5).map(([label, value]) => (
+                                        <div key={label} className="grid grid-cols-[130px_minmax(0,1fr)] gap-4">
+                                            <span>{label}</span>
+                                            <span className="text-right font-bold text-[var(--color-text-main)]">{value}</span>
+                                        </div>
+                                    ))}
+                                    <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
+                                        <div className="flex justify-between gap-4">
+                                            <span>Subtotal:</span>
+                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(subtotal)}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span>Delivery Fee:</span>
+                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(deliveryFee)}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span>Tax:</span>
+                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
+                                        </div>
+                                        <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
+                                            <span>Total:</span>
+                                            <span>{formatCurrency(displayedTotal)}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </section>
+                            </section>
+                        )}
                     </div>
 
                     {/* Right Column - Summary & Actions */}

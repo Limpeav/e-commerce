@@ -10,18 +10,40 @@ const generateToken = (id) => {
   });
 };
 
+const normalizeCambodiaPhone = (phone = "") => {
+  const digits = String(phone).replace(/\D/g, "");
+  let localDigits = digits;
+
+  if (localDigits.startsWith("855")) {
+    localDigits = localDigits.slice(3);
+  }
+
+  localDigits = localDigits.replace(/^0+/, "");
+
+  if (!/^\d{8,9}$/.test(localDigits)) {
+    return null;
+  }
+
+  return `+855${localDigits}`;
+};
+
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, email, password } = req.body;
+    const normalizedPhone = req.body.phone ? normalizeCambodiaPhone(req.body.phone) : "";
+
+    if (req.body.phone && !normalizedPhone) {
+      return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    if (phone) {
-      const phoneExists = await User.findOne({ phone });
+    if (normalizedPhone) {
+      const phoneExists = await User.findOne({ phone: normalizedPhone });
       if (phoneExists) {
         return res.status(400).json({ message: "Phone number already in use" });
       }
@@ -29,7 +51,7 @@ export const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
-      phone,
+      phone: normalizedPhone,
       email,
       password,
       role: "user",
@@ -104,16 +126,22 @@ export const updateUserProfile = async (req, res) => {
       user.email = req.body.email;
     }
     if (req.body.phone) {
-      if (req.body.phone !== user.phone) {
+      const normalizedPhone = normalizeCambodiaPhone(req.body.phone);
+
+      if (!normalizedPhone) {
+        return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
+      }
+
+      if (normalizedPhone !== user.phone) {
         const phoneExists = await User.findOne({
-          phone: req.body.phone,
+          phone: normalizedPhone,
           _id: { $ne: req.user._id }
         });
         if (phoneExists) {
           return res.status(400).json({ message: "Phone number already in use" });
         }
       }
-      user.phone = req.body.phone;
+      user.phone = normalizedPhone;
     }
 
     // Update password if provided
@@ -404,9 +432,16 @@ export const startPhoneVerification = async (req, res) => {
 
     await user.save();
 
-    res.json({
+    const responsePayload = {
       message: "Verification code sent to phone.",
-    });
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      responsePayload.devVerificationCode = verificationCode;
+      console.log(`Phone verification code for ${phone}: ${verificationCode}`);
+    }
+
+    res.json(responsePayload);
 
   } catch (error) {
     console.error("Phone verification error:", error.message);
