@@ -2,6 +2,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import {
     getDashboardData,
+    getDailyCashReport,
     getCsvBuilderDraft,
     saveCsvBuilderDraft,
     uploadProductImage,
@@ -35,6 +36,7 @@ router.get("/me", protect, portalAccess, getAdminProfile);
 
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
+router.get("/cash-report", protect, portalAccess, getDailyCashReport);
 router.get("/csv-builder-draft", protect, admin, getCsvBuilderDraft);
 router.put("/csv-builder-draft", protect, admin, saveCsvBuilderDraft);
 router.post(

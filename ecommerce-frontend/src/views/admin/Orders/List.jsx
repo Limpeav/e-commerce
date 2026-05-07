@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     CalendarDays,
     ChevronDown,
+    CheckCircle,
     Package,
     Trash2,
     Search,
@@ -25,8 +26,10 @@ const AdminOrders = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [expandedOrderDates, setExpandedOrderDates] = useState({});
+    const [confirmingOrderId, setConfirmingOrderId] = useState("");
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
+    const isSeller = adminUser?.role === "seller";
 
     useEffect(() => {
         fetchOrders();
@@ -131,7 +134,11 @@ const AdminOrders = () => {
     };
 
     const filterOrders = () => {
-        let filtered = orders;
+        let filtered = isDelivery
+            ? orders.filter((order) =>
+                ["Processing", "Shipped", "Delivered"].includes(normalizeOrderStatus(order.orderStatus))
+            )
+            : orders;
 
         // Filter by status
         if (statusFilter !== "All") {
@@ -165,6 +172,25 @@ const AdminOrders = () => {
 
     const handleRowNavigation = (orderId) => {
         navigate(getPortalOrderDetailsPath(orderId, adminUser));
+    };
+
+    const handleConfirmOrder = async (orderId) => {
+        if (!window.confirm("Confirm this order and send it to delivery?")) {
+            return;
+        }
+
+        setConfirmingOrderId(orderId);
+        try {
+            await adminService.updateOrderStatus(orderId, "Processing");
+            window.dispatchEvent(new Event("admin-orders-updated"));
+            await fetchOrders();
+        } catch (err) {
+            alert(err.response?.data?.message || "Failed to confirm order");
+            setConfirmingOrderId("");
+            return;
+        }
+
+        setConfirmingOrderId("");
     };
 
     const toggleOrderDate = (dateKey) => {
@@ -274,18 +300,21 @@ const AdminOrders = () => {
         window.location.href = iosGoogleMapsAppUrl;
     };
 
+    const deliveryOrders = orders.filter((order) =>
+        ["Processing", "Shipped", "Delivered"].includes(normalizeOrderStatus(order.orderStatus))
+    );
     const deliveryStats = [
         {
             label: "Active",
-            value: orders.filter((order) =>
-                ["Pending", "Processing", "Shipped"].includes(normalizeOrderStatus(order.orderStatus))
+            value: deliveryOrders.filter((order) =>
+                ["Processing", "Shipped"].includes(normalizeOrderStatus(order.orderStatus))
             ).length,
             className: "bg-blue-50 text-blue-800",
         },
         {
             label: "Cash",
             value: formatCurrency(
-                orders
+                deliveryOrders
                     .filter((order) =>
                         order.paymentMethod === "Cash on Delivery" &&
                         order.paymentStatus === "Paid" &&
@@ -297,7 +326,7 @@ const AdminOrders = () => {
         },
         {
             label: "Done",
-            value: orders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
+            value: deliveryOrders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
             className: "bg-stone-100 text-stone-800",
         },
     ];
@@ -504,8 +533,8 @@ const AdminOrders = () => {
                             {isDelivery ? "Delivery Control" : "Order Management"}
                         </h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            {isDelivery
-                                ? "View orders, customer locations, and update delivery progress"
+                            {isSeller
+                                ? "Confirm new orders and hand them off to delivery"
                                 : "Manage and track all customer orders"}
                         </p>
                     </div>
@@ -678,8 +707,18 @@ const AdminOrders = () => {
                                                     className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                                                 >
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-sm font-mono text-gray-900">
-                                                            #{order._id.slice(-8)}
+                                                        <span className="inline-flex items-center gap-2 text-sm font-mono text-gray-900">
+                                                            {order.paymentStatus === "Paid" &&
+                                                                normalizeOrderStatus(order.orderStatus) === "Delivered" && (
+                                                                    <span
+                                                                        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700"
+                                                                        title="Payment paid and delivery completed"
+                                                                        aria-label="Completed order"
+                                                                    >
+                                                                        <CheckCircle className="h-3.5 w-3.5" />
+                                                                    </span>
+                                                                )}
+                                                            <span>#{order._id.slice(-8)}</span>
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -717,6 +756,19 @@ const AdminOrders = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
+                                                            {isSeller && normalizeOrderStatus(order.orderStatus) === "Pending" && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleConfirmOrder(order._id);
+                                                                    }}
+                                                                    disabled={confirmingOrderId === order._id}
+                                                                    className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                    title="Confirm Order"
+                                                                >
+                                                                    {confirmingOrderId === order._id ? "Confirming..." : "Confirm"}
+                                                                </button>
+                                                            )}
                                                             {isDelivery ? (
                                                                 <button
                                                                     onClick={(e) => {
@@ -726,7 +778,7 @@ const AdminOrders = () => {
                                                                     className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
                                                                     title="View Delivery"
                                                                 >
-                                                                    <Eye className="w-4 h-4" />
+                                                                    Open
                                                                 </button>
                                                             ) : (
                                                                 <button

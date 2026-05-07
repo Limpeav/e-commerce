@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { clearAdminSession, getPortalLoginPath, getPortalOrdersPath, getStoredAdminUser } from '../../utils/adminSession'
+import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
 import { adminService } from '../../services/adminService'
 import {
   LayoutDashboard,
@@ -11,6 +11,8 @@ import {
   LogOut,
   Menu,
   BriefcaseBusiness,
+  ReceiptText,
+  WalletCards,
   Truck,
   X,
 } from 'lucide-react'
@@ -24,7 +26,10 @@ const AdminSidebar = () => {
   // Get admin user data
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
+  const dashboardPath = getPortalDashboardPath(adminUser)
   const ordersPath = getPortalOrdersPath(adminUser)
+  const cashReportPath = getPortalCashReportPath(adminUser)
+  const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
   const isOrderDetail = /^\/(?:admin|staff|delivery)\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
@@ -43,6 +48,10 @@ const AdminSidebar = () => {
       const orderStatus = normalizeStatus(order?.orderStatus)
       const paymentStatus = normalizeStatus(order?.paymentStatus)
 
+      if (isDelivery && !['processing', 'shipped'].includes(orderStatus)) {
+        return false
+      }
+
       const isFinishedOrder = orderStatus === 'delivered' || orderStatus === 'cancelled'
       const isSettledPayment =
         paymentStatus === 'paid' ||
@@ -51,7 +60,7 @@ const AdminSidebar = () => {
 
       return !isFinishedOrder || !isSettledPayment
     }).length
-  }, [normalizeStatus])
+  }, [isDelivery, normalizeStatus])
 
   React.useEffect(() => {
     let isMounted = true
@@ -82,10 +91,10 @@ const AdminSidebar = () => {
 
   const menuItems = [
     {
-      path: '/admin',
+      path: dashboardPath,
       name: 'Dashboard',
       icon: LayoutDashboard,
-      adminOnly: true
+      hidden: adminUser?.role === 'delivery'
     },
     {
       path: '/admin/products',
@@ -112,12 +121,24 @@ const AdminSidebar = () => {
       badge: orderCount
     },
     {
+      path: paymentQueuePath,
+      name: 'Payment Queue',
+      icon: WalletCards,
+      hidden: adminUser?.role !== 'seller',
+    },
+    {
+      path: cashReportPath,
+      name: 'Cash Report',
+      icon: ReceiptText,
+      hidden: adminUser?.role === 'delivery',
+    },
+    {
       path: '/admin/staff',
       name: 'Staff',
       icon: BriefcaseBusiness,
       adminOnly: true
     }
-  ].filter((item) => !item.adminOnly || adminUser?.role === 'admin')
+  ].filter((item) => !item.hidden && (!item.adminOnly || adminUser?.role === 'admin'))
 
   const handleLogout = () => {
     if (!window.confirm('Are you sure you want to logout?')) return

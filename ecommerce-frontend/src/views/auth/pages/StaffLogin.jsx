@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminService } from "../../../services/adminService.js";
 import {
   clearAdminSession,
-  getPortalOrdersPath,
+  getPortalDashboardPath,
   getStoredAdminUser,
   hasStoredAdminSession,
   persistAdminSession,
@@ -43,7 +43,7 @@ const StaffLogin = () => {
         const sessionUser = response.data || getStoredAdminUser();
 
         if (STAFF_ROLES.includes(sessionUser?.role)) {
-          navigate(getPortalOrdersPath(sessionUser), { replace: true });
+          navigate(getPortalDashboardPath(sessionUser), { replace: true });
           return;
         }
 
@@ -74,7 +74,7 @@ const StaffLogin = () => {
       }
 
       persistAdminSession(data.token, data);
-      navigate(getPortalOrdersPath(data), { replace: true });
+      navigate(getPortalDashboardPath(data), { replace: true });
     } catch (err) {
       clearAdminSession();
       setError(

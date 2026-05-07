@@ -42,6 +42,9 @@ export const lazyComponents = {
   AdminOrdersList: () => import("../views/admin/Orders/List"),
   AdminOrderDetails: () => import("../views/admin/Orders/Details"),
   AdminReports: () => import("../views/admin/Reports"),
+  AdminCashReport: () => import("../views/admin/CashReport"),
+  SellerDashboard: () => import("../views/admin/SellerDashboard"),
+  SellerPaymentQueue: () => import("../views/admin/PaymentQueue"),
 
   // Error routes
   NotFound: () => import("../views/errors/NotFound"),
@@ -86,8 +89,12 @@ export const adminRoutes = [
   { path: "/admin/users", component: "AdminUsers", allowedRoles: ["admin"] },
   { path: "/admin/orders", component: "AdminOrdersList", allowedRoles: ["admin"] },
   { path: "/admin/orders/:id", component: "AdminOrderDetails", allowedRoles: ["admin"] },
+  { path: "/admin/cash-report", component: "AdminCashReport", allowedRoles: ["admin", "seller"] },
   { path: "/staff/orders", component: "AdminOrdersList", allowedRoles: ["seller"] },
   { path: "/staff/orders/:id", component: "AdminOrderDetails", allowedRoles: ["seller"] },
+  { path: "/staff/dashboard", component: "SellerDashboard", allowedRoles: ["seller"] },
+  { path: "/staff/payment-queue", component: "SellerPaymentQueue", allowedRoles: ["seller"] },
+  { path: "/staff/cash-report", component: "AdminCashReport", allowedRoles: ["seller"] },
   { path: "/delivery/orders", component: "AdminOrdersList", allowedRoles: ["delivery"] },
   { path: "/delivery/orders/:id", component: "AdminOrderDetails", allowedRoles: ["delivery"] },
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },

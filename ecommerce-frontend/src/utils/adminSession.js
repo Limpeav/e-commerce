@@ -59,8 +59,36 @@ export const getPortalOrdersPath = (admin = getStoredAdminUser()) => {
   return "/admin/orders";
 };
 
+export const getPortalDashboardPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "delivery") {
+    return getPortalOrdersPath(admin);
+  }
+
+  if (admin?.role === "seller") {
+    return "/staff/dashboard";
+  }
+
+  return "/admin";
+};
+
 export const getPortalOrderDetailsPath = (orderId, admin = getStoredAdminUser()) => {
   return `${getPortalOrdersPath(admin)}/${orderId}`;
+};
+
+export const getPortalCashReportPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "seller") {
+    return "/staff/cash-report";
+  }
+
+  return "/admin/cash-report";
+};
+
+export const getPortalPaymentQueuePath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "seller") {
+    return "/staff/payment-queue";
+  }
+
+  return "/admin/orders";
 };
 
 export const getStoredAdmin = () => {

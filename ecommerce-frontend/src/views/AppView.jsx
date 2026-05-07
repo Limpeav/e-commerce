@@ -59,7 +59,10 @@ export default function AppView() {
   const isAdminRoute =
     (location.pathname.startsWith("/admin") &&
       location.pathname !== "/admin/login") ||
+    location.pathname.startsWith("/staff/dashboard") ||
+    location.pathname.startsWith("/staff/payment-queue") ||
     location.pathname.startsWith("/staff/orders") ||
+    location.pathname.startsWith("/staff/cash-report") ||
     location.pathname.startsWith("/delivery/orders");
   const shouldShowNavFooter =
     !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute;

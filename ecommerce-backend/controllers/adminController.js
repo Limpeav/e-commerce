@@ -29,6 +29,133 @@ const sanitizeDraftFileName = (fileName = "") => {
     : `${sanitized}.csv`;
 };
 
+const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))
+    ? String(dateString)
+    : new Date().toISOString().slice(0, 10);
+  const offsetMinutes = Number.isFinite(Number(timezoneOffsetMinutes))
+    ? Number(timezoneOffsetMinutes)
+    : 0;
+  const [year, month, day] = selectedDate.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, day, 0, offsetMinutes, 0, 0));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  return {
+    selectedDate,
+    start,
+    end,
+  };
+};
+
+const formatCsvValue = (value) => {
+  const normalized = String(value ?? "");
+  return /[",\n\r]/.test(normalized)
+    ? `"${normalized.replace(/"/g, '""')}"`
+    : normalized;
+};
+
+const buildCashReportPayload = async ({ date, timezoneOffset }) => {
+  const { selectedDate, start, end } = parseReportDateRange(date, timezoneOffset);
+  const paidCashMatch = {
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: "Paid",
+    paidAt: {
+      $gte: start,
+      $lt: end,
+    },
+  };
+
+  const [orders, summaryData, pendingCashCount] = await Promise.all([
+    Order.find(paidCashMatch)
+      .sort({ paidAt: -1 })
+      .populate("user", "name email")
+      .lean(),
+    Order.aggregate([
+      { $match: paidCashMatch },
+      {
+        $group: {
+          _id: null,
+          totalCash: { $sum: "$totalPrice" },
+          orderCount: { $sum: 1 },
+          averageOrderValue: { $avg: "$totalPrice" },
+        },
+      },
+    ]),
+    Order.countDocuments({
+      paymentMethod: "Cash on Delivery",
+      paymentStatus: { $ne: "Paid" },
+      orderStatus: { $nin: ["Delivered", "Cancelled"] },
+    }),
+  ]);
+
+  const summary = summaryData[0] || {
+    totalCash: 0,
+    orderCount: 0,
+    averageOrderValue: 0,
+  };
+
+  return {
+    date: selectedDate,
+    generatedAt: new Date().toISOString(),
+    range: {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    },
+    summary: {
+      totalCash: Number(summary.totalCash || 0),
+      orderCount: Number(summary.orderCount || 0),
+      averageOrderValue: Number(summary.averageOrderValue || 0),
+      pendingCashCount,
+    },
+    orders: orders.map((order) => ({
+      id: order._id.toString(),
+      shortId: order._id.toString().slice(-8),
+      customerName: order.shippingAddress?.fullName || order.user?.name || "N/A",
+      customerPhone: order.shippingAddress?.phone || "N/A",
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      orderStatus: order.orderStatus,
+      paidAt: order.paidAt,
+      totalPrice: Number(order.totalPrice || 0),
+    })),
+  };
+};
+
+const buildCashReportCsv = (report) => {
+  const rows = [
+    ["Date", report.date],
+    ["Generated At", report.generatedAt],
+    ["Total Cash", report.summary.totalCash.toFixed(2)],
+    ["Paid Cash Orders", report.summary.orderCount],
+    ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
+    ["Pending Cash Orders", report.summary.pendingCashCount],
+    [],
+    [
+      "Order ID",
+      "Customer",
+      "Phone",
+      "Paid At",
+      "Payment",
+      "Order Status",
+      "Total",
+    ],
+    ...report.orders.map((order) => [
+      `#${order.shortId}`,
+      order.customerName,
+      order.customerPhone,
+      order.paidAt ? new Date(order.paidAt).toISOString() : "",
+      order.paymentStatus,
+      order.orderStatus,
+      order.totalPrice.toFixed(2),
+    ]),
+  ];
+
+  return rows
+    .map((row) => row.map(formatCsvValue).join(","))
+    .join("\n");
+};
+
 // @desc    Admin dashboard data
 // @route   GET /api/admin/dashboard
 // @access  Private/Admin
@@ -140,6 +267,34 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     cashToCollect: cashToCollectCount,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
+});
+
+// @desc    Daily cash report for admin and cashier accounts
+// @route   GET /api/admin/cash-report
+// @access  Private/Portal
+export const getDailyCashReport = asyncHandler(async (req, res) => {
+  if (req.user?.role === "delivery") {
+    res.status(403);
+    throw new Error("Delivery accounts cannot view cash reports");
+  }
+
+  const report = await buildCashReportPayload({
+    date: req.query.date,
+    timezoneOffset: req.query.timezoneOffset,
+  });
+
+  if (req.query.format === "csv") {
+    const csv = buildCashReportCsv(report);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="cash-report-${report.date}.csv"`
+    );
+    res.send(csv);
+    return;
+  }
+
+  res.json(report);
 });
 
 // @desc    Upload product image for CSV builder

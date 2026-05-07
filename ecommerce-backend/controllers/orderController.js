@@ -251,6 +251,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     try {
         let updatedOrder;
+        let previousStatus;
 
         await session.withTransaction(async () => {
             const order = await Order.findById(req.params.id).session(session);
@@ -263,8 +264,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             const nextStatus = req.body.orderStatus || order.orderStatus;
 
             if (req.user?.role === "seller") {
-                res.status(403);
-                throw new Error("Cashier accounts cannot update order delivery status");
+                if (order.orderStatus !== "Pending" || nextStatus !== "Processing") {
+                    res.status(403);
+                    throw new Error("Cashier accounts can only confirm pending orders");
+                }
             }
 
             if (
@@ -275,7 +278,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 throw new Error("Delivery accounts can only update active delivery statuses");
             }
 
-            const previousStatus = order.orderStatus;
+            previousStatus = order.orderStatus;
             order.orderStatus = nextStatus;
 
             if (nextStatus === "Delivered") {
@@ -309,6 +312,30 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         });
 
         res.json(updatedOrder);
+
+        if (
+            req.user?.role === "seller" &&
+            previousStatus === "Pending" &&
+            updatedOrder?.orderStatus === "Processing"
+        ) {
+            try {
+                const notification = await Notification.create({
+                    type: "order",
+                    title: "Order confirmed for delivery",
+                    message: `${req.user.name || "Seller"} confirmed order #${updatedOrder._id.toString().slice(-8).toUpperCase()} for delivery.`,
+                    orderId: updatedOrder._id,
+                    userId: req.user._id,
+                    link: `/delivery/orders/${updatedOrder._id}`,
+                });
+
+                emitOrderUpdated(updatedOrder, {
+                    orderStatus: updatedOrder.orderStatus,
+                });
+                emitNotificationCreated(notification);
+            } catch (notificationError) {
+                console.error("Delivery handoff notification failed:", notificationError.message);
+            }
+        }
     } finally {
         await session.endSession();
     }
@@ -336,6 +363,11 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         ) {
             res.status(403);
             throw new Error("Delivery accounts can only mark cash on delivery orders as paid");
+        }
+
+        if (req.user?.role === "seller" && paymentStatus !== "Paid") {
+            res.status(403);
+            throw new Error("Cashier accounts can only mark orders as paid");
         }
 
         order.paymentStatus = paymentStatus;

@@ -51,6 +51,22 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
+  getDailyCashReport: (date) =>
+    api.get("/admin/cash-report", {
+      params: {
+        date,
+        timezoneOffset: new Date().getTimezoneOffset(),
+      },
+    }),
+  exportDailyCashReport: (date) =>
+    api.get("/admin/cash-report", {
+      params: {
+        date,
+        timezoneOffset: new Date().getTimezoneOffset(),
+        format: "csv",
+      },
+      responseType: "blob",
+    }),
   getCsvBuilderDraft: () => api.get("/admin/csv-builder-draft"),
   saveCsvBuilderDraft: ({ rows, fileName }) =>
     api.put("/admin/csv-builder-draft", { rows, fileName }),
