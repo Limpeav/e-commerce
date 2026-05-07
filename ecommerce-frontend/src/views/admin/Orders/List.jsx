@@ -709,10 +709,11 @@ const AdminOrders = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className="inline-flex items-center gap-2 text-sm font-mono text-gray-900">
                                                             {order.paymentStatus === "Paid" &&
-                                                                normalizeOrderStatus(order.orderStatus) === "Delivered" && (
+                                                                normalizeOrderStatus(order.orderStatus) === "Delivered" &&
+                                                                order.deliveryProof?.imageUrl && (
                                                                     <span
                                                                         className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700"
-                                                                        title="Payment paid and delivery completed"
+                                                                        title="Payment paid, delivery completed, and proof uploaded"
                                                                         aria-label="Completed order"
                                                                     >
                                                                         <CheckCircle className="h-3.5 w-3.5" />

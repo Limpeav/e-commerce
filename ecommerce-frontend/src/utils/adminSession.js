@@ -37,7 +37,7 @@ export const clearAdminSession = () => {
 
 export const getPortalLoginPath = (admin = getStoredAdminUser()) => {
   if (admin?.role === "delivery") {
-    return "/delivery/login";
+    return "/staff/login";
   }
 
   if (admin?.role === "seller") {
