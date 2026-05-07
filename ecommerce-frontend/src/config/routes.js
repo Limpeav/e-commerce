@@ -77,15 +77,19 @@ export const protectedRoutes = [
 ];
 
 export const adminRoutes = [
-  { path: "/admin", component: "AdminDashboard" },
+  { path: "/admin", component: "AdminDashboard", allowedRoles: ["admin"] },
   { path: "/admin/products", component: "AdminProductsList", allowedRoles: ["admin"] },
   { path: "/admin/products/add", component: "AdminProductsAdd", allowedRoles: ["admin"] },
   { path: "/admin/products/csv-builder", component: "AdminProductsCsvBuilder", allowedRoles: ["admin"] },
   { path: "/admin/products/edit/:id", component: "AdminProductsEdit", allowedRoles: ["admin"] },
   { path: "/admin/banners", component: "AdminBanners", allowedRoles: ["admin"] },
   { path: "/admin/users", component: "AdminUsers", allowedRoles: ["admin"] },
-  { path: "/admin/orders", component: "AdminOrdersList" },
-  { path: "/admin/orders/:id", component: "AdminOrderDetails" },
+  { path: "/admin/orders", component: "AdminOrdersList", allowedRoles: ["admin"] },
+  { path: "/admin/orders/:id", component: "AdminOrderDetails", allowedRoles: ["admin"] },
+  { path: "/staff/orders", component: "AdminOrdersList", allowedRoles: ["seller"] },
+  { path: "/staff/orders/:id", component: "AdminOrderDetails", allowedRoles: ["seller"] },
+  { path: "/delivery/orders", component: "AdminOrdersList", allowedRoles: ["delivery"] },
+  { path: "/delivery/orders/:id", component: "AdminOrderDetails", allowedRoles: ["delivery"] },
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/staff", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/reports", component: "AdminReports", allowedRoles: ["admin"] },

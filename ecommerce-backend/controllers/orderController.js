@@ -11,6 +11,7 @@ import {
 import {
     sendLowStockTelegramAlert,
     sendOrderTelegramAlert,
+    sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
 
 const createHttpError = (statusCode, message) =>
@@ -401,6 +402,42 @@ export const uploadDeliveryProof = asyncHandler(async (req, res) => {
     emitNotificationCreated(notification);
 
     res.json(updatedOrder);
+});
+
+// @desc    Send order receipt image to Telegram
+// @route   POST /api/orders/:id/receipt-telegram
+// @access  Private/Portal
+export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
+    if (!req.file?.buffer) {
+        res.status(400);
+        throw new Error("Receipt image is required");
+    }
+
+    const order = await Order.findById(req.params.id).populate("user", "name email");
+
+    if (!order) {
+        res.status(404);
+        throw new Error("Order not found");
+    }
+
+    const result = await sendOrderReceiptTelegramPhoto({
+        imageBuffer: req.file.buffer,
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        orderId: order._id.toString().slice(-8).toUpperCase(),
+        customerName: order.shippingAddress?.fullName || order.user?.name,
+        totalPrice: order.totalPrice,
+    });
+
+    if (!result.sent) {
+        res.status(503);
+        throw new Error("Telegram receipt bot is not configured");
+    }
+
+    res.json({
+        message: "Receipt sent to Telegram",
+        telegram: result,
+    });
 });
 
 // @desc    Update order to paid

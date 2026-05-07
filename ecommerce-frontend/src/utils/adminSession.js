@@ -47,6 +47,22 @@ export const getPortalLoginPath = (admin = getStoredAdminUser()) => {
   return "/admin/login";
 };
 
+export const getPortalOrdersPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "delivery") {
+    return "/delivery/orders";
+  }
+
+  if (admin?.role === "seller") {
+    return "/staff/orders";
+  }
+
+  return "/admin/orders";
+};
+
+export const getPortalOrderDetailsPath = (orderId, admin = getStoredAdminUser()) => {
+  return `${getPortalOrdersPath(admin)}/${orderId}`;
+};
+
 export const getStoredAdmin = () => {
   const adminStr = localStorage.getItem(ADMIN_KEY);
   if (!adminStr || adminStr === "undefined") return null;

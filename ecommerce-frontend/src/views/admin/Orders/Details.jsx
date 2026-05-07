@@ -19,15 +19,165 @@ import {
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
-import { getStoredAdminUser } from "../../../utils/adminSession";
+import { getPortalOrdersPath, getStoredAdminUser } from "../../../utils/adminSession";
 
-const escapeHtml = (value) =>
-    String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+const splitTextLines = (context, text, maxWidth) => {
+    const words = String(text || "N/A").split(/\s+/).filter(Boolean);
+    const lines = [];
+    let currentLine = "";
+
+    words.forEach((word) => {
+        const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+        if (context.measureText(nextLine).width <= maxWidth || !currentLine) {
+            currentLine = nextLine;
+            return;
+        }
+
+        lines.push(currentLine);
+        currentLine = word;
+    });
+
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+
+    return lines.length ? lines : ["N/A"];
+};
+
+const fillRoundRect = (context, x, y, width, height, radius) => {
+    context.beginPath();
+    context.roundRect(x, y, width, height, radius);
+    context.fill();
+};
+
+const createReceiptImageBlob = ({
+    displayOrderId,
+    customerName,
+    customerPhone,
+    paymentMethod,
+    fullAddress,
+    subtotal,
+    deliveryFee,
+    taxPrice,
+    displayedTotal,
+    formatCurrency,
+}) => {
+    const logicalWidth = 1000;
+    const padding = 48;
+    const rightEdge = logicalWidth - padding;
+    const valueMaxWidth = 560;
+    const details = [
+        ["Order ID", `#${displayOrderId}`],
+        ["Customer Name", customerName],
+        ["Phone Number", customerPhone],
+        ["Payment Method", paymentMethod || "N/A"],
+        ["Address", fullAddress],
+    ];
+
+    const measuringCanvas = document.createElement("canvas");
+    const measuringContext = measuringCanvas.getContext("2d");
+    measuringContext.font = "700 20px Inter, Arial, sans-serif";
+
+    const detailRows = details.map(([label, value]) => {
+        const lines = splitTextLines(measuringContext, value, valueMaxWidth);
+        return {
+            label,
+            lines,
+            height: Math.max(44, lines.length * 30),
+        };
+    });
+
+    const logicalHeight =
+        120 +
+        detailRows.reduce((total, row) => total + row.height, 0) +
+        38 +
+        44 * 3 +
+        104 +
+        42;
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = logicalWidth * scale;
+    canvas.height = logicalHeight * scale;
+    const context = canvas.getContext("2d");
+    context.scale(scale, scale);
+
+    context.fillStyle = "#f7f2ec";
+    context.fillRect(0, 0, logicalWidth, logicalHeight);
+
+    context.fillStyle = "#ffffff";
+    fillRoundRect(context, 24, 24, logicalWidth - 48, logicalHeight - 48, 18);
+
+    context.fillStyle = "#78937d";
+    context.font = "400 34px Georgia, serif";
+    context.fillText("$", padding, 84);
+    context.fillStyle = "#2f332f";
+    context.font = "800 28px Georgia, serif";
+    context.fillText("Order Summary", padding + 42, 82);
+
+    let y = 142;
+    detailRows.forEach((row) => {
+        context.fillStyle = "#737a72";
+        context.font = "400 21px Inter, Arial, sans-serif";
+        context.textAlign = "left";
+        context.fillText(row.label, padding, y);
+
+        context.fillStyle = "#2f332f";
+        context.font = "700 20px Inter, Arial, sans-serif";
+        context.textAlign = "right";
+        row.lines.forEach((line, index) => {
+            context.fillText(line, rightEdge, y + index * 30);
+        });
+
+        y += row.height;
+    });
+
+    context.strokeStyle = "#ddd5cc";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.moveTo(padding, y + 8);
+    context.lineTo(rightEdge, y + 8);
+    context.stroke();
+    y += 52;
+
+    const totalRows = [
+        ["Subtotal:", formatCurrency(subtotal)],
+        ["Delivery Fee:", formatCurrency(deliveryFee)],
+        ["Tax:", formatCurrency(taxPrice)],
+    ];
+
+    totalRows.forEach(([label, value]) => {
+        context.textAlign = "left";
+        context.fillStyle = "#737a72";
+        context.font = "400 21px Inter, Arial, sans-serif";
+        context.fillText(label, padding, y);
+        context.textAlign = "right";
+        context.fillStyle = "#2f332f";
+        context.font = "700 21px Inter, Arial, sans-serif";
+        context.fillText(value, rightEdge, y);
+        y += 44;
+    });
+
+    context.fillStyle = "#eee9e3";
+    fillRoundRect(context, padding, y + 2, logicalWidth - padding * 2, 76, 14);
+    context.textAlign = "left";
+    context.fillStyle = "#2f332f";
+    context.font = "800 28px Inter, Arial, sans-serif";
+    context.fillText("Total:", padding + 24, y + 50);
+    context.textAlign = "right";
+    context.fillText(formatCurrency(displayedTotal), rightEdge - 24, y + 50);
+
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+                return;
+            }
+
+            reject(new Error("Failed to create receipt image"));
+        }, "image/png");
+    });
+};
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -37,8 +187,10 @@ const OrderDetails = () => {
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [uploadingProof, setUploadingProof] = useState(false);
+    const [sendingReceipt, setSendingReceipt] = useState(false);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
+    const ordersPath = getPortalOrdersPath(adminUser);
 
     const fetchOrderDetails = useCallback(async () => {
         setLoading(true);
@@ -219,7 +371,7 @@ const OrderDetails = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
                     <p className="text-red-800">{error || "Order not found"}</p>
                     <button
-                        onClick={() => navigate("/admin/orders")}
+                        onClick={() => navigate(ordersPath)}
                         className="mt-4 text-blue-600 hover:text-blue-800"
                     >
                         ← Back to Orders
@@ -293,93 +445,35 @@ const OrderDetails = () => {
         window.location.href = googleMapsAppUrl;
     };
 
-    const handlePrintOrderSummary = () => {
-        const printWindow = window.open("", "_blank", "width=720,height=900");
+    const handleSendReceiptToTelegram = async () => {
+        setSendingReceipt(true);
 
-        if (!printWindow) {
-            window.print();
-            return;
+        try {
+            const receiptImage = await createReceiptImageBlob({
+                displayOrderId,
+                customerName,
+                customerPhone,
+                paymentMethod: order.paymentMethod,
+                fullAddress,
+                subtotal,
+                deliveryFee,
+                taxPrice,
+                displayedTotal,
+                formatCurrency,
+            });
+            const result = await AdminController.sendOrderReceiptToTelegram(id, receiptImage);
+
+            if (!result.success) {
+                alert(result.error || "Failed to send receipt to Telegram");
+                return;
+            }
+
+            alert("Receipt photo sent to Telegram.");
+        } catch (sendError) {
+            alert(sendError.message || "Failed to send receipt to Telegram");
+        } finally {
+            setSendingReceipt(false);
         }
-
-        const rowsHtml = summaryRows
-            .map(
-                ([label, value], index) => `
-                    <div class="row ${index === summaryRows.length - 1 ? "total" : ""}">
-                        <span>${escapeHtml(label)}</span>
-                        <strong>${escapeHtml(value)}</strong>
-                    </div>
-                `
-            )
-            .join("");
-
-        printWindow.document.write(`
-            <!doctype html>
-            <html>
-                <head>
-                    <title>Order Summary #${escapeHtml(displayOrderId)}</title>
-                    <style>
-                        body {
-                            color: #2f332f;
-                            font-family: Arial, sans-serif;
-                            margin: 32px;
-                        }
-                        .summary {
-                            border: 1px solid #d9d2c8;
-                            border-radius: 12px;
-                            max-width: 520px;
-                            padding: 24px;
-                        }
-                        h1 {
-                            font-size: 24px;
-                            margin: 0 0 8px;
-                        }
-                        .placed {
-                            color: #6f756d;
-                            font-size: 14px;
-                            margin: 0 0 24px;
-                        }
-                        .row {
-                            display: flex;
-                            gap: 24px;
-                            justify-content: space-between;
-                            padding: 8px 0;
-                        }
-                        .row span {
-                            color: #6f756d;
-                        }
-                        .row strong {
-                            font-weight: 600;
-                            text-align: right;
-                        }
-                        .row:nth-last-child(4) {
-                            border-top: 1px solid #bbb4ab;
-                            margin-top: 8px;
-                            padding-top: 14px;
-                        }
-                        .total {
-                            border-top: 1px solid #bbb4ab;
-                            font-size: 18px;
-                            margin-top: 8px;
-                            padding-top: 14px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <section class="summary">
-                        <h1>Order Summary</h1>
-                        <p class="placed">Placed on ${escapeHtml(new Date(order.createdAt).toLocaleString())}</p>
-                        ${rowsHtml}
-                    </section>
-                    <script>
-                        window.addEventListener("load", () => {
-                            window.print();
-                            window.close();
-                        });
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
     };
 
     return (
@@ -394,7 +488,7 @@ const OrderDetails = () => {
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
-                                onClick={() => navigate("/admin/orders")}
+                                onClick={() => navigate(ordersPath)}
                                 className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
                                 aria-label="Back to orders"
                             >
@@ -611,12 +705,13 @@ const OrderDetails = () => {
                                     </h2>
                                     <button
                                         type="button"
-                                        onClick={handlePrintOrderSummary}
-                                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
-                                        title="Print order summary"
+                                        onClick={handleSendReceiptToTelegram}
+                                        disabled={sendingReceipt}
+                                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)] disabled:cursor-not-allowed disabled:opacity-60"
+                                        title="Send receipt photo to Telegram"
                                     >
                                         <Printer className="h-4 w-4" />
-                                        Print
+                                        {sendingReceipt ? "Sending..." : "Print"}
                                     </button>
                                 </div>
                                 <div className="space-y-3 text-sm text-[var(--color-text-muted)]">

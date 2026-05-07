@@ -89,6 +89,21 @@ export class AdminController {
     }
   }
 
+  static async sendOrderReceiptToTelegram(orderId, receiptImage) {
+    try {
+      const formData = new FormData();
+      formData.append("receipt", receiptImage, `order-${orderId}-receipt.png`);
+
+      const response = await adminService.sendOrderReceiptToTelegram(orderId, formData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
   // Create product
   static async createProduct(productData) {
     try {

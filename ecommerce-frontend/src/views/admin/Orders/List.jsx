@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
-import { getStoredAdminUser } from "../../../utils/adminSession";
+import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 
 const AdminOrders = () => {
     const navigate = useNavigate();
@@ -164,7 +164,7 @@ const AdminOrders = () => {
     };
 
     const handleRowNavigation = (orderId) => {
-        navigate(`/admin/orders/${orderId}`);
+        navigate(getPortalOrderDetailsPath(orderId, adminUser));
     };
 
     const toggleOrderDate = (dateKey) => {

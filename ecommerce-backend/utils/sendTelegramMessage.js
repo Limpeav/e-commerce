@@ -1,4 +1,5 @@
 import axios from "axios";
+import FormData from "form-data";
 
 const TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
 
@@ -25,6 +26,17 @@ const getTelegramConfig = (type = "default") => {
   if (type === "order") {
     const botToken = process.env.TELEGRAM_BOT_TOKEN_2;
     const chatId = process.env.TELEGRAM_CHAT_ID_2;
+
+    return {
+      botToken,
+      chatId,
+      enabled: Boolean(botToken && chatId),
+    };
+  }
+
+  if (type === "receipt") {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN_3;
+    const chatId = process.env.TELEGRAM_CHAT_ID_3;
 
     return {
       botToken,
@@ -276,6 +288,75 @@ export const sendOrderTelegramAlert = async ({
     );
 
     return { sent: true, type: "message" };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const buildOrderReceiptCaption = ({ orderId, customerName, totalPrice }) => {
+  const safeOrderId = orderId ? escapeHtml(orderId) : "N/A";
+  const safeCustomerName = customerName ? escapeHtml(customerName) : "Unknown";
+
+  return [
+    "<b>ORDER RECEIPT</b>",
+    "",
+    `<b>Order</b>: <code>${safeOrderId}</code>`,
+    `<b>Customer</b>: ${safeCustomerName}`,
+    `<b>Total</b>: $${Number(totalPrice || 0).toFixed(2)}`,
+  ].join("\n");
+};
+
+export const sendOrderReceiptTelegramPhoto = async ({
+  imageBuffer,
+  fileName,
+  mimeType,
+  orderId,
+  customerName,
+  totalPrice,
+}) => {
+  const { botToken, chatId, enabled } = getTelegramConfig("receipt");
+
+  if (!enabled) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  const caption = buildOrderReceiptCaption({
+    orderId,
+    customerName,
+    totalPrice,
+  });
+
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  form.append("caption", caption);
+  form.append("parse_mode", "HTML");
+  form.append("photo", imageBuffer, {
+    filename: fileName || "order-receipt.png",
+    contentType: mimeType || "image/png",
+  });
+
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${botToken}/sendPhoto`,
+      form,
+      {
+        headers: form.getHeaders(),
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return { sent: true, type: "photo" };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { clearAdminSession, getPortalLoginPath, getStoredAdminUser } from '../../utils/adminSession'
+import { clearAdminSession, getPortalLoginPath, getPortalOrdersPath, getStoredAdminUser } from '../../utils/adminSession'
 import { adminService } from '../../services/adminService'
 import {
   LayoutDashboard,
@@ -24,7 +24,8 @@ const AdminSidebar = () => {
   // Get admin user data
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
-  const isOrderDetail = /^\/admin\/orders\/[^/]+/.test(location.pathname)
+  const ordersPath = getPortalOrdersPath(adminUser)
+  const isOrderDetail = /^\/(?:admin|staff|delivery)\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
     if (!status) return ''
@@ -105,7 +106,7 @@ const AdminSidebar = () => {
       adminOnly: true
     },
     {
-      path: '/admin/orders',
+      path: ordersPath,
       name: adminUser?.role === 'delivery' ? 'Deliveries' : 'Orders',
       icon: adminUser?.role === 'delivery' ? Truck : ShoppingCart,
       badge: orderCount
@@ -189,6 +190,7 @@ const AdminSidebar = () => {
               const Icon = item.icon
               const isActive =
                 location.pathname === item.path ||
+                (item.path === ordersPath && location.pathname.startsWith(`${ordersPath}/`)) ||
                 (item.path === '/admin/products' &&
                   location.pathname.startsWith('/admin/products/') &&
                   location.pathname !== '/admin/products/csv-builder')
@@ -247,9 +249,9 @@ const AdminSidebar = () => {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
           <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
             <Link
-              to="/admin/orders"
+              to={ordersPath}
               className={`relative flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
-                location.pathname === '/admin/orders'
+                location.pathname === ordersPath
                   ? 'bg-[var(--color-primary)] text-white'
                   : 'text-[var(--color-text-muted)]'
               }`}

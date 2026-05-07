@@ -8,6 +8,7 @@ import {
     CheckCheck,
 } from "lucide-react";
 import { NotificationController } from "../controllers/notificationController.js";
+import { getPortalOrderDetailsPath, getStoredAdminUser } from "../utils/adminSession.js";
 
 const NotificationPanel = () => {
     const navigate = useNavigate();
@@ -73,7 +74,7 @@ const NotificationPanel = () => {
 
         // Navigate to order details
         if (notification.orderId) {
-            navigate(`/admin/orders/${notification.orderId}`);
+            navigate(getPortalOrderDetailsPath(notification.orderId, getStoredAdminUser()));
         }
 
         // Auto-delete the notification after viewing (runs in background)

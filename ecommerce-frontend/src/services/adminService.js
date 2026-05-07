@@ -132,6 +132,12 @@ export const adminService = {
         "Content-Type": "multipart/form-data",
       },
     }),
+  sendOrderReceiptToTelegram: (orderId, fileData) =>
+    api.post(`/orders/${orderId}/receipt-telegram`, fileData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
   // Analytics

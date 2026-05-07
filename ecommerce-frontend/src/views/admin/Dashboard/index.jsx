@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/adminService'
 import Loading from '../../../components/common/Loading'
-import { getStoredAdminUser } from '../../../utils/adminSession'
+import { getPortalOrderDetailsPath, getPortalOrdersPath, getStoredAdminUser } from '../../../utils/adminSession'
 
 const AdminDashboard = () => {
   const navigate = useNavigate()
@@ -11,12 +11,13 @@ const AdminDashboard = () => {
   const [error, setError] = useState('')
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
+  const ordersPath = getPortalOrdersPath(adminUser)
 
   useEffect(() => {
     if (isDelivery) {
-      navigate('/admin/orders', { replace: true })
+      navigate(ordersPath, { replace: true })
     }
-  }, [isDelivery, navigate])
+  }, [isDelivery, navigate, ordersPath])
 
   useEffect(() => {
     if (isDelivery) {
@@ -108,7 +109,7 @@ const AdminDashboard = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/admin/orders')}
+              onClick={() => navigate(ordersPath)}
               className="inline-flex h-[52px] items-center justify-center rounded-xl bg-blue-600 px-4 text-base font-black text-white hover:bg-blue-700"
             >
               Open Deliveries
@@ -134,7 +135,7 @@ const AdminDashboard = () => {
                     <button
                       key={activity.id}
                       type="button"
-                      onClick={() => navigate(`/admin/orders/${activity.id}`)}
+                      onClick={() => navigate(getPortalOrderDetailsPath(activity.id, adminUser))}
                       className="flex w-full flex-col gap-3 px-5 py-4 text-left hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
@@ -244,7 +245,7 @@ const AdminDashboard = () => {
                   className={`p-5 border-b ${index !== stats.recentActivity.length - 1 ? 'border-gray-100' : ''} hover:bg-gray-50 transition-all duration-150 cursor-pointer ${activity.type === 'order' ? 'hover:shadow-md' : ''}`}
                   onClick={() => {
                     if (activity.type === 'order') {
-                      navigate(`/admin/orders/${activity.id}`)
+                      navigate(getPortalOrderDetailsPath(activity.id, adminUser))
                     } else if (activity.type === 'user') {
                       navigate(`/admin/users`)
                     }
