@@ -94,6 +94,14 @@ const orderSchema = new mongoose.Schema(
             },
             publicId: { type: String },
         },
+        receiptSent: {
+            sentAt: { type: Date },
+            sentBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+            channel: { type: String },
+        },
         stockReduced: {
             type: Boolean,
             required: true,

@@ -12,9 +12,11 @@ import {
     MapPin,
     Navigation,
     Phone,
+    Printer,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 
 const AdminOrders = () => {
@@ -27,6 +29,7 @@ const AdminOrders = () => {
     const [statusFilter, setStatusFilter] = useState("All");
     const [expandedOrderDates, setExpandedOrderDates] = useState({});
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
+    const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
@@ -193,6 +196,43 @@ const AdminOrders = () => {
         setConfirmingOrderId("");
     };
 
+    const handleSendReceipt = async (order) => {
+        setSendingReceiptOrderId(order._id);
+
+        try {
+            const subtotal = (order.orderItems || []).reduce(
+                (acc, item) => acc + Number(item.price || 0) * Number(item.quantity || 0),
+                0
+            );
+            const deliveryFee = getDeliveryFee(order);
+            const taxPrice = Number(order.taxPrice || 0);
+            const displayedTotal = subtotal + taxPrice + deliveryFee;
+            const receiptImage = await createReceiptImageBlob({
+                displayOrderId: order._id.slice(-8),
+                customerName: order.shippingAddress?.fullName || order.user?.name || "N/A",
+                customerPhone: formatPhoneNumber(order.shippingAddress?.phone),
+                paymentMethod: order.paymentMethod,
+                fullAddress: formatFullAddress(order.shippingAddress),
+                subtotal,
+                deliveryFee,
+                taxPrice,
+                displayedTotal,
+                formatCurrency,
+            });
+            const formData = new FormData();
+            formData.append("receipt", receiptImage, `order-${order._id}-receipt.png`);
+
+            await adminService.sendOrderReceiptToTelegram(order._id, formData);
+            window.dispatchEvent(new Event("admin-orders-updated"));
+            await fetchOrders();
+            alert("Receipt photo sent to Telegram. You can now confirm this order.");
+        } catch (err) {
+            alert(err.response?.data?.message || err.message || "Failed to send receipt to Telegram");
+        } finally {
+            setSendingReceiptOrderId("");
+        }
+    };
+
     const toggleOrderDate = (dateKey) => {
         setExpandedOrderDates((current) => ({
             ...current,
@@ -272,6 +312,21 @@ const AdminOrders = () => {
         [shippingAddress.address, shippingAddress.city]
             .filter(Boolean)
             .join(", ") || "Address not set";
+
+    const formatFullAddress = (shippingAddress = {}) =>
+        [
+            shippingAddress.address,
+            shippingAddress.city,
+            shippingAddress.postalCode,
+            shippingAddress.country,
+        ]
+            .filter(Boolean)
+            .join(", ") || "N/A";
+
+    const getDeliveryFee = (order) => {
+        const storedFee = Number(order?.shippingPrice || 0);
+        return storedFee > 0 ? storedFee : 2;
+    };
 
     const getMapUrl = (shippingAddress = {}) => {
         if (!shippingAddress.latitude || !shippingAddress.longitude) {
@@ -757,19 +812,34 @@ const AdminOrders = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
-                                                            {isSeller && normalizeOrderStatus(order.orderStatus) === "Pending" && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleConfirmOrder(order._id);
-                                                                    }}
-                                                                    disabled={confirmingOrderId === order._id}
-                                                                    className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                                                    title="Confirm Order"
-                                                                >
-                                                                    {confirmingOrderId === order._id ? "Confirming..." : "Confirm"}
-                                                                </button>
-                                                            )}
+                                                            {isSeller &&
+                                                                normalizeOrderStatus(order.orderStatus) === "Pending" &&
+                                                                (order.receiptSent?.sentAt ? (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleConfirmOrder(order._id);
+                                                                        }}
+                                                                        disabled={confirmingOrderId === order._id}
+                                                                        className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                        title="Confirm Order"
+                                                                    >
+                                                                        {confirmingOrderId === order._id ? "Confirming..." : "Confirm"}
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleSendReceipt(order);
+                                                                        }}
+                                                                        disabled={sendingReceiptOrderId === order._id}
+                                                                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                        title="Print receipt before confirming"
+                                                                    >
+                                                                        <Printer className="h-4 w-4" />
+                                                                        {sendingReceiptOrderId === order._id ? "Printing..." : "Print Receipt"}
+                                                                    </button>
+                                                                ))}
                                                             {isDelivery ? (
                                                                 <button
                                                                     onClick={(e) => {
@@ -781,7 +851,7 @@ const AdminOrders = () => {
                                                                 >
                                                                     Open
                                                                 </button>
-                                                            ) : (
+                                                            ) : adminUser?.role === "admin" ? (
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -792,7 +862,7 @@ const AdminOrders = () => {
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </button>
-                                                            )}
+                                                            ) : null}
                                                         </div>
                                                     </td>
                                                 </tr>

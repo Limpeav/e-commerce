@@ -268,6 +268,11 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     res.status(403);
                     throw new Error("Cashier accounts can only confirm pending orders");
                 }
+
+                if (!order.receiptSent?.sentAt) {
+                    res.status(400);
+                    throw new Error("Please print/send the receipt before confirming this order");
+                }
             }
 
             if (
@@ -466,9 +471,21 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Telegram receipt bot is not configured");
     }
 
+    order.receiptSent = {
+        sentAt: Date.now(),
+        sentBy: req.user._id,
+        channel: "telegram",
+    };
+
+    const updatedOrder = await order.save();
+    emitOrderUpdated(updatedOrder, {
+        receiptSent: updatedOrder.receiptSent,
+    });
+
     res.json({
         message: "Receipt sent to Telegram",
         telegram: result,
+        order: updatedOrder,
     });
 });
 
