@@ -27,6 +27,8 @@ await connectDB();
 const app = express();
 const server = http.createServer(app);
 
+app.set("trust proxy", 1);
+
 const parseAllowedOrigins = () => {
   const rawOrigins = process.env.ALLOWED_ORIGINS
     || [process.env.FRONTEND_URL, process.env.ADMIN_FRONTEND_URL]
