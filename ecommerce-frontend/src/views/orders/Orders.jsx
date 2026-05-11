@@ -11,7 +11,8 @@ import {
   XCircle,
   Truck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react";
 import axios from "axios";
 import { config } from "../../config/index.js";
@@ -164,30 +165,42 @@ const Orders = () => {
   }
 
   return (
-    <div className={`min-h-screen py-12 pt-32 px-4 md:px-8 font-sans transition-colors ${pageClassName}`}>
+    <div className={`min-h-screen py-12 pt-20 px-4 md:px-8 font-sans transition-colors ${pageClassName}`}>
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col gap-8">
           {/* Main Content */}
           <div className="w-full">
-            {/* Header */}
-            <div className={`rounded-[2rem] border p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-8 ${cardClassName}`}>
-              <div className="text-center md:text-left">
-                <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <ShoppingBag className="w-4 h-4" />
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-30 mb-8 -mx-4 px-4 pt-16 md:-mx-8 md:px-8">
+              <div className={`absolute inset-0 backdrop-blur-xl ${isDark ? "bg-bg-base/70" : "bg-bg-base/70"}`} />
+              <div className={`relative rounded-[2rem] border p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 ${isDark ? "bg-slate-900/90 border-slate-800 text-slate-100" : "bg-white border-stone-100 text-text-main shadow-sm"}`}>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                  <button
+                    onClick={() => navigate(-1)}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all hover:border-primary hover:text-primary active:scale-90 ${isDark ? "border-slate-700 text-slate-400" : "border-stone-200 text-stone-500"}`}
+                    style={{ borderColor: "var(--color-border)" }}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <ShoppingBag className="w-4 h-4" />
+                      </div>
+                      <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
+                    </div>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                      Order History
+                    </h1>
+                    <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
+                      View details of your past orders
+                    </p>
                   </div>
-                  <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  Order History
-                </h1>
-                <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
-                  View details of your past orders
-                </p>
-              </div>
-              <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
-                <Package className="w-4 h-4 text-primary" />
-                <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
+                <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
+                  <Package className="w-4 h-4 text-primary" />
+                  <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
+                </div>
               </div>
             </div>
 

@@ -79,6 +79,7 @@ const Profile = () => {
   });
   const [recentOrders, setRecentOrders] = useState([]);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -526,69 +527,123 @@ const Profile = () => {
                   exit="exit"
                   className={`rounded-[2rem] p-8 md:p-10 border shadow-sm ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}
                 >
-                  <div className="mb-8">
-                    <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Update Profile</h2>
-                    <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Manage your personal information and contact details.</p>
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Update Profile</h2>
+                      <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Manage your personal information and contact details.</p>
+                    </div>
+                    {!isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-95"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Edit Profile
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: user.name || "",
+                            email: user.email || "",
+                            phone: toLocalPhoneDigits(user.phone || ""),
+                          }));
+                        }}
+                        className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-all active:scale-95 ${isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-stone-200 text-stone-600 hover:bg-stone-50"}`}
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
 
-                  <form onSubmit={handleUpdateProfile} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Full Name</label>
-                        <div className="relative">
-                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
-                            <User className="h-5 w-5" />
+                  {!isEditing ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[
+                          { icon: User, label: "Full Name", value: formData.name },
+                          { icon: Mail, label: "Email Address", value: formData.email },
+                        ].map((item) => (
+                          <div key={item.label} className="group">
+                            <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{item.label}</label>
+                            <div className={`flex items-center gap-3 rounded-xl border px-4 py-4 ${isDark ? "border-slate-800 bg-slate-950" : "border-stone-100 bg-stone-50"}`}>
+                              <item.icon className={`h-5 w-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
+                              <span className={`font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>{item.value}</span>
+                            </div>
                           </div>
-                          <input type="text" name="name" value={formData.name} onChange={handleInputChange} required
-                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
-                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                            }`}
-                            placeholder="John Doe"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
-                        <div className="relative">
-                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
-                            <Mail className="h-5 w-5" />
+                        ))}
+                        <div className="group md:col-span-2">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
+                          <div className={`flex items-center gap-3 rounded-xl border px-4 py-4 md:w-1/2 ${isDark ? "border-slate-800 bg-slate-950" : "border-stone-100 bg-stone-50"}`}>
+                            <Phone className={`h-5 w-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
+                            <span className={`font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>{CAMBODIA_DIAL_CODE}{formData.phone}</span>
                           </div>
-                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} required
-                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
-                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                            }`}
-                            placeholder="john@example.com"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="group md:col-span-2">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
-                        <div className="relative md:w-1/2 md:pr-3">
-                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
-                            <Phone className="h-5 w-5" />
-                          </div>
-                          <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-stone-800"}`}>
-                            {CAMBODIA_DIAL_CODE}
-                          </span>
-                          <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required
-                            className={`block w-full pl-28 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
-                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                            }`}
-                            placeholder="16568335"
-                          />
                         </div>
                       </div>
                     </div>
+                  ) : (
+                    <form onSubmit={handleUpdateProfile} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="group">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Full Name</label>
+                          <div className="relative">
+                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
+                              <User className="h-5 w-5" />
+                            </div>
+                            <input type="text" name="name" value={formData.name} onChange={handleInputChange} required
+                              className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                              }`}
+                              placeholder="John Doe"
+                            />
+                          </div>
+                        </div>
 
-                    <div className={`pt-6 mt-6 border-t flex justify-end ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-                      <button type="submit" disabled={loading} className="bg-indigo-600 text-white py-4 px-8 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
-                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Save className="w-5 h-5" />}
-                        {loading ? "Saving..." : "Save Changes"}
-                      </button>
-                    </div>
-                  </form>
+                        <div className="group">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
+                          <div className="relative">
+                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
+                              <Mail className="h-5 w-5" />
+                            </div>
+                            <input type="email" name="email" value={formData.email} onChange={handleInputChange} required
+                              className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                              }`}
+                              placeholder="john@example.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="group md:col-span-2">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
+                          <div className="relative md:w-1/2 md:pr-3">
+                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
+                              <Phone className="h-5 w-5" />
+                            </div>
+                            <span className={`absolute left-12 top-1/2 -translate-y-1/2 text-sm font-bold ${isDark ? "text-slate-200" : "text-stone-800"}`}>
+                              {CAMBODIA_DIAL_CODE}
+                            </span>
+                            <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required
+                              className={`block w-full pl-28 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${
+                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                              }`}
+                              placeholder="16568335"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`pt-6 mt-6 border-t flex justify-end gap-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
+                        <button type="submit" disabled={loading} className="bg-indigo-600 text-white py-4 px-8 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
+                          {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Save className="w-5 h-5" />}
+                          {loading ? "Saving..." : "Save Changes"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </motion.div>
               )}
 
@@ -665,7 +720,7 @@ const Profile = () => {
                     </div>
 
                     <div className="pt-8 flex justify-center">
-                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className={`text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? "bg-slate-100 text-slate-950 hover:bg-white hover:shadow-[0_20px_50px_-24px_rgba(248,250,252,0.75)]" : "bg-stone-800 hover:bg-black hover:shadow-xl"}`}>
+                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className={`text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed ${isDark ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700"}`}>
                         {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
                         {loading ? "Updating Security..." : "Update Password"}
                       </button>

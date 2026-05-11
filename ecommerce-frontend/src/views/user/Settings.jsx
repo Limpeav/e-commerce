@@ -1,16 +1,13 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw } from 'lucide-react';
+import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw, Moon, Globe } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { config } from '../../config/index.js';
-
-// UI Components
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
-import ContentBox from '../../components/ui/ContentBox';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import FormInput from '../../components/ui/FormInput';
 import { AlertMessage } from '../../components';
@@ -24,26 +21,17 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState('en');
 
-  // ── Delete Account State ──
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // For regular users: password confirmation
   const [deletePassword, setDeletePassword] = useState('');
-
-  // For Google users: 2-step OTP flow
-  //   step 1 = "send code" screen
-  //   step 2 = "enter code" screen
   const [googleStep, setGoogleStep] = useState(1);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef([]);
-
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [deleteSuccess, setDeleteSuccess] = useState('');
 
-  // Detect Google-registered users (googleId is returned by the backend)
   const isGoogleUser = !!user?.googleId;
 
   const closeModal = () => {
@@ -56,7 +44,6 @@ export default function Settings() {
     setMaskedEmail('');
   };
 
-  // ── Step 1 for Google: Send OTP to email ──
   const handleSendOtp = async () => {
     setIsSendingOtp(true);
     setDeleteError('');
@@ -75,9 +62,8 @@ export default function Settings() {
     }
   };
 
-  // ── Handle OTP digit input (auto-advance) ──
   const handleOtpChange = (index, value) => {
-    if (!/^\d?$/.test(value)) return; // digits only
+    if (!/^\d?$/.test(value)) return;
     const next = [...otpDigits];
     next[index] = value;
     setOtpDigits(next);
@@ -104,12 +90,10 @@ export default function Settings() {
     otpRefs.current[lastFilled]?.focus();
   };
 
-  // ── Submit delete ──
   const handleDeleteAccount = async (e) => {
     e.preventDefault();
     setIsDeleting(true);
     setDeleteError('');
-
     try {
       let payload = {};
       if (isGoogleUser) {
@@ -123,14 +107,9 @@ export default function Settings() {
       } else {
         payload = { password: deletePassword };
       }
-
-      await axios.post(
-        `${API_URL}/users/delete-account`,
-        payload,
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
-
-      // Successfully deleted — logout and redirect
+      await axios.post(`${API_URL}/users/delete-account`, payload, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
       logout();
       navigate('/login');
     } catch (err) {
@@ -140,6 +119,9 @@ export default function Settings() {
     }
   };
 
+  const sectionCard = `rounded-2xl border bg-bg-card p-5 sm:p-6 md:p-8`;
+  const borderStyle = { borderColor: 'var(--color-border)' };
+
   return (
     <PageLayout
       title="Settings"
@@ -148,123 +130,129 @@ export default function Settings() {
     >
       <div className="space-y-8">
         {/* Profile Settings */}
-        <ContentBox>
+        <section>
           <SectionHeader number={1} title="Profile Settings" icon={User} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <FormInput
-              label="Display Name"
-              placeholder="Enter your name"
-              value={user?.name || ''}
-              readOnly
-            />
-            <FormInput
-              label="Email Address"
-              type="email"
-              placeholder="Enter email"
-              value={user?.email || ''}
-              readOnly
-            />
-          </div>
-        </ContentBox>
-
-        {/* Notification Settings */}
-        <ContentBox>
-          <SectionHeader number={2} title="Notifications" icon={Bell} />
-          <div className="space-y-6">
-            <ToggleSwitch
-              checked={notifications}
-              onChange={setNotifications}
-              label="Order Updates"
-            />
-            <ToggleSwitch
-              checked={false}
-              onChange={() => { }}
-              label="Promotional Emails"
-            />
-          </div>
-        </ContentBox>
-
-        {/* Appearance Settings */}
-        <ContentBox>
-          <SectionHeader number={3} title="Appearance" icon={Palette} />
-          <div className="space-y-10">
-            <div>
-              <label className="block text-xs font-bold text-primary uppercase tracking-wide mb-4 ml-1">Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-6 py-4 bg-stone-50 border-2 border-stone-100 rounded-xl focus:outline-none focus:border-primary transition-all text-text-main font-bold appearance-none cursor-pointer"
-              >
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-              </select>
+          <div className={sectionCard} style={borderStyle}>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <FormInput
+                label="Display Name"
+                placeholder="Enter your name"
+                value={user?.name || ''}
+                readOnly
+              />
+              <FormInput
+                label="Email Address"
+                type="email"
+                placeholder="Enter email"
+                value={user?.email || ''}
+                readOnly
+              />
             </div>
-            <div className="flex items-center justify-between p-6 bg-stone-50 rounded-2xl border border-stone-100">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-stone-100">
-                  <Palette className={`w-5 h-5 transition-colors ${isDark ? 'text-primary' : 'text-stone-300'}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-text-main">Dark Mode</p>
-                  <p className="text-xs font-medium text-text-muted">
-                    {isDark ? 'Enabled for this browser' : 'Use the light appearance'}
-                  </p>
+          </div>
+        </section>
+
+        {/* Notifications */}
+        <section>
+          <SectionHeader number={2} title="Notifications" icon={Bell} />
+          <div className={sectionCard} style={borderStyle}>
+            <div className="space-y-4">
+              <ToggleSwitch
+                checked={notifications}
+                onChange={setNotifications}
+                label="Order Updates"
+              />
+              <ToggleSwitch
+                checked={false}
+                onChange={() => {}}
+                label="Promotional Emails"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Appearance */}
+        <section>
+          <SectionHeader number={3} title="Appearance" icon={Palette} />
+          <div className={sectionCard} style={borderStyle}>
+            <div className="space-y-6">
+              <div>
+                <label className="mb-3 block text-xs font-bold uppercase tracking-[0.16em] text-primary">Language</label>
+                <div className="relative max-w-xs">
+                  <Globe className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full appearance-none rounded-xl border bg-bg-card py-3.5 pl-11 pr-10 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-primary/20"
+                    style={borderStyle}
+                  >
+                    <option value="en">English</option>
+                    <option value="km">Khmer</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-text-muted">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center justify-between rounded-xl border bg-bg-card p-4 sm:p-5" style={borderStyle}>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={borderStyle}>
+                    <Moon className={`h-5 w-5 ${isDark ? 'text-primary' : 'text-text-muted'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-text-main">Dark Mode</p>
+                    <p className="text-xs font-medium text-text-muted">
+                      {isDark ? 'Enabled for this browser' : 'Use the light appearance'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isDark}
+                  onClick={() => toggleDarkMode()}
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/30 ${isDark ? 'bg-primary' : 'bg-stone-300'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-300 ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Security */}
+        <section>
+          <SectionHeader number={4} title="Security & Privacy" icon={Shield} />
+          <div className={sectionCard} style={borderStyle}>
+            <div className="flex flex-wrap gap-3">
+              <button className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary" style={borderStyle}>
+                Change Password
+              </button>
+              <button className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary" style={borderStyle}>
+                Enable 2FA
+              </button>
               <button
-                type="button"
-                role="switch"
-                aria-checked={isDark}
-                aria-label={`Turn ${isDark ? 'off' : 'on'} dark mode`}
-                onClick={() => toggleDarkMode()}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 ${isDark ? 'bg-primary' : 'bg-stone-200'}`}
+                onClick={() => setShowDeleteModal(true)}
+                className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white"
               >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-all duration-300 shadow-md ${isDark ? 'translate-x-7' : 'translate-x-1'}`}
-                />
+                Delete Account
               </button>
             </div>
           </div>
-        </ContentBox>
-
-        {/* Security & Privacy */}
-        <ContentBox>
-          <SectionHeader number={4} title="Security &amp; Privacy" icon={Shield} />
-          <div className="flex flex-wrap gap-4">
-            <button className="px-6 py-3 bg-stone-50 text-stone-600 border border-stone-200 rounded-xl hover:bg-white hover:border-primary hover:text-primary transition-all font-bold text-xs shadow-sm">
-              Change Password
-            </button>
-            <button className="px-6 py-3 bg-stone-50 text-stone-600 border border-stone-200 rounded-xl hover:bg-white hover:border-primary hover:text-primary transition-all font-bold text-xs shadow-sm">
-              Enable 2FA
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl hover:bg-red-600 hover:text-white transition-all font-bold text-xs shadow-sm"
-            >
-              Delete Account
-            </button>
-          </div>
-        </ContentBox>
+        </section>
       </div>
 
-      {/* ══════════════════════════════════════════
-          Delete Account Modal
-      ══════════════════════════════════════════ */}
+      {/* Delete Modal */}
       {showDeleteModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-stone-100'}`}>
             <div className="p-6 sm:p-8">
-
-              {/* Icon */}
-              <div className="flex justify-center mb-5">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center border-4 border-red-100">
-                  <AlertTriangle className="w-8 h-8 text-red-500" />
+              <div className="mb-5 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-red-100 bg-red-50">
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
                 </div>
               </div>
-
-              <h2 className="text-2xl font-black text-center text-text-main mb-2">Delete Account?</h2>
-              <p className="text-center text-text-muted font-medium text-sm mb-6">
+              <h2 className="mb-2 text-center text-xl font-bold text-text-main">Delete Account?</h2>
+              <p className="mb-6 text-center text-sm font-medium text-text-muted">
                 This action is permanently irreversible. All your orders, reviews, and preferences will be permanently wiped.
               </p>
 
@@ -274,70 +262,32 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* ── GOOGLE USER FLOW ── */}
               {isGoogleUser ? (
                 <div>
                   {googleStep === 1 ? (
-                    /* ── Step 1: Explain + Send Code button ── */
                     <div className="space-y-5">
-                      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                          </svg>
-                        </div>
+                      <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                        <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
                         <div>
-                          <p className="text-sm font-bold text-blue-800 mb-0.5">Signed in with Google</p>
-                          <p className="text-xs text-blue-600 leading-relaxed">
-                            Since you use Google Sign-In, we'll send a 6-digit confirmation code to your email to verify this request.
-                          </p>
+                          <p className="text-sm font-bold text-blue-800">Signed in with Google</p>
+                          <p className="text-xs text-blue-600">We'll send a 6-digit code to your email to verify this request.</p>
                         </div>
                       </div>
-
                       <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={closeModal}
-                          className="flex-1 px-5 py-4 bg-stone-100 text-stone-600 rounded-2xl font-bold text-sm hover:bg-stone-200 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          disabled={isSendingOtp}
-                          className="flex-1 px-5 py-4 bg-red-600 text-white rounded-2xl font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                        >
-                          {isSendingOtp ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <Mail className="w-4 h-4" />
-                              Send Code
-                            </>
-                          )}
+                        <button type="button" onClick={closeModal} className="flex-1 rounded-xl border bg-bg-card px-5 py-3.5 text-sm font-bold text-text-main transition-colors hover:border-primary/30" style={borderStyle}>Cancel</button>
+                        <button type="button" onClick={handleSendOtp} disabled={isSendingOtp} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-60">
+                          {isSendingOtp ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Mail className="h-4 w-4" /> Send Code</>}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    /* ── Step 2: Enter the 6-digit OTP ── */
                     <form onSubmit={handleDeleteAccount} className="space-y-5">
-                      {/* Email sent notice */}
-                      <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl">
-                        <Mail className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <p className="text-xs text-green-700 leading-relaxed">
-                          We sent a 6-digit code to <strong>{maskedEmail}</strong>. Enter it below to confirm deletion.
-                        </p>
+                      <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+                        <Mail className="h-5 w-5 shrink-0 text-green-600" />
+                        <p className="text-xs text-green-700">We sent a 6-digit code to <strong>{maskedEmail}</strong>.</p>
                       </div>
-
-                      {/* OTP digit boxes */}
                       <div>
-                        <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-3 ml-1 text-center">
-                          Confirmation Code
-                        </label>
+                        <label className="mb-3 block text-center text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Confirmation Code</label>
                         <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                           {otpDigits.map((digit, i) => (
                             <input
@@ -349,111 +299,53 @@ export default function Settings() {
                               value={digit}
                               onChange={(e) => handleOtpChange(i, e.target.value)}
                               onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                              className="w-12 h-14 text-center text-xl font-black text-red-600 bg-red-50 border-2 border-red-200 rounded-xl focus:outline-none focus:border-red-500 focus:bg-white transition-all"
+                              className="h-14 w-12 rounded-xl border-2 border-red-200 bg-red-50 text-center text-xl font-bold text-red-600 transition-all focus:border-red-500 focus:bg-white focus:outline-none"
                             />
                           ))}
                         </div>
                       </div>
-
-                      {/* Resend link */}
-                      <p className="text-center text-xs text-stone-400">
+                      <p className="text-center text-xs text-text-muted">
                         Didn't receive it?{' '}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGoogleStep(1);
-                            setOtpDigits(['', '', '', '', '', '']);
-                            setDeleteError('');
-                          }}
-                          className="text-red-500 font-bold hover:underline inline-flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-3 h-3" /> Resend
+                        <button type="button" onClick={() => { setGoogleStep(1); setOtpDigits(['', '', '', '', '', '']); setDeleteError(''); }} className="inline-flex items-center gap-1 font-bold text-red-500 hover:underline">
+                          <RefreshCw className="h-3 w-3" /> Resend
                         </button>
                       </p>
-
                       <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={closeModal}
-                          disabled={isDeleting}
-                          className="flex-1 px-5 py-4 bg-stone-100 text-stone-600 rounded-2xl font-bold text-sm hover:bg-stone-200 transition-colors disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isDeleting || otpDigits.join('').length < 6}
-                          className="flex-1 px-5 py-4 bg-red-600 text-white rounded-2xl font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 group"
-                        >
-                          {isDeleting ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                              Confirm Delete
-                            </>
-                          )}
+                        <button type="button" onClick={closeModal} disabled={isDeleting} className="flex-1 rounded-xl border bg-bg-card px-5 py-3.5 text-sm font-bold text-text-main transition-colors hover:border-primary/30 disabled:opacity-50" style={borderStyle}>Cancel</button>
+                        <button type="submit" disabled={isDeleting || otpDigits.join('').length < 6} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+                          {isDeleting ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Trash2 className="h-4 w-4" /> Confirm Delete</>}
                         </button>
                       </div>
                     </form>
                   )}
                 </div>
               ) : (
-                /* ── REGULAR USER: Password field ── */
-                <form onSubmit={handleDeleteAccount} className="space-y-6">
+                <form onSubmit={handleDeleteAccount} className="space-y-5">
                   <div>
-                    <label className="block text-xs font-black text-text-muted uppercase tracking-widest mb-2 ml-1">
-                      Confirm Identity
-                    </label>
-                    <p className="text-xs text-stone-500 mb-3 ml-1">
-                      Enter your password to confirm account deletion.
-                    </p>
+                    <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Confirm Identity</label>
+                    <p className="mb-3 text-xs text-text-muted">Enter your password to confirm account deletion.</p>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <Key className="w-5 h-5" />
-                      </div>
+                      <Key className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                       <input
                         type="password"
                         value={deletePassword}
-                        onChange={(e) => {
-                          setDeletePassword(e.target.value);
-                          setDeleteError('');
-                        }}
-                        className="w-full pl-11 pr-5 py-4 bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:border-red-500 focus:bg-white transition-all font-bold text-text-main placeholder-stone-400"
+                        onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                        className="w-full rounded-xl border bg-bg-card py-3.5 pl-11 pr-4 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-red-500/20"
+                        style={borderStyle}
                         placeholder="Enter your current password"
                         required
                         autoFocus
                       />
                     </div>
                   </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      disabled={isDeleting}
-                      className="flex-1 px-6 py-4 bg-stone-100 text-stone-600 rounded-2xl font-bold text-sm hover:bg-stone-200 transition-colors disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isDeleting || !deletePassword}
-                      className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 group"
-                    >
-                      {isDeleting ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          Confirm Delete
-                        </>
-                      )}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={closeModal} disabled={isDeleting} className="flex-1 rounded-xl border bg-bg-card px-5 py-3.5 text-sm font-bold text-text-main transition-colors hover:border-primary/30 disabled:opacity-50" style={borderStyle}>Cancel</button>
+                    <button type="submit" disabled={isDeleting || !deletePassword} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+                      {isDeleting ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Trash2 className="h-4 w-4" /> Confirm Delete</>}
                     </button>
                   </div>
                 </form>
               )}
-
             </div>
           </div>
         </div>,

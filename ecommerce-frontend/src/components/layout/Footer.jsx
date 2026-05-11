@@ -9,101 +9,76 @@ import {
   Linkedin,
   Shield,
 } from "lucide-react";
-import { useDarkMode } from "../../hooks";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const [isDark] = useDarkMode();
+
+  const linkClass = "text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-1 inline-block";
 
   return (
     <footer
-      className={`relative mb-14 overflow-hidden border-t font-sans transition-colors duration-300 md:mb-0 ${isDark ? "bg-bg-base text-text-main" : "bg-bg-card text-text-main"}`}
+      className="relative mb-14 overflow-hidden border-t bg-bg-base transition-colors duration-300 md:mb-0"
       style={{ borderColor: "var(--color-border)" }}
     >
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 w-[20rem] sm:w-[40rem] h-[20rem] sm:h-[40rem] bg-primary/5 rounded-full blur-[80px] sm:blur-[120px] -mr-20 sm:-mr-40 -mt-20 sm:-mt-40 pointer-events-none"></div>
+      {/* Decorative background */}
+      <div className="pointer-events-none absolute -right-40 -top-40 h-[40rem] w-[40rem] rounded-full bg-primary/5 blur-[120px]"></div>
 
-      {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 md:py-24 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 md:gap-20">
-          {/* Brand Section */}
-          <div className="col-span-2 space-y-6 sm:space-y-10">
-            <Link to="/" className="flex items-center gap-3 sm:gap-4 group">
-              <div className="bg-primary p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transform group-hover:rotate-12 transition-transform duration-500 shadow-xl shadow-primary/20">
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 md:py-20">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-16">
+          {/* Brand */}
+          <div className="col-span-2 space-y-6">
+            <Link to="/" className="group flex items-center gap-3">
+              <div className="rounded-xl bg-primary p-2.5 shadow-xl shadow-primary/20 transition-transform duration-500 group-hover:rotate-12 sm:rounded-2xl sm:p-3">
+                <Package className="h-6 w-6 text-white sm:h-7 sm:w-7" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-text-main tracking-tight font-display">
-                Applac
-              </h1>
+              <span className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Applac</span>
             </Link>
-            <p className="text-text-muted text-xs sm:text-sm font-medium leading-relaxed max-w-sm">
-              Your ultimate destination for premium products and exceptional
-              shopping experience. Quality guaranteed, satisfaction delivered.
+            <p className="max-w-xs text-sm leading-6 text-text-muted">
+              Your ultimate destination for premium products and an exceptional shopping experience. Quality guaranteed, satisfaction delivered.
             </p>
-
-            {/* Contact Info */}
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-3 sm:gap-4 group cursor-pointer">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg border bg-[color:var(--color-surface-soft)] transition-all group-hover:bg-primary sm:h-10 sm:w-10 sm:rounded-xl"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-muted group-hover:text-white transition-colors" />
+            <div className="space-y-3">
+              {[
+                { icon: Phone, text: "016 568 335" },
+                { icon: Mail, text: "limpeavhour@gmail.com" },
+              ].map((item) => (
+                <div key={item.text} className="group flex cursor-pointer items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-bg-card transition-all group-hover:bg-primary sm:h-9 sm:w-9 sm:rounded-xl" style={{ borderColor: "var(--color-border)" }}>
+                    <item.icon className="h-3.5 w-3.5 text-text-muted transition-colors group-hover:text-white sm:h-4 sm:w-4" />
+                  </div>
+                  <span className="text-xs font-medium tracking-wide text-text-muted transition-colors group-hover:text-primary sm:text-sm">{item.text}</span>
                 </div>
-                <span className="text-xs sm:text-sm font-medium tracking-wide text-text-muted group-hover:text-primary transition-colors">016 568 335</span>
-              </div>
-              <div className="flex items-center gap-3 sm:gap-4 group cursor-pointer">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg border bg-[color:var(--color-surface-soft)] transition-all group-hover:bg-primary sm:h-10 sm:w-10 sm:rounded-xl"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                  <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-muted group-hover:text-white transition-colors" />
-                </div>
-                <span className="text-xs sm:text-sm font-medium tracking-wide text-text-muted group-hover:text-primary transition-colors">limpeavhour@gmail.com</span>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Shop Links */}
+          {/* Shop */}
           <div>
-            <h4 className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-4 sm:mb-10">Shop</h4>
-            <ul className="space-y-2.5 sm:space-y-4">
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Shop</h4>
+            <ul className="space-y-3 sm:space-y-3.5">
               {[
                 { name: 'All Products', to: '/products' },
                 { name: 'New Arrivals', to: '/products?view=new-arrivals' },
                 { name: 'Best Sellers', to: '/products?view=best-sellers' },
-                { name: 'Deals', to: '/products?view=deals' }
+                { name: 'Deals', to: '/products?view=deals' },
               ].map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.to}
-                    className="text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-2 inline-block"
-                  >
-                    {link.name}
-                  </Link>
+                  <Link to={link.to} className={linkClass}>{link.name}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Customer Service */}
+          {/* Support */}
           <div>
-            <h4 className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-4 sm:mb-10">Support</h4>
-            <ul className="space-y-2.5 sm:space-y-4">
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Support</h4>
+            <ul className="space-y-3 sm:space-y-3.5">
               {[
                 { name: 'Contact', to: '/contact' },
-                { name: 'Shipping Info', to: '/shipping' },
-                { name: 'Returns', to: '/returns' },
                 { name: 'FAQ', to: '/knowledge-base' },
-                { name: 'Track Order', to: '/track-order' }
+                { name: 'Track Order', to: '/orders/tracking' },
               ].map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.to}
-                    className="text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-2 inline-block"
-                  >
-                    {link.name}
-                  </Link>
+                  <Link to={link.to} className={linkClass}>{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -111,22 +86,16 @@ export default function Footer() {
 
           {/* Company */}
           <div className="col-span-2 sm:col-span-1">
-            <h4 className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-4 sm:mb-10">Company</h4>
-            <ul className="space-y-2.5 sm:space-y-4">
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Company</h4>
+            <ul className="space-y-3 sm:space-y-3.5">
               {[
                 { name: 'About Us', to: '/about' },
                 { name: 'Location', to: '/location' },
-                { name: 'Careers', to: '/careers' },
                 { name: 'Privacy Policy', to: '/privacy' },
-                { name: 'Terms of Service', to: '/terms' }
+                { name: 'Terms of Service', to: '/terms' },
               ].map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.to}
-                    className="text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-2 inline-block"
-                  >
-                    {link.name}
-                  </Link>
+                  <Link to={link.to} className={linkClass}>{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -136,38 +105,30 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div
-        className="border-t bg-[color:var(--color-surface-soft)]/70 px-4 py-6 transition-colors duration-300 sm:px-6 sm:py-12"
+        className="border-t bg-bg-card/50 px-4 py-6 backdrop-blur-sm sm:px-6 sm:py-8"
         style={{ borderColor: "var(--color-border)" }}
       >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-12">
-          {/* Copyright */}
-          <p className="text-[9px] sm:text-[10px] font-semibold text-text-muted/60 uppercase tracking-widest order-2 sm:order-1 text-center">
-            © {currentYear} Applac Inc. All rights reserved.
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
+          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted/50">
+            &copy; {currentYear} Applac Inc. All rights reserved.
           </p>
 
-          {/* Social Links */}
-          <div className="flex items-center gap-3 sm:gap-6 order-1 sm:order-2">
+          <div className="flex items-center gap-3">
             {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
               <a
                 key={i}
                 href="#"
-                className={`group flex h-9 w-9 items-center justify-center rounded-lg border transition-all hover:border-primary hover:bg-primary active:scale-90 sm:h-10 sm:w-10 sm:rounded-xl ${isDark ? "bg-bg-card" : "bg-white"}`}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border bg-bg-card transition-all hover:border-primary hover:bg-primary active:scale-90 sm:h-10 sm:w-10 sm:rounded-xl"
                 style={{ borderColor: "var(--color-border)" }}
               >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-text-muted group-hover:text-white group-hover:scale-110 transition-all" />
+                <Icon className="h-3.5 w-3.5 text-text-muted transition-all group-hover:scale-110 group-hover:text-white sm:h-4 sm:w-4" />
               </a>
             ))}
           </div>
 
-          {/* Security Proofs */}
-          <div className="hidden sm:flex items-center gap-4 opacity-40 order-3 group">
-            <div
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 ${isDark ? "bg-bg-card" : "bg-white"}`}
-              style={{ borderColor: "var(--color-border)" }}
-            >
-              <Shield className="w-3 h-3 text-text-muted" strokeWidth={3} />
-              <span className="text-[10px] font-bold tracking-widest text-text-muted">SECURED</span>
-            </div>
+          <div className="flex items-center gap-2 rounded-lg border bg-bg-card px-3 py-1.5 opacity-60" style={{ borderColor: "var(--color-border)" }}>
+            <Shield className="h-3 w-3 text-text-muted" strokeWidth={3} />
+            <span className="text-[10px] font-bold tracking-widest text-text-muted">SECURED</span>
           </div>
         </div>
       </div>

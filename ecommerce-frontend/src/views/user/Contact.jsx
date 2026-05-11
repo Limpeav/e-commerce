@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, Phone, MessageSquare, Send, Globe, Clock, MapPin } from "lucide-react";
+import { Mail, Phone, MessageSquare, Send, Clock } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
@@ -8,6 +8,7 @@ export default function Contact() {
     const contactMethods = [
         {
             icon: Phone,
+            iconTitle: "Phone",
             title: "Voice Support",
             value: "+1 (555) 000-1234",
             description: "Mon-Fri from 8am to 5pm",
@@ -15,6 +16,7 @@ export default function Contact() {
         },
         {
             icon: Mail,
+            iconTitle: "Email",
             title: "Email Terminal",
             value: "support@applac.com",
             description: "24/7 Response coverage",
@@ -22,6 +24,7 @@ export default function Contact() {
         },
         {
             icon: MessageSquare,
+            iconTitle: "Telegram",
             title: "Live Protocol",
             value: "Direct Chat",
             description: "Instant uplink with agents",
@@ -44,8 +47,11 @@ export default function Contact() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {contactMethods.map((method, idx) => (
                             <ContentBox key={idx} className="group hover:border-primary/20 transition-all duration-500">
-                                <div className={`w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary transition-all shadow-sm`}>
-                                    <method.icon className="w-6 h-6 text-stone-400 group-hover:text-white transition-colors" />
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className={`w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary transition-all shadow-sm`}>
+                                        <method.icon title={method.iconTitle} className="w-6 h-6 text-stone-400 group-hover:text-white transition-colors" />
+                                    </div>
+                                    <span className="text-xs font-bold text-primary uppercase tracking-wide">{method.iconTitle}</span>
                                 </div>
                                 <h3 className="text-xs font-bold text-primary uppercase tracking-wide mb-2">{method.title}</h3>
                                 <p className="text-lg font-bold text-text-main mb-1">{method.value}</p>
@@ -101,35 +107,7 @@ export default function Contact() {
 
                         <div className="lg:pl-16 space-y-12">
                             <div>
-                                <SectionHeader number={2} title="Headquarters" icon={Globe} />
-                                <ContentBox className="bg-text-main text-white border-none relative overflow-hidden group p-8">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
-                                    <div className="space-y-6 relative z-10">
-                                        <div>
-                                            <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-2">Office Address</h4>
-                                            <p className="text-lg font-bold mb-1">APPLAC GLOBAL INC.</p>
-                                            <p className="text-xs font-medium text-white/60 leading-relaxed">
-                                                1234 Tech Plaza, Silicon District<br />
-                                                San Francisco, CA 94103<br />
-                                                United States
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-8">
-                                            <div>
-                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-1">Reg. No</h4>
-                                                <p className="text-xs font-bold text-white">#992-00128-X</p>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-1">Est.</h4>
-                                                <p className="text-xs font-bold text-white">2019</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </ContentBox>
-                            </div>
-
-                            <div>
-                                <SectionHeader number={3} title="Business Hours" icon={Clock} />
+                                <SectionHeader number={2} title="Business Hours" icon={Clock} />
                                 <div className="space-y-4">
                                     {[
                                         { day: "Monday - Friday", hours: "08:00 - 20:00" },

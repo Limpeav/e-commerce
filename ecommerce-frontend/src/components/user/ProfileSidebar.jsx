@@ -85,7 +85,7 @@ const ProfileSidebar = () => {
                 <div className={`pt-4 mt-4 border-t ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                     <button
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-500 transition-all font-bold text-sm group ${isDark ? "hover:bg-red-500/10 hover:text-red-400" : "hover:bg-red-50 hover:text-red-600"}`}
+                        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-bold text-sm group border ${isDark ? "text-slate-100 border-green-500/40 hover:bg-green-500/10" : "text-black border-green-500 hover:bg-green-50"}`}
                     >
                         <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         Sign Out

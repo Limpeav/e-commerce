@@ -1,172 +1,193 @@
-import { FileText, AlertCircle, Users, Package } from 'lucide-react';
-
-// UI Components
+import { FileText, AlertCircle, Users, Package, Truck, Shield, Mail } from 'lucide-react';
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
-import ContentBox from '../../components/ui/ContentBox';
-import FeatureList from '../../components/ui/FeatureList';
+
+const sections = [
+    {
+        number: 1,
+        title: "Acceptance of Terms",
+        icon: FileText,
+        content: (
+            <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                <p className="text-sm leading-6 text-text-muted">
+                    By accessing and using our platform, you accept and agree to be bound by these Terms of Service
+                    and our Privacy Policy. If you do not agree to these terms, please do not use our services.
+                </p>
+            </div>
+        ),
+    },
+    {
+        number: 2,
+        title: "Products & Services",
+        icon: Package,
+        content: (
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Product Information</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        We strive for accuracy in product descriptions, pricing, and availability.
+                        However, we reserve the right to correct any errors or omissions and to update information at any time.
+                    </p>
+                </div>
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Pricing & Availability</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        Prices are subject to change without notice. We reserve the right to modify or discontinue
+                        any product without liability at any time.
+                    </p>
+                </div>
+            </div>
+        ),
+    },
+    {
+        number: 3,
+        title: "User Accounts",
+        icon: Users,
+        content: (
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Account Responsibilities</h3>
+                    <ul className="mt-4 space-y-2.5">
+                        {[
+                            'Provide accurate and complete information',
+                            'Maintain the confidentiality of your password',
+                            'You are responsible for all activities under your account',
+                            'Notify us immediately of any security breach',
+                        ].map((item) => (
+                            <li key={item} className="flex items-start gap-3">
+                                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40" />
+                                <span className="text-sm text-text-muted">{item}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Termination</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        We reserve the right to suspend or terminate your account at any time for violation of
+                        these terms or unauthorized activity, without prior notice.
+                    </p>
+                </div>
+            </div>
+        ),
+    },
+    {
+        number: 4,
+        title: "Orders & Payment",
+        icon: Package,
+        content: (
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Order Confirmation</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        Receipt of an order confirmation does not constitute acceptance. We reserve the right to
+                        cancel or refuse any order at our discretion.
+                    </p>
+                </div>
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Payment Terms</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        All payments are processed securely. Prices are listed in the applicable currency and
+                        include applicable taxes. Payment is due at the time of purchase.
+                    </p>
+                </div>
+            </div>
+        ),
+    },
+    {
+        number: 5,
+        title: "Shipping & Returns",
+        icon: Truck,
+        content: (
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Delivery</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        Standard delivery typically takes 3-5 business days. Express options may be available.
+                        We are not responsible for delays caused by the carrier or unforeseen circumstances.
+                    </p>
+                </div>
+                <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Return Policy</h3>
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                        Items must be returned in original condition within 30 days of delivery.
+                        Certain products may be exempt from returns due to hygiene or safety regulations.
+                    </p>
+                </div>
+            </div>
+        ),
+    },
+    {
+        number: 6,
+        title: "Intellectual Property",
+        icon: Shield,
+        content: (
+            <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                <p className="text-sm leading-6 text-text-muted">
+                    All content on this platform — including text, images, logos, and designs — is the property of
+                    our company and is protected by applicable intellectual property laws. Unauthorized use,
+                    reproduction, or distribution is strictly prohibited.
+                </p>
+            </div>
+        ),
+    },
+    {
+        number: 7,
+        title: "Limitation of Liability",
+        icon: AlertCircle,
+        content: (
+            <div className="rounded-2xl border bg-red-500/5 p-5 sm:p-6" style={{ borderColor: "rgba(239, 68, 68, 0.2)" }}>
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+                    <div>
+                        <h3 className="text-sm font-bold text-text-main">Liability Cap</h3>
+                        <p className="mt-2 text-sm leading-6 text-text-muted">
+                            Our liability is limited to the maximum extent permitted by law. We are not liable for
+                            indirect, incidental, or consequential damages arising from your use of our services.
+                            In any case, our total liability is capped at the purchase price of the product in question.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        ),
+    },
+];
 
 export default function Terms() {
-  return (
-    <PageLayout 
-      title="Terms of Service"
-      subtitle="Operational Framework & Ethical Guidelines"
-      badge={`Version 2.4 // ${new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`}
-      icon={FileText}
-    >
-      <div className="space-y-16">
-        {/* Acceptance of Terms */}
-        <section>
-          <SectionHeader number={1} title="Acceptance of Terms" />
-          <ContentBox>
-            <p className="text-sm font-medium text-text-muted leading-relaxed">
-              By accessing and using Applac, you accept and agree to be bound by these Terms of Service
-              and our Privacy Policy. If you do not agree to these terms, please do not use our services.
-            </p>
-          </ContentBox>
-        </section>
+    return (
+        <PageLayout
+            title="Terms of Service"
+            subtitle="The rules and guidelines governing your use of our platform"
+            badge={`Version 2.4 // ${new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`}
+            icon={FileText}
+            maxWidth="5xl"
+        >
+            <div className="space-y-12 md:space-y-16">
+                {sections.map((section) => (
+                    <section key={section.number}>
+                        <SectionHeader number={section.number} title={section.title} icon={section.icon} />
+                        {section.content}
+                    </section>
+                ))}
 
-        {/* Products and Services */}
-        <section>
-          <SectionHeader number={2} title="Products & Services" />
-          <ContentBox className="rounded-[3rem] p-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div>
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Registry Information</h3>
-                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest leading-relaxed">
-                  We strive for absolute accuracy in data logs, pricing, and availability.
-                  However, we maintain a disclaimer for potential telemetry discrepancies or system errors.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Availability Balance</h3>
-                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest leading-relaxed text-right md:text-left">
-                  Prices oscillate based on market equilibrium. We reserve the right to
-                  recalibrate or phase out assets without liability.
-                </p>
-              </div>
+                {/* Contact */}
+                <section>
+                    <SectionHeader number={8} title="Contact Us" icon={Mail} />
+                    <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+                        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-text-muted">
+                                    For questions about these terms, please reach out to us:
+                                </p>
+                                <p className="mt-2 text-sm font-bold text-text-main">support@applac.com</p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10" style={{ borderColor: "var(--color-border)" }}>
+                                <Mail className="h-5 w-5 text-primary" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-          </ContentBox>
-        </section>
-
-        {/* User Accounts */}
-        <section>
-          <SectionHeader number={3} title="Node Responsibility" titleClass="text-xl font-black text-text-main font-display uppercase tracking-widest" />
-          <ContentBox className="rounded-[3rem] p-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div>
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6">Protocol Requirements</h3>
-                <FeatureList 
-                  items={[
-                    'Data Integrity is mandatory',
-                    'Passkey Maintenance is private',
-                    'Full agency for account activities',
-                    'Immediate breach reporting',
-                    'Maturity index 18+ requirement'
-                  ]}
-                />
-              </div>
-              <div className="flex flex-col justify-center border-l border-stone-200 pl-10">
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Neutralization Clause</h3>
-                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest leading-relaxed">
-                  We maintain the right to suspend or terminate node access for protocols violation or
-                  unauthorized activity without prior warning.
-                </p>
-              </div>
-            </div>
-          </ContentBox>
-        </section>
-
-        {/* Orders and Payment */}
-        <section>
-          <SectionHeader number={4} title="Transaction Flow" titleClass="text-xl font-black text-text-main font-display uppercase tracking-widest" />
-          <ContentBox>
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Confirmation Protocol</h3>
-                <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest leading-[2]">
-                  Electronic receipts are not final acceptance. Order finalization occurs post-validation.
-                  We maintain universal right of refusal for any reason.
-                </p>
-              </div>
-              <div className="pt-8 border-t border-stone-200">
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Currency Logic</h3>
-                <div className="flex flex-wrap gap-x-12 gap-y-4">
-                  {['PRE-PROCESS PAYMENT', 'STORM BASE: USD', 'MANDATORY TAX CODES', 'ENCRYPTED CHANNELS'].map(stat => (
-                    <p key={stat} className="text-[8px] font-black text-stone-400 uppercase tracking-[0.2em]">{stat}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ContentBox>
-        </section>
-
-        {/* Shipping and Returns */}
-        <section>
-          <SectionHeader number={5} title="Logistic Transit" titleClass="text-xl font-black text-text-main font-display uppercase tracking-widest" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ContentBox className="rounded-[2.5rem] p-10">
-              <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6">Delivery cycles</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center group">
-                  <span className="text-[10px] font-black text-text-main uppercase tracking-widest">Standard Transit</span>
-                  <span className="text-[10px] font-black text-stone-400">3-5 CYCLES</span>
-                </div>
-                <div className="flex justify-between items-center group">
-                  <span className="text-[10px] font-black text-text-main uppercase tracking-widest">Express Uplink</span>
-                  <span className="text-[10px] font-black text-stone-400">1-2 CYCLES</span>
-                </div>
-                <div className="flex justify-between items-center group">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Global Link</span>
-                  <span className="text-[10px] font-black text-stone-400">SUPPORTED</span>
-                </div>
-              </div>
-            </ContentBox>
-            <ContentBox className="rounded-[2.5rem] p-10">
-              <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6">Reclamation Policy</h3>
-              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest leading-[2]">
-                Items must remain in original synchronization (packaging). All reclamation
-                requests must initiate within 30 solar cycles post-delivery.
-              </p>
-            </ContentBox>
-          </div>
-        </section>
-
-        {/* Intellectual Property */}
-        <section>
-          <SectionHeader number={6} title="Proprietary Rights" titleClass="text-xl font-black text-text-main font-display uppercase tracking-widest" />
-          <ContentBox className="rounded-[3rem] p-10 text-center">
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest leading-[2.5] max-w-2xl mx-auto">
-              All digital constructs, branding, visual algorithms, and textual data are protected proprietary assets of the Applac collective.
-              Unauthorized duplication, reverse engineering, or redistribution is strictly prohibited and monitored.
-            </p>
-          </ContentBox>
-        </section>
-
-        {/* Limitation & Liability */}
-        <section className="bg-red-50 rounded-[3rem] p-10 border border-red-100">
-          <div className="flex items-center gap-4 mb-8">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            <h2 className="text-xl font-black text-red-900 font-display uppercase tracking-widest">Liability Ceiling</h2>
-          </div>
-          <p className="text-[10px] font-black text-red-800 uppercase tracking-widest leading-relaxed">
-            Applac maintains zero liability for consequential system anomalies or indirect data fluctuations. Total agency is capped at the acquisition cost of the specific asset involved in the dispute.
-          </p>
-        </section>
-
-        {/* Legal Link */}
-        <section className="bg-text-main rounded-[4rem] p-12 text-white overflow-hidden relative group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-700"></div>
-          <div className="max-w-xl relative z-10">
-            <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.5em] mb-8">Legal Terminal</h2>
-            <p className="text-2xl font-black font-display mb-8 uppercase tracking-tight">Direct inquiry line for arbitration & policy disputes.</p>
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest">LEGAL.HUB@APPLAC.NET</p>
-              <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em]">GLOBAL JURISDICTION 01</p>
-            </div>
-          </div>
-        </section>
-      </div>
-    </PageLayout>
-  );
+        </PageLayout>
+    );
 }
