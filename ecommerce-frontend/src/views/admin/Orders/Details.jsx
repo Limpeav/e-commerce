@@ -410,9 +410,9 @@ const OrderDetails = () => {
                     </section>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+                <div className={`${isDelivery ? "mx-auto max-w-2xl" : "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]"}`}>
                     {/* Left Column - Order Items & Details */}
-                    <div className={`${isDelivery ? "space-y-4 xl:order-1" : "space-y-6"}`}>
+                    <div className={`${isDelivery ? "space-y-4" : "space-y-6"}`}>
                         {!isDelivery && (
                             <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-sm">
                                 <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
