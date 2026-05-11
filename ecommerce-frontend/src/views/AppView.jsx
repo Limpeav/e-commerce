@@ -86,6 +86,20 @@ export default function AppView() {
       route.path === "/reset-password";
 
     if (isAdmin) {
+      const isDeliveryRoute = route.path.startsWith("/delivery");
+
+      if (isDeliveryRoute) {
+        return (
+          <AdminRoute allowedRoles={route.allowedRoles}>
+            <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
+              <PageTransition>
+                <Component />
+              </PageTransition>
+            </div>
+          </AdminRoute>
+        );
+      }
+
       return (
         <AdminRoute allowedRoles={route.allowedRoles}>
           <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
