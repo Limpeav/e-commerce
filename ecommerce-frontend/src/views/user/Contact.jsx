@@ -146,7 +146,7 @@ export default function Contact() {
                         </div>
                     </div>
                 </section>
-            </div>f
+            </div>
         </PageLayout>
     );
 }

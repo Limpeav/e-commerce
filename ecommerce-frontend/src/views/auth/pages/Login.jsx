@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { loginUser, googleAuth } from "../../../services/authApi";
+import { authService } from "../../../services/authService";
 import { useAuth } from "../../../context/useAuth";
 import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -54,13 +54,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { data } = await loginUser({ email, password });
+      const authData = await authService.login({ email, password });
+      const data = authData.user;
+
+      if (!data?.token) {
+        throw new Error("Login response is missing an authentication token.");
+      }
 
       if (data.role !== "user") {
         setError("Not a user account. Please use appropriate credentials.");
         setLoading(false);
         return;
       }
+
+      const storedUser = authService.persistUser(authData);
 
       // Handle Remember Me
       if (rememberMe) {
@@ -69,9 +76,9 @@ const Login = () => {
         localStorage.removeItem("rememberedEmail");
       }
 
-      login(data);
+      login(storedUser);
       // Redirect to complete-profile if phone is missing
-      if (!data.phone) {
+      if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
         navigate("/");
@@ -89,9 +96,14 @@ const Login = () => {
       setLoading(true);
       setError("");
 
-      const { data } = await googleAuth({
+      const authData = await authService.loginWithGoogle({
         accessToken,
       });
+      const data = authData.user;
+
+      if (!data?.token) {
+        throw new Error("Google login response is missing an authentication token.");
+      }
 
       if (data.role !== "user") {
         setError("Not a user account. Please use appropriate credentials.");
@@ -99,8 +111,10 @@ const Login = () => {
         return;
       }
 
-      login(data);
-      if (!data.phone) {
+      const storedUser = authService.persistUser(authData);
+
+      login(storedUser);
+      if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
         navigate("/");

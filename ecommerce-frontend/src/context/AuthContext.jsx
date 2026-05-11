@@ -6,6 +6,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => AuthController.getCurrentUser());
 
   const login = (userData) => {
+    if (!userData?.token) {
+      AuthController.logout();
+      setUser(null);
+      return;
+    }
+
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   };

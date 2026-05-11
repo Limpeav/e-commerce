@@ -1,4 +1,5 @@
 import axios from "axios";
+import { config as appConfig } from "../config/index.js";
 import {
     clearAdminSession,
     getPortalLoginPath,
@@ -6,7 +7,7 @@ import {
     getStoredAdminToken,
 } from "../utils/adminSession.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_URL = appConfig.API_BASE_URL;
 
 const api = axios.create({
     baseURL: API_URL,

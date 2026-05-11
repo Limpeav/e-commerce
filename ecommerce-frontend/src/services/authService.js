@@ -95,7 +95,14 @@ export const authService = {
     }
 
     try {
-      return new UserModel(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+
+      if (!parsedUser?.token) {
+        localStorage.removeItem(USER_STORAGE_KEY);
+        return null;
+      }
+
+      return new UserModel(parsedUser);
     } catch {
       localStorage.removeItem(USER_STORAGE_KEY);
       return null;

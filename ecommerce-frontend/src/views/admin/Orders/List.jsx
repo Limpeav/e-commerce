@@ -343,16 +343,8 @@ const AdminOrders = () => {
             return;
         }
 
-        const userAgent = navigator.userAgent || "";
-        const iosGoogleMapsAppUrl = `comgooglemaps://?q=${latitude},${longitude}&center=${latitude},${longitude}&zoom=16`;
-        const androidGoogleMapsAppUrl = `google.navigation:q=${latitude},${longitude}`;
-
-        if (/Android/i.test(userAgent)) {
-            window.location.href = androidGoogleMapsAppUrl;
-            return;
-        }
-
-        window.location.href = iosGoogleMapsAppUrl;
+        const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+        window.open(url, "_blank");
     };
 
     const deliveryOrders = orders.filter((order) =>

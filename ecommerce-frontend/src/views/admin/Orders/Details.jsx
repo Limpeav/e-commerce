@@ -247,12 +247,6 @@ const OrderDetails = () => {
         deliveryLatitude && deliveryLongitude
             ? `https://www.google.com/maps/search/?api=1&query=${deliveryLatitude},${deliveryLongitude}`
             : "";
-    const googleMapsAppUrl = mapUrl
-        ? `comgooglemaps://?q=${deliveryLatitude},${deliveryLongitude}&center=${deliveryLatitude},${deliveryLongitude}&zoom=16`
-        : "";
-    const androidGoogleMapsAppUrl = mapUrl
-        ? `google.navigation:q=${deliveryLatitude},${deliveryLongitude}`
-        : "";
     const phoneHref = order.shippingAddress?.phone
         ? `tel:${String(order.shippingAddress.phone).replace(/\s/g, "")}`
         : "";
@@ -269,23 +263,8 @@ const OrderDetails = () => {
     ];
 
     const handleOpenGoogleMaps = () => {
-        if (!mapUrl) {
-            return;
-        }
-
-        const userAgent = navigator.userAgent || "";
-
-        if (/Android/i.test(userAgent)) {
-            window.location.href = androidGoogleMapsAppUrl;
-            return;
-        }
-
-        if (/iPhone|iPad|iPod/i.test(userAgent)) {
-            window.location.href = googleMapsAppUrl;
-            return;
-        }
-
-        window.location.href = googleMapsAppUrl;
+        if (!mapUrl) return;
+        window.open(mapUrl, "_blank");
     };
 
     const handleSendReceiptToTelegram = async () => {

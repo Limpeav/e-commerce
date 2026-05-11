@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { ProductController } from "../../controllers/productController";
+import { config } from "../../config/index.js";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/products`)
+    fetch(`${config.API_BASE_URL}/products`)
       .then((res) => res.json())
       .then((data) => setProducts(ProductController.sortByNewest(data)))
       .catch((err) => console.error("Error fetching products:", err));

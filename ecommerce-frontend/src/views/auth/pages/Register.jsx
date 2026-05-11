@@ -1,4 +1,5 @@
-import { registerUser, googleAuth } from "../../../services/authApi";
+import { registerUser } from "../../../services/authApi";
+import { authService } from "../../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -109,9 +110,14 @@ const Register = () => {
       setLoading(true);
       setError("");
 
-      const { data } = await googleAuth({
+      const authData = await authService.loginWithGoogle({
         accessToken: googleUser.accessToken,
       });
+      const data = authData.user;
+
+      if (!data?.token) {
+        throw new Error("Google sign up response is missing an authentication token.");
+      }
 
       if (data.role !== "user") {
         setError("Not a user account. Please use appropriate credentials.");
@@ -119,8 +125,10 @@ const Register = () => {
         return;
       }
 
-      login(data);
-      if (!data.phone) {
+      const storedUser = authService.persistUser(authData);
+
+      login(storedUser);
+      if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
         navigate("/");

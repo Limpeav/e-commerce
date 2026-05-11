@@ -48,6 +48,8 @@
 - Try to log in.
 - Try to view products.
 - If something fails, check the "Console" in your browser (F12) or the logs in Render/Vercel dashboard.
+- For a Render static frontend, do not leave `VITE_API_URL` as `/api` unless you have a real proxy in front of the backend. Set it to the backend origin, for example `https://my-ecommerce-backend.onrender.com`. The frontend code appends `/api` automatically when needed.
+- In Google Cloud Console, add the deployed frontend origin to **Authorized JavaScript origins**. Example: `https://baby-products-wtux.onrender.com`.
 
 ## Important Note on CORS
 The backend reads allowed origins from `ALLOWED_ORIGINS`, or falls back to `FRONTEND_URL` and `ADMIN_FRONTEND_URL`.

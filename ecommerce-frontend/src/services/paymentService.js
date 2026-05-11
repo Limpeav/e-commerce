@@ -1,6 +1,7 @@
 import axios from "axios";
+import { config } from "../config/index.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_URL = config.API_BASE_URL;
 
 // Generate BAKONG KHQR code
 export const generateBakongQR = async (orderId) => {
