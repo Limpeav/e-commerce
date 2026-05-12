@@ -47,7 +47,7 @@ Update `ecommerce-backend/.env`:
 ```env
 TELEGRAM_BOT_TOKEN=your_real_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
-LOW_STOCK_THRESHOLD=5
+LOW_STOCK_THRESHOLD=2
 ```
 
 ## 5. Restart the backend
@@ -57,8 +57,8 @@ After changing `.env`, restart the backend server.
 ## How alerts work
 
 - An alert is sent when stock crosses from above the threshold to at-or-below the threshold.
-- Example with threshold `5`: stock `6 -> 5` sends an alert.
-- Example with threshold `5`: stock `5 -> 4` does not send another alert.
+- Example with threshold `2`: stock `3 -> 2` sends an alert.
+- Example with threshold `2`: stock `2 -> 1` does not send another alert.
 - If you restock above the threshold, alerts are reset for that product.
 
 ## Example message

@@ -1,6 +1,6 @@
 import { normalizeProductCategory } from "../constants/productCategories";
 
-export const LOW_STOCK_THRESHOLD = 5;
+export const LOW_STOCK_THRESHOLD = 2;
 
 export const getNumericDiscount = (product) => {
   const price = Number(product?.price);

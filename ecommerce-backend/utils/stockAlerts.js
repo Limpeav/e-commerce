@@ -2,7 +2,7 @@ const getLowStockThreshold = () => {
   const parsedThreshold = Number.parseInt(process.env.LOW_STOCK_THRESHOLD, 10);
   return Number.isInteger(parsedThreshold) && parsedThreshold >= 0
     ? parsedThreshold
-    : 5;
+    : 2;
 };
 
 export const isLowStock = (stock) => Number(stock) <= getLowStockThreshold();
