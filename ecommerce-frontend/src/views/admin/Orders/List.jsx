@@ -19,6 +19,8 @@ import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 
+const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
+
 const AdminOrders = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
@@ -139,13 +141,13 @@ const AdminOrders = () => {
     const filterOrders = () => {
         let filtered = isDelivery
             ? orders.filter((order) =>
-                ["Processing", "Shipped", "Delivered"].includes(normalizeOrderStatus(order.orderStatus))
+                DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
             )
             : orders;
 
         // Filter by status
         if (statusFilter !== "All") {
-            filtered = filtered.filter((order) => order.orderStatus === statusFilter);
+            filtered = filtered.filter((order) => normalizeOrderStatus(order.orderStatus) === statusFilter);
         }
 
         // Search by order ID or user email
@@ -348,13 +350,13 @@ const AdminOrders = () => {
     };
 
     const deliveryOrders = orders.filter((order) =>
-        ["Processing", "Shipped", "Delivered"].includes(normalizeOrderStatus(order.orderStatus))
+        DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
     );
     const deliveryStats = [
         {
             label: "Active",
             value: deliveryOrders.filter((order) =>
-                ["Processing", "Shipped"].includes(normalizeOrderStatus(order.orderStatus))
+                normalizeOrderStatus(order.orderStatus) === "Shipped"
             ).length,
             className: "bg-blue-50 text-blue-800",
         },
@@ -441,10 +443,8 @@ const AdminOrders = () => {
                                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option value="All">All status</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Processing">Processing</option>
+                                    <option value="Shipped">Shipped</option>
                                     <option value="Delivered">Delivered</option>
-                                    <option value="Cancelled">Cancelled</option>
                                 </select>
                             </div>
                         </div>
