@@ -123,7 +123,7 @@ export default function BakongPayment() {
               Try Again
             </button>
             <button
-              onClick={() => navigate(`/orders/${orderId}`)}
+              onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
               Back to Order
@@ -174,7 +174,7 @@ export default function BakongPayment() {
               Try Again
             </button>
             <button
-              onClick={() => navigate(`/orders/${orderId}`)}
+              onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
               Back to Order
@@ -208,7 +208,7 @@ export default function BakongPayment() {
               )}
             </button>
             <button
-              onClick={() => navigate(`/orders/${orderId}`)}
+              onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
               Back to Order

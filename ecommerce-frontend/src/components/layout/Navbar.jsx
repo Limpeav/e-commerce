@@ -73,7 +73,7 @@ export default function Navbar() {
     logout();
     setShowDropdown(false);
     setShowMobileMenu(false);
-    navigate("/");
+    navigate("/customer");
   };
 
   return (
@@ -86,7 +86,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="h-20 flex justify-between items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/customer" className="flex items-center gap-3 group">
               <motion.div
                 whileHover={{ rotate: 12 }}
                 className="bg-primary-light/20 p-2.5 rounded-2xl transition-all duration-300"
@@ -102,8 +102,8 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 mr-4">
                 <Link
-                  to="/"
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isActive("/")
+                  to="/customer"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isActive("/customer")
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                     }`}
@@ -113,14 +113,14 @@ export default function Navbar() {
                 </Link>
 
                 <Link
-                  to="/wishlist"
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border-2 relative ${isActive("/wishlist")
+                  to="/customer/wishlist"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border-2 relative ${isActive("/customer/wishlist")
                     ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box] text-text-main' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box] text-primary'} border-transparent shadow-lg shadow-primary/10`
                     : `bg-transparent border-transparent ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                     }`}
                 >
                   <div className="relative">
-                    <Heart className={`w-5 h-5 ${isActive("/wishlist") ? "text-primary" : ""}`} />
+                    <Heart className={`w-5 h-5 ${isActive("/customer/wishlist") ? "text-primary" : ""}`} />
                     <AnimatePresence mode="wait">
                       {wishlistItemCount > 0 && (
                         <motion.span
@@ -139,8 +139,8 @@ export default function Navbar() {
                 </Link>
 
                 <Link
-                  to="/cart"
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/cart")
+                  to="/customer/cart"
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/customer/cart")
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                     }`}
@@ -210,10 +210,10 @@ export default function Navbar() {
                               <p className="text-xs text-text-muted font-medium truncate">{user.email}</p>
                             </div>
                             <div className="p-3">
-                              <Link to="/profile" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
+                              <Link to="/customer/profile" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
                                 <User className="w-4 h-4" /><span className="text-sm font-semibold">Profile</span>
                               </Link>
-                              <Link to="/orders" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
+                              <Link to="/customer/orders" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
                                 <Package className="w-4 h-4" /><span className="text-sm font-semibold">Orders</span>
                               </Link>
                               <div className="mx-4 my-2 h-px" style={{ backgroundColor: "var(--color-border)" }}></div>
@@ -257,7 +257,7 @@ export default function Navbar() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/customer" className="flex items-center gap-2">
               <div className="rounded-xl bg-primary/10 p-1.5">
                 <Baby className="w-5 h-5 text-primary" />
               </div>
@@ -276,7 +276,7 @@ export default function Navbar() {
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <Link to="/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
+            <Link to="/customer/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/customer/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
               <Heart className="w-5 h-5" />
               {wishlistItemCount > 0 && (
                 <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
@@ -285,7 +285,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            <Link to="/cart" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
+            <Link to="/customer/cart" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
               <ShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (
                 <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
@@ -295,7 +295,7 @@ export default function Navbar() {
             </Link>
 
             {user ? (
-              <Link to="/profile" className="ml-1">
+              <Link to="/customer/profile" className="ml-1">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-light text-white flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white">
                   {user.name?.charAt(0).toUpperCase() || "U"}
                 </div>
@@ -356,9 +356,9 @@ export default function Navbar() {
               <div className="p-4 space-y-1">
                 <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Browse</p>
                 {[
-                  { to: "/", icon: Home, label: "Home" },
-                  { to: "/wishlist", icon: Heart, label: "Wishlist", badge: wishlistItemCount },
-                  { to: "/cart", icon: ShoppingCart, label: "Cart", badge: cartItemCount },
+                  { to: "/customer", icon: Home, label: "Home" },
+                  { to: "/customer/wishlist", icon: Heart, label: "Wishlist", badge: wishlistItemCount },
+                  { to: "/customer/cart", icon: ShoppingCart, label: "Cart", badge: cartItemCount },
                 ].map((item) => (
                   <Link
                     key={item.to}
@@ -391,9 +391,9 @@ export default function Navbar() {
                   <>
                     <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Account</p>
                     {[
-                      { to: "/profile", icon: User, label: "Profile" },
-                      { to: "/orders", icon: Package, label: "My Orders" },
-                      { to: "/settings", icon: Settings, label: "Settings" },
+                      { to: "/customer/profile", icon: User, label: "Profile" },
+                      { to: "/customer/orders", icon: Package, label: "My Orders" },
+                      { to: "/customer/settings", icon: Settings, label: "Settings" },
                     ].map((item) => (
                       <Link
                         key={item.to}

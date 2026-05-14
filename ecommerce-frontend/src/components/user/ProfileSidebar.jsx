@@ -25,12 +25,12 @@ const ProfileSidebar = () => {
     };
 
     const menuItems = [
-        { path: '/profile', icon: User, label: 'My Profile' },
-        { path: '/orders', icon: ShoppingBag, label: 'My Orders' },
-        { path: '/wishlist', icon: Heart, label: 'Wishlist' },
+        { path: '/customer/profile', icon: User, label: 'My Profile' },
+        { path: '/customer/orders', icon: ShoppingBag, label: 'My Orders' },
+        { path: '/customer/wishlist', icon: Heart, label: 'Wishlist' },
         // { path: '/addresses', icon: MapPin, label: 'Address Book' }, // Future Implementation
         // { path: '/payment-methods', icon: CreditCard, label: 'Payment Methods' }, // Future Implementation
-        { path: '/settings', icon: Settings, label: 'Settings' },
+        { path: '/customer/settings', icon: Settings, label: 'Settings' },
     ];
 
     return (

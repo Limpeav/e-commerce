@@ -66,7 +66,7 @@ try {
       }
 
       if (data.role !== "admin") {
-        throw new Error("Staff and delivery users must sign in at /staff");
+        throw new Error("Seller users must sign in at /seller/login. Delivery users must sign in at /delivery/login.");
       }
 
       persistAdminSession(data.token, data);

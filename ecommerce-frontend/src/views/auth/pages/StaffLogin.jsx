@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { adminService } from "../../../services/adminService.js";
 import {
   clearAdminSession,
@@ -21,6 +21,36 @@ import {
 
 const STAFF_ROLES = ["seller", "delivery"];
 
+const getLoginPortal = (pathname) => {
+  if (pathname.startsWith("/delivery")) {
+    return {
+      roles: ["delivery"],
+      title: "Delivery Login",
+      description: "Sign in with your delivery account",
+      error: "This login is only for delivery accounts.",
+      footer: "Delivery Access",
+    };
+  }
+
+  if (pathname.startsWith("/seller")) {
+    return {
+      roles: ["seller"],
+      title: "Seller Login",
+      description: "Sign in with your seller account",
+      error: "This login is only for seller accounts.",
+      footer: "Seller Access",
+    };
+  }
+
+  return {
+    roles: STAFF_ROLES,
+    title: "Staff Login",
+    description: "Sign in with your seller or delivery account",
+    error: "This login is only for seller and delivery accounts.",
+    footer: "Seller And Delivery Access",
+  };
+};
+
 const StaffLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +58,9 @@ const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
+  const portal = useMemo(() => getLoginPortal(location.pathname), [location.pathname]);
 
   useEffect(() => {
     setIsVisible(true);
@@ -42,7 +74,7 @@ const StaffLogin = () => {
         const response = await adminService.getCurrentAdmin();
         const sessionUser = response.data || getStoredAdminUser();
 
-        if (STAFF_ROLES.includes(sessionUser?.role)) {
+        if (portal.roles.includes(sessionUser?.role)) {
           navigate(getPortalDashboardPath(sessionUser), { replace: true });
           return;
         }
@@ -54,7 +86,7 @@ const StaffLogin = () => {
     };
 
     validateExistingStaffSession();
-  }, [navigate]);
+  }, [navigate, portal.roles]);
 
   const submitHandler = async (event) => {
     event.preventDefault();
@@ -69,8 +101,8 @@ const StaffLogin = () => {
         throw new Error("Invalid response from server");
       }
 
-      if (!STAFF_ROLES.includes(data.role)) {
-        throw new Error("This login is only for staff and delivery accounts.");
+      if (!portal.roles.includes(data.role)) {
+        throw new Error(portal.error);
       }
 
       persistAdminSession(data.token, data);
@@ -101,10 +133,10 @@ const StaffLogin = () => {
             </div>
 
             <h1 className="font-sans text-2xl font-bold tracking-normal text-[#1F2937]">
-              Staff Login
+              {portal.title}
             </h1>
             <p className="mt-2 text-sm font-medium text-gray-500">
-              Sign in with your staff or delivery account
+              {portal.description}
             </p>
           </div>
 
@@ -127,7 +159,7 @@ const StaffLogin = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-lg border border-[#D1D5DB] bg-white py-3 pl-10 pr-4 text-[#1F2937] shadow-sm transition-all placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-4 focus:ring-blue-100"
-                  placeholder="staff@company.com"
+                  placeholder={portal.roles.includes("seller") ? "seller@company.com" : "delivery@company.com"}
                   required
                 />
               </div>
@@ -189,7 +221,7 @@ const StaffLogin = () => {
         <div className="mt-8 text-center">
           <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
             <Truck className="h-3 w-3 text-[#2563EB]" />
-            Staff And Delivery Access
+            {portal.footer}
           </p>
         </div>
       </div>

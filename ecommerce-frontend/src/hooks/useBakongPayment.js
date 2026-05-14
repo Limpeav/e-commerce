@@ -57,7 +57,7 @@ export const useBakongPayment = (orderId, navigate) => {
       setPaymentStatus(nextStatus);
 
       if (nextStatus === "completed") {
-        window.setTimeout(() => navigate(`/orders/${orderId}`), 3000);
+        window.setTimeout(() => navigate(`/customer/orders/${orderId}`), 3000);
       }
     }, 5000);
 
@@ -90,7 +90,7 @@ export const useBakongPayment = (orderId, navigate) => {
       await PaymentController.cancel(payment._id);
     }
 
-    navigate(`/orders/${orderId}`);
+    navigate(`/customer/orders/${orderId}`);
   }, [navigate, orderId, payment?._id, paymentStatus]);
 
   return {

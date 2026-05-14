@@ -30,7 +30,7 @@ const AdminSidebar = () => {
   const ordersPath = getPortalOrdersPath(adminUser)
   const cashReportPath = getPortalCashReportPath(adminUser)
   const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
-  const isOrderDetail = /^\/(?:admin|staff|delivery)\/orders\/[^/]+/.test(location.pathname)
+  const isOrderDetail = /^\/(?:admin|seller|delivery)\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
     if (!status) return ''

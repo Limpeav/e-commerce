@@ -190,7 +190,7 @@ const AdminDashboard = () => {
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Products</h3>
-                <p className="text-3xl font-bold text-orange-600">{stats.products || 0}</p>
+                <p className="text-3xl font-bold text-gray-950">{stats.products || 0}</p>
               </div>
             </div>
 

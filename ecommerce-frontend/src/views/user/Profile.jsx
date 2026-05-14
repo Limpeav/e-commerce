@@ -392,9 +392,9 @@ const Profile = () => {
                   {/* Premium Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
-                      { to: "/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
-                      { to: "/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
-                      { to: "/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
+                      { to: "/customer/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
+                      { to: "/customer/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
+                      { to: "/customer/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
                     ].map((stat, idx) => (
                       <motion.div
                         key={idx}
@@ -463,13 +463,13 @@ const Profile = () => {
                         <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
                           <Package className="w-5 h-5 text-primary" /> Recent Activity
                         </h3>
-                        <Link to="/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>View All</Link>
+                        <Link to="/customer/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>View All</Link>
                       </div>
                       
                       <div className="space-y-4 flex-1">
                         {recentOrders.length > 0 ? (
                           recentOrders.map((order, idx) => (
-                            <Link key={order._id} to={`/orders/${order._id}`} className="block">
+                            <Link key={order._id} to={`/customer/orders/${order._id}`} className="block">
                               <motion.div 
                                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
                                 className={`p-4 rounded-xl border transition-all group flex items-center justify-between relative overflow-hidden ${

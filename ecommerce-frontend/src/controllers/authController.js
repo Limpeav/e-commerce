@@ -9,7 +9,7 @@ export class AuthController {
       const storedUser = authService.persistUser(authData);
 
       if (navigate) {
-        navigate("/");
+        navigate("/customer");
       }
 
       return { success: true, data: storedUser };
@@ -29,7 +29,7 @@ export class AuthController {
       const storedUser = authService.persistUser(authData);
 
       if (navigate) {
-        navigate("/");
+        navigate("/customer");
       }
 
       return { success: true, data: storedUser };

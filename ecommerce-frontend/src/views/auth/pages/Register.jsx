@@ -131,7 +131,7 @@ const Register = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/");
+        navigate("/customer");
       }
     } catch (err) {
       setError(

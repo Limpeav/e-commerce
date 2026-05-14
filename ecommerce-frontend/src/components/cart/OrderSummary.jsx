@@ -43,7 +43,7 @@ const OrderSummary = ({ total, itemCount }) => {
       </div>
 
       <Link
-        to="/checkout"
+        to="/customer/checkout"
         className="w-full bg-primary text-white py-4 rounded-xl font-bold text-sm shadow-lg hover:bg-primary-dark transform transition-all duration-300 flex items-center justify-center gap-2 active:scale-95"
       >
         Proceed to Checkout

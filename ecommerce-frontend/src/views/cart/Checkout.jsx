@@ -44,7 +44,7 @@ const Checkout = () => {
 
   useEffect(() => {
     if (validCartItems.length === 0 && !orderPlaced) {
-      navigate("/cart");
+      navigate("/customer/cart");
     }
   }, [validCartItems.length, navigate, orderPlaced]);
 
@@ -104,7 +104,7 @@ const Checkout = () => {
     } else {
       setOrderPlaced(true);
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      navigate("/cart/success", {
+      navigate("/customer/cart/success", {
         replace: true,
         state: { orderId: nextOrderId },
       });
@@ -118,7 +118,7 @@ const Checkout = () => {
 
   const handleViewOrderDetails = () => {
     if (orderId) {
-      navigate(`/orders/${orderId}`, { replace: true });
+      navigate(`/customer/orders/${orderId}`, { replace: true });
     }
   };
 
@@ -128,7 +128,7 @@ const Checkout = () => {
         isDark={isDark}
         orderId={orderId}
         onViewOrderDetails={handleViewOrderDetails}
-        onContinueShopping={() => navigate("/")}
+        onContinueShopping={() => navigate("/customer")}
       />
     );
   }
@@ -139,7 +139,7 @@ const Checkout = () => {
         <div className="mb-12">
           <button
             type="button"
-            onClick={() => navigate("/cart")}
+            onClick={() => navigate("/customer/cart")}
             className={`flex items-center gap-2 font-bold text-sm mb-8 transition-all px-5 py-2.5 rounded-full w-fit border ${isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-primary hover:bg-slate-800" : "bg-white border-stone-100 text-text-muted hover:text-primary hover:shadow-md"} `}
           >
             <ArrowLeft className="w-4 h-4" />

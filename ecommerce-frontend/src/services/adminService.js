@@ -51,17 +51,19 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
-  getDailyCashReport: (date) =>
+  getDailyCashReport: (date, period = "day") =>
     api.get("/admin/cash-report", {
       params: {
         date,
+        period,
         timezoneOffset: new Date().getTimezoneOffset(),
       },
     }),
-  exportDailyCashReport: (date) =>
+  exportDailyCashReport: (date, period = "day") =>
     api.get("/admin/cash-report", {
       params: {
         date,
+        period,
         timezoneOffset: new Date().getTimezoneOffset(),
         format: "csv",
       },

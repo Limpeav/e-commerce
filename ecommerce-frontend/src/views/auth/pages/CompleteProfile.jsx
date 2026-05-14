@@ -48,7 +48,7 @@ const CompleteProfile = () => {
             navigate("/login");
         } else if (user.phone) {
             // If user already has phone, no need to be here
-            navigate("/");
+            navigate("/customer");
         }
     }, [user, navigate]);
 
@@ -76,7 +76,7 @@ const CompleteProfile = () => {
             setCompleted(true);
 
             setTimeout(() => {
-                navigate("/");
+                navigate("/customer");
             }, 1500);
         } catch (err) {
             setError(

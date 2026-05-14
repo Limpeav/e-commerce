@@ -102,7 +102,7 @@ const OrderDetail = () => {
             {error || "Order Not Found"}
           </h2>
           <button
-            onClick={() => navigate("/orders")}
+            onClick={() => navigate("/customer/orders")}
             className="mt-4 px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all font-bold text-sm shadow-md"
           >
             Back to Orders
@@ -120,7 +120,7 @@ const OrderDetail = () => {
         <div className="bg-white rounded-3xl border border-stone-100 p-8 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <button
-              onClick={() => navigate("/orders")}
+              onClick={() => navigate("/customer/orders")}
               className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary mb-4"
             >
               <ArrowLeft className="w-4 h-4" />

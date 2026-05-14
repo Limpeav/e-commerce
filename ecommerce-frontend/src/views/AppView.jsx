@@ -31,10 +31,9 @@ const phoneExemptPaths = [
   "/login",
   "/register",
   "/admin/login",
+  "/customer",
   "/seller",
   "/seller/login",
-  "/staff",
-  "/staff/login",
   "/delivery",
   "/delivery/login",
   "/forgot-password",
@@ -45,7 +44,7 @@ export default function AppView() {
   const location = useLocation();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
-  const authenticatedRedirect = user?.phone ? "/" : "/complete-profile";
+  const authenticatedRedirect = user?.phone ? "/customer" : "/complete-profile";
 
   useEffect(() => {
     // Clear any leftover global page-lock styles from modals when routes change.
@@ -59,10 +58,10 @@ export default function AppView() {
   const isAdminRoute =
     (location.pathname.startsWith("/admin") &&
       location.pathname !== "/admin/login") ||
-    location.pathname.startsWith("/staff/dashboard") ||
-    location.pathname.startsWith("/staff/payment-queue") ||
-    location.pathname.startsWith("/staff/orders") ||
-    location.pathname.startsWith("/staff/cash-report") ||
+    location.pathname.startsWith("/seller/dashboard") ||
+    location.pathname.startsWith("/seller/payment-queue") ||
+    location.pathname.startsWith("/seller/orders") ||
+    location.pathname.startsWith("/seller/cash-report") ||
     location.pathname.startsWith("/delivery/orders");
   const shouldShowNavFooter =
     !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute;

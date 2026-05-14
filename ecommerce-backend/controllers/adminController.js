@@ -48,6 +48,85 @@ const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
   };
 };
 
+const getTimezoneName = (timezoneOffsetMinutes = 0) => {
+  const offsetMinutes = Number.isFinite(Number(timezoneOffsetMinutes))
+    ? -Number(timezoneOffsetMinutes)
+    : 0;
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteMinutes = Math.abs(offsetMinutes);
+  const hours = String(Math.floor(absoluteMinutes / 60)).padStart(2, "0");
+  const minutes = String(absoluteMinutes % 60).padStart(2, "0");
+
+  return `${sign}${hours}:${minutes}`;
+};
+
+const formatReportDateKey = (value, timezoneOffsetMinutes = 0) => {
+  const localDate = new Date(
+    new Date(value).getTime() - Number(timezoneOffsetMinutes || 0) * 60 * 1000
+  );
+
+  return localDate.toISOString().slice(0, 10);
+};
+
+const parseMonthlyReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
+  const { selectedDate } = parseReportDateRange(dateString, timezoneOffsetMinutes);
+  const offsetMinutes = Number.isFinite(Number(timezoneOffsetMinutes))
+    ? Number(timezoneOffsetMinutes)
+    : 0;
+  const [year, month] = selectedDate.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, offsetMinutes, 0, 0));
+  const end = new Date(Date.UTC(year, month, 1, 0, offsetMinutes, 0, 0));
+
+  return {
+    selectedDate: `${year}-${String(month).padStart(2, "0")}`,
+    start,
+    end,
+  };
+};
+
+const parseTrendReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
+  const { selectedDate, end } = parseReportDateRange(dateString, timezoneOffsetMinutes);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 30);
+
+  return {
+    selectedDate,
+    start,
+    end,
+  };
+};
+
+const buildDailyBreakdown = (start, end, rows, timezoneOffsetMinutes = 0) => {
+  const rowsByDate = new Map(
+    rows.map((row) => [
+      row._id,
+      {
+        date: row._id,
+        totalCash: Number(row.totalCash || 0),
+        orderCount: Number(row.orderCount || 0),
+        averageOrderValue: Number(row.averageOrderValue || 0),
+      },
+    ])
+  );
+  const days = [];
+  const cursor = new Date(start);
+
+  while (cursor < end) {
+    const date = formatReportDateKey(cursor, timezoneOffsetMinutes);
+    days.push(
+      rowsByDate.get(date) || {
+        date,
+        totalCash: 0,
+        orderCount: 0,
+        averageOrderValue: 0,
+      }
+    );
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days;
+};
+
 const formatCsvValue = (value) => {
   const normalized = String(value ?? "");
   return /[",\n\r]/.test(normalized)
@@ -55,8 +134,15 @@ const formatCsvValue = (value) => {
     : normalized;
 };
 
-const buildCashReportPayload = async ({ date, timezoneOffset }) => {
-  const { selectedDate, start, end } = parseReportDateRange(date, timezoneOffset);
+const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) => {
+  const normalizedPeriod = ["day", "month", "trend"].includes(period) ? period : "day";
+  const range =
+    normalizedPeriod === "month"
+      ? parseMonthlyReportDateRange(date, timezoneOffset)
+      : normalizedPeriod === "trend"
+        ? parseTrendReportDateRange(date, timezoneOffset)
+        : parseReportDateRange(date, timezoneOffset);
+  const { selectedDate, start, end } = range;
   const paidCashMatch = {
     paymentMethod: "Cash on Delivery",
     paymentStatus: "Paid",
@@ -65,12 +151,15 @@ const buildCashReportPayload = async ({ date, timezoneOffset }) => {
       $lt: end,
     },
   };
+  const timezone = getTimezoneName(timezoneOffset);
 
-  const [orders, summaryData, pendingCashCount] = await Promise.all([
-    Order.find(paidCashMatch)
-      .sort({ paidAt: -1 })
-      .populate("user", "name email")
-      .lean(),
+  const [orders, summaryData, dailyRows, pendingCashCount] = await Promise.all([
+    normalizedPeriod === "day"
+      ? Order.find(paidCashMatch)
+          .sort({ paidAt: -1 })
+          .populate("user", "name email")
+          .lean()
+      : Promise.resolve([]),
     Order.aggregate([
       { $match: paidCashMatch },
       {
@@ -82,6 +171,26 @@ const buildCashReportPayload = async ({ date, timezoneOffset }) => {
         },
       },
     ]),
+    normalizedPeriod === "day"
+      ? Promise.resolve([])
+      : Order.aggregate([
+          { $match: paidCashMatch },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$paidAt",
+                  timezone,
+                },
+              },
+              totalCash: { $sum: "$totalPrice" },
+              orderCount: { $sum: 1 },
+              averageOrderValue: { $avg: "$totalPrice" },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
     Order.countDocuments({
       paymentMethod: "Cash on Delivery",
       paymentStatus: { $ne: "Paid" },
@@ -97,6 +206,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset }) => {
 
   return {
     date: selectedDate,
+    period: normalizedPeriod,
     generatedAt: new Date().toISOString(),
     range: {
       start: start.toISOString(),
@@ -108,6 +218,10 @@ const buildCashReportPayload = async ({ date, timezoneOffset }) => {
       averageOrderValue: Number(summary.averageOrderValue || 0),
       pendingCashCount,
     },
+    dailyBreakdown:
+      normalizedPeriod === "day"
+        ? []
+        : buildDailyBreakdown(start, end, dailyRows, timezoneOffset),
     orders: orders.map((order) => ({
       id: order._id.toString(),
       shortId: order._id.toString().slice(-8),
@@ -131,24 +245,36 @@ const buildCashReportCsv = (report) => {
     ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
     ["Pending Cash Orders", report.summary.pendingCashCount],
     [],
-    [
-      "Order ID",
-      "Customer",
-      "Phone",
-      "Paid At",
-      "Payment",
-      "Order Status",
-      "Total",
-    ],
-    ...report.orders.map((order) => [
-      `#${order.shortId}`,
-      order.customerName,
-      order.customerPhone,
-      order.paidAt ? new Date(order.paidAt).toISOString() : "",
-      order.paymentStatus,
-      order.orderStatus,
-      order.totalPrice.toFixed(2),
-    ]),
+    ...(report.period === "day"
+      ? [
+          [
+            "Order ID",
+            "Customer",
+            "Phone",
+            "Paid At",
+            "Payment",
+            "Order Status",
+            "Total",
+          ],
+          ...report.orders.map((order) => [
+            `#${order.shortId}`,
+            order.customerName,
+            order.customerPhone,
+            order.paidAt ? new Date(order.paidAt).toISOString() : "",
+            order.paymentStatus,
+            order.orderStatus,
+            order.totalPrice.toFixed(2),
+          ]),
+        ]
+      : [
+          ["Date", "Paid Cash Orders", "Total Cash", "Average Order Value"],
+          ...report.dailyBreakdown.map((day) => [
+            day.date,
+            day.orderCount,
+            day.totalCash.toFixed(2),
+            day.averageOrderValue.toFixed(2),
+          ]),
+        ]),
   ];
 
   return rows
@@ -281,6 +407,7 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
   const report = await buildCashReportPayload({
     date: req.query.date,
     timezoneOffset: req.query.timezoneOffset,
+    period: req.query.period,
   });
 
   if (req.query.format === "csv") {

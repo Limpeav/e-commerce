@@ -33,7 +33,7 @@ const Login = () => {
       if (!user.phone) {
         navigate("/complete-profile", { replace: true });
       } else {
-        navigate("/", { replace: true });
+        navigate("/customer", { replace: true });
       }
     }
   }, [user, navigate]);
@@ -81,7 +81,7 @@ const Login = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/");
+        navigate("/customer");
       }
     } catch (err) {
       setError(
@@ -117,7 +117,7 @@ const Login = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/");
+        navigate("/customer");
       }
     } catch (err) {
       setError(

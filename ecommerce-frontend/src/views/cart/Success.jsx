@@ -19,11 +19,11 @@ export default function OrderSuccess() {
 
   const viewOrderDetails = () => {
     if (orderId) {
-      navigate(`/orders/${orderId}`);
+      navigate(`/customer/orders/${orderId}`);
       return;
     }
 
-    navigate("/orders");
+    navigate("/customer/orders");
   };
 
   return (
@@ -91,7 +91,7 @@ export default function OrderSuccess() {
             View Order Details
           </button>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/customer")}
             type="button"
             className={`px-8 py-4 border rounded-xl transition-all font-bold text-sm hover:border-primary hover:text-primary active:scale-95 ${
               isDark

@@ -37,11 +37,11 @@ export const clearAdminSession = () => {
 
 export const getPortalLoginPath = (admin = getStoredAdminUser()) => {
   if (admin?.role === "delivery") {
-    return "/staff/login";
+    return "/delivery/login";
   }
 
   if (admin?.role === "seller") {
-    return "/staff/login";
+    return "/seller/login";
   }
 
   return "/admin/login";
@@ -53,7 +53,7 @@ export const getPortalOrdersPath = (admin = getStoredAdminUser()) => {
   }
 
   if (admin?.role === "seller") {
-    return "/staff/orders";
+    return "/seller/orders";
   }
 
   return "/admin/orders";
@@ -65,7 +65,7 @@ export const getPortalDashboardPath = (admin = getStoredAdminUser()) => {
   }
 
   if (admin?.role === "seller") {
-    return "/staff/dashboard";
+    return "/seller/dashboard";
   }
 
   return "/admin";
@@ -77,7 +77,7 @@ export const getPortalOrderDetailsPath = (orderId, admin = getStoredAdminUser())
 
 export const getPortalCashReportPath = (admin = getStoredAdminUser()) => {
   if (admin?.role === "seller") {
-    return "/staff/cash-report";
+    return "/seller/cash-report";
   }
 
   return "/admin/cash-report";
@@ -85,7 +85,7 @@ export const getPortalCashReportPath = (admin = getStoredAdminUser()) => {
 
 export const getPortalPaymentQueuePath = (admin = getStoredAdminUser()) => {
   if (admin?.role === "seller") {
-    return "/staff/payment-queue";
+    return "/seller/payment-queue";
   }
 
   return "/admin/orders";

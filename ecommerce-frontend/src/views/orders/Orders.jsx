@@ -217,7 +217,7 @@ const Orders = () => {
                   You haven't placed any orders yet. Start shopping to find the best essentials for your baby.
                 </p>
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/customer")}
                   className={`px-8 py-4 rounded-xl transition-all font-bold text-sm shadow-md active:scale-95 ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-primary text-white hover:bg-primary-dark"}`}
                 >
                   Start Shopping
@@ -333,7 +333,7 @@ const Orders = () => {
                           )}
                         </div>
                         <button
-                          onClick={() => navigate(`/orders/${order._id}`)}
+                          onClick={() => navigate(`/customer/orders/${order._id}`)}
                           className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 ${
                             isDark
                               ? "bg-slate-950 border border-slate-700 text-slate-100 hover:border-indigo-400 hover:text-indigo-300"
