@@ -17,7 +17,7 @@ import {
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
 
-const DELIVERY_ORDER_STATUSES = ["Processing", "Shipped", "Delivered"];
+const DELIVERY_ORDER_STATUSES = ["Delivered"];
 
 const dispatchOrderAlerts = ({
     createdOrder,

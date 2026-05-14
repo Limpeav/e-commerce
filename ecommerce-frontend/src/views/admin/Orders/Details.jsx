@@ -50,7 +50,6 @@ const OrderDetails = () => {
     }, [id]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchOrderDetails();
     }, [fetchOrderDetails]);
 
@@ -238,7 +237,7 @@ const OrderDetails = () => {
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
     const orderStatuses = isDelivery
-        ? ["Processing", "Delivered"]
+        ? ["Delivered"]
         : ["Pending", "Processing", "Delivered", "Cancelled"];
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid", "Failed"];
     const deliveryLatitude = order.shippingAddress?.latitude;
