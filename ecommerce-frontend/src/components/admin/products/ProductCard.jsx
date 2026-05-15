@@ -68,7 +68,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
             )}
             <p className="text-sm text-gray-600">
               Stock:{" "}
-              <span className={`font-semibold ${isLowStock ? "text-orange-600" : "text-green-600"}`}>
+              <span className={`font-semibold ${isLowStock ? "text-[#b45309]" : "text-green-600"}`}>
                 {product.stock}
               </span>
             </p>

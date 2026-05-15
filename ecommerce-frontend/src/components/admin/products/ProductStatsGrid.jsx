@@ -44,13 +44,13 @@ const ProductStatsGrid = ({ stats, showLowStockOnly, onToggleLowStock }) => (
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">Low Stock Alert</p>
-          <p className="text-3xl font-bold text-orange-600 mt-1">{stats.lowStockCount}</p>
-          <p className="text-xs text-orange-500 mt-2">
+          <p className="text-3xl font-bold text-[#b45309] mt-1">{stats.lowStockCount}</p>
+          <p className="text-xs text-[#c2410c] mt-2">
             {showLowStockOnly ? "Showing low stock products" : "Click to show low stock products"}
           </p>
         </div>
         <div className="bg-orange-100 p-3 rounded-xl">
-          <Package className="w-8 h-8 text-orange-600" />
+          <Package className="w-8 h-8 text-[#b45309]" />
         </div>
       </div>
     </button>

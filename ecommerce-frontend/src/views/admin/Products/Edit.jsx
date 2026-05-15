@@ -152,7 +152,7 @@ const EditProduct = () => {
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-gray-950">
                 Edit Product
               </h1>
               <p className="mt-1 text-sm text-gray-500">
