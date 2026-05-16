@@ -1,11 +1,16 @@
 import { Package, Search, ShoppingBag, Heart } from 'lucide-react';
+import { useLanguage } from '../../context/useLanguage';
 
 export default function EmptyState({ 
   type = 'products', 
-  message = 'No items found',
-  actionText = 'Browse Products',
+  message,
+  actionText,
   onAction 
 }) {
+  const { t } = useLanguage();
+  const displayMessage = message || t('empty.noItemsFound');
+  const displayActionText = actionText || t('empty.browseProducts');
+
   const getIcon = () => {
     switch (type) {
       case 'products':
@@ -28,14 +33,14 @@ export default function EmptyState({
           {getIcon()}
         </div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          {message}
+          {displayMessage}
         </h3>
         {onAction && (
           <button
             onClick={onAction}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
           >
-            {actionText}
+            {displayActionText}
           </button>
         )}
       </div>

@@ -14,11 +14,13 @@ import { useDarkMode } from "../../hooks";
 
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function Home() {
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [isDark] = useDarkMode();
     
     const productsRef = useRef(null);
@@ -106,29 +108,29 @@ export default function Home() {
 
         return [
             {
-                title: "New Arrival",
-                description: "Fresh picks recently added to the collection.",
+                title: t("product.newArrival"),
+                description: t("product.freshPicks"),
                 products: newArrivals,
             },
             {
-                title: "Deal",
-                description: "Current discounted items with the strongest savings.",
+                title: t("product.deal"),
+                description: t("product.strongestSavings"),
                 products: deals,
             },
             {
-                title: "Best Seller",
-                description: "Popular products ranked by demand and ratings.",
+                title: t("product.bestSeller"),
+                description: t("product.popularProducts"),
                 products: bestSellers,
             },
             {
-                title: "All Products",
+                title: t("product.all"),
                 description: searchQuery
-                    ? `Showing everything that matches "${searchQuery}".`
-                    : "Browse the full collection in one place.",
+                    ? t("product.showingMatches", { query: searchQuery })
+                    : t("product.browseFullCollection"),
                 products: normalizedProducts,
             },
         ].filter((section) => section.products.length > 0);
-    }, [filteredProducts, searchQuery]);
+    }, [filteredProducts, searchQuery, t]);
 
     if (loading) {
         return <Loading />;
@@ -167,7 +169,7 @@ export default function Home() {
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                                                 <span className="h-[2px] w-8 bg-primary/30"></span>
-                                                Home Collection
+                                                {t("product.homeCollection")}
                                             </div>
                                             <h2 className="text-3xl font-bold tracking-tight text-text-main md:text-4xl font-display">
                                                 {section.title}
@@ -179,7 +181,7 @@ export default function Home() {
 
                                         <div className={`inline-flex items-center gap-2 self-start rounded-2xl border px-5 py-3 text-sm font-bold tracking-tight sm:self-auto ${isDark ? 'border-slate-800 bg-slate-900 text-slate-300 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.8)]' : 'border-stone-100 bg-white text-text-muted shadow-sm'}`}>
                                             <span className="h-2 w-2 rounded-full bg-primary"></span>
-                                            {section.products.length} Items
+                                            {section.products.length} {t("product.items")}
                                         </div>
                                     </div>
 
@@ -207,15 +209,15 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className={`text-center py-16 sm:py-32 rounded-2xl sm:rounded-[3rem] px-4 border ${isDark ? 'bg-slate-900 border-slate-800 shadow-[0_20px_60px_-24px_rgba(2,6,23,0.7)]' : 'bg-white border-stone-100 shadow-sm'}`}>
-                            <h2 className="text-2xl sm:text-4xl font-bold text-text-main font-display">No products found</h2>
+                            <h2 className="text-2xl sm:text-4xl font-bold text-text-main font-display">{t("product.noProductsFound")}</h2>
                             <p className="mt-3 text-sm sm:text-lg text-text-muted max-w-xl mx-auto">
-                                We couldn&apos;t find products for the current search or category filter.
+                                {t("product.noProductsMessage")}
                             </p>
                             <button
                                 onClick={handleClearFilters}
                                 className="mt-6 sm:mt-10 px-6 sm:px-10 py-3 sm:py-4 bg-primary text-white rounded-xl sm:rounded-2xl font-bold text-sm hover:bg-primary-dark transition-all hover:shadow-xl active:scale-95"
                             >
-                                Explore Everything
+                                {t("product.exploreEverything")}
                             </button>
                         </div>
                     )}

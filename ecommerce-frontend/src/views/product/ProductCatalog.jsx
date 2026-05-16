@@ -9,23 +9,24 @@ import Loading from "../common/Loading";
 import ErrorState from "../../components/product/ErrorState";
 import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
+import { useLanguage } from "../../context/useLanguage";
 
-const VIEW_CONFIG = {
+const VIEW_CONFIG_KEYS = {
   all: {
-    title: "All Products",
-    description: "Browse the full collection in one place.",
+    title: "footer.allProducts",
+    description: "product.browseFullCollection",
   },
   "new-arrivals": {
-    title: "New Arrivals",
-    description: "Fresh picks recently added to the collection.",
+    title: "footer.newArrivals",
+    description: "product.freshPicks",
   },
   "best-sellers": {
-    title: "Best Sellers",
-    description: "Popular products ranked by demand and ratings.",
+    title: "footer.bestSellers",
+    description: "product.popularProducts",
   },
   deals: {
-    title: "Deals",
-    description: "Current discounted items with the strongest savings.",
+    title: "footer.deals",
+    description: "product.strongestSavings",
   },
 };
 
@@ -60,6 +61,7 @@ export default function ProductCatalog() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isDark] = useDarkMode();
   const [searchParams] = useSearchParams();
 
@@ -74,8 +76,9 @@ export default function ProductCatalog() {
   } = useProductFilters(products);
 
   const currentView = searchParams.get("view") || "all";
-  const activeView = VIEW_CONFIG[currentView] ? currentView : "all";
-  const activeConfig = VIEW_CONFIG[activeView];
+  const activeView = VIEW_CONFIG_KEYS[currentView] ? currentView : "all";
+  const activeConfig = VIEW_CONFIG_KEYS[activeView];
+  const activeTitle = t(activeConfig.title);
 
   const visibleProducts = useMemo(() => {
     switch (activeView) {
@@ -151,15 +154,15 @@ export default function ProductCatalog() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                 <span className="h-[2px] w-8 bg-primary/30"></span>
-                Product Catalog
+                {t("product.productCatalog")}
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-text-main sm:text-4xl md:text-5xl font-display">
-                {activeConfig.title}
+                {activeTitle}
               </h1>
               <p className="max-w-2xl text-sm text-text-muted sm:text-base">
                 {searchQuery
-                  ? `Showing ${activeConfig.title.toLowerCase()} matching "${searchQuery}".`
-                  : activeConfig.description}
+                  ? t("product.showingViewMatches", { view: activeTitle.toLowerCase(), query: searchQuery })
+                  : t(activeConfig.description)}
               </p>
             </div>
 
@@ -171,7 +174,7 @@ export default function ProductCatalog() {
               }`}
             >
               <span className="h-2 w-2 rounded-full bg-primary"></span>
-              {visibleProducts.length} Items
+              {visibleProducts.length} {t("product.items")}
             </div>
           </div>
         </section>

@@ -3,32 +3,36 @@ import { MapPin, Globe, Navigation, Clock, Phone, Mail, Box } from "lucide-react
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function Location() {
+    const { t } = useLanguage();
     const offices = [
         {
             city: "San Francisco",
-            type: "Global Headquarters",
+            type: t("location.globalHeadquarters"),
             address: "1234 Tech Plaza, Silicon District, CA 94103",
             phone: "+1 (555) 001-9988",
-            status: "Operational",
+            status: t("location.operational"),
+            statusType: "operational",
             isHQ: true
         },
         {
             city: "London",
-            type: "European Logistics Hub",
+            type: t("location.europeanHub"),
             address: "88 Innovation Way, Canary Wharf, E14 5AB",
             phone: "+44 20 7946 0123",
-            status: "Standby",
+            status: t("location.standby"),
+            statusType: "standby",
             isHQ: false
         }
     ];
 
     return (
         <PageLayout
-            title="Global Presence"
-            subtitle="Physical infrastructure and strategic hubs"
-            badge="Node Locations"
+            title={t("location.title")}
+            subtitle={t("location.subtitle")}
+            badge={t("location.badge")}
             icon={MapPin}
             badgeColor="blue"
             maxWidth="7xl"
@@ -52,14 +56,14 @@ export default function Location() {
 
                         <div className="absolute bottom-12 left-12 right-12 flex justify-between items-end">
                             <div className="space-y-2">
-                                <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] opacity-80">Sync Status</p>
+                                <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] opacity-80">{t("location.syncStatus")}</p>
                                 <div className="flex items-center gap-3">
                                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <p className="text-xl font-bold text-white font-display tracking-widest">Global Network Active</p>
+                                    <p className="text-xl font-bold text-white font-display tracking-widest">{t("location.globalNetworkActive")}</p>
                                 </div>
                             </div>
                             <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                                <p className="text-[8px] font-black text-white uppercase tracking-widest">Active Hubs: 02 // Node Points: 48</p>
+                                <p className="text-[8px] font-black text-white uppercase tracking-widest">{t("location.activeHubs")}</p>
                             </div>
                         </div>
                     </div>
@@ -67,7 +71,7 @@ export default function Location() {
 
                 {/* Hub Listings */}
                 <section>
-                    <SectionHeader number={1} title="Primary Entities" icon={Box} />
+                    <SectionHeader number={1} title={t("location.primaryEntities")} icon={Box} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {offices.map((office, idx) => (
                             <ContentBox key={idx} className={`relative overflow-hidden group ${office.isHQ ? 'border-primary/20 bg-primary/5' : ''}`}>
@@ -76,7 +80,7 @@ export default function Location() {
                                         <h3 className="text-3xl font-bold text-text-main font-display mb-1">{office.city}</h3>
                                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">{office.type}</p>
                                     </div>
-                                    <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${office.status === 'Operational' ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>
+                                    <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${office.statusType === 'operational' ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>
                                         {office.status}
                                     </div>
                                 </div>
@@ -94,7 +98,7 @@ export default function Location() {
 
                                 <button className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white border border-stone-200 text-[10px] font-black text-text-main uppercase tracking-widest hover:bg-text-main hover:text-white transition-all group/btn shadow-sm">
                                     <Navigation className="w-3 h-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                                    Request Directions
+                                    {t("location.requestDirections")}
                                 </button>
                             </ContentBox>
                         ))}
@@ -108,16 +112,16 @@ export default function Location() {
                             <Globe className="w-10 h-10 text-primary" />
                         </div>
                         <div className="space-y-4 text-center md:text-left">
-                            <h4 className="text-xl font-black text-text-main font-display tracking-tight">Worldwide Fulfillment</h4>
+                            <h4 className="text-xl font-black text-text-main font-display tracking-tight">{t("location.worldwideFulfillment")}</h4>
                             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest leading-relaxed max-w-lg">
-                                Our logistics network spans across 6 continents, utilizing 150+ distribution nodes to ensure your acquisitions reach you via the most efficient vectors possible.
+                                {t("location.fulfillmentText")}
                             </p>
                         </div>
                     </ContentBox>
 
                     <div className="bg-text-main rounded-[3rem] p-10 text-white flex flex-col justify-center relative overflow-hidden group shadow-2xl shadow-text-main/20">
                         <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary opacity-20 rounded-full -mb-16 -mr-16 group-hover:scale-150 transition-transform duration-700"></div>
-                        <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 relative z-10">Uplink Directly</h4>
+                        <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 relative z-10">{t("location.uplinkDirectly")}</h4>
                         <div className="space-y-4 relative z-10">
                             <div className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-white/40" />

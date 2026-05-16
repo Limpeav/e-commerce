@@ -20,6 +20,7 @@ import ScrollToTop from "../components/common/ScrollToTop";
 import Loading from "../components/common/Loading";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
+import StaticTextTranslator from "../components/common/StaticTextTranslator";
 
 const LazyComponents = {};
 Object.keys(lazyComponents).forEach((key) => {
@@ -155,6 +156,7 @@ export default function AppView() {
         }
       >
         {shouldShowNavFooter && <Navbar />}
+        <StaticTextTranslator disabled={isAdminRoute} />
 
         <main
           className={`min-h-screen transition-colors duration-300 ${

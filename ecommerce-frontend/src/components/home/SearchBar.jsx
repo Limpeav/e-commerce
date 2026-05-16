@@ -2,9 +2,12 @@ import React, { useRef } from "react";
 import { Search, X, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
+import { translateCategory } from "../../utils/translationKeys";
 
 export default function SearchBar({ searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, categories }) {
     const [isDark] = useDarkMode();
+    const { t } = useLanguage();
     const categoriesRef = useRef(null);
 
     const scrollCategories = () => {
@@ -29,7 +32,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                         <Search className={`w-4 h-4 mr-2 sm:mr-3 group-focus-within:text-primary transition-colors shrink-0 ${isDark ? "text-slate-400" : "text-stone-400"}`} />
                         <input
                             type="text"
-                            placeholder="Search products..."
+                            placeholder={t("product.searchPlaceholder")}
                             className={`bg-transparent border-none outline-none w-full font-medium text-sm ${isDark ? "text-slate-100 placeholder:text-slate-500" : "text-text-main placeholder-stone-400"}`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -60,7 +63,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                                         : 'bg-white text-stone-500 border border-stone-100 hover:border-primary/30 hover:bg-stone-50'
                                     }`}
                             >
-                                {cat}
+                                {translateCategory(cat, t)}
                             </motion.button>
                         ))}
                     </div>
@@ -71,7 +74,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                             ? "bg-slate-900 text-slate-300 border-slate-700 hover:border-primary/40 hover:bg-slate-800"
                             : "bg-white text-text-muted border-stone-100 hover:border-primary/30 hover:bg-stone-50 hover:text-primary"
                             }`}
-                        aria-label="Show more categories"
+                        aria-label={t("product.showMoreCategories")}
                     >
                         <ChevronRight className="h-4 w-4" />
                     </button>

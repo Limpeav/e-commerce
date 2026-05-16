@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
+import { translateCategory } from '../../utils/translationKeys';
 
 const ProductCard = ({
   product,
@@ -20,6 +22,7 @@ const ProductCard = ({
   const inWishlist = isInWishlist(product._id);
   const outOfStock = product.stock === 0;
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
 
   return (
     <motion.article
@@ -50,11 +53,11 @@ const ProductCard = ({
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
           {outOfStock ? (
             <span className="bg-stone-900 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
-              Sold Out
+              {t('product.soldOut')}
             </span>
           ) : hasDiscount && (
             <span className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm shadow-primary/30">
-              Save {discountPercent}%
+              {t('product.save')} {discountPercent}%
             </span>
           )}
         </div>
@@ -84,7 +87,7 @@ const ProductCard = ({
               ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
               : 'bg-primary text-white shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] cursor-pointer'
               }`}
-            title="Quick Add"
+            title={t('product.quickAdd')}
           >
             <ShoppingBag className="w-5 h-5" />
           </button>
@@ -93,7 +96,7 @@ const ProductCard = ({
         {/* Category & Rating */}
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-            {product.category || 'Essentials'}
+            {product.category ? translateCategory(product.category, t) : t('product.essentials')}
           </span>
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -112,7 +115,7 @@ const ProductCard = ({
 
         {/* Description Snippet (Optional - keeps card informative) */}
         <p className={`text-xs font-medium line-clamp-3 ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
-          {product.description || 'Premium quality for your lifestyle.'}
+          {product.description || t('product.premiumQuality')}
         </p>
 
         {/* Divider */}
@@ -137,12 +140,12 @@ const ProductCard = ({
             disabled={!user || outOfStock}
             className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
-            {outOfStock ? 'Sold Out' : 'Add'}
+            {outOfStock ? t('product.soldOut') : t('product.add')}
           </button>
 
           {/* Desktop: View Details Arrow */}
           <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
-            Details <ArrowRight className="w-3 h-3" />
+            {t('product.details')} <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </div>

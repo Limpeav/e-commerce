@@ -15,89 +15,89 @@ import {
 } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
-import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function KnowledgeBase() {
-    const [isDark] = useDarkMode();
+    const { t } = useLanguage();
     const [searchQuery, setSearchQuery] = useState("");
     const [openFaq, setOpenFaq] = useState(null);
 
     const knowledgeSections = [
         {
             icon: Package,
-            title: "Orders & Products",
+            title: t("help.ordersProducts"),
             count: 12,
-            description: "Order changes, stock questions, sizing help, and product care.",
-            topics: ["Order edits", "Item availability", "Product quality"]
+            description: t("help.ordersProductsDescription"),
+            topics: [t("help.orderEdits"), t("help.itemAvailability"), t("help.productQuality")]
         },
         {
             icon: Truck,
-            title: "Shipping & Delivery",
+            title: t("help.shippingDelivery"),
             count: 8,
-            description: "Tracking timelines, delivery methods, delays, and missed drop-offs.",
-            topics: ["Track package", "Delivery window", "Shipping options"]
+            description: t("help.shippingDeliveryDescription"),
+            topics: [t("help.trackPackage"), t("help.deliveryWindow"), t("help.shippingOptions")]
         },
         {
             icon: CreditCard,
-            title: "Payments & Billing",
+            title: t("help.paymentsBilling"),
             count: 5,
-            description: "Accepted payment methods, invoice issues, and refund timing.",
-            topics: ["Billing issues", "Refund status", "Payment methods"]
+            description: t("help.paymentsBillingDescription"),
+            topics: [t("help.billingIssues"), t("help.refundStatus"), t("help.paymentMethods")]
         },
         {
             icon: ShieldCheck,
-            title: "Security & Privacy",
+            title: t("help.securityPrivacy"),
             count: 7,
-            description: "Account protection, privacy controls, and verification flows.",
-            topics: ["Account security", "Privacy requests", "Verification"]
+            description: t("help.securityPrivacyDescription"),
+            topics: [t("help.accountSecurity"), t("help.privacyRequests"), t("help.verification")]
         }
     ];
 
     const faqs = [
         {
-            category: "Shipping & Delivery",
+            category: t("help.shippingDelivery"),
             questions: [
                 {
-                    q: "How do I track my order?",
-                    a: "Once your order is processed, a tracking number is sent to your registered email. You can use that link to follow every delivery update."
+                    q: t("help.trackOrderQuestion"),
+                    a: t("help.trackOrderAnswer")
                 },
                 {
-                    q: "What is the standard delivery time?",
-                    a: "Standard delivery usually takes 3 to 5 business days. Express delivery options are available during checkout when supported in your area."
+                    q: t("help.deliveryTimeQuestion"),
+                    a: t("help.deliveryTimeAnswer")
                 },
                 {
-                    q: "What happens if my package is delayed?",
-                    a: "If the carrier reports a delay, the latest status will still appear in your tracking link. If there is no movement for an extended period, contact support with your order number."
+                    q: t("help.packageDelayedQuestion"),
+                    a: t("help.packageDelayedAnswer")
                 }
             ]
         },
         {
-            category: "Orders & Products",
+            category: t("help.ordersProducts"),
             questions: [
                 {
-                    q: "Can I modify my order after placing it?",
-                    a: "Changes are allowed within 2 hours of checkout. After that, the order usually enters fulfillment and can no longer be edited."
+                    q: t("help.modifyOrderQuestion"),
+                    a: t("help.modifyOrderAnswer")
                 },
                 {
-                    q: "How are product quality standards verified?",
-                    a: "Each item is checked before dispatch to confirm packaging, condition, and basic quality standards so you receive the correct product in good shape."
+                    q: t("help.qualityQuestion"),
+                    a: t("help.qualityAnswer")
                 },
                 {
-                    q: "Can I cancel an item before it ships?",
-                    a: "If the order has not entered packing or carrier handoff, support can usually help with cancellation. Requests submitted earlier are more likely to be approved."
+                    q: t("help.cancelQuestion"),
+                    a: t("help.cancelAnswer")
                 }
             ]
         },
         {
-            category: "Payments & Billing",
+            category: t("help.paymentsBilling"),
             questions: [
                 {
-                    q: "When will a refund appear on my statement?",
-                    a: "Most refunds are initiated quickly after approval, but banks can take several business days to post the credit depending on the original payment method."
+                    q: t("help.refundQuestion"),
+                    a: t("help.refundAnswer")
                 },
                 {
-                    q: "Why was my payment declined?",
-                    a: "Declines can happen because of card limits, verification mismatches, or bank-side fraud checks. Confirm your billing details and try again or use another payment method."
+                    q: t("help.declinedQuestion"),
+                    a: t("help.declinedAnswer")
                 }
             ]
         }
@@ -121,9 +121,9 @@ export default function KnowledgeBase() {
 
     return (
         <PageLayout
-            title="Help Center"
-            subtitle="Find answers, guides, and direct support faster"
-            badge="Support"
+            title={t("help.title")}
+            subtitle={t("help.subtitle")}
+            badge={t("help.badge")}
             icon={BookOpen}
             badgeColor="secondary"
             maxWidth="7xl"
@@ -138,19 +138,19 @@ export default function KnowledgeBase() {
                         <div className="mx-auto max-w-3xl text-center">
                             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary sm:text-xs">
                                 <Sparkles className="h-3.5 w-3.5" />
-                                Customer support hub
+                                {t("help.customerSupportHub")}
                             </div>
                             <h2 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl lg:text-5xl">
-                                How can we help you?
+                                {t("help.howCanWeHelp")}
                             </h2>
                             <p className="mt-3 text-sm font-medium text-text-muted sm:mt-4 sm:text-base">
-                                Search across articles, topics, and FAQs — or browse by category below.
+                                {t("help.intro")}
                             </p>
                             <div className="relative mx-auto mt-8 max-w-xl">
                                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text"
-                                    placeholder="Search articles, topics, or questions..."
+                                    placeholder={t("help.searchPlaceholder")}
                                     className="w-full rounded-2xl border bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20 sm:py-4 sm:pl-14"
                                     style={{ borderColor: "var(--color-border)" }}
                                     value={searchQuery}
@@ -158,7 +158,7 @@ export default function KnowledgeBase() {
                                 />
                             </div>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
-                                {["Tracking", "Refunds", "Delivery time", "Security", "Order changes"].map((tag) => (
+                                {[t("help.tracking"), t("help.refunds"), t("help.deliveryTime"), t("help.security"), t("help.orderChanges")].map((tag) => (
                                     <button
                                         key={tag}
                                         type="button"
@@ -174,22 +174,22 @@ export default function KnowledgeBase() {
 
                         <div className="mt-10 grid gap-4 sm:grid-cols-3">
                             <div className="rounded-2xl border bg-bg-card p-5 text-center sm:p-6" style={{ borderColor: "var(--color-border)" }}>
-                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Coverage</p>
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t("help.coverage")}</p>
                                 <p className="mt-2 text-3xl font-bold text-text-main sm:text-4xl">24/7</p>
-                                <p className="mt-1 text-sm text-text-muted">Self-service support</p>
+                                <p className="mt-1 text-sm text-text-muted">{t("help.selfService")}</p>
                             </div>
                             <div className="rounded-2xl border bg-bg-card p-5 text-center sm:p-6" style={{ borderColor: "var(--color-border)" }}>
-                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Topics</p>
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t("help.topics")}</p>
                                 <p className="mt-2 text-3xl font-bold text-text-main sm:text-4xl">{knowledgeSections.length}</p>
-                                <p className="mt-1 text-sm text-text-muted">Covering common issues</p>
+                                <p className="mt-1 text-sm text-text-muted">{t("help.commonIssues")}</p>
                             </div>
                             <div className="rounded-2xl border border-primary/20 bg-primary/10 p-5 text-center sm:p-6">
-                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Need a person?</p>
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t("help.needPerson")}</p>
                                 <Link to="/contact" className="mt-2 inline-flex items-center gap-2 text-lg font-bold text-text-main">
-                                    Contact support
+                                    {t("help.contactSupport")}
                                     <ArrowRight className="h-4 w-4" />
                                 </Link>
-                                <p className="mt-1 text-sm text-text-muted">Escalate your issue</p>
+                                <p className="mt-1 text-sm text-text-muted">{t("help.escalateIssue")}</p>
                             </div>
                         </div>
                     </div>
@@ -197,7 +197,7 @@ export default function KnowledgeBase() {
 
                 {/* Browse By Topic */}
                 <section className="space-y-6 md:space-y-8">
-                    <SectionHeader number={1} title="Browse By Topic" icon={BookOpen} />
+                    <SectionHeader number={1} title={t("help.browseByTopic")} icon={BookOpen} />
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {knowledgeSections.map((section) => (
                             <article
@@ -235,33 +235,33 @@ export default function KnowledgeBase() {
 
                 {/* FAQ Accordion */}
                 <section className="space-y-6 md:space-y-8">
-                    <SectionHeader number={2} title="Frequently Asked Questions" icon={HelpCircle} />
+                    <SectionHeader number={2} title={t("help.faq")} icon={HelpCircle} />
                     {filteredSections.length > 0 ? (
                         <div className="space-y-6 md:space-y-8">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
-                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Search results</p>
+                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{t("help.searchResults")}</p>
                                     <p className="mt-2 text-2xl font-bold text-text-main sm:text-3xl">{filteredCount}</p>
-                                    <p className="mt-1 text-sm text-text-muted">Questions match your current search.</p>
+                                    <p className="mt-1 text-sm text-text-muted">{t("help.questionsMatch")}</p>
                                 </div>
                                 <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
-                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Support route</p>
+                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{t("help.supportRoute")}</p>
                                     <div className="mt-2 inline-flex items-center gap-2 text-lg font-bold text-text-main">
                                         <MessageSquare className="h-5 w-5 text-primary" />
-                                        Live assistance
+                                        {t("help.liveAssistance")}
                                     </div>
-                                    <p className="mt-1 text-sm text-text-muted">Move to contact if needed.</p>
+                                    <p className="mt-1 text-sm text-text-muted">{t("help.moveToContact")}</p>
                                 </div>
                             </div>
                             {filteredSections.map((section) => (
                                 <div key={section.category}>
                                     <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
-                                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">Category</p>
+                                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">{t("help.category")}</p>
                                             <h3 className="mt-1 text-lg font-bold text-text-main sm:text-xl">{section.category}</h3>
                                         </div>
                                         <p className="text-sm text-text-muted">
-                                            {section.questions.length} article{section.questions.length > 1 ? "s" : ""}
+                                            {section.questions.length} {section.questions.length > 1 ? t("help.articles") : t("help.article")}
                                         </p>
                                     </div>
                                     <div className="space-y-3">
@@ -297,10 +297,10 @@ export default function KnowledgeBase() {
                         </div>
                     ) : (
                         <div className="rounded-2xl border bg-bg-card p-8 text-center sm:p-12" style={{ borderColor: "var(--color-border)" }}>
-                            <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">No matches</p>
-                            <h3 className="mt-3 text-xl font-bold text-text-main sm:text-2xl">No articles matched that search.</h3>
+                            <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">{t("help.noMatches")}</p>
+                            <h3 className="mt-3 text-xl font-bold text-text-main sm:text-2xl">{t("help.noArticles")}</h3>
                             <p className="mx-auto mt-3 max-w-xl text-sm text-text-muted">
-                                Try a broader keyword like tracking, refund, delivery, or account. If the issue is specific, contact support directly instead of guessing.
+                                {t("help.noArticlesHint")}
                             </p>
                         </div>
                     )}
@@ -314,19 +314,19 @@ export default function KnowledgeBase() {
                     >
                         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div className="max-w-xl">
-                                <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">Escalation path</p>
+                                <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">{t("help.escalationPath")}</p>
                                 <h3 className="mt-3 text-xl font-bold tracking-tight text-text-main sm:text-2xl md:text-3xl">
-                                    Still need help with your order, account, or refund?
+                                    {t("help.stillNeedHelp")}
                                 </h3>
                                 <p className="mt-3 text-sm leading-6 text-text-muted">
-                                    Use the contact page for issues that need account access, manual order review, or a billing investigation.
+                                    {t("help.escalationText")}
                                 </p>
                             </div>
                             <Link
                                 to="/contact"
                                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-green-700 sm:px-7"
                             >
-                                Contact support
+                                {t("help.contactSupport")}
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                         </div>

@@ -6,6 +6,7 @@ import {
   normalizeProductCategory,
 } from "../../../constants/productCategories";
 import AlertMessage from "../../../components/ui/AlertMessage";
+import { useLanguage } from "../../../context/useLanguage";
 import {
   ArrowLeft,
   Upload,
@@ -31,6 +32,7 @@ const emptyProductForm = {
 
 const AddProduct = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [form, setForm] = useState(emptyProductForm);
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -91,15 +93,15 @@ const AddProduct = () => {
       setImagePreview(null);
       setFormMessage({
         type: "success",
-        title: "Product Added",
-        text: "Product added successfully.",
+        title: t("product.addedTitle"),
+        text: t("product.addedSuccess"),
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setFormMessage({
         type: "error",
-        title: "Add Failed",
-        text: err.response?.data?.message || err.message || "Failed to add product",
+        title: t("product.addFailedTitle"),
+        text: err.response?.data?.message || err.message || t("product.addFailed"),
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {

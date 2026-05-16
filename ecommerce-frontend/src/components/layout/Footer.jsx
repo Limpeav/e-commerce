@@ -9,9 +9,11 @@ import {
   Linkedin,
   Shield,
 } from "lucide-react";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { t } = useLanguage();
 
   const linkClass = "text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-1 inline-block";
 
@@ -34,7 +36,7 @@ export default function Footer() {
               <span className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Applac</span>
             </Link>
             <p className="max-w-xs text-sm leading-6 text-text-muted">
-              Your ultimate destination for premium products and an exceptional shopping experience. Quality guaranteed, satisfaction delivered.
+              {t("footer.brandDescription")}
             </p>
             <div className="space-y-3">
               {[
@@ -53,13 +55,13 @@ export default function Footer() {
 
           {/* Shop */}
           <div>
-            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Shop</h4>
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.shop")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: 'All Products', to: '/products' },
-                { name: 'New Arrivals', to: '/products?view=new-arrivals' },
-                { name: 'Best Sellers', to: '/products?view=best-sellers' },
-                { name: 'Deals', to: '/products?view=deals' },
+                { name: t('footer.allProducts'), to: '/products' },
+                { name: t('footer.newArrivals'), to: '/products?view=new-arrivals' },
+                { name: t('footer.bestSellers'), to: '/products?view=best-sellers' },
+                { name: t('footer.deals'), to: '/products?view=deals' },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>
@@ -70,12 +72,12 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Support</h4>
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.support")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: 'Contact', to: '/contact' },
-                { name: 'FAQ', to: '/knowledge-base' },
-                { name: 'Track Order', to: '/orders/tracking' },
+                { name: t('footer.contact'), to: '/contact' },
+                { name: t('footer.faq'), to: '/knowledge-base' },
+                { name: t('footer.trackOrder'), to: '/orders/tracking' },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>
@@ -86,13 +88,13 @@ export default function Footer() {
 
           {/* Company */}
           <div className="col-span-2 sm:col-span-1">
-            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">Company</h4>
+            <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.company")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: 'About Us', to: '/about' },
-                { name: 'Location', to: '/location' },
-                { name: 'Privacy Policy', to: '/privacy' },
-                { name: 'Terms of Service', to: '/terms' },
+                { name: t('footer.aboutUs'), to: '/about' },
+                { name: t('footer.location'), to: '/location' },
+                { name: t('footer.privacyPolicy'), to: '/privacy' },
+                { name: t('footer.termsOfService'), to: '/terms' },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>
@@ -110,7 +112,7 @@ export default function Footer() {
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
           <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted/50">
-            &copy; {currentYear} Applac Inc. All rights reserved.
+            &copy; {currentYear} Applac Inc. {t("footer.rightsReserved")}
           </p>
 
           <div className="flex items-center gap-3">
@@ -128,7 +130,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-2 rounded-lg border bg-bg-card px-3 py-1.5 opacity-60" style={{ borderColor: "var(--color-border)" }}>
             <Shield className="h-3 w-3 text-text-muted" strokeWidth={3} />
-            <span className="text-[10px] font-bold tracking-widest text-text-muted">SECURED</span>
+            <span className="text-[10px] font-bold tracking-widest text-text-muted">{t("footer.secured")}</span>
           </div>
         </div>
       </div>

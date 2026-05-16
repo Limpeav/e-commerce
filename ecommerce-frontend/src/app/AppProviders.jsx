@@ -5,21 +5,24 @@ import { AuthProvider } from "../context/AuthContext";
 import { ToastProvider } from "../context/ToastContext";
 import { CartProvider } from "../context/CartContext";
 import { WishlistProvider } from "../context/WishlistContext";
+import { LanguageProvider } from "../context/LanguageContext";
 
 export default function AppProviders({ children }) {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <ToastProvider>
-              <CartProvider>
-                <WishlistProvider>{children}</WishlistProvider>
-              </CartProvider>
-            </ToastProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <ToastProvider>
+                <CartProvider>
+                  <WishlistProvider>{children}</WishlistProvider>
+                </CartProvider>
+              </ToastProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </ThemeProvider>
+      </LanguageProvider>
     </GoogleOAuthProvider>
   );
 }

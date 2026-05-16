@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
 
 const container = {
   hidden: { opacity: 0 },
@@ -30,6 +31,7 @@ const ProductsGrid = ({
   onClearFilters
 }) => {
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
 
   return (
     <AnimatePresence mode="wait">
@@ -62,13 +64,13 @@ const ProductsGrid = ({
           <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-8 ${isDark ? 'bg-slate-800 text-slate-500' : 'bg-stone-50 text-stone-200'}`}>
             <Search className="w-7 h-7 sm:w-10 sm:h-10" />
           </div>
-          <h3 className="text-xl sm:text-3xl font-bold text-text-main mb-2 sm:mb-3 font-display">No results found</h3>
-          <p className="text-text-muted text-sm sm:text-lg max-w-sm mx-auto">We couldn't find any products matching your current filters.</p>
+          <h3 className="text-xl sm:text-3xl font-bold text-text-main mb-2 sm:mb-3 font-display">{t("product.noResultsFound")}</h3>
+          <p className="text-text-muted text-sm sm:text-lg max-w-sm mx-auto">{t("product.noResultsMessage")}</p>
           <button
             onClick={onClearFilters}
             className="mt-6 sm:mt-10 px-6 sm:px-10 py-3 sm:py-4 bg-primary text-white rounded-xl sm:rounded-2xl font-bold text-sm hover:bg-primary-dark transition-all hover:shadow-xl active:scale-95"
           >
-            Explore Everything
+            {t("product.exploreEverything")}
           </button>
         </motion.div>
       )}

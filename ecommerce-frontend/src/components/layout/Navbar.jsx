@@ -16,6 +16,7 @@ import {
   Info,
   Moon,
   Sun,
+  Languages,
 } from "lucide-react";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -23,6 +24,27 @@ import { useAuth } from "../../context/useAuth";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
+import { supportedLanguages } from "../../i18n/translations";
+
+const LanguageSelect = ({ language, setLanguage, t }) => (
+  <label className="inline-flex items-center gap-2 rounded-2xl border bg-[color:var(--color-surface-soft)] px-3 py-2 text-text-main">
+    <Languages className="h-4 w-4 text-primary" />
+    <span className="sr-only">{t("language.switch")}</span>
+    <select
+      value={language}
+      onChange={(event) => setLanguage(event.target.value)}
+      className="bg-transparent text-sm font-semibold outline-none"
+      aria-label={t("language.switch")}
+    >
+      {supportedLanguages.map((item) => (
+        <option key={item.code} value={item.code}>
+          {t(item.labelKey)}
+        </option>
+      ))}
+    </select>
+  </label>
+);
 
 export default function Navbar() {
   const location = useLocation();
@@ -30,6 +52,7 @@ export default function Navbar() {
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [isDark, toggleDarkMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -109,7 +132,7 @@ export default function Navbar() {
                     }`}
                 >
                   <Home className="w-4 h-4" />
-                  <span>Home</span>
+                  <span>{t("nav.home")}</span>
                 </Link>
 
                 <Link
@@ -135,7 +158,7 @@ export default function Navbar() {
                       )}
                     </AnimatePresence>
                   </div>
-                  <span>Wishlist</span>
+                  <span>{t("nav.wishlist")}</span>
                 </Link>
 
                 <Link
@@ -161,7 +184,7 @@ export default function Navbar() {
                       )}
                     </AnimatePresence>
                   </div>
-                  <span>Cart</span>
+                  <span>{t("nav.cart")}</span>
                 </Link>
               </div>
 
@@ -171,12 +194,13 @@ export default function Navbar() {
                   type="button"
                   onClick={() => toggleDarkMode()}
                   className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-semibold transition-colors ${subtleSurfaceClassName}`}
-                  aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
-                  title={`Switch to ${isDark ? "light" : "dark"} mode`}
+                  aria-label={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
+                  title={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
                 >
                   {isDark ? <Sun className="w-4 h-4 text-secondary" /> : <Moon className="w-4 h-4 text-text-main" />}
-                  <span>{isDark ? "Light" : "Dark"}</span>
+                  <span>{isDark ? t("nav.light") : t("nav.dark")}</span>
                 </button>
+                <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
                 {user ? (
                   <div className="relative">
                     <button
@@ -211,14 +235,14 @@ export default function Navbar() {
                             </div>
                             <div className="p-3">
                               <Link to="/customer/profile" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
-                                <User className="w-4 h-4" /><span className="text-sm font-semibold">Profile</span>
+                                <User className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.profile")}</span>
                               </Link>
                               <Link to="/customer/orders" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
-                                <Package className="w-4 h-4" /><span className="text-sm font-semibold">Orders</span>
+                                <Package className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.orders")}</span>
                               </Link>
                               <div className="mx-4 my-2 h-px" style={{ backgroundColor: "var(--color-border)" }}></div>
                               <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-text-muted transition-colors hover:bg-secondary/15 hover:text-secondary">
-                                <LogOut className="w-4 h-4" /><span className="text-sm font-bold">Logout</span>
+                                <LogOut className="w-4 h-4" /><span className="text-sm font-bold">{t("nav.logout")}</span>
                               </button>
                             </div>
                           </motion.div>
@@ -231,7 +255,7 @@ export default function Navbar() {
                     <Link
                       to="/login"
                       className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${subtleSurfaceClassName} hover:bg-primary/10 hover:text-primary`}
-                      title="Login / Register"
+                      title={t("nav.loginRegister")}
                     >
                       <User className="w-6 h-6" />
                     </Link>
@@ -271,7 +295,7 @@ export default function Navbar() {
               type="button"
               onClick={() => toggleDarkMode()}
               className="rounded-full p-2 text-text-main transition-colors hover:bg-primary/10"
-              aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+              aria-label={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -344,7 +368,7 @@ export default function Navbar() {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-text-main">Welcome!</p>
+                    <p className="font-bold text-text-main">{t("nav.welcome")}</p>
                     <button onClick={() => setShowMobileMenu(false)} className="rounded-xl p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
                       <X className="w-5 h-5" />
                     </button>
@@ -354,11 +378,11 @@ export default function Navbar() {
 
               {/* Menu Items */}
               <div className="p-4 space-y-1">
-                <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Browse</p>
+                <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("nav.browse")}</p>
                 {[
-                  { to: "/customer", icon: Home, label: "Home" },
-                  { to: "/customer/wishlist", icon: Heart, label: "Wishlist", badge: wishlistItemCount },
-                  { to: "/customer/cart", icon: ShoppingCart, label: "Cart", badge: cartItemCount },
+                  { to: "/customer", icon: Home, label: t("nav.home") },
+                  { to: "/customer/wishlist", icon: Heart, label: t("nav.wishlist"), badge: wishlistItemCount },
+                  { to: "/customer/cart", icon: ShoppingCart, label: t("nav.cart"), badge: cartItemCount },
                 ].map((item) => (
                   <Link
                     key={item.to}
@@ -384,16 +408,18 @@ export default function Navbar() {
                   className="flex w-full items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-text-main transition-all hover:bg-primary/15"
                 >
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                  <span>{isDark ? "Light mode" : "Dark mode"}</span>
+                  <span>{isDark ? t("nav.lightMode") : t("nav.darkMode")}</span>
                 </button>
+
+                <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
 
                 {user && (
                   <>
-                    <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Account</p>
+                    <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("nav.account")}</p>
                     {[
-                      { to: "/customer/profile", icon: User, label: "Profile" },
-                      { to: "/customer/orders", icon: Package, label: "My Orders" },
-                      { to: "/customer/settings", icon: Settings, label: "Settings" },
+                      { to: "/customer/profile", icon: User, label: t("nav.profile") },
+                      { to: "/customer/orders", icon: Package, label: t("nav.myOrders") },
+                      { to: "/customer/settings", icon: Settings, label: t("nav.settings") },
                     ].map((item) => (
                       <Link
                         key={item.to}
@@ -410,11 +436,11 @@ export default function Navbar() {
                   </>
                 )}
 
-                <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">More</p>
+                <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("nav.more")}</p>
                 {[
-                  { to: "/about", icon: Info, label: "About Us" },
-                  { to: "/contact", icon: HelpCircle, label: "Contact" },
-                  { to: "/location", icon: MapPin, label: "Store Location" },
+                  { to: "/about", icon: Info, label: t("nav.about") },
+                  { to: "/contact", icon: HelpCircle, label: t("nav.contact") },
+                  { to: "/location", icon: MapPin, label: t("nav.location") },
                 ].map((item) => (
                   <Link
                     key={item.to}
@@ -438,15 +464,15 @@ export default function Navbar() {
                     className="flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary/15 px-4 py-3 text-sm font-bold text-secondary transition-colors hover:bg-secondary/25"
                   >
                     <LogOut className="w-4 h-4" />
-                    Logout
+                    {t("nav.logout")}
                   </button>
                 ) : (
                   <div className="space-y-2">
                     <Link to="/login" className="block w-full rounded-2xl bg-primary/10 px-4 py-3 text-center text-sm font-bold text-text-main transition-colors hover:bg-primary/15">
-                      Login
+                      {t("nav.login")}
                     </Link>
                     <Link to="/register" className="block w-full text-center px-4 py-3 rounded-2xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors">
-                      Register
+                      {t("nav.register")}
                     </Link>
                   </div>
                 )}

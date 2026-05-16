@@ -16,6 +16,7 @@ import {
     deleteUser,
     getUserStats,
 } from "../controllers/userManagementController.js";
+import { translateText } from "../controllers/translationController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 import { createUpload } from "../middleware/upload.js";
@@ -46,6 +47,7 @@ router.post(
     productImageUpload.single("image"),
     uploadProductImage
 );
+router.post("/translate", protect, admin, translateText);
 
 // User management routes
 router.get("/users", protect, admin, getAllUsers);

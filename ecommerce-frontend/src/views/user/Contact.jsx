@@ -3,40 +3,42 @@ import { Mail, Phone, MessageSquare, Send, Clock } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function Contact() {
+    const { t } = useLanguage();
     const contactMethods = [
         {
             icon: Phone,
-            iconTitle: "Phone",
-            title: "Voice Support",
+            iconTitle: t("contact.phone"),
+            title: t("contact.voiceSupport"),
             value: "+1 (555) 000-1234",
-            description: "Mon-Fri from 8am to 5pm",
+            description: t("contact.phoneHours"),
             color: "blue"
         },
         {
             icon: Mail,
-            iconTitle: "Email",
-            title: "Email Terminal",
+            iconTitle: t("contact.email"),
+            title: t("contact.emailTerminal"),
             value: "support@applac.com",
-            description: "24/7 Response coverage",
+            description: t("contact.emailHours"),
             color: "primary"
         },
         {
             icon: MessageSquare,
-            iconTitle: "Telegram",
-            title: "Live Protocol",
-            value: "Direct Chat",
-            description: "Instant uplink with agents",
+            iconTitle: t("contact.telegram"),
+            title: t("contact.liveProtocol"),
+            value: t("contact.directChat"),
+            description: t("contact.instantAgents"),
             color: "secondary"
         }
     ];
 
     return (
         <PageLayout
-            title="Contact Support"
-            subtitle="Get in touch with our team"
-            badge="Contact Us"
+            title={t("contact.title")}
+            subtitle={t("contact.subtitle")}
+            badge={t("contact.badge")}
             icon={Send}
             badgeColor="primary"
             maxWidth="7xl"
@@ -68,38 +70,38 @@ export default function Contact() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                         <div className="space-y-8">
                             <div>
-                                <SectionHeader number={1} title="Send Message" icon={MessageSquare} />
+                                <SectionHeader number={1} title={t("contact.sendMessage")} icon={MessageSquare} />
                                 <p className="text-sm font-medium text-text-muted leading-relaxed mb-8 max-w-md">
-                                    Have a specific inquiry? Fill out the form below to send detailed information directly to our team.
+                                    {t("contact.formIntro")}
                                 </p>
                             </div>
 
                             <form className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Full Name</label>
-                                        <input type="text" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Enter name..." />
+                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.fullName")}</label>
+                                        <input type="text" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder={t("contact.enterName")} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Email Address</label>
-                                        <input type="email" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Enter email..." />
+                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.emailAddress")}</label>
+                                        <input type="email" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder={t("contact.enterEmail")} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Inquiry Topic</label>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.inquiryTopic")}</label>
                                     <select className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
-                                        <option>Technical Support</option>
-                                        <option>Billing & Finance</option>
-                                        <option>Partnership Proposal</option>
-                                        <option>Other / General</option>
+                                        <option>{t("contact.technicalSupport")}</option>
+                                        <option>{t("contact.billingFinance")}</option>
+                                        <option>{t("contact.partnership")}</option>
+                                        <option>{t("contact.otherGeneral")}</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Message</label>
-                                    <textarea rows="4" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder="Your message..."></textarea>
+                                    <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.message")}</label>
+                                    <textarea rows="4" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder={t("contact.yourMessage")}></textarea>
                                 </div>
                                 <button className="w-full bg-text-main text-white py-4 rounded-xl font-bold text-sm hover:bg-primary transition-all shadow-lg hover:shadow-primary/20 flex items-center justify-center gap-3 group active:scale-95">
-                                    Send Message
+                                    {t("contact.sendMessage")}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </button>
                             </form>
@@ -107,12 +109,12 @@ export default function Contact() {
 
                         <div className="lg:pl-16 space-y-12">
                             <div>
-                                <SectionHeader number={2} title="Business Hours" icon={Clock} />
+                                <SectionHeader number={2} title={t("contact.businessHours")} icon={Clock} />
                                 <div className="space-y-4">
                                     {[
-                                        { day: "Monday - Friday", hours: "08:00 - 20:00" },
-                                        { day: "Saturday - Sunday", hours: "10:00 - 16:00" },
-                                        { day: "Public Holidays", hours: "Closed" }
+                                        { day: t("contact.mondayFriday"), hours: "08:00 - 20:00" },
+                                        { day: t("contact.saturdaySunday"), hours: "10:00 - 16:00" },
+                                        { day: t("contact.publicHolidays"), hours: t("contact.closed") }
                                     ].map((item, idx) => (
                                         <div key={idx} className="flex justify-between items-center border-b border-stone-100 pb-3 last:border-0">
                                             <span className="text-xs font-bold text-text-main">{item.day}</span>

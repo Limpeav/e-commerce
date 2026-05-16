@@ -6,6 +6,7 @@ import {
   normalizeProductCategory,
 } from "../../../constants/productCategories";
 import AlertMessage from "../../../components/ui/AlertMessage";
+import { useLanguage } from "../../../context/useLanguage";
 import {
   ArrowLeft,
   Upload,
@@ -23,6 +24,7 @@ import Loading from "../../../components/common/Loading";
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [form, setForm] = useState({
     title: "",
@@ -148,10 +150,10 @@ const EditProduct = () => {
         currentImage: updatedImage,
       }));
       setImagePreview(updatedImage || imagePreview);
-      setSuccessMessage("Product updated successfully.");
+      setSuccessMessage(t("product.updatedSuccess"));
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setErrorMessage(err.response?.data?.message || err.message || "Update failed");
+      setErrorMessage(err.response?.data?.message || err.message || t("product.updateFailed"));
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
@@ -192,7 +194,7 @@ const EditProduct = () => {
           <div className="mb-6">
             <AlertMessage
               type="success"
-              title="Product Updated"
+              title={t("product.updatedTitle")}
               message={successMessage}
               onClose={() => setSuccessMessage("")}
             />
@@ -203,7 +205,7 @@ const EditProduct = () => {
           <div className="mb-6">
             <AlertMessage
               type="error"
-              title="Update Failed"
+              title={t("product.updateFailedTitle")}
               message={errorMessage}
               onClose={() => setErrorMessage("")}
             />
