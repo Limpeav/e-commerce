@@ -598,11 +598,11 @@ const AdminOrders = () => {
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="bg-white rounded-lg shadow-sm p-4">
                     <p className="text-sm text-gray-500">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                    <p className="text-2xl font-bold text-green-600">{orders.length}</p>
                 </div>
                 <div className="bg-white rounded-lg shadow-sm p-4">
                     <p className="text-sm text-gray-500">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">
+                    <p className="text-2xl font-bold text-green-600">
                         {orders.filter((o) => o.orderStatus === "Pending").length}
                     </p>
                 </div>

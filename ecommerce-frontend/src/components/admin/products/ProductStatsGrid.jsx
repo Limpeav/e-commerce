@@ -1,12 +1,19 @@
 import { Filter, Package, Sparkles, TrendingUp } from "lucide-react";
 import { createElement } from "react";
 
-const ProductStatCard = ({ icon, label, value, caption, iconClassName }) => (
+const ProductStatCard = ({
+  icon,
+  label,
+  value,
+  caption,
+  iconClassName,
+  valueClassName = "text-gray-900",
+}) => (
   <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-gray-600">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+        <p className={`text-3xl font-bold ${valueClassName} mt-1`}>{value}</p>
         <p className="text-xs text-gray-500 mt-2">{caption}</p>
       </div>
       <div className={iconClassName}>
@@ -24,6 +31,7 @@ const ProductStatsGrid = ({ stats, showLowStockOnly, onToggleLowStock }) => (
       value={stats.totalProducts}
       caption="+12% from last month"
       iconClassName="bg-blue-100 p-3 rounded-xl text-blue-600"
+      valueClassName="text-green-600"
     />
     <ProductStatCard
       icon={Filter}
@@ -31,6 +39,7 @@ const ProductStatsGrid = ({ stats, showLowStockOnly, onToggleLowStock }) => (
       value={stats.categoryCount}
       caption="Active categories"
       iconClassName="bg-green-100 p-3 rounded-xl text-green-600"
+      valueClassName="text-green-600"
     />
     <button
       type="button"
@@ -59,7 +68,8 @@ const ProductStatsGrid = ({ stats, showLowStockOnly, onToggleLowStock }) => (
       label="Best Sellers"
       value={stats.bestSellerCount}
       caption="Based on sold quantity"
-      iconClassName="bg-emerald-100 p-3 rounded-xl text-emerald-600"
+      iconClassName="bg-gray-100 p-3 rounded-xl text-emerald-600"
+      valueClassName="text-green-600"
     />
     <ProductStatCard
       icon={Sparkles}
@@ -67,6 +77,7 @@ const ProductStatsGrid = ({ stats, showLowStockOnly, onToggleLowStock }) => (
       value={stats.newArrivalCount}
       caption="Set manually by admin"
       iconClassName="bg-blue-100 p-3 rounded-xl text-blue-600"
+      valueClassName="text-green-600"
     />
   </div>
 );
