@@ -5,6 +5,7 @@ import {
   PRODUCT_CATEGORY_OPTIONS,
   normalizeProductCategory,
 } from "../../../constants/productCategories";
+import AlertMessage from "../../../components/ui/AlertMessage";
 import {
   ArrowLeft,
   Upload,
@@ -38,6 +39,8 @@ const EditProduct = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -72,6 +75,9 @@ const EditProduct = () => {
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
+    setSuccessMessage("");
+    setErrorMessage("");
+
     if (type === "checkbox") {
       setForm({ ...form, [name]: checked });
       return;
@@ -90,6 +96,8 @@ const EditProduct = () => {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    setSuccessMessage("");
+    setErrorMessage("");
     setForm({ ...form, image: file });
 
     if (file) {
@@ -102,6 +110,8 @@ const EditProduct = () => {
   };
 
   const removeImage = () => {
+    setSuccessMessage("");
+    setErrorMessage("");
     setImagePreview(form.currentImage);
     setForm({ ...form, image: null });
   };
@@ -109,6 +119,8 @@ const EditProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSuccessMessage("");
+    setErrorMessage("");
 
     const formData = new FormData();
     formData.append("title", form.title);
@@ -126,10 +138,21 @@ const EditProduct = () => {
     }
 
     try {
-      await adminService.updateProduct(id, formData);
-      navigate("/admin/products");
+      const response = await adminService.updateProduct(id, formData);
+      const updatedProduct = response.data?.product || response.data || {};
+      const updatedImage = updatedProduct.image || imagePreview || form.currentImage;
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        image: null,
+        currentImage: updatedImage,
+      }));
+      setImagePreview(updatedImage || imagePreview);
+      setSuccessMessage("Product updated successfully.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Update failed");
+      setErrorMessage(err.response?.data?.message || err.message || "Update failed");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
     }
@@ -165,6 +188,28 @@ const EditProduct = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {successMessage && (
+          <div className="mb-6">
+            <AlertMessage
+              type="success"
+              title="Product Updated"
+              message={successMessage}
+              onClose={() => setSuccessMessage("")}
+            />
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-6">
+            <AlertMessage
+              type="error"
+              title="Update Failed"
+              message={errorMessage}
+              onClose={() => setErrorMessage("")}
+            />
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Product Image Upload */}
           <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">

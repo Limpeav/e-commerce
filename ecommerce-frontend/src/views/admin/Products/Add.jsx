@@ -5,6 +5,7 @@ import {
   PRODUCT_CATEGORY_OPTIONS,
   normalizeProductCategory,
 } from "../../../constants/productCategories";
+import AlertMessage from "../../../components/ui/AlertMessage";
 import {
   ArrowLeft,
   Upload,
@@ -17,26 +18,31 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const emptyProductForm = {
+  title: "",
+  price: "",
+  discountPrice: "",
+  category: "",
+  image: null,
+  description: "",
+  stock: "",
+  isNewArrival: false,
+};
+
 const AddProduct = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    title: "",
-    price: "",
-    discountPrice: "",
-    category: "",
-    image: null,
-    description: "",
-    stock: "",
-    isNewArrival: false,
-  });
+  const [form, setForm] = useState(emptyProductForm);
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
   const [csvLoading, setCsvLoading] = useState(false);
+  const [formMessage, setFormMessage] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
+    setFormMessage(null);
+
     if (type === "checkbox") {
       setForm({ ...form, [name]: checked });
       return;
@@ -55,6 +61,7 @@ const AddProduct = () => {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    setFormMessage(null);
     setForm({ ...form, image: file });
 
     if (file) {
@@ -69,6 +76,7 @@ const AddProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setFormMessage(null);
 
     const formData = new FormData();
     Object.keys(form).forEach((key) => {
@@ -79,10 +87,21 @@ const AddProduct = () => {
 
     try {
       await adminService.createProduct(formData);
-      alert("Product added successfully!");
-      navigate("/admin/products");
+      setForm(emptyProductForm);
+      setImagePreview(null);
+      setFormMessage({
+        type: "success",
+        title: "Product Added",
+        text: "Product added successfully.",
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to add product");
+      setFormMessage({
+        type: "error",
+        title: "Add Failed",
+        text: err.response?.data?.message || err.message || "Failed to add product",
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
     }
@@ -144,6 +163,17 @@ const AddProduct = () => {
 
       {/* Form */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {formMessage && (
+          <div className="mb-6">
+            <AlertMessage
+              type={formMessage.type}
+              title={formMessage.title}
+              message={formMessage.text}
+              onClose={() => setFormMessage(null)}
+            />
+          </div>
+        )}
+
         <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">
