@@ -46,6 +46,10 @@ const productSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    sizes: {
+      type: [String],
+      default: [],
+    },
     totalSold: {
       type: Number,
       default: 0,

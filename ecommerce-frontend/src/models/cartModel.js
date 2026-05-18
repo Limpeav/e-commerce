@@ -10,6 +10,7 @@ export class CartItemModel {
     this.price = Number(data.price ?? product.price ?? 0);
     this.quantity = Number(data.quantity ?? 1);
     this.stock = Number(data.stock ?? product.stock ?? 0);
+    this.size = data.size || "";
   }
 
   get subtotal() {

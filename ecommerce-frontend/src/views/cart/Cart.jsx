@@ -6,6 +6,7 @@ import CartHeader from "../../components/cart/CartHeader";
 import CartItem from "../../components/cart/CartItem";
 import OrderSummary from "../../components/cart/OrderSummary";
 import { useDarkMode } from "../../hooks";
+import { getCartItemKey } from "../../utils/productOptions";
 
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity } = useCart();
@@ -45,7 +46,7 @@ export default function Cart() {
           <div className="lg:col-span-2 space-y-4">
             {validCartItems.map((item) => (
               <CartItem
-                key={item._id || item.product._id}
+                key={getCartItemKey(item)}
                 item={item}
                 onRemove={removeFromCart}
                 onUpdateQuantity={updateQuantity}

@@ -13,18 +13,18 @@ export const cartService = {
     return { data: CartModel.fromApi(data) };
   },
 
-  async addToCart(productId, quantity = 1) {
-    const data = await addItemToCart({ productId, quantity });
+  async addToCart(productId, quantity = 1, options = {}) {
+    const data = await addItemToCart({ productId, quantity, size: options.size || "" });
     return { data: CartModel.fromApi(data) };
   },
 
-  async updateQuantity(productId, quantity) {
-    const data = await updateCartItemQuantity(productId, quantity);
+  async updateQuantity(productId, quantity, options = {}) {
+    const data = await updateCartItemQuantity(productId, quantity, options.size || "");
     return { data: CartModel.fromApi(data) };
   },
 
-  async removeFromCart(productId) {
-    const data = await removeItemFromCart(productId);
+  async removeFromCart(productId, options = {}) {
+    const data = await removeItemFromCart(productId, options.size || "");
     return { data: CartModel.fromApi(data) };
   },
 

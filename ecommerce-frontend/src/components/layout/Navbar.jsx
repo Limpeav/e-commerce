@@ -22,19 +22,22 @@ import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { supportedLanguages } from "../../i18n/translations";
 
-const LanguageSelect = ({ language, setLanguage, t }) => (
-  <label className="inline-flex items-center gap-2 rounded-2xl border bg-[color:var(--color-surface-soft)] px-3 py-2 text-text-main">
-    <Languages className="h-4 w-4 text-primary" />
+const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
+  <label
+    className={`${fullWidth ? "flex w-full" : "inline-flex"} min-w-0 items-center gap-2 rounded-2xl border bg-[color:var(--color-surface-soft)] px-3 py-2 text-text-main`}
+    style={{ borderColor: "var(--color-border)" }}
+  >
+    <Languages className="h-4 w-4 shrink-0 text-primary" />
     <span className="sr-only">{t("language.switch")}</span>
     <select
       value={language}
       onChange={(event) => setLanguage(event.target.value)}
-      className="bg-transparent text-sm font-semibold outline-none"
+      className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
       aria-label={t("language.switch")}
     >
       {supportedLanguages.map((item) => (
@@ -58,12 +61,6 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const isActive = (path) => location.pathname === path;
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setShowMobileMenu(false);
-    setShowDropdown(false);
-  }, [location.pathname]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -110,12 +107,12 @@ export default function Navbar() {
           <div className="h-20 flex justify-between items-center">
             {/* Logo */}
             <Link to="/customer" className="flex items-center gap-3 group">
-              <motion.div
+              <Motion.div
                 whileHover={{ rotate: 12 }}
                 className="bg-primary-light/20 p-2.5 rounded-2xl transition-all duration-300"
               >
                 <Baby className="w-7 h-7 text-primary" />
-              </motion.div>
+              </Motion.div>
               <h1 className="text-2xl font-bold text-text-main tracking-tight font-display leading-none">
                 Applac
               </h1>
@@ -146,7 +143,7 @@ export default function Navbar() {
                     <Heart className={`w-5 h-5 ${isActive("/customer/wishlist") ? "text-primary" : ""}`} />
                     <AnimatePresence mode="wait">
                       {wishlistItemCount > 0 && (
-                        <motion.span
+                        <Motion.span
                           key={wishlistItemCount}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
@@ -154,7 +151,7 @@ export default function Navbar() {
                           className="absolute -top-2 -right-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-white shadow-md ring-2 ring-white"
                         >
                           {wishlistItemCount}
-                        </motion.span>
+                        </Motion.span>
                       )}
                     </AnimatePresence>
                   </div>
@@ -172,7 +169,7 @@ export default function Navbar() {
                     <ShoppingCart className="w-5 h-5" />
                     <AnimatePresence mode="wait">
                       {cartItemCount > 0 && (
-                        <motion.span
+                        <Motion.span
                           key={cartItemCount}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
@@ -180,7 +177,7 @@ export default function Navbar() {
                           className="absolute -top-2 -right-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-md ring-2 ring-white"
                         >
                           {cartItemCount}
-                        </motion.span>
+                        </Motion.span>
                       )}
                     </AnimatePresence>
                   </div>
@@ -222,7 +219,7 @@ export default function Navbar() {
                       {showDropdown && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
-                          <motion.div
+                          <Motion.div
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -245,7 +242,7 @@ export default function Navbar() {
                                 <LogOut className="w-4 h-4" /><span className="text-sm font-bold">{t("nav.logout")}</span>
                               </button>
                             </div>
-                          </motion.div>
+                          </Motion.div>
                         </>
                       )}
                     </AnimatePresence>
@@ -337,19 +334,19 @@ export default function Navbar() {
       <AnimatePresence>
         {showMobileMenu && (
           <>
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[110]"
               onClick={() => setShowMobileMenu(false)}
             />
-            <motion.div
+            <Motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed top-0 left-0 bottom-0 w-[80%] max-w-[320px] z-[120] shadow-2xl overflow-y-auto transition-colors duration-300 ${panelClassName}`}
+              className={`fixed top-0 left-0 bottom-0 z-[120] flex h-dvh w-[min(88vw,360px)] max-w-[calc(100vw-3rem)] flex-col shadow-2xl transition-colors duration-300 ${panelClassName}`}
             >
               {/* User Info Header */}
               <div className="border-b bg-primary/8 px-5 pt-6 pb-4" style={{ borderColor: "var(--color-border)" }}>
@@ -377,7 +374,7 @@ export default function Navbar() {
               </div>
 
               {/* Menu Items */}
-              <div className="p-4 space-y-1">
+              <div className="flex-1 space-y-1 overflow-y-auto p-4 pb-6">
                 <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("nav.browse")}</p>
                 {[
                   { to: "/customer", icon: Home, label: t("nav.home") },
@@ -387,15 +384,16 @@ export default function Navbar() {
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${isActive(item.to)
+                    onClick={() => setShowMobileMenu(false)}
+                    className={`flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${isActive(item.to)
                       ? "bg-primary/10 text-primary"
                       : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                       }`}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="flex-1">{item.label}</span>
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
                     {item.badge > 0 && (
-                      <span className="min-w-[22px] h-[22px] bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                      <span className="flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -405,13 +403,13 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => toggleDarkMode()}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-text-main transition-all hover:bg-primary/15"
+                  className="flex w-full min-w-0 items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-text-main transition-all hover:bg-primary/15"
                 >
-                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                  <span>{isDark ? t("nav.lightMode") : t("nav.darkMode")}</span>
+                  {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
+                  <span className="min-w-0 flex-1 leading-snug">{isDark ? t("nav.lightMode") : t("nav.darkMode")}</span>
                 </button>
 
-                <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
+                <LanguageSelect language={language} setLanguage={setLanguage} t={t} fullWidth />
 
                 {user && (
                   <>
@@ -424,13 +422,14 @@ export default function Navbar() {
                       <Link
                         key={item.to}
                         to={item.to}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${isActive(item.to)
+                        onClick={() => setShowMobileMenu(false)}
+                        className={`flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${isActive(item.to)
                           ? "bg-primary/10 text-primary"
                           : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                           }`}
                       >
-                        <item.icon className="w-5 h-5" />
-                        <span>{item.label}</span>
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
                       </Link>
                     ))}
                   </>
@@ -445,19 +444,20 @@ export default function Navbar() {
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${isActive(item.to)
+                    onClick={() => setShowMobileMenu(false)}
+                    className={`flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${isActive(item.to)
                       ? "bg-primary/10 text-primary"
                       : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                       }`}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span>{item.label}</span>
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
                   </Link>
                 ))}
               </div>
 
               {/* Bottom Actions */}
-              <div className="mt-auto border-t p-4" style={{ borderColor: "var(--color-border)" }}>
+              <div className="shrink-0 border-t p-4" style={{ borderColor: "var(--color-border)" }}>
                 {user ? (
                   <button
                     onClick={handleLogout}
@@ -468,16 +468,16 @@ export default function Navbar() {
                   </button>
                 ) : (
                   <div className="space-y-2">
-                    <Link to="/login" className="block w-full rounded-2xl bg-primary/10 px-4 py-3 text-center text-sm font-bold text-text-main transition-colors hover:bg-primary/15">
+                    <Link to="/login" onClick={() => setShowMobileMenu(false)} className="block w-full rounded-2xl bg-primary/10 px-4 py-3 text-center text-sm font-bold text-text-main transition-colors hover:bg-primary/15">
                       {t("nav.login")}
                     </Link>
-                    <Link to="/register" className="block w-full text-center px-4 py-3 rounded-2xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors">
+                    <Link to="/register" onClick={() => setShowMobileMenu(false)} className="block w-full text-center px-4 py-3 rounded-2xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors">
                       {t("nav.register")}
                     </Link>
                   </div>
                 )}
               </div>
-            </motion.div>
+            </Motion.div>
           </>
         )}
       </AnimatePresence>

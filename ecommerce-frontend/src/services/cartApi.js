@@ -34,7 +34,7 @@ export const addItemToCart = async (productData) => {
 };
 
 // Update cart item quantity
-export const updateCartItemQuantity = async (productId, quantity) => {
+export const updateCartItemQuantity = async (productId, quantity, size = "") => {
   const token = getAuthToken();
   const config = {
     headers: {
@@ -43,19 +43,20 @@ export const updateCartItemQuantity = async (productId, quantity) => {
   };
   const response = await axios.put(
     `${API_URL}/${productId}`,
-    { quantity },
+    { quantity, size },
     config
   ); // ✅ Remove productId from body
   return response.data;
 };
 
 // Remove item from cart
-export const removeItemFromCart = async (productId) => {
+export const removeItemFromCart = async (productId, size = "") => {
   const token = getAuthToken();
   const config = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    params: size ? { size } : {},
   };
   const response = await axios.delete(`${API_URL}/remove/${productId}`, config); // ✅ Add /remove/
   return response.data;

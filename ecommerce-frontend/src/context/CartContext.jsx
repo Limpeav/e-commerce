@@ -32,7 +32,7 @@ export const CartProvider = ({ children }) => {
   }, [user]);
 
   // Add to cart
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (product, quantity = 1, options = {}) => {
     if (!user) {
       info("Login Required", "Please login to add items to your cart");
       return;
@@ -40,26 +40,29 @@ export const CartProvider = ({ children }) => {
 
     try {
       const productLabel = product?.title || product?.name || "This product";
-      const result = await CartController.addToCart(product, quantity);
+      const result = await CartController.addToCart(product, quantity, options);
       if (!result.success) {
         throw new Error(result.error);
       }
 
       setCart(result.data || []);
 
-      success("Added to Cart", `${productLabel} has been added to your cart.`);
+      success(
+        "Added to Cart",
+        `${productLabel}${options.size ? ` (${options.size})` : ""} has been added to your cart.`
+      );
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toastError("Action Failed", "Could not add item to cart. Please try again.");
+      toastError("Action Failed", error.message || "Could not add item to cart. Please try again.");
     }
   };
 
   // Update quantity
-  const updateQuantity = async (productId, newQuantity) => {
+  const updateQuantity = async (productId, newQuantity, options = {}) => {
     if (!user) return;
 
     try {
-      const result = await CartController.updateQuantity(productId, newQuantity);
+      const result = await CartController.updateQuantity(productId, newQuantity, options);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -72,11 +75,11 @@ export const CartProvider = ({ children }) => {
   };
 
   // Remove from cart
-  const removeFromCart = async (productId) => {
+  const removeFromCart = async (productId, options = {}) => {
     if (!user) return;
 
     try {
-      const result = await CartController.removeFromCart(productId);
+      const result = await CartController.removeFromCart(productId, options);
       if (!result.success) {
         throw new Error(result.error);
       }

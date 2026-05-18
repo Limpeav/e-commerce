@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCart } from "../../context/useCart";
 import { useAuth } from "../../context/useAuth";
 import { useWishlist } from "../../context/useWishlist";
@@ -32,8 +32,8 @@ export default function ProductDetail() {
   const { product, loading, error, refetch } = useProductDetail(id, user);
   const reviewData = useProductReview(id, user);
 
-  const handleAddToCart = () => {
-    addToCart(product, quantity);
+  const handleAddToCart = (options = {}) => {
+    addToCart(product, quantity, options);
   };
 
   const handleWishlist = () => {

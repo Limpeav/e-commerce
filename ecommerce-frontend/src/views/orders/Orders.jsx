@@ -204,6 +204,12 @@ const Orders = () => {
               </div>
             </div>
 
+            {error && (
+              <div className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${isDark ? "border-rose-500/20 bg-rose-500/10 text-rose-200" : "border-rose-100 bg-rose-50 text-rose-700"}`}>
+                {error}
+              </div>
+            )}
+
             {/* Orders List */}
             {orders.length === 0 ? (
               <div className={`rounded-[3rem] border p-16 text-center ${cardClassName}`}>
@@ -305,6 +311,11 @@ const Orders = () => {
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
                                   Qty: {item.quantity}
                                 </span>
+                                {item.size && (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
+                                    Size: {item.size}
+                                  </span>
+                                )}
                                 <span className="text-xs font-bold text-primary">
                                   {formatCurrency(item.price)}
                                 </span>

@@ -13,6 +13,7 @@ import {
     sendOrderTelegramAlert,
     sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
+import { validateProductSize } from "../utils/productOptions.js";
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
@@ -104,6 +105,15 @@ export const createOrder = asyncHandler(async (req, res) => {
                 const productMap = new Map(
                     products.map((product) => [product._id.toString(), product])
                 );
+                const requestedQuantityByProduct = new Map();
+
+                for (const item of orderItems) {
+                    const productId = String(item.product);
+                    requestedQuantityByProduct.set(
+                        productId,
+                        Number(requestedQuantityByProduct.get(productId) || 0) + Number(item.quantity || 0)
+                    );
+                }
 
                 for (const item of orderItems) {
                     const product = productMap.get(String(item.product));
@@ -112,10 +122,16 @@ export const createOrder = asyncHandler(async (req, res) => {
                         throw createHttpError(404, `Product not found for item: ${item.name}`);
                     }
 
-                    if (product.stock < item.quantity) {
+                    const sizeError = validateProductSize(product, item.size);
+                    if (sizeError) {
+                        throw createHttpError(400, `${product.title}: ${sizeError}`);
+                    }
+
+                    const requestedQuantity = requestedQuantityByProduct.get(String(item.product));
+                    if (product.stock < requestedQuantity) {
                         throw createHttpError(
                             409,
-                            `${product.title} only has ${product.stock} left, but ${item.quantity} were requested. Please update your cart and try again.`
+                            `${product.title} only has ${product.stock} left, but ${requestedQuantity} were requested. Please update your cart and try again.`
                         );
                     }
                 }

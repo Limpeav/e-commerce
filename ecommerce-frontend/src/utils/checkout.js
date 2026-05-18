@@ -76,6 +76,7 @@ export const buildOrderPayload = ({
     product: item.product._id,
     name: item.product.title || item.product.name,
     quantity: item.quantity,
+    size: item.size || "",
     image: item.product.image,
     price: getEffectiveCartProductPrice(item.product),
   })),

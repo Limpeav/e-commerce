@@ -3,30 +3,30 @@ import { CartModel } from "../models/cartModel.js";
 
 // Cart Controller - Handles cart logic
 export class CartController {
-  static async addToCart(product, quantity = 1) {
+  static async addToCart(product, quantity = 1, options = {}) {
     try {
-      const response = await cartService.addToCart(product._id, quantity);
+      const response = await cartService.addToCart(product._id, quantity, options);
       return { success: true, data: response.data.items };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.response?.data?.message || error.message };
     }
   }
 
-  static async removeFromCart(itemId) {
+  static async removeFromCart(itemId, options = {}) {
     try {
-      const response = await cartService.removeFromCart(itemId);
+      const response = await cartService.removeFromCart(itemId, options);
       return { success: true, data: response.data.items };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.response?.data?.message || error.message };
     }
   }
 
-  static async updateQuantity(itemId, quantity) {
+  static async updateQuantity(itemId, quantity, options = {}) {
     try {
-      const response = await cartService.updateQuantity(itemId, quantity);
+      const response = await cartService.updateQuantity(itemId, quantity, options);
       return { success: true, data: response.data.items };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.response?.data?.message || error.message };
     }
   }
 

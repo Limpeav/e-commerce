@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, ShoppingCart, Lock, Baby } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 
 const ProductInfo = ({
   product,
@@ -15,6 +16,9 @@ const ProductInfo = ({
   const hasDiscount = discountPrice > 0 && discountPrice < price;
   const discountPercent = hasDiscount ? Math.round(((price - discountPrice) / price) * 100) : 0;
   const isInStock = Number(product.stock || 0) > 0;
+  const sizeOptions = getProductSizes(product);
+  const needsSize = isClothingProduct(product);
+  const [selectedSize, setSelectedSize] = useState("");
 
   return (
     <div className="flex flex-col justify-center space-y-4 font-sans sm:space-y-4.5">
@@ -101,6 +105,35 @@ const ProductInfo = ({
 
       {/* Quantity & Action */}
       <div className="space-y-3 pt-1 sm:pt-2">
+        {needsSize && (
+          <div className="space-y-2">
+            <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Size</label>
+            <div className="grid grid-cols-5 gap-2">
+              {sizeOptions.map((size) => {
+                const isSelected = selectedSize === size;
+
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setSelectedSize(size)}
+                    className={`h-11 rounded-xl border text-sm font-black transition-all active:scale-95 ${
+                      isSelected
+                        ? "border-primary bg-primary text-white shadow-md"
+                        : isDark
+                          ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-primary"
+                          : "border-stone-200 bg-white text-stone-700 hover:border-primary"
+                    }`}
+                    aria-pressed={isSelected}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Quantity</label>
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           {/* Quantity Selector */}
@@ -124,9 +157,12 @@ const ProductInfo = ({
 
           {/* Add to Cart Button */}
           <button
-            onClick={onAddToCart}
+            onClick={() => onAddToCart({ size: selectedSize })}
+            disabled={user && needsSize && !selectedSize}
             className={`group relative flex w-full flex-1 items-center justify-center gap-3 overflow-hidden rounded-[1.15rem] border-2 py-3.5 text-base font-bold transition-all duration-300 active:scale-95 sm:py-0 ${user
-              ? 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
+              ? needsSize && !selectedSize
+                ? isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
+                : 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
               : isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
               }`}
           >

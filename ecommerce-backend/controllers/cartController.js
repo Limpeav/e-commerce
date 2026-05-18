@@ -1,4 +1,12 @@
 import Cart from "../models/cartModel.js";
+import Product from "../models/Product.js";
+import {
+  normalizeSelectedSize,
+  validateProductSize,
+} from "../utils/productOptions.js";
+
+const sameCartLine = (item, productId, size = "") =>
+  item.product.toString() === productId && String(item.size || "") === String(size || "");
 
 export const getCart = async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id }).populate(
@@ -10,7 +18,15 @@ export const getCart = async (req, res) => {
 
 // add item to cart
 export const addToCart = async (req, res) => {
-  const { productId, quantity } = req.body;
+  const { productId, quantity = 1, size } = req.body;
+  const product = await Product.findById(productId);
+
+  if (!product) return res.status(404).json({ message: "Product not found" });
+
+  const normalizedSize = normalizeSelectedSize(size);
+  const sizeError = validateProductSize(product, normalizedSize);
+
+  if (sizeError) return res.status(400).json({ message: sizeError });
 
   let cart = await Cart.findOne({ user: req.user._id });
 
@@ -18,14 +34,14 @@ export const addToCart = async (req, res) => {
     cart = new Cart({ user: req.user._id, items: [] });
   }
 
-  const itemIndex = cart.items.findIndex(
-    (item) => item.product.toString() === productId
+  const itemIndex = cart.items.findIndex((item) =>
+    sameCartLine(item, productId, normalizedSize)
   );
 
   if (itemIndex > -1) {
-    cart.items[itemIndex].quantity += quantity;
+    cart.items[itemIndex].quantity += Number(quantity || 1);
   } else {
-    cart.items.push({ product: productId, quantity });
+    cart.items.push({ product: productId, quantity, size: normalizedSize });
   }
 
   await cart.save();
@@ -38,14 +54,13 @@ export const addToCart = async (req, res) => {
 // remove item
 export const removeFromCart = async (req, res) => {
   const { productId } = req.params;
+  const normalizedSize = normalizeSelectedSize(req.query.size);
 
   const cart = await Cart.findOne({ user: req.user._id });
 
   if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-  cart.items = cart.items.filter(
-    (item) => item.product.toString() !== productId
-  );
+  cart.items = cart.items.filter((item) => !sameCartLine(item, productId, normalizedSize));
 
   await cart.save();
 
@@ -57,13 +72,14 @@ export const removeFromCart = async (req, res) => {
 // update
 export const updateCartQuantity = async (req, res) => {
   const { productId } = req.params;
-  const { quantity } = req.body;
+  const { quantity, size } = req.body;
+  const normalizedSize = normalizeSelectedSize(size);
 
   const cart = await Cart.findOne({ user: req.user._id });
 
   if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-  const item = cart.items.find((i) => i.product.toString() === productId);
+  const item = cart.items.find((i) => sameCartLine(i, productId, normalizedSize));
 
   if (!item) return res.status(404).json({ message: "Item not found" });
 

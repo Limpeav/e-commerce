@@ -3,6 +3,7 @@ import { useCart } from "../../context/useCart";
 import { Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useDarkMode } from "../../hooks";
+import { isClothingProduct } from "../../utils/productOptions";
 
 export default function Wishlist() {
   const { wishlist, removeFromWishlist } = useWishlist();
@@ -150,18 +151,28 @@ export default function Wishlist() {
                 </div>
 
                 {/* Add to Cart Button */}
-                <button
-                  onClick={() => handleAddToCart(product)}
-                  disabled={product.stock === 0}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl font-black text-[10px] sm:text-sm shadow-sm transition-all duration-300 group/btn ${product.stock > 0
-                    ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95 cursor-pointer"
-                    : "cursor-not-allowed border bg-[color:var(--color-surface-soft)] text-text-muted"
-                    }`}
-                  style={product.stock > 0 ? undefined : { borderColor: "var(--color-border)" }}
-                >
-                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 h-4" />
-                  <span>{product.stock > 0 ? "Add to Cart" : "Sold Out"}</span>
-                </button>
+                {isClothingProduct(product) && product.stock > 0 ? (
+                  <Link
+                    to={`/products/${product._id}`}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[10px] font-black text-white shadow-sm transition-all duration-300 hover:bg-primary-dark hover:shadow-md active:scale-95 sm:py-3 sm:text-sm"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 sm:w-4 h-4" />
+                    <span>Choose Size</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleAddToCart(product)}
+                    disabled={product.stock === 0}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-xl font-black text-[10px] sm:text-sm shadow-sm transition-all duration-300 group/btn ${product.stock > 0
+                      ? "bg-primary text-white hover:bg-primary-dark hover:shadow-md active:scale-95 cursor-pointer"
+                      : "cursor-not-allowed border bg-[color:var(--color-surface-soft)] text-text-muted"
+                      }`}
+                    style={product.stock > 0 ? undefined : { borderColor: "var(--color-border)" }}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 sm:w-4 h-4" />
+                    <span>{product.stock > 0 ? "Add to Cart" : "Sold Out"}</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

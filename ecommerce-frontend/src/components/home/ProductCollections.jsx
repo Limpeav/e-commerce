@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useFlyToCart } from "../../context/FlyToCartContext";
 import { useDarkMode } from "../../hooks";
+import { isClothingProduct } from "../../utils/productOptions";
 
 const formatPrice = (price) => `$${Number(price || 0).toFixed(2)}`;
 
@@ -23,9 +24,10 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
   const imageRef = useRef(null);
   const { flyToCart } = useFlyToCart();
   const [isDark] = useDarkMode();
+  const needsSize = isClothingProduct(product);
 
   const handleAdd = () => {
-    if (!user || Number(product.stock || 0) < 1) return;
+    if (!user || Number(product.stock || 0) < 1 || needsSize) return;
     flyToCart(imageRef.current);
     onAddToCart(product);
   };
@@ -89,23 +91,37 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={!user || Number(product.stock || 0) < 1}
-        className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold ${
-          !user
+      {needsSize && user && Number(product.stock || 0) > 0 ? (
+        <Link
+          to={`/products/${product._id}`}
+          className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold ${
+            isDark
+              ? "border-primary bg-primary text-white hover:bg-primary-dark"
+              : "border-primary bg-primary text-text-main hover:bg-primary-hover"
+          }`}
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Choose Size
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={!user || Number(product.stock || 0) < 1}
+          className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold ${
+            !user
             ? "border-primary/10 bg-primary/10 text-primary/55 cursor-pointer"
             : Number(product.stock || 0) < 1
             ? "cursor-not-allowed border-text-muted/20 bg-text-muted/20 text-text-muted"
             : isDark
             ? "border-primary bg-primary text-white hover:bg-primary-dark cursor-pointer"
             : "border-primary bg-primary text-text-main hover:bg-primary-hover cursor-pointer"
-        }`}
-      >
-        <ShoppingBag className="h-4 w-4" />
-        {user ? "Add to Cart" : "Login to Add"}
-      </button>
+          }`}
+        >
+          <ShoppingBag className="h-4 w-4" />
+          {user ? "Add to Cart" : "Login to Add"}
+        </button>
+      )}
     </article>
   );
 }

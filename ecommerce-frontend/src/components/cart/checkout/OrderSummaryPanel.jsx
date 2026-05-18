@@ -14,7 +14,7 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       <div className="space-y-4 mb-8 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
         {cartItems.map((item) => (
           <div
-            key={item._id || item.product._id}
+            key={`${item.product._id}:${item.size || "standard"}`}
             className={`flex items-center gap-4 p-3 rounded-2xl border group ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 p-1.5 border ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
@@ -32,6 +32,11 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>
                   Qty: {item.quantity}
                 </span>
+                {item.size && (
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>
+                    Size: {item.size}
+                  </span>
+                )}
               </div>
             </div>
             <div className="text-right">

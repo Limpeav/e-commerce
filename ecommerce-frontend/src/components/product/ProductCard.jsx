@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
+import { isClothingProduct } from '../../utils/productOptions';
 
 const ProductCard = ({
   product,
@@ -21,11 +22,12 @@ const ProductCard = ({
   const finalPrice = hasDiscount ? discountPrice : price;
   const inWishlist = isInWishlist(product._id);
   const outOfStock = product.stock === 0;
+  const needsSize = isClothingProduct(product);
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
 
   return (
-    <motion.article
+    <Motion.article
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
@@ -63,7 +65,7 @@ const ProductCard = ({
         </div>
 
         {/* ── Wishlist Button ── */}
-        <motion.button
+        <Motion.button
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
           className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 cursor-pointer ${inWishlist
@@ -72,7 +74,7 @@ const ProductCard = ({
             }`}
         >
           <Heart className="w-4 h-4" strokeWidth={2.5} />
-        </motion.button>
+        </Motion.button>
       </div>
 
       {/* ═══ CONTENT SECTION ═══ */}
@@ -80,17 +82,27 @@ const ProductCard = ({
 
         {/* Floating Quick Add Button (Desktop) - Overlaps Image/Content */}
         <div className="absolute -top-6 right-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
-          <button
-            onClick={() => onAddToCart(product)}
-            disabled={!user || outOfStock}
-            className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
+          {needsSize && user && !outOfStock ? (
+            <Link
+              to={`/products/${product._id}`}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-xl shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] transition-transform hover:scale-105 active:scale-95"
+              title="Choose size"
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </Link>
+          ) : (
+            <button
+              onClick={() => onAddToCart(product)}
+              disabled={!user || outOfStock}
+              className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
               ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
               : 'bg-primary text-white shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] cursor-pointer'
               }`}
-            title={t('product.quickAdd')}
-          >
-            <ShoppingBag className="w-5 h-5" />
-          </button>
+              title={t('product.quickAdd')}
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Category & Rating */}
@@ -135,13 +147,22 @@ const ProductCard = ({
           </div>
 
           {/* Mobile Only: Text Button */}
-          <button
-            onClick={() => onAddToCart(product)}
-            disabled={!user || outOfStock}
-            className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-          >
-            {outOfStock ? t('product.soldOut') : t('product.add')}
-          </button>
+          {needsSize && user && !outOfStock ? (
+            <Link
+              to={`/products/${product._id}`}
+              className={`md:hidden rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider ${isDark ? 'bg-primary/15 text-primary-light' : 'bg-primary/10 text-primary'}`}
+            >
+              Size
+            </Link>
+          ) : (
+            <button
+              onClick={() => onAddToCart(product)}
+              disabled={!user || outOfStock}
+              className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+            >
+              {outOfStock ? t('product.soldOut') : t('product.add')}
+            </button>
+          )}
 
           {/* Desktop: View Details Arrow */}
           <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
@@ -149,7 +170,7 @@ const ProductCard = ({
           </Link>
         </div>
       </div>
-    </motion.article>
+    </Motion.article>
   );
 };
 

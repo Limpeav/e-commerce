@@ -36,6 +36,12 @@ const CartItem = ({
           <span className="truncate">{item.product.category}</span>
           <div className={`h-1 w-1 rounded-full shrink-0 ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
           <span className="text-green-600 font-bold whitespace-nowrap">In Stock</span>
+          {item.size && (
+            <>
+              <div className={`h-1 w-1 rounded-full shrink-0 ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
+              <span className="font-bold whitespace-nowrap">Size {item.size}</span>
+            </>
+          )}
         </div>
 
         {/* Product Description */}
@@ -63,9 +69,9 @@ const CartItem = ({
               <button
                 onClick={() => {
                   if (item.quantity - 1 === 0) {
-                    onRemove(item.product._id);
+                    onRemove(item.product._id, { size: item.size });
                   } else {
-                    onUpdateQuantity(item.product._id, item.quantity - 1);
+                    onUpdateQuantity(item.product._id, item.quantity - 1, { size: item.size });
                   }
                 }}
                 className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md sm:rounded-lg shadow-sm border transition-all active:scale-95 ${isDark ? "bg-slate-900 border-slate-600 text-slate-300 hover:text-red-400" : "bg-white border-stone-200 text-stone-500 hover:text-red-500"}`}
@@ -75,7 +81,7 @@ const CartItem = ({
               </button>
               <span className="w-5 sm:w-6 text-center font-bold text-sm sm:text-base text-text-main">{item.quantity}</span>
               <button
-                onClick={() => onUpdateQuantity(item.product._id, item.quantity + 1)}
+                onClick={() => onUpdateQuantity(item.product._id, item.quantity + 1, { size: item.size })}
                 className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md sm:rounded-lg bg-primary text-white shadow-md transition-all active:scale-95"
                 aria-label="Increase"
               >
@@ -86,7 +92,7 @@ const CartItem = ({
             <div className={`w-px h-4 sm:h-5 ${isDark ? "bg-slate-700" : "bg-stone-200"}`}></div>
 
             <button
-              onClick={() => onRemove(item.product._id)}
+              onClick={() => onRemove(item.product._id, { size: item.size })}
               className={`transition-colors p-1 sm:p-1.5 rounded-lg ${isDark ? "text-slate-400 hover:text-red-400 hover:bg-red-500/10" : "text-stone-400 hover:text-red-500 hover:bg-red-50"}`}
               title="Remove Item"
             >
