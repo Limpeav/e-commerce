@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CreditCard } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
 
-const OrderSummary = ({ total, itemCount }) => {
+const OrderSummary = ({ total }) => {
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
   const tax = total * 0.08;
   const finalTotal = total * 1.08;
 
@@ -46,13 +48,13 @@ const OrderSummary = ({ total, itemCount }) => {
         to="/customer/checkout"
         className="w-full bg-primary text-white py-4 rounded-xl font-bold text-sm shadow-lg hover:bg-primary-dark transform transition-all duration-300 flex items-center justify-center gap-2 active:scale-95"
       >
-        Proceed to Checkout
+        {t("cart.proceedToCheckout")}
         <ArrowRight className="w-5 h-5" />
       </Link>
 
       <p className={`mt-6 text-xs text-center font-medium flex items-center justify-center gap-2 ${isDark ? "text-slate-500" : "text-stone-400"}`}>
         <CreditCard className="w-4 h-4" />
-        Secure Payment
+        {t("cart.securePayment")}
       </p>
     </div>
   );
