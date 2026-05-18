@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star, ShoppingCart, Lock, Baby } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
+import { useLanguage } from '../../context/useLanguage';
 
 const ProductInfo = ({
   product,
@@ -11,6 +12,7 @@ const ProductInfo = ({
   user
 }) => {
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
   const hasDiscount = discountPrice > 0 && discountPrice < price;
@@ -67,7 +69,7 @@ const ProductInfo = ({
           </div>
           <div className={`h-5 w-px hidden sm:block ${isDark ? "bg-slate-700" : "bg-stone-200"}`}></div>
           <a href="#reviews" className={`text-sm font-bold hover:text-indigo-600 transition-colors underline underline-offset-4 flex items-center gap-2 ${isDark ? "text-slate-400 decoration-slate-700" : "text-text-muted decoration-stone-200"}`}>
-            <span>{product.numReviews || 0} Reviews</span>
+            <span>{t("product.reviewCount", { count: product.numReviews || 0 })}</span>
           </a>
         </div>
       </div>

@@ -1,15 +1,19 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
 
 const ReviewList = ({ reviews }) => {
   const [isDark] = useDarkMode();
+  const { language, t } = useLanguage();
+  const dateLocale = language === "km" ? "km-KH" : undefined;
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex items-center justify-between mb-2 sm:mb-4">
-        <h2 className="text-2xl sm:text-3xl font-black text-text-main font-display tracking-tight">Customer Reviews</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-text-main font-display tracking-tight">{t("product.customerReviews")}</h2>
         {reviews && reviews.length > 0 &&
-          <span className="text-[9px] sm:text-[10px] font-black text-primary bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-[0.2em]">Verified Reviews</span>
+          <span className="text-[9px] sm:text-[10px] font-black text-primary bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-[0.2em]">{t("product.verifiedReviews")}</span>
         }
       </div>
 
@@ -24,7 +28,9 @@ const ReviewList = ({ reviews }) => {
                   </div>
                   <div>
                     <div className="font-black text-text-main text-base sm:text-lg font-display tracking-tight">{review.name}</div>
-                    <div className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-stone-400"}`}>{new Date(review.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</div>
+                    <div className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest ${isDark ? "text-slate-500" : "text-stone-400"}`}>
+                      {new Date(review.createdAt).toLocaleDateString(dateLocale, { month: 'long', year: 'numeric' })}
+                    </div>
                   </div>
                 </div>
                 <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-100/50"}`}>
@@ -43,8 +49,8 @@ const ReviewList = ({ reviews }) => {
           <div className={`mb-6 sm:mb-8 ${isDark ? "text-slate-700" : "text-stone-100"}`}>
             <Star className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" />
           </div>
-          <p className="text-text-main font-black text-xl sm:text-2xl font-display mb-2 sm:mb-3 tracking-tight">No Reviews Yet</p>
-          <p className="text-text-muted font-bold text-base sm:text-lg">Be the first to review this product.</p>
+          <p className="text-text-main font-black text-xl sm:text-2xl font-display mb-2 sm:mb-3 tracking-tight">{t("product.noReviewsYet")}</p>
+          <p className="text-text-muted font-bold text-base sm:text-lg">{t("product.firstReview")}</p>
         </div>
       )}
     </div>
