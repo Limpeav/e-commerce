@@ -71,6 +71,24 @@ export class ProductController {
     }
   }
 
+  static async translateProductToKhmer(id) {
+    try {
+      const response = await productService.translateProductToKhmer(id);
+      return { success: true, data: ProductModel.fromAPI(response.data) };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  static async translateMissingProductsToKhmer() {
+    try {
+      const response = await productService.translateMissingProductsToKhmer();
+      return { success: true, data: this.sortByNewest(this.normalizeProducts(response.data || [])) };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   static async searchProducts(keyword) {
     try {
       const response = await productService.searchProducts(keyword);

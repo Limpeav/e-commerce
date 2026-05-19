@@ -37,6 +37,36 @@ export const productService = {
     }
   },
 
+  translateMissingProductsToKhmer: async () => {
+    try {
+      const token = getAuthToken();
+      const config = token ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      } : {};
+      const response = await axios.post(`${API_URL}/translate-khmer-missing`, {}, config);
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to translate products");
+    }
+  },
+
+  translateProductToKhmer: async (id) => {
+    try {
+      const token = getAuthToken();
+      const config = token ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      } : {};
+      const response = await axios.post(`${API_URL}/${id}/translate-khmer`, {}, config);
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to translate product");
+    }
+  },
+
   // Search products
   searchProducts: async (keyword) => {
     try {

@@ -17,7 +17,6 @@ import {
   Boxes,
   Save,
   X,
-  Sparkles,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 

@@ -22,6 +22,10 @@ const productSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    titleKm: {
+      type: String,
+      default: "",
+    },
     price: {
       type: Number,
       required: true,
@@ -39,6 +43,10 @@ const productSchema = mongoose.Schema(
       required: true,
     },
     description: {
+      type: String,
+      default: "",
+    },
+    descriptionKm: {
       type: String,
       default: "",
     },

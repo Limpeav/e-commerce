@@ -1,3 +1,5 @@
+import axios from "axios";
+import https from "https";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
@@ -5,7 +7,9 @@ import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
+  descriptionkm: "descriptionKm",
   isnewarrival: "isNewArrival",
+  titlekm: "titleKm",
 };
 
 const parseOptionalNumber = (value) => {
@@ -24,6 +28,126 @@ const parseOptionalNumber = (value) => {
 
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
+
+let openAITranslationUnavailable = false;
+let openAITranslationWarningLogged = false;
+let fallbackTranslationWarningLogged = false;
+const translationHttpsAgent = new https.Agent({ keepAlive: false });
+
+const translateToKhmerWithGoogle = async (text = "") => {
+  const response = await axios.get(
+    "https://translate.googleapis.com/translate_a/single",
+    {
+      params: {
+        client: "gtx",
+        sl: "auto",
+        tl: "km",
+        dt: "t",
+        q: text,
+      },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+      },
+      httpsAgent: translationHttpsAgent,
+      timeout: 30000,
+    }
+  );
+
+  return response.data?.[0]
+    ?.map((segment) => segment?.[0] || "")
+    .join("")
+    .trim() || "";
+};
+
+const translateToKhmer = async (text = "") => {
+  const trimmedText = String(text || "").trim();
+
+  if (!trimmedText) {
+    return "";
+  }
+
+  if (process.env.OPENAI_API_KEY && !openAITranslationUnavailable) {
+    try {
+      const response = await axios.post(
+        "https://api.openai.com/v1/responses",
+        {
+          model: process.env.OPENAI_TRANSLATION_MODEL || "gpt-4.1-mini",
+          input: [
+            {
+              role: "system",
+              content:
+                "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
+            },
+            {
+              role: "user",
+              content: trimmedText,
+            },
+          ],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 30000,
+        }
+      );
+
+      const translatedText = response.data?.output_text?.trim();
+      if (translatedText) {
+        return translatedText;
+      }
+    } catch (error) {
+      if (!openAITranslationWarningLogged) {
+        console.warn("OpenAI product Khmer translation failed:", error.message);
+        openAITranslationWarningLogged = true;
+      }
+      if (error.response?.status === 429) {
+        openAITranslationUnavailable = true;
+      }
+    }
+  }
+
+  try {
+    return await translateToKhmerWithGoogle(trimmedText);
+  } catch (error) {
+    if (!fallbackTranslationWarningLogged) {
+      console.warn("Fallback product Khmer translation failed:", error.message);
+      fallbackTranslationWarningLogged = true;
+    }
+    return "";
+  }
+};
+
+const productNeedsKhmerTranslation = (product) =>
+  Boolean(
+    (product.title && !product.titleKm) ||
+      (product.description && !product.descriptionKm)
+  );
+
+const applyAutoKhmerTranslation = async (productData, existingProduct = {}) => {
+  const titleChanged =
+    !existingProduct.title || productData.title !== existingProduct.title;
+  const descriptionChanged =
+    !existingProduct.description ||
+    productData.description !== existingProduct.description;
+
+  const translatedTitle =
+    productData.titleKm || (!titleChanged && existingProduct.titleKm)
+      ? productData.titleKm || existingProduct.titleKm || ""
+      : await translateToKhmer(productData.title);
+
+  const translatedDescription =
+    productData.descriptionKm || (!descriptionChanged && existingProduct.descriptionKm)
+      ? productData.descriptionKm || existingProduct.descriptionKm || ""
+      : await translateToKhmer(productData.description);
+
+  return {
+    ...productData,
+    titleKm: translatedTitle || existingProduct.titleKm || "",
+    descriptionKm: translatedDescription || existingProduct.descriptionKm || "",
+  };
+};
 
 const attachSalesMetrics = async (products) => {
   const productDocs = Array.isArray(products) ? products : [products];
@@ -145,8 +269,10 @@ const parseCsv = (content = "") => {
 
 const validateAndBuildProductRow = ({ data, rowNumber }) => {
   const title = data.title?.trim();
+  const titleKm = data.titleKm?.trim() || "";
   const category = data.category?.trim();
   const description = data.description?.trim() || "";
+  const descriptionKm = data.descriptionKm?.trim() || "";
   const image = data.image?.trim();
   const price = Number.parseFloat(data.price);
   const discountPrice = data.discountPrice?.trim()
@@ -189,10 +315,12 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
 
   return {
     title,
+    titleKm,
     price,
     discountPrice,
     category,
     description,
+    descriptionKm,
     stock,
     image,
     isNewArrival,
@@ -201,9 +329,17 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const { title, price, discountPrice, category, description, stock, isNewArrival } = req.body;
+    const {
+      title,
+      price,
+      discountPrice,
+      category,
+      description,
+      stock,
+      isNewArrival,
+    } = req.body;
 
-    const product = new Product({
+    const productData = await applyAutoKhmerTranslation({
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
@@ -213,6 +349,8 @@ export const createProduct = async (req, res) => {
       isNewArrival: parseBoolean(isNewArrival),
       image: req.file?.path || "",
     });
+
+    const product = new Product(productData);
 
     syncLowStockAlertFlag(product);
     const saved = await product.save();
@@ -228,6 +366,45 @@ export const getProducts = async (req, res) => {
     const filters = isAdmin ? {} : { stock: { $gt: 0 } };
     const products = await Product.find(filters).sort({ createdAt: -1, _id: -1 });
     res.json(await attachSalesMetrics(products));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const translateMissingProductsToKhmer = async (req, res) => {
+  try {
+    const isAdmin = req.user?.role === "admin";
+    const filters = isAdmin ? {} : { stock: { $gt: 0 } };
+    const batchLimit = Math.min(
+      Math.max(Number.parseInt(req.query.limit, 10) || 4, 1),
+      10
+    );
+    const products = await Product.find(filters).sort({ createdAt: -1, _id: -1 });
+    const translatedProducts = [];
+    let translatedCount = 0;
+
+    for (const product of products) {
+      if (productNeedsKhmerTranslation(product) && translatedCount < batchLimit) {
+        const translatedProductData = await applyAutoKhmerTranslation(
+          {
+            title: product.title,
+            titleKm: product.titleKm,
+            description: product.description,
+            descriptionKm: product.descriptionKm,
+          },
+          {}
+        );
+
+        product.titleKm = translatedProductData.titleKm;
+        product.descriptionKm = translatedProductData.descriptionKm;
+        await product.save();
+        translatedCount += 1;
+      }
+
+      translatedProducts.push(product);
+    }
+
+    res.json(await attachSalesMetrics(translatedProducts));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -277,7 +454,10 @@ export const importProductsFromCsv = async (req, res) => {
       });
     }
 
-    const createdProducts = await Product.insertMany(productsToInsert);
+    const translatedProducts = await Promise.all(
+      productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
+    );
+    const createdProducts = await Product.insertMany(translatedProducts);
 
     return res.status(201).json({
       message: `Imported ${createdProducts.length} products successfully`,
@@ -341,17 +521,24 @@ export const upsertProductsFromCsv = async (req, res) => {
         category: productData.category,
       }).sort({ createdAt: -1, _id: -1 });
 
+      const translatedProductData = await applyAutoKhmerTranslation(
+        productData,
+        existingProduct || {}
+      );
+
       if (existingProduct) {
-        existingProduct.price = productData.price;
-        existingProduct.discountPrice = productData.discountPrice;
-        existingProduct.description = productData.description;
-        existingProduct.stock = productData.stock;
-        existingProduct.image = productData.image;
+        existingProduct.price = translatedProductData.price;
+        existingProduct.discountPrice = translatedProductData.discountPrice;
+        existingProduct.titleKm = translatedProductData.titleKm;
+        existingProduct.description = translatedProductData.description;
+        existingProduct.descriptionKm = translatedProductData.descriptionKm;
+        existingProduct.stock = translatedProductData.stock;
+        existingProduct.image = translatedProductData.image;
         syncLowStockAlertFlag(existingProduct);
         await existingProduct.save();
         updatedCount += 1;
       } else {
-        const product = new Product(productData);
+        const product = new Product(translatedProductData);
         syncLowStockAlertFlag(product);
         await product.save();
         createdCount += 1;
@@ -455,19 +642,61 @@ export const getProductById = async (req, res) => {
   }
 };
 
+export const translateProductToKhmer = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    const translatedProductData = await applyAutoKhmerTranslation(
+      {
+        title: product.title,
+        titleKm: product.titleKm,
+        description: product.description,
+        descriptionKm: product.descriptionKm,
+      },
+      {}
+    );
+
+    product.titleKm = translatedProductData.titleKm;
+    product.descriptionKm = translatedProductData.descriptionKm;
+    await product.save();
+
+    const productData = product.toObject();
+    res.json(await attachSalesMetrics(productData));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product)
       return res.status(404).json({ message: "Product not found" });
 
-    product.title = req.body.title;
-    product.price = req.body.price;
-    product.discountPrice = parseOptionalNumber(req.body.discountPrice);
-    product.category = req.body.category;
-    product.description = req.body.description;
-    product.stock = req.body.stock;
-    product.isNewArrival = parseBoolean(req.body.isNewArrival);
+    const translatedProductData = await applyAutoKhmerTranslation(
+      {
+        title: req.body.title,
+        price: req.body.price,
+        discountPrice: parseOptionalNumber(req.body.discountPrice),
+        category: req.body.category,
+        description: req.body.description,
+        stock: req.body.stock,
+        isNewArrival: parseBoolean(req.body.isNewArrival),
+      },
+      product
+    );
+
+    product.title = translatedProductData.title;
+    product.titleKm = translatedProductData.titleKm;
+    product.price = translatedProductData.price;
+    product.discountPrice = translatedProductData.discountPrice;
+    product.category = translatedProductData.category;
+    product.description = translatedProductData.description;
+    product.descriptionKm = translatedProductData.descriptionKm;
+    product.stock = translatedProductData.stock;
+    product.isNewArrival = translatedProductData.isNewArrival;
 
     // 🔥 update image ONLY if new one uploaded
     if (req.file) {

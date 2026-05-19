@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -20,13 +20,13 @@ export default function Home() {
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
     const [isDark] = useDarkMode();
     
     const productsRef = useRef(null);
 
     // Custom hooks
-    const { products, loading, error } = useProducts();
+    const { products, loading, error } = useProducts(language);
     const {
         searchQuery,
         setSearchQuery,
@@ -185,7 +185,7 @@ export default function Home() {
                                         </div>
                                     </div>
 
-                                    <motion.div
+                                    <Motion.div
                                         variants={gridContainerVariants}
                                         initial="hidden"
                                         whileInView="show"
@@ -203,7 +203,7 @@ export default function Home() {
                                                 variants={gridItemVariants}
                                             />
                                         ))}
-                                    </motion.div>
+                                    </Motion.div>
                                 </section>
                             ))}
                         </div>

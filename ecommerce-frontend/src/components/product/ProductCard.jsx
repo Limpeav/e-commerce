@@ -6,6 +6,7 @@ import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
 import { isClothingProduct } from '../../utils/productOptions';
+import { getLocalizedProductText } from '../../utils/productLocalization';
 
 const ProductCard = ({
   product,
@@ -24,7 +25,8 @@ const ProductCard = ({
   const outOfStock = product.stock === 0;
   const needsSize = isClothingProduct(product);
   const [isDark] = useDarkMode();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const localizedProduct = getLocalizedProductText(product, language);
 
   return (
     <Motion.article
@@ -42,7 +44,7 @@ const ProductCard = ({
         <Link to={`/products/${product._id}`} className="block w-full h-full">
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
-            alt={product.name}
+            alt={localizedProduct.title}
             className="w-full h-full object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-105"
             onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'; }}
           />
@@ -121,13 +123,13 @@ const ProductCard = ({
         {/* Title */}
         <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
           <h3 className={`font-bold text-lg leading-snug line-clamp-2 min-h-[2.75rem] ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
-            {product.name || product.title}
+            {localizedProduct.title}
           </h3>
         </Link>
 
         {/* Description Snippet (Optional - keeps card informative) */}
         <p className={`text-xs font-medium line-clamp-3 ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
-          {product.description || t('product.premiumQuality')}
+          {localizedProduct.description || t('product.premiumQuality')}
         </p>
 
         {/* Divider */}

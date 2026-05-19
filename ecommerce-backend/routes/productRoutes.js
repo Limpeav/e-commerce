@@ -7,6 +7,8 @@ import {
   createProduct,
   createProductReview,
   importProductsFromCsv,
+  translateMissingProductsToKhmer,
+  translateProductToKhmer,
   upsertProductsFromCsv,
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
@@ -30,8 +32,14 @@ router.route("/:id/reviews").post(protect, createProductReview);
 // READ ALL
 router.get("/", optionalAuth, getProducts);
 
+// GENERATE MISSING KHMER TEXT FOR THE PRODUCT LIST
+router.post("/translate-khmer-missing", optionalAuth, translateMissingProductsToKhmer);
+
 // READ ONE (🔥 THIS FIXES YOUR ERROR)
 router.get("/:id", optionalAuth, getProductById);
+
+// GENERATE KHMER PRODUCT TEXT WHEN A KHMER USER OPENS AN OLD PRODUCT
+router.post("/:id/translate-khmer", optionalAuth, translateProductToKhmer);
 
 // UPDATE (🔥 FIXED WITH CLOUDINARY)
 router.put("/:id", protect, admin, upload.single("image"), updateProduct);

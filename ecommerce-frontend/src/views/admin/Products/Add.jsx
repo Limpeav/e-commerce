@@ -16,7 +16,6 @@ import {
   FileText,
   Boxes,
   FileSpreadsheet,
-  Sparkles,
 } from "lucide-react";
 
 const emptyProductForm = {
@@ -184,7 +183,7 @@ const AddProduct = () => {
                 Import Products From CSV
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                Skip manual entry by uploading a CSV. Required columns: <code>title</code>, <code>price</code>, <code>category</code>, <code>image</code>. Optional: <code>isNewArrival</code>.
+                Skip manual entry by uploading a CSV. Required columns: <code>title</code>, <code>price</code>, <code>category</code>, <code>image</code>. Optional: <code>description</code>, <code>isNewArrival</code>. Khmer product text is generated automatically when products are saved.
               </p>
               <p className="mt-2 text-sm text-gray-500">
                 The <code>image</code> column must contain a public image URL. CSV import creates multiple products at once and does not upload image files from your computer.

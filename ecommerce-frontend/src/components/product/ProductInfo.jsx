@@ -3,6 +3,7 @@ import { Star, ShoppingCart, Lock, Baby } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 import { useLanguage } from '../../context/useLanguage';
+import { getLocalizedProductText } from '../../utils/productLocalization';
 
 const ProductInfo = ({
   product,
@@ -12,7 +13,8 @@ const ProductInfo = ({
   user
 }) => {
   const [isDark] = useDarkMode();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const localizedProduct = getLocalizedProductText(product, language);
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
   const hasDiscount = discountPrice > 0 && discountPrice < price;
@@ -49,7 +51,7 @@ const ProductInfo = ({
       {/* Product Title & Rating */}
       <div className="space-y-2.5">
         <h1 className={`text-2xl sm:text-[2.2rem] lg:text-[2.8rem] font-black leading-[1.05] font-display tracking-tight ${isDark ? "text-slate-50" : "text-stone-900"}`}>
-          {product.title}
+          {localizedProduct.title}
         </h1>
 
         <div className="flex flex-wrap items-center gap-3 pt-0">
@@ -101,7 +103,7 @@ const ProductInfo = ({
       <div className={`prose prose-stone max-w-none rounded-[1.2rem] border p-4 shadow-sm ${isDark ? "bg-slate-900 border-slate-800" : "bg-stone-50/50 border-stone-100"}`}>
         <h3 className={`mb-2 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Product Description</h3>
         <p className={`text-sm leading-relaxed font-medium sm:text-[15px] ${isDark ? "text-slate-300" : "text-stone-600"}`}>
-          {product.description}
+          {localizedProduct.description}
         </p>
       </div>
 

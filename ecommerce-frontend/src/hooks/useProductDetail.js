@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProductController } from "../controllers/productController";
 
-export const useProductDetail = (id, user) => {
+export const useProductDetail = (id, user, language = "en") => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -23,13 +23,42 @@ export const useProductDetail = (id, user) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, user]);
 
   useEffect(() => {
     if (id) {
       fetchProduct();
     }
-  }, [id, user]);
+  }, [id, fetchProduct]);
+
+  useEffect(() => {
+    const translateMissingKhmerText = async () => {
+      const isMissingTitle = product?.title && !product.titleKm;
+      const isMissingDescription = product?.description && !product.descriptionKm;
+
+      if (
+        language !== "km" ||
+        !product?._id ||
+        (!isMissingTitle && !isMissingDescription)
+      ) {
+        return;
+      }
+
+      const result = await ProductController.translateProductToKhmer(product._id);
+      if (result.success) {
+        setProduct(result.data);
+      }
+    };
+
+    translateMissingKhmerText();
+  }, [
+    language,
+    product?._id,
+    product?.title,
+    product?.titleKm,
+    product?.description,
+    product?.descriptionKm,
+  ]);
 
   return { product, loading, error, refetch: fetchProduct };
 };

@@ -6,11 +6,13 @@ import { useAuth } from '../../context/useAuth';
 import ProductCard from './ProductCard';
 import { Sparkles } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
 
 import { motion } from 'framer-motion';
 
 const RelatedProducts = ({ currentProduct }) => {
-    const { products, loading } = useProducts();
+    const { language } = useLanguage();
+    const { products, loading } = useProducts(language);
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();

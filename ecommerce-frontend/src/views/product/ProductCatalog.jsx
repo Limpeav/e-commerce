@@ -61,11 +61,11 @@ export default function ProductCatalog() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [isDark] = useDarkMode();
   const [searchParams] = useSearchParams();
 
-  const { products, loading, error } = useProducts();
+  const { products, loading, error } = useProducts(language);
   const {
     searchQuery,
     setSearchQuery,

@@ -4,11 +4,14 @@ import { Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useDarkMode } from "../../hooks";
 import { isClothingProduct } from "../../utils/productOptions";
+import { useLanguage } from "../../context/useLanguage";
+import { getLocalizedProductText } from "../../utils/productLocalization";
 
 export default function Wishlist() {
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [isDark] = useDarkMode();
+  const { language } = useLanguage();
 
   const handleAddToCart = (product) => {
     addToCart(product);
@@ -80,7 +83,10 @@ export default function Wishlist() {
 
         {/* Wishlist Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
-          {wishlist.map((product) => (
+          {wishlist.map((product) => {
+            const localizedProduct = getLocalizedProductText(product, language);
+
+            return (
             <div
               key={product._id}
               className={`group relative flex flex-col rounded-[1.5rem] border bg-bg-card p-3 transition-all duration-300 hover:-translate-y-1 sm:rounded-[2rem] sm:p-4 ${isDark ? "hover:shadow-[0_24px_60px_-28px_rgba(12,16,12,0.5)]" : "hover:shadow-[0_24px_60px_-28px_rgba(122,150,126,0.18)]"}`}
@@ -107,7 +113,7 @@ export default function Wishlist() {
 
                 <img
                   src={product.image}
-                  alt={product.title}
+                  alt={localizedProduct.title}
                   className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-500"
                 />
 
@@ -127,11 +133,11 @@ export default function Wishlist() {
                 <div className="mb-3 sm:mb-4 flex-1">
                   <Link to={`/products/${product._id}`}>
                     <h3 className="font-bold text-text-main text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 sm:line-clamp-1 hover:text-primary transition-colors tracking-tight">
-                      {product.title}
+                      {localizedProduct.title}
                     </h3>
                   </Link>
                   <p className="hidden sm:block text-text-muted text-xs font-medium leading-relaxed line-clamp-2">
-                    {product.description}
+                    {localizedProduct.description}
                   </p>
                 </div>
 
@@ -175,7 +181,8 @@ export default function Wishlist() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-16 text-center">

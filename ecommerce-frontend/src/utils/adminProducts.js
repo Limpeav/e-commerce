@@ -35,6 +35,8 @@ export const filterAdminProducts = (
     const matchesSearch =
       !normalizedSearch ||
       product.title?.toLowerCase().includes(normalizedSearch) ||
+      product.titleKm?.toLowerCase().includes(normalizedSearch) ||
+      product.descriptionKm?.toLowerCase().includes(normalizedSearch) ||
       category.toLowerCase().includes(normalizedSearch);
 
     const matchesCategory =

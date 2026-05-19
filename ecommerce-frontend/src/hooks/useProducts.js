@@ -6,10 +6,11 @@ import {
   normalizeProductCategory,
 } from "../constants/productCategories";
 
-export const useProducts = () => {
+export const useProducts = (language = "en") => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [translatingMissingKhmer, setTranslatingMissingKhmer] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -31,6 +32,34 @@ export const useProducts = () => {
 
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const hasMissingKhmerProducts =
+      products.length > 0 &&
+      products.some(
+        (product) =>
+          (product.title && !product.titleKm) ||
+          (product.description && !product.descriptionKm)
+      );
+
+    if (language !== "km" || !hasMissingKhmerProducts || translatingMissingKhmer) {
+      return;
+    }
+
+    setTranslatingMissingKhmer(true);
+    const timeout = window.setTimeout(async () => {
+      try {
+        const result = await ProductController.translateMissingProductsToKhmer();
+        if (result.success) {
+          setProducts(result.data || []);
+        }
+      } finally {
+        setTranslatingMissingKhmer(false);
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [language, products, translatingMissingKhmer]);
 
   return { products, loading, error, setProducts };
 };

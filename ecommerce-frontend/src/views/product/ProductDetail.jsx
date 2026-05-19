@@ -16,6 +16,7 @@ import Loading from "../../components/common/Loading";
 
 // Hooks
 import { useProductDetail, useProductReview } from "../../hooks/useProductDetail";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -24,12 +25,13 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isDark] = useDarkMode();
+  const { language } = useLanguage();
 
   // State
   const [quantity, setQuantity] = useState(1);
 
   // Custom hooks
-  const { product, loading, error, refetch } = useProductDetail(id, user);
+  const { product, loading, error, refetch } = useProductDetail(id, user, language);
   const reviewData = useProductReview(id, user);
 
   const handleAddToCart = (options = {}) => {
