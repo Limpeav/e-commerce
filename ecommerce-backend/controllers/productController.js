@@ -2,6 +2,7 @@ import axios from "axios";
 import https from "https";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
+import { isGeminiConfigured, translateTextWithGemini } from "../utils/geminiTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
@@ -29,8 +30,8 @@ const parseOptionalNumber = (value) => {
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
 
-let openAITranslationUnavailable = false;
-let openAITranslationWarningLogged = false;
+let geminiTranslationUnavailable = false;
+let geminiTranslationWarningLogged = false;
 let fallbackTranslationWarningLogged = false;
 const translationHttpsAgent = new https.Agent({ keepAlive: false });
 
@@ -66,44 +67,25 @@ const translateToKhmer = async (text = "") => {
     return "";
   }
 
-  if (process.env.OPENAI_API_KEY && !openAITranslationUnavailable) {
+  if (isGeminiConfigured() && !geminiTranslationUnavailable) {
     try {
-      const response = await axios.post(
-        "https://api.openai.com/v1/responses",
-        {
-          model: process.env.OPENAI_TRANSLATION_MODEL || "gpt-4.1-mini",
-          input: [
-            {
-              role: "system",
-              content:
-                "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
-            },
-            {
-              role: "user",
-              content: trimmedText,
-            },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
-        }
-      );
+      const translatedText = await translateTextWithGemini({
+        text: trimmedText,
+        targetLanguageName: "Khmer",
+        systemInstruction:
+          "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
+      });
 
-      const translatedText = response.data?.output_text?.trim();
       if (translatedText) {
         return translatedText;
       }
     } catch (error) {
-      if (!openAITranslationWarningLogged) {
-        console.warn("OpenAI product Khmer translation failed:", error.message);
-        openAITranslationWarningLogged = true;
+      if (!geminiTranslationWarningLogged) {
+        console.warn("Gemini product Khmer translation failed:", error.message);
+        geminiTranslationWarningLogged = true;
       }
       if (error.response?.status === 429) {
-        openAITranslationUnavailable = true;
+        geminiTranslationUnavailable = true;
       }
     }
   }

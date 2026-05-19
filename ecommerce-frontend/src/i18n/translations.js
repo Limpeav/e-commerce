@@ -88,6 +88,7 @@ export const translations = {
       yourReview: "Your Review",
       reviewPlaceholder: "Write your review here...",
       login: "Log In",
+      youMightAlsoLike: "You Might Also Like",
     },
     footer: {
       brandDescription: "Your ultimate destination for premium products and an exceptional shopping experience. Quality guaranteed, satisfaction delivered.",
@@ -341,6 +342,7 @@ export const translations = {
       yourReview: "មតិយោបល់របស់អ្នក",
       reviewPlaceholder: "សរសេរមតិយោបល់របស់អ្នកនៅទីនេះ...",
       login: "ចូលគណនី",
+      youMightAlsoLike: "អ្នកប្រហែលជាចូលចិត្ត",
     },
     footer: {
       brandDescription: "គោលដៅដ៏ល្អបំផុតរបស់អ្នកសម្រាប់ផលិតផលគុណភាពនិងបទពិសោធន៍ទិញទំនិញដ៏ល្អ។ធានាគុណភាពនិងពេញចិត្ត។",

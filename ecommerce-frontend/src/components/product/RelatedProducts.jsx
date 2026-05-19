@@ -8,10 +8,21 @@ import { Sparkles } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
+
+const getStableProductRank = (productId = "", seed = "") => {
+    const value = `${seed}:${productId}`;
+    let hash = 0;
+
+    for (let index = 0; index < value.length; index += 1) {
+        hash = (hash * 31 + value.charCodeAt(index)) % 1000003;
+    }
+
+    return hash;
+};
 
 const RelatedProducts = ({ currentProduct }) => {
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const { products, loading } = useProducts(language);
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
@@ -33,8 +44,11 @@ const RelatedProducts = ({ currentProduct }) => {
                 p._id !== currentProduct._id &&
                 p.category !== currentProduct.category
             );
-            // Shuffle other products to get variety
-            const shuffledOthers = otherProducts.sort(() => 0.5 - Math.random());
+            const shuffledOthers = [...otherProducts].sort(
+                (a, b) =>
+                    getStableProductRank(a._id, currentProduct._id) -
+                    getStableProductRank(b._id, currentProduct._id)
+            );
             related = [...related, ...shuffledOthers];
         }
 
@@ -49,11 +63,11 @@ const RelatedProducts = ({ currentProduct }) => {
             <div className="flex items-center gap-2 mb-6 sm:mb-8">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 <h2 className="text-xl sm:text-2xl font-bold text-text-main font-display">
-                    You Might Also Like
+                    {t("product.youMightAlsoLike")}
                 </h2>
             </div>
 
-            <motion.div
+            <Motion.div
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true }}
@@ -84,7 +98,7 @@ const RelatedProducts = ({ currentProduct }) => {
                         }}
                     />
                 ))}
-            </motion.div>
+            </Motion.div>
         </div>
     );
 };
