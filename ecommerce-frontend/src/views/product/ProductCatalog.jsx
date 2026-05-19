@@ -10,7 +10,6 @@ import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
 import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
 import { useLanguage } from "../../context/useLanguage";
-import { consumeProductBackScrollTop } from "../../utils/scrollIntent";
 
 const VIEW_CONFIG_KEYS = {
   all: {
@@ -99,14 +98,6 @@ export default function ProductCatalog() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeView]);
-
-  useEffect(() => {
-    if (!loading && consumeProductBackScrollTop()) {
-      window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      });
-    }
-  }, [loading]);
 
   const handleAddToCart = (product) => {
     if (!user) return;

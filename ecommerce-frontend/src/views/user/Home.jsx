@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { motion as Motion } from "framer-motion";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -15,7 +15,6 @@ import { useDarkMode } from "../../hooks";
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
-import { consumeProductBackScrollTop } from "../../utils/scrollIntent";
 
 export default function Home() {
     const { addToCart } = useCart();
@@ -62,14 +61,6 @@ export default function Home() {
         setSearchQuery("");
         setSelectedCategory("All");
     };
-
-    useEffect(() => {
-        if (!loading && consumeProductBackScrollTop()) {
-            window.requestAnimationFrame(() => {
-                window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-            });
-        }
-    }, [loading]);
 
     const gridContainerVariants = {
         hidden: { opacity: 0 },

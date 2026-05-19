@@ -17,7 +17,6 @@ import Loading from "../../components/common/Loading";
 // Hooks
 import { useProductDetail, useProductReview } from "../../hooks/useProductDetail";
 import { useLanguage } from "../../context/useLanguage";
-import { requestProductBackScrollTop } from "../../utils/scrollIntent";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -56,11 +55,6 @@ export default function ProductDetail() {
     });
   };
 
-  const handleBack = () => {
-    requestProductBackScrollTop();
-    navigate(-1);
-  };
-
   if (loading) {
     return <Loading message="Loading product..." />;
   }
@@ -94,7 +88,7 @@ export default function ProductDetail() {
         {/* Back Button */}
         <div className="mb-3 sm:mb-4">
           <button
-            onClick={handleBack}
+            onClick={() => navigate(-1)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm shadow-sm transition-all duration-300 group active:scale-95 ${isDark ? "bg-slate-900 border-slate-700 hover:bg-slate-800" : "bg-white border-stone-200 hover:shadow-md hover:border-stone-300"}`}
             aria-label="Go back"
           >
