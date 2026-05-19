@@ -1,7 +1,12 @@
 import dotenv from "dotenv";
+import axios from "axios";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
-import { isGeminiConfigured, translateTextWithGemini } from "../utils/geminiTranslation.js";
+import {
+  containsThaiScript,
+  isGeminiConfigured,
+  translateTextWithGemini,
+} from "../utils/geminiTranslation.js";
 
 dotenv.config();
 
@@ -27,6 +32,9 @@ const parseDelay = () => {
 };
 
 const shouldForceTranslate = () => process.argv.includes("--force");
+const shouldTranslateThaiOnly = () => process.argv.includes("--thai-only");
+const shouldDryRun = () => process.argv.includes("--dry-run");
+const shouldUseGoogleOnly = () => process.argv.includes("--google-only");
 
 const needsText = (value) => Boolean(String(value || "").trim());
 const missingText = (value) => !String(value || "").trim();
@@ -46,27 +54,76 @@ const parseJsonResponse = (text = "") => {
   return JSON.parse(cleanedText);
 };
 
-const translateProductTextToKhmer = async (product) => {
+const translateTextWithGoogle = async (text = "") => {
+  const trimmedText = String(text || "").trim();
+
+  if (!trimmedText) {
+    return "";
+  }
+
+  const response = await axios.get(
+    "https://translate.googleapis.com/translate_a/single",
+    {
+      params: {
+        client: "gtx",
+        sl: "auto",
+        tl: "km",
+        dt: "t",
+        q: trimmedText,
+      },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+      },
+      timeout: 30000,
+    }
+  );
+
+  return response.data?.[0]
+    ?.map((segment) => segment?.[0] || "")
+    .join("")
+    .trim() || "";
+};
+
+const translateProductTextWithGoogle = async (product) => ({
+  titleKm: await translateTextWithGoogle(product.title),
+  descriptionKm: await translateTextWithGoogle(product.description),
+});
+
+const translateProductTextToKhmer = async (product, { googleOnly = false } = {}) => {
+  if (googleOnly) {
+    return translateProductTextWithGoogle(product);
+  }
+
   const responseText = await translateTextWithGemini({
     text: JSON.stringify({
       title: product.title || "",
       description: product.description || "",
     }),
-    targetLanguageName: "Khmer",
+    targetLanguageName: "Khmer (Cambodian), using Khmer script only",
     systemInstruction:
-      "You are a precise ecommerce translation engine. Translate the JSON values into Khmer. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Return only valid JSON with keys titleKm and descriptionKm. Do not add explanations.",
+      "You are a precise ecommerce translation engine. Translate the JSON values into Khmer, the Cambodian language. Use Khmer Unicode script only, Unicode range U+1780-U+17FF. Never use Thai script, Unicode range U+0E00-U+0E7F, and never use Lao script. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Return only valid JSON with keys titleKm and descriptionKm. Do not add explanations.",
   });
 
-  return parseJsonResponse(responseText);
+  const translatedProduct = parseJsonResponse(responseText);
+  const translatedText = `${translatedProduct.titleKm || ""}\n${translatedProduct.descriptionKm || ""}`;
+
+  if (containsThaiScript(translatedText)) {
+    const error = new Error("Gemini returned Thai script instead of Khmer script");
+    error.retryableTranslation = true;
+    throw error;
+  }
+
+  return translatedProduct;
 };
 
-const translateProductTextWithRetry = async (product, maxRetries = 3) => {
+const translateProductTextWithRetry = async (product, options = {}, maxRetries = 3) => {
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     try {
-      return await translateProductTextToKhmer(product);
+      return await translateProductTextToKhmer(product, options);
     } catch (error) {
       const status = error.response?.status;
-      const isRetryableStatus = status === 429 || status === 500 || status === 503;
+      const isRetryableStatus =
+        status === 429 || status === 500 || status === 503 || error.retryableTranslation;
       const retryDelay = attempt * 30000;
 
       if (!isRetryableStatus || attempt === maxRetries) {
@@ -97,7 +154,17 @@ const run = async () => {
   await mongoose.connect(process.env.MONGO_URI);
 
   const forceTranslate = shouldForceTranslate();
-  const query = forceTranslate
+  const thaiOnly = shouldTranslateThaiOnly();
+  const dryRun = shouldDryRun();
+  const googleOnly = shouldUseGoogleOnly();
+  const query = thaiOnly
+    ? {
+        $or: [
+          { titleKm: { $exists: true, $ne: "" } },
+          { descriptionKm: { $exists: true, $ne: "" } },
+        ],
+      }
+    : forceTranslate
     ? {
         $or: [
           { title: { $exists: true, $ne: "" } },
@@ -117,7 +184,12 @@ const run = async () => {
   const skip = parseSkip();
   const delay = parseDelay();
   const productsQuery = Product.find(query).sort({ createdAt: -1, _id: -1 }).skip(skip);
-  const products = limit > 0 ? await productsQuery.limit(limit) : await productsQuery;
+  const queriedProducts = limit > 0 ? await productsQuery.limit(limit) : await productsQuery;
+  const products = thaiOnly
+    ? queriedProducts.filter(
+        (product) => containsThaiScript(product.titleKm) || containsThaiScript(product.descriptionKm)
+      )
+    : queriedProducts;
 
   let updatedCount = 0;
   let skippedCount = 0;
@@ -125,23 +197,37 @@ const run = async () => {
 
   console.log(
     `Found ${products.length} product(s) ${
-      forceTranslate ? "to translate with Gemini" : "with missing Khmer text"
+      thaiOnly
+        ? "with Thai-script Khmer fields"
+        : forceTranslate
+        ? "to translate with Gemini"
+        : "with missing Khmer text"
     }.`
   );
+
+  if (dryRun) {
+    products.forEach((product) => {
+      console.log(`Found ${product._id}: ${product.title}`);
+    });
+    return;
+  }
 
   for (const product of products) {
     try {
       let changed = false;
-      const translatedProduct = await translateProductTextWithRetry(product);
+      const translatedProduct = await translateProductTextWithRetry(product, { googleOnly });
 
-      if (needsText(product.title) && (forceTranslate || missingText(product.titleKm))) {
+      if (
+        needsText(product.title) &&
+        (forceTranslate || thaiOnly || missingText(product.titleKm))
+      ) {
         product.titleKm = translatedProduct.titleKm || "";
         changed = Boolean(product.titleKm);
       }
 
       if (
         needsText(product.description) &&
-        (forceTranslate || missingText(product.descriptionKm))
+        (forceTranslate || thaiOnly || missingText(product.descriptionKm))
       ) {
         product.descriptionKm = translatedProduct.descriptionKm || "";
         changed = Boolean(product.descriptionKm) || changed;

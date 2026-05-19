@@ -2,7 +2,11 @@ import axios from "axios";
 import https from "https";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
-import { isGeminiConfigured, translateTextWithGemini } from "../utils/geminiTranslation.js";
+import {
+  containsThaiScript,
+  isGeminiConfigured,
+  translateTextWithGemini,
+} from "../utils/geminiTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
@@ -71,13 +75,17 @@ const translateToKhmer = async (text = "") => {
     try {
       const translatedText = await translateTextWithGemini({
         text: trimmedText,
-        targetLanguageName: "Khmer",
+        targetLanguageName: "Khmer (Cambodian), using Khmer script only",
         systemInstruction:
-          "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
+          "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer, the Cambodian language. Use Khmer Unicode script only, Unicode range U+1780-U+17FF. Never use Thai script, Unicode range U+0E00-U+0E7F, and never use Lao script. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
       });
 
-      if (translatedText) {
+      if (translatedText && !containsThaiScript(translatedText)) {
         return translatedText;
+      }
+
+      if (containsThaiScript(translatedText)) {
+        throw new Error("Gemini returned Thai script instead of Khmer script");
       }
     } catch (error) {
       if (!geminiTranslationWarningLogged) {

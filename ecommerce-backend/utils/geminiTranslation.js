@@ -2,8 +2,11 @@ import axios from "axios";
 
 const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const DEFAULT_GEMINI_TRANSLATION_MODEL = "gemini-2.5-flash-lite";
+const THAI_SCRIPT_PATTERN = /[\u0E00-\u0E7F]/;
 
 export const isGeminiConfigured = () => Boolean(process.env.GEMINI_API_KEY);
+
+export const containsThaiScript = (text = "") => THAI_SCRIPT_PATTERN.test(String(text || ""));
 
 export const translateTextWithGemini = async ({
   text,
