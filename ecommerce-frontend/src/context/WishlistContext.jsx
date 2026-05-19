@@ -1,20 +1,28 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "./ToastContext";
 import { WishlistController } from "../controllers/index.js";
 import { useAuth } from "./useAuth";
 import { WishlistContext } from "./wishlist-context";
+
+const isPortalRoute = (pathname = "") =>
+  pathname.startsWith("/admin") ||
+  pathname.startsWith("/seller") ||
+  pathname.startsWith("/delivery");
 
 export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const userToken = user?.token;
+  const { pathname } = useLocation();
+  const canUseCustomerWishlist = Boolean(userToken) && !isPortalRoute(pathname);
   const { success, error: toastError, info } = useToast();
 
   // Load wishlist from backend when user logs in
   useEffect(() => {
     const loadWishlist = async () => {
-      if (userToken) {
+      if (canUseCustomerWishlist) {
         try {
           const result = await WishlistController.getWishlist();
           setWishlist(result.success ? result.data || [] : []);
@@ -30,11 +38,11 @@ export const WishlistProvider = ({ children }) => {
     };
 
     loadWishlist();
-  }, [userToken]);
+  }, [canUseCustomerWishlist]);
 
   // Add to wishlist
   const addToWishlist = async (product) => {
-    if (!userToken) {
+    if (!canUseCustomerWishlist) {
       info("Login Required", "Please login to add items to your wishlist");
       return;
     }
@@ -56,7 +64,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Remove from wishlist
   const removeFromWishlist = async (productId) => {
-    if (!userToken) return;
+    if (!canUseCustomerWishlist) return;
 
     try {
       const result = await WishlistController.removeFromWishlist(productId);
@@ -79,7 +87,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Toggle wishlist (add if not present, remove if present)
   const toggleWishlist = async (product) => {
-    if (!userToken) {
+    if (!canUseCustomerWishlist) {
       info("Login Required", "Please login to manage your wishlist");
       return;
     }

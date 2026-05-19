@@ -1,20 +1,28 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "./ToastContext";
 import { CartController } from "../controllers/index.js";
 import { useAuth } from "./useAuth";
 import { CartContext } from "./cart-context";
+
+const isPortalRoute = (pathname = "") =>
+  pathname.startsWith("/admin") ||
+  pathname.startsWith("/seller") ||
+  pathname.startsWith("/delivery");
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const userToken = user?.token;
+  const { pathname } = useLocation();
+  const canUseCustomerCart = Boolean(userToken) && !isPortalRoute(pathname);
   const { success, error: toastError, info } = useToast();
 
   // Load cart from backend when user logs in
   useEffect(() => {
     const loadCart = async () => {
-      if (userToken) {
+      if (canUseCustomerCart) {
         try {
           const result = await CartController.getCart();
           setCart(result.success ? result.data || [] : []);
@@ -30,11 +38,11 @@ export const CartProvider = ({ children }) => {
     };
 
     loadCart();
-  }, [userToken]);
+  }, [canUseCustomerCart]);
 
   // Add to cart
   const addToCart = async (product, quantity = 1, options = {}) => {
-    if (!userToken) {
+    if (!canUseCustomerCart) {
       info("Login Required", "Please login to add items to your cart");
       return;
     }
@@ -60,7 +68,7 @@ export const CartProvider = ({ children }) => {
 
   // Update quantity
   const updateQuantity = async (productId, newQuantity, options = {}) => {
-    if (!userToken) return;
+    if (!canUseCustomerCart) return;
 
     try {
       const result = await CartController.updateQuantity(productId, newQuantity, options);
@@ -77,7 +85,7 @@ export const CartProvider = ({ children }) => {
 
   // Remove from cart
   const removeFromCart = async (productId, options = {}) => {
-    if (!userToken) return;
+    if (!canUseCustomerCart) return;
 
     try {
       const result = await CartController.removeFromCart(productId, options);
@@ -95,7 +103,7 @@ export const CartProvider = ({ children }) => {
 
   // Clear cart
   const clearCart = async () => {
-    if (!userToken) return;
+    if (!canUseCustomerCart) return;
 
     try {
       const result = await CartController.clearCart();
