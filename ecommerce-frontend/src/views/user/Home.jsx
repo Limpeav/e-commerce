@@ -195,8 +195,7 @@ export default function Home() {
                                     <Motion.div
                                         variants={gridContainerVariants}
                                         initial="hidden"
-                                        whileInView="show"
-                                        viewport={{ once: true, amount: 0.15 }}
+                                        animate="show"
                                         className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16"
                                     >
                                         {section.products.map((product) => (
