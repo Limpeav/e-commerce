@@ -5,11 +5,12 @@ import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useDarkMode } from "../../hooks";
-import Loading from "../common/Loading";
 import ErrorState from "../../components/product/ErrorState";
 import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
+import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
 import { useLanguage } from "../../context/useLanguage";
+import { consumeProductBackScrollTop } from "../../utils/scrollIntent";
 
 const VIEW_CONFIG_KEYS = {
   all: {
@@ -99,6 +100,14 @@ export default function ProductCatalog() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeView]);
 
+  useEffect(() => {
+    if (!loading && consumeProductBackScrollTop()) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      });
+    }
+  }, [loading]);
+
   const handleAddToCart = (product) => {
     if (!user) return;
     addToCart(product, 1);
@@ -112,10 +121,6 @@ export default function ProductCatalog() {
     setSearchQuery("");
     setSelectedCategory("All");
   };
-
-  if (loading) {
-    return <Loading />;
-  }
 
   if (error) {
     return <ErrorState error={error} onRetry={handleRetry} />;
@@ -179,16 +184,20 @@ export default function ProductCatalog() {
           </div>
         </section>
 
-        <ProductsGrid
-          filteredProducts={visibleProducts}
-          onAddToCart={handleAddToCart}
-          onWishlistToggle={toggleWishlist}
-          isInWishlist={isInWishlist}
-          user={user}
-          searchQuery={searchQuery}
-          selectedCategory={selectedCategory}
-          onClearFilters={handleClearFilters}
-        />
+        {loading ? (
+          <ProductLoadingPlaceholder title={t("product.loadingProducts")} />
+        ) : (
+          <ProductsGrid
+            filteredProducts={visibleProducts}
+            onAddToCart={handleAddToCart}
+            onWishlistToggle={toggleWishlist}
+            isInWishlist={isInWishlist}
+            user={user}
+            searchQuery={searchQuery}
+            selectedCategory={selectedCategory}
+            onClearFilters={handleClearFilters}
+          />
+        )}
       </main>
     </div>
   );

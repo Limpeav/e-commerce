@@ -1,20 +1,21 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { motion as Motion } from "framer-motion";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
-import Loading from "../common/Loading";
 
 // Components
 import Hero from "../../components/home/Hero";
 import SearchBar from "../../components/home/SearchBar";
 import ErrorState from "../../components/product/ErrorState";
 import ProductCard from "../../components/product/ProductCard";
+import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
 import { useDarkMode } from "../../hooks";
 
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
+import { consumeProductBackScrollTop } from "../../utils/scrollIntent";
 
 export default function Home() {
     const { addToCart } = useCart();
@@ -61,6 +62,14 @@ export default function Home() {
         setSearchQuery("");
         setSelectedCategory("All");
     };
+
+    useEffect(() => {
+        if (!loading && consumeProductBackScrollTop()) {
+            window.requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+            });
+        }
+    }, [loading]);
 
     const gridContainerVariants = {
         hidden: { opacity: 0 },
@@ -132,10 +141,6 @@ export default function Home() {
         ].filter((section) => section.products.length > 0);
     }, [filteredProducts, searchQuery, t]);
 
-    if (loading) {
-        return <Loading />;
-    }
-
     if (error) {
         return <ErrorState error={error} onRetry={handleRetry} />;
     }
@@ -161,7 +166,9 @@ export default function Home() {
                 <Hero />
 
                 <div ref={productsRef} className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
-                    {productSections.length > 0 ? (
+                    {loading ? (
+                        <ProductLoadingPlaceholder title={t("product.loadingProducts")} />
+                    ) : productSections.length > 0 ? (
                         <div className="space-y-12 sm:space-y-16">
                             {productSections.map((section) => (
                                 <section key={section.title} className="space-y-6">
