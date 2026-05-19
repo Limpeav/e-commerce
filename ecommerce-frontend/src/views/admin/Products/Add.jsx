@@ -16,6 +16,7 @@ import {
   FileText,
   Boxes,
   FileSpreadsheet,
+  Sparkles,
 } from "lucide-react";
 
 const emptyProductForm = {

@@ -8,12 +8,13 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const userToken = user?.token;
   const { success, error: toastError, info } = useToast();
 
   // Load cart from backend when user logs in
   useEffect(() => {
     const loadCart = async () => {
-      if (user) {
+      if (userToken) {
         try {
           const result = await CartController.getCart();
           setCart(result.success ? result.data || [] : []);
@@ -29,11 +30,11 @@ export const CartProvider = ({ children }) => {
     };
 
     loadCart();
-  }, [user]);
+  }, [userToken]);
 
   // Add to cart
   const addToCart = async (product, quantity = 1, options = {}) => {
-    if (!user) {
+    if (!userToken) {
       info("Login Required", "Please login to add items to your cart");
       return;
     }
@@ -59,7 +60,7 @@ export const CartProvider = ({ children }) => {
 
   // Update quantity
   const updateQuantity = async (productId, newQuantity, options = {}) => {
-    if (!user) return;
+    if (!userToken) return;
 
     try {
       const result = await CartController.updateQuantity(productId, newQuantity, options);
@@ -76,7 +77,7 @@ export const CartProvider = ({ children }) => {
 
   // Remove from cart
   const removeFromCart = async (productId, options = {}) => {
-    if (!user) return;
+    if (!userToken) return;
 
     try {
       const result = await CartController.removeFromCart(productId, options);
@@ -94,7 +95,7 @@ export const CartProvider = ({ children }) => {
 
   // Clear cart
   const clearCart = async () => {
-    if (!user) return;
+    if (!userToken) return;
 
     try {
       const result = await CartController.clearCart();

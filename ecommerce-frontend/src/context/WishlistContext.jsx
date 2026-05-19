@@ -8,12 +8,13 @@ export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const userToken = user?.token;
   const { success, error: toastError, info } = useToast();
 
   // Load wishlist from backend when user logs in
   useEffect(() => {
     const loadWishlist = async () => {
-      if (user) {
+      if (userToken) {
         try {
           const result = await WishlistController.getWishlist();
           setWishlist(result.success ? result.data || [] : []);
@@ -29,11 +30,11 @@ export const WishlistProvider = ({ children }) => {
     };
 
     loadWishlist();
-  }, [user]);
+  }, [userToken]);
 
   // Add to wishlist
   const addToWishlist = async (product) => {
-    if (!user) {
+    if (!userToken) {
       info("Login Required", "Please login to add items to your wishlist");
       return;
     }
@@ -55,7 +56,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Remove from wishlist
   const removeFromWishlist = async (productId) => {
-    if (!user) return;
+    if (!userToken) return;
 
     try {
       const result = await WishlistController.removeFromWishlist(productId);
@@ -78,7 +79,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Toggle wishlist (add if not present, remove if present)
   const toggleWishlist = async (product) => {
-    if (!user) {
+    if (!userToken) {
       info("Login Required", "Please login to manage your wishlist");
       return;
     }
