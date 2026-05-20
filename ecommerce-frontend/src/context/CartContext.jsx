@@ -10,6 +10,11 @@ const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/seller") ||
   pathname.startsWith("/delivery");
 
+const normalizeCartSize = (size = "") => String(size || "").trim().toUpperCase();
+
+const isSameCartItem = (item, productId, size = "") =>
+  item.product?._id === productId && normalizeCartSize(item.size) === normalizeCartSize(size);
+
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +75,15 @@ export const CartProvider = ({ children }) => {
   const updateQuantity = async (productId, newQuantity, options = {}) => {
     if (!canUseCustomerCart) return;
 
+    const previousCart = cart;
+    setCart((currentCart) =>
+      currentCart.map((item) =>
+        isSameCartItem(item, productId, options.size)
+          ? { ...item, quantity: Number(newQuantity) }
+          : item
+      )
+    );
+
     try {
       const result = await CartController.updateQuantity(productId, newQuantity, options);
       if (!result.success) {
@@ -78,6 +92,7 @@ export const CartProvider = ({ children }) => {
 
       setCart(result.data || []);
     } catch (error) {
+      setCart(previousCart);
       console.error("Error updating quantity:", error);
       toastError("Update Failed", "Could not update item quantity.");
     }

@@ -143,7 +143,7 @@ const ProductInfo = ({
           {/* Quantity Selector */}
           <div className={`flex w-full items-center justify-between gap-3 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:w-fit sm:justify-start ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
             <button
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
               className={`flex h-11 w-11 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
             >
               −
@@ -152,7 +152,7 @@ const ProductInfo = ({
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity(quantity + 1)}
+              onClick={() => setQuantity((currentQuantity) => currentQuantity + 1)}
               className={`flex h-11 w-11 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
             >
               +
