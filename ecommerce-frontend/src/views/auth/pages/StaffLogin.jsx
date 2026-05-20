@@ -120,22 +120,23 @@ const StaffLogin = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F9FAFB] p-4 font-sans text-[#1F2937]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-4 font-sans text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.14),transparent_34%),linear-gradient(180deg,#0f172a_0%,#111827_100%)]"></div>
       <div
         className={`w-full max-w-lg relative z-10 transition-all duration-700 ease-out transform ${
           isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         }`}
       >
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           <div className="px-8 pb-8 pt-12 text-center sm:px-10">
-            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 shadow-sm ring-1 ring-blue-100">
-              <Truck className="h-8 w-8 text-[#2563EB]" />
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-800 shadow-sm ring-1 ring-slate-700">
+              <Truck className="h-8 w-8 text-blue-300" />
             </div>
 
-            <h1 className="font-sans text-2xl font-bold tracking-normal text-[#1F2937]">
+            <h1 className="font-sans text-2xl font-bold tracking-normal text-slate-100">
               {portal.title}
             </h1>
-            <p className="mt-2 text-sm font-medium text-gray-500">
+            <p className="mt-2 text-sm font-medium text-slate-400">
               {portal.description}
             </p>
           </div>
@@ -149,16 +150,16 @@ const StaffLogin = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="ml-1 text-sm font-semibold text-[#1F2937]">Email Address</label>
+              <label className="ml-1 text-sm font-semibold text-slate-200">Email Address</label>
               <div className="relative group">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors group-focus-within:text-[#2563EB]">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 transition-colors group-focus-within:text-blue-300">
                   <Mail className="h-5 w-5" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-lg border border-[#D1D5DB] bg-white py-3 pl-10 pr-4 text-[#1F2937] shadow-sm transition-all placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-4 text-slate-100 shadow-sm transition-all placeholder:text-slate-500 focus:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                   placeholder={portal.roles.includes("seller") ? "seller@company.com" : "delivery@company.com"}
                   required
                 />
@@ -166,23 +167,23 @@ const StaffLogin = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="ml-1 text-sm font-semibold text-[#1F2937]">Password</label>
+              <label className="ml-1 text-sm font-semibold text-slate-200">Password</label>
               <div className="relative group">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors group-focus-within:text-[#2563EB]">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 transition-colors group-focus-within:text-blue-300">
                   <Lock className="h-5 w-5" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-lg border border-[#D1D5DB] bg-white py-3 pl-10 pr-10 text-[#1F2937] shadow-sm transition-all placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-10 text-slate-100 shadow-sm transition-all placeholder:text-slate-500 focus:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-gray-400 transition-colors hover:text-[#1F2937]"
+                  className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-slate-500 transition-colors hover:text-blue-300"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -192,7 +193,7 @@ const StaffLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-3.5 font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.22)] transition-all duration-200 hover:bg-blue-700 hover:shadow-[0_14px_30px_rgba(37,99,235,0.28)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3.5 font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.22)] transition-all duration-200 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
                 <>
@@ -208,10 +209,10 @@ const StaffLogin = () => {
             </button>
           </form>
 
-          <div className="flex items-center justify-center border-t border-gray-100 bg-gray-50 px-8 py-5">
+          <div className="flex items-center justify-center border-t border-slate-800 bg-slate-950/70 px-8 py-5">
             <a
               href="/login"
-              className="flex items-center gap-2 text-sm font-semibold text-gray-500 transition-colors hover:text-[#2563EB]"
+              className="flex items-center gap-2 text-sm font-semibold text-slate-400 transition-colors hover:text-blue-300"
             >
               Back to Customer Login
             </a>
@@ -219,8 +220,8 @@ const StaffLogin = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-            <Truck className="h-3 w-3 text-[#2563EB]" />
+          <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <Truck className="h-3 w-3 text-blue-300" />
             {portal.footer}
           </p>
         </div>

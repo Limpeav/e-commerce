@@ -10,6 +10,7 @@ import {
   publicRoutes,
 } from "../config/routes";
 import { useAuth } from "../context/useAuth";
+import { useLanguage } from "../context/useLanguage";
 import { useDarkMode } from "../hooks";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
@@ -45,7 +46,12 @@ export default function AppView() {
   const location = useLocation();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
+  const { language } = useLanguage();
   const authenticatedRedirect = user?.phone ? "/customer" : "/complete-profile";
+  const isPortalRoute =
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/seller") ||
+    location.pathname.startsWith("/delivery");
 
   useEffect(() => {
     // Clear any leftover global page-lock styles from modals when routes change.
@@ -55,6 +61,21 @@ export default function AppView() {
     document.body.style.top = "";
     document.body.style.pointerEvents = "";
   }, [location.pathname]);
+
+  useEffect(() => {
+    const html = document.documentElement;
+
+    if (isPortalRoute) {
+      html.classList.add("dark");
+      html.lang = "en";
+      html.dataset.language = "en";
+      return;
+    }
+
+    html.classList.toggle("dark", isDark);
+    html.lang = language;
+    html.dataset.language = language;
+  }, [isPortalRoute, isDark, language]);
 
   const isAdminRoute =
     (location.pathname.startsWith("/admin") &&
@@ -150,17 +171,17 @@ export default function AppView() {
       <ScrollToTop />
       <div
         className={
-          isDark
+          isPortalRoute || isDark
             ? "bg-slate-950 text-slate-100 transition-colors duration-300"
             : "bg-stone-50 text-text-main transition-colors duration-300"
         }
       >
         {shouldShowNavFooter && <Navbar />}
-        <StaticTextTranslator disabled={isAdminRoute} />
+        <StaticTextTranslator disabled={isPortalRoute} />
 
         <main
           className={`min-h-screen transition-colors duration-300 ${
-            isDark ? "bg-slate-950" : "bg-stone-50"
+            isPortalRoute || isDark ? "bg-slate-950" : "bg-stone-50"
           }`}
         >
           <Suspense fallback={<Loading />}>

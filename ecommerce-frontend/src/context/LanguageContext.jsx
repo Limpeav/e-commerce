@@ -5,6 +5,17 @@ import { LanguageContext } from "./language-context";
 
 const STORAGE_KEY = "language";
 const DEFAULT_LANGUAGE = "en";
+const PORTAL_PATH_PREFIXES = ["/admin", "/seller", "/delivery"];
+
+const getEffectiveLanguage = (language) => {
+  if (typeof window === "undefined") {
+    return language;
+  }
+
+  return PORTAL_PATH_PREFIXES.some((prefix) => window.location.pathname.startsWith(prefix))
+    ? DEFAULT_LANGUAGE
+    : language;
+};
 
 const getInitialLanguage = () => {
   if (typeof window === "undefined") {
@@ -19,9 +30,11 @@ export const LanguageProvider = ({ children }) => {
   const [language, setLanguageState] = useState(getInitialLanguage);
 
   useEffect(() => {
-    i18n.changeLanguage(language);
-    document.documentElement.lang = language;
-    document.documentElement.dataset.language = language;
+    const effectiveLanguage = getEffectiveLanguage(language);
+
+    i18n.changeLanguage(effectiveLanguage);
+    document.documentElement.lang = effectiveLanguage;
+    document.documentElement.dataset.language = effectiveLanguage;
     window.localStorage.setItem(STORAGE_KEY, language);
   }, [language]);
 
@@ -32,7 +45,8 @@ export const LanguageProvider = ({ children }) => {
   }, []);
 
   const t = useCallback(
-    (key, options = {}) => i18n.t(key, { ...options, lng: language, defaultValue: key }),
+    (key, options = {}) =>
+      i18n.t(key, { ...options, lng: getEffectiveLanguage(language), defaultValue: key }),
     [language]
   );
 
@@ -41,7 +55,7 @@ export const LanguageProvider = ({ children }) => {
       language,
       setLanguage,
       t,
-      isKhmer: language === "km",
+      isKhmer: getEffectiveLanguage(language) === "km",
     }),
     [language, setLanguage, t]
   );

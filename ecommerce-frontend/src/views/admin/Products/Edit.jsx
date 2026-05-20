@@ -15,6 +15,7 @@ import {
   Tag,
   FileText,
   Boxes,
+  Sparkles,
   Save,
   X,
 } from "lucide-react";

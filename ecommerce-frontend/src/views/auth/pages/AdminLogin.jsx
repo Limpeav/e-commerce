@@ -83,31 +83,31 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCF9F5] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans text-slate-100">
       {/* Subtle Static Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FCF9F5] via-white to-[#FAF0EB]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(167,199,173,0.12),transparent_34%),linear-gradient(180deg,#0f172a_0%,#111827_100%)]"></div>
 
       {/* Very Subtle Ambient Glows */}
-      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#E6BAA3]/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#8DAA91]/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-cyan-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div
         className={`w-full max-w-lg relative z-10 transition-all duration-700 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
       >
 
         {/* Main Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#EAE3DB] shadow-2xl shadow-[#2D312E]/10 overflow-hidden">
+        <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl shadow-black/30 overflow-hidden">
 
           {/* Header Section */}
           <div className="px-8 pt-12 pb-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#F1ECE6] mb-6 shadow-md ring-1 ring-[#EAE3DB]">
-              <ShieldCheck className="w-8 h-8 text-[#5F7A63]" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800 mb-6 shadow-md ring-1 ring-slate-700">
+              <ShieldCheck className="w-8 h-8 text-emerald-300" />
             </div>
 
-            <h1 className="text-2xl font-bold text-[#2D312E] mb-2 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-100 mb-2 tracking-tight">
               Admin Portal
             </h1>
-            <p className="text-[#727871] text-sm">
+            <p className="text-slate-400 text-sm">
               Sign in to your administrative account
             </p>
           </div>
@@ -123,16 +123,16 @@ const AdminLogin = () => {
 
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#2D312E] ml-1">Email Address</label>
+              <label className="text-sm font-medium text-slate-200 ml-1">Email Address</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8D948A] group-focus-within:text-[#5F7A63] transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-300 transition-colors">
                   <Mail className="w-5 h-5" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#FCF9F5] border border-[#EAE3DB] rounded-lg focus:outline-none focus:border-[#7A967E] focus:ring-1 focus:ring-[#7A967E] text-[#2D312E] placeholder-[#A3A8A2] transition-all shadow-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-700 rounded-lg focus:outline-none focus:border-emerald-300 focus:ring-1 focus:ring-emerald-300 text-slate-100 placeholder-slate-500 transition-all shadow-sm"
                   placeholder="name@company.com"
                   required
                 />
@@ -141,23 +141,23 @@ const AdminLogin = () => {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#2D312E] ml-1">Password</label>
+              <label className="text-sm font-medium text-slate-200 ml-1">Password</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8D948A] group-focus-within:text-[#5F7A63] transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-300 transition-colors">
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-[#FCF9F5] border border-[#EAE3DB] rounded-lg focus:outline-none focus:border-[#7A967E] focus:ring-1 focus:ring-[#7A967E] text-[#2D312E] placeholder-[#A3A8A2] transition-all shadow-sm"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-950/70 border border-slate-700 rounded-lg focus:outline-none focus:border-emerald-300 focus:ring-1 focus:ring-emerald-300 text-slate-100 placeholder-slate-500 transition-all shadow-sm"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8D948A] hover:text-[#5F7A63] transition-colors cursor-pointer"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-emerald-300 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -168,7 +168,7 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-[#7A967E] hover:bg-[#5F7A63] text-white rounded-lg font-medium shadow-lg shadow-[#7A967E]/20 hover:shadow-[#7A967E]/30 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-950/30 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
@@ -185,10 +185,10 @@ const AdminLogin = () => {
           </form>
 
           {/* Footer Section */}
-          <div className="bg-[#FCF9F5] px-8 py-5 border-t border-[#EAE3DB] flex items-center justify-center">
+          <div className="bg-slate-950/70 px-8 py-5 border-t border-slate-800 flex items-center justify-center">
             <a
               href="/login"
-              className="text-sm text-[#727871] hover:text-[#5F7A63] transition-colors flex items-center gap-2 font-medium"
+              className="text-sm text-slate-400 hover:text-emerald-300 transition-colors flex items-center gap-2 font-medium"
             >
               Back to Customer Login
             </a>
@@ -198,7 +198,7 @@ const AdminLogin = () => {
 
         {/* Footer info - simple */}
         <div className="mt-8 text-center opacity-70">
-          <p className="text-[#727871] text-xs flex items-center justify-center gap-2 font-medium uppercase tracking-wider">
+          <p className="text-slate-500 text-xs flex items-center justify-center gap-2 font-medium uppercase tracking-wider">
             <ShieldCheck className="w-3 h-3" />
             Secure Admin Environment
           </p>
