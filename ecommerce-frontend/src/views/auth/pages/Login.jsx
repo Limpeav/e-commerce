@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
+import { useLanguage } from "../../../context/useLanguage";
 import {
   Mail,
   Lock,
@@ -25,6 +26,7 @@ const Login = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
 
   // Add this useEffect
   useEffect(() => {
@@ -182,10 +184,10 @@ const Login = () => {
               isDark ? "text-slate-100" : "text-text-main"
             }`}
           >
-            Welcome Back
+            {t("Welcome Back")}
           </h1>
           <p className={`font-medium text-sm sm:text-lg ${isDark ? "text-slate-400" : "text-text-muted"}`}>
-            Sign in to continue shopping
+            {t("Sign in to continue shopping")}
           </p>
         </div>
 
@@ -213,7 +215,7 @@ const Login = () => {
             {/* Email Input */}
             <div className="group">
               <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                Email Address
+                {t("Email Address")}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
@@ -237,7 +239,7 @@ const Login = () => {
             {/* Password Input */}
             <div className="group">
               <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                Password
+                {t("Password")}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
@@ -245,7 +247,7 @@ const Login = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={t("Enter your password")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -287,14 +289,14 @@ const Login = () => {
                     isDark ? "text-slate-400" : "text-text-muted"
                   }`}
                 >
-                  Remember me
+                  {t("Remember me")}
                 </span>
               </label>
               <Link
                 to="/forgot-password"
                 className="text-primary hover:text-primary-dark font-black uppercase tracking-widest transition-colors"
               >
-                Forgot password?
+                {t("Forgot password?")}
               </Link>
             </div>
 
@@ -314,11 +316,11 @@ const Login = () => {
               {loading ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
-                  Identifying...
+                  {t("Identifying...")}
                 </>
               ) : (
                 <>
-                  Sign In
+                  {t("Sign In")}
                 </>
               )}
             </button>
@@ -331,7 +333,7 @@ const Login = () => {
             </div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
               <span className={`px-6 ${isDark ? "bg-slate-900 text-slate-500" : "bg-white text-stone-400"}`}>
-                OR
+                {t("OR")}
               </span>
             </div>
           </div>
@@ -365,7 +367,7 @@ const Login = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="text-sm uppercase tracking-widest">Sign in with Google</span>
+            <span className="text-sm uppercase tracking-widest">{t("Sign in with Google")}</span>
           </button>
 
           {/* Sign Up Link */}
@@ -376,9 +378,9 @@ const Login = () => {
                 isDark ? "text-slate-400" : "text-text-muted"
               }`}
             >
-              Dont have an account?
+              {t("Dont have an account?")}
               <span className="text-primary font-black uppercase tracking-widest border-b-2 border-primary/20 group-hover:border-primary transition-all">
-                Create one now
+                {t("Create one now")}
               </span>
             </Link>
           </div>
@@ -394,7 +396,7 @@ const Login = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Secure SSL Encryption</span>
+            <span>{t("Secure SSL Encryption")}</span>
           </div>
         </div>
       </div>
