@@ -1,6 +1,7 @@
 import { FileText, AlertCircle, Users, Package, Truck, Shield, Mail } from 'lucide-react';
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
+import { useLanguage } from '../../context/useLanguage';
 
 const sections = [
     {
@@ -154,11 +155,13 @@ const sections = [
 ];
 
 export default function Terms() {
+    const { language, t } = useLanguage();
+
     return (
         <PageLayout
             title="Terms of Service"
             subtitle="The rules and guidelines governing your use of our platform"
-            badge={`Version 2.4 // ${new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`}
+            badge={`${t("Version")} 2.4 // ${new Date().toLocaleDateString(language === "km" ? "km-KH" : undefined, { month: 'short', year: 'numeric' })}`}
             icon={FileText}
             maxWidth="5xl"
         >

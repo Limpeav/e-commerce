@@ -1,6 +1,7 @@
 import { Shield, Lock, Eye, Database, Mail } from 'lucide-react';
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
+import { useLanguage } from '../../context/useLanguage';
 
 const sections = [
     {
@@ -106,11 +107,13 @@ const sections = [
 ];
 
 export default function Privacy() {
+    const { language, t } = useLanguage();
+
     return (
         <PageLayout
             title="Privacy Policy"
             subtitle="How we collect, use, and protect your data"
-            badge={`Last Updated: ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`}
+            badge={`${t("Last Updated")}: ${new Date().toLocaleDateString(language === "km" ? "km-KH" : undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`}
             icon={Shield}
             badgeColor="green"
             maxWidth="5xl"
