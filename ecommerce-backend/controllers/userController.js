@@ -176,7 +176,7 @@ export const updateUserProfile = async (req, res) => {
 // 🔑 FORGOT PASSWORD - Step 1: Send 6-digit code to email (Facebook-style)
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = req.body.email?.trim();
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -200,14 +200,14 @@ export const forgotPassword = async (req, res) => {
       .digest("hex");
 
     // Set code expiration (10 minutes)
-    const resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    const resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     // Update user directly to avoid pre-save hooks
     await User.updateOne(
       { _id: user._id },
       {
         resetPasswordToken: hashedCode,
-        resetPasswordExpire: resetPasswordExpire,
+        resetPasswordExpires,
       }
     );
 
@@ -244,7 +244,8 @@ export const forgotPassword = async (req, res) => {
 // 🔐 VERIFY RESET CODE - Step 2: Verify the 6-digit code (Facebook-style)
 export const verifyResetCode = async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const email = req.body.email?.trim();
+    const code = req.body.code?.toString().trim();
 
     if (!email || !code) {
       return res.status(400).json({ message: "Email and code are required" });
@@ -257,7 +258,7 @@ export const verifyResetCode = async (req, res) => {
     const user = await User.findOne({
       email,
       resetPasswordToken: hashedCode,
-      resetPasswordExpire: { $gt: Date.now() },
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -278,7 +279,7 @@ export const verifyResetCode = async (req, res) => {
       { _id: user._id },
       {
         resetPasswordToken: hashedResetToken,
-        resetPasswordExpire: Date.now() + 15 * 60 * 1000,
+        resetPasswordExpires: Date.now() + 15 * 60 * 1000,
       }
     );
 
@@ -295,7 +296,7 @@ export const verifyResetCode = async (req, res) => {
 // 🔑 RESEND RESET CODE - Resend the 6-digit code
 export const resendResetCode = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = req.body.email?.trim();
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -319,14 +320,14 @@ export const resendResetCode = async (req, res) => {
       .digest("hex");
 
     // Set code expiration (10 minutes)
-    const resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    const resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     // Update user
     await User.updateOne(
       { _id: user._id },
       {
         resetPasswordToken: hashedCode,
-        resetPasswordExpire: resetPasswordExpire,
+        resetPasswordExpires,
       }
     );
 
@@ -351,7 +352,8 @@ export const resendResetCode = async (req, res) => {
 // 🔄 RESET PASSWORD - Step 3: Set new password
 export const resetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const token = req.body.token?.toString().trim();
+    const { password } = req.body;
 
     if (!token || !password) {
       return res
@@ -371,7 +373,7 @@ export const resetPassword = async (req, res) => {
     // Find user with matching token and non-expired token
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: Date.now() },
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -383,7 +385,7 @@ export const resetPassword = async (req, res) => {
     // Set new password
     user.password = password;
     user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
+    user.resetPasswordExpires = undefined;
 
     await user.save();
 

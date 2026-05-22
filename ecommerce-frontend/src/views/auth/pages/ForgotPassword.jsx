@@ -68,8 +68,10 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const { data } = await forgotPassword({ email });
-      setMaskedEmail(data.maskedEmail || email);
+      const normalizedEmail = email.trim();
+      const { data } = await forgotPassword({ email: normalizedEmail });
+      setEmail(data.email || normalizedEmail);
+      setMaskedEmail(data.maskedEmail || data.email || normalizedEmail);
       setStep(STEPS.VERIFY_CODE);
       setResendCooldown(60);
     } catch (err) {
@@ -120,7 +122,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setError("");
 
-    const codeString = code.join("");
+    const codeString = code.join("").trim();
     if (codeString.length !== 6) {
       setError("Please enter the complete 6-digit code.");
       return;
@@ -129,7 +131,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const { data } = await verifyResetCode({ email, code: codeString });
+      const { data } = await verifyResetCode({ email: email.trim(), code: codeString });
       setResetToken(data.resetToken);
       setStep(STEPS.NEW_PASSWORD);
     } catch (err) {
@@ -152,7 +154,7 @@ const ForgotPassword = () => {
     setError("");
 
     try {
-      await resendResetCode({ email });
+      await resendResetCode({ email: email.trim() });
       setResendCooldown(60);
       setCode(["", "", "", "", "", ""]);
       codeInputRefs.current[0]?.focus();
