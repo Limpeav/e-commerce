@@ -1,9 +1,13 @@
 const normalizeUrl = (url) => String(url || "").replace(/\/+$/, "");
 
+const FALLBACK_ADMIN_URL = "https://admin-frontend-02jx.onrender.com";
+const FALLBACK_CUSTOMER_URL = "https://customer-frontend-728p.onrender.com";
+
 export const portalConfig = {
   portal: import.meta.env.VITE_APP_PORTAL || "all",
-  adminUrl: normalizeUrl(import.meta.env.VITE_ADMIN_URL),
-  customerUrl: normalizeUrl(import.meta.env.VITE_CUSTOMER_URL),
+  adminUrl: normalizeUrl(import.meta.env.VITE_ADMIN_URL) || FALLBACK_ADMIN_URL,
+  customerUrl:
+    normalizeUrl(import.meta.env.VITE_CUSTOMER_URL) || FALLBACK_CUSTOMER_URL,
 };
 
 const getCurrentOrigin = () => {
