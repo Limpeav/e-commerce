@@ -1,6 +1,7 @@
 # Admin Frontend
 
-Separate admin/staff portal for Render deployment.
+Separate admin/staff portal for Render deployment. This app is self-contained:
+the admin UI and supporting frontend code live under `admin-frontend/src`.
 
 ## Render Static Site
 

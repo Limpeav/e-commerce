@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const sharedSrc = fileURLToPath(new URL("../ecommerce-frontend/src", import.meta.url));
+const sharedSrc = fileURLToPath(new URL("./src/shared", import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,9 +13,6 @@ export default defineConfig({
     },
   },
   server: {
-    fs: {
-      allow: [sharedSrc],
-    },
     proxy: {
       "/api": {
         target: "http://localhost:4000",
