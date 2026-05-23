@@ -22,6 +22,13 @@ import Loading from "../components/common/Loading";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
 import StaticTextTranslator from "../components/common/StaticTextTranslator";
+import {
+  buildPortalUrl,
+  isAdminPortal,
+  isCustomerPortal,
+  isPortalPath,
+  portalConfig,
+} from "../utils/portalConfig";
 
 const LazyComponents = {};
 Object.keys(lazyComponents).forEach((key) => {
@@ -48,10 +55,23 @@ export default function AppView() {
   const [isDark] = useDarkMode();
   const { language } = useLanguage();
   const authenticatedRedirect = user?.phone ? "/customer" : "/complete-profile";
-  const isPortalRoute =
-    location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/seller") ||
-    location.pathname.startsWith("/delivery");
+  const isPortalRoute = isPortalPath(location.pathname);
+
+  useEffect(() => {
+    if (isCustomerPortal() && isPortalRoute) {
+      window.location.assign(buildPortalUrl(portalConfig.adminUrl, location));
+      return;
+    }
+
+    if (isAdminPortal() && !isPortalRoute) {
+      const isAdminRoot = location.pathname === "/";
+      const redirectUrl = isAdminRoot
+        ? `${portalConfig.adminUrl || ""}/admin/login`
+        : buildPortalUrl(portalConfig.customerUrl, location);
+
+      window.location.assign(redirectUrl);
+    }
+  }, [isPortalRoute, location]);
 
   useEffect(() => {
     // Clear any leftover global page-lock styles from modals when routes change.
