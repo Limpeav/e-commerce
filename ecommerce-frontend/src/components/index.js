@@ -8,7 +8,6 @@ export { default as ErrorBoundary } from './common/ErrorBoundary';
 export { default as ScrollToTop } from './ScrollToTop';
 
 // Admin components
-export { default as AdminSidebar } from './admin/AdminSidebar';
 
 // Product components
 export { default as ProductCard } from './product/ProductCard';

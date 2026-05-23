@@ -1,4 +1,3 @@
-export { adminService } from "./adminService";
 export { authService } from "./authService";
 export { cartService } from "./cartService";
 export { getOrderById as orderServiceGetOrderById } from "./orderService";

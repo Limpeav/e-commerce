@@ -1,4 +1,3 @@
-export { AdminController } from "./adminController.js";
 export { AddressController } from "./addressController.js";
 export { AuthController } from "./authController.js";
 export { BannerController } from "./bannerController.js";
