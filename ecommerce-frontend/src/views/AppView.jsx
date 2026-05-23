@@ -3,20 +3,17 @@ import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   additionalRoutes,
-  adminRoutes,
   hideNavFooterPaths,
-  lazyComponents,
   protectedRoutes,
   publicRoutes,
+  userLazyComponents,
 } from "../config/routes";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
 import { useDarkMode } from "../hooks";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
-import AdminSidebar from "../components/admin/AdminSidebar";
 import ProtectedRoute from "./auth/ProtectedRoute";
-import AdminRoute from "./auth/AdminRoute";
 import ScrollToTop from "../components/common/ScrollToTop";
 import Loading from "../components/common/Loading";
 import ErrorBoundary from "../components/common/ErrorBoundary";
@@ -31,8 +28,8 @@ import {
 } from "../utils/portalConfig";
 
 const LazyComponents = {};
-Object.keys(lazyComponents).forEach((key) => {
-  LazyComponents[key] = lazy(lazyComponents[key]);
+Object.keys(userLazyComponents).forEach((key) => {
+  LazyComponents[key] = lazy(userLazyComponents[key]);
 });
 
 const phoneExemptPaths = [
@@ -118,42 +115,13 @@ export default function AppView() {
     return <Navigate to="/complete-profile" replace />;
   }
 
-  const renderRouteElement = (route, isProtected, isAdmin) => {
+  const renderRouteElement = (route, isProtected) => {
     const Component = LazyComponents[route.component];
     const isUserAuthPage =
       route.path === "/login" ||
       route.path === "/register" ||
       route.path === "/forgot-password" ||
       route.path === "/reset-password";
-
-    if (isAdmin) {
-      const isDeliveryRoute = route.path.startsWith("/delivery");
-
-      if (isDeliveryRoute) {
-        return (
-          <AdminRoute allowedRoles={route.allowedRoles}>
-            <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
-              <PageTransition>
-                <Component />
-              </PageTransition>
-            </div>
-          </AdminRoute>
-        );
-      }
-
-      return (
-        <AdminRoute allowedRoles={route.allowedRoles}>
-          <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
-            <AdminSidebar />
-            <div className="lg:ml-64">
-              <PageTransition>
-                <Component />
-              </PageTransition>
-            </div>
-          </div>
-        </AdminRoute>
-      );
-    }
 
     if (isProtected) {
       return (
@@ -176,12 +144,12 @@ export default function AppView() {
     );
   };
 
-  const renderRoute = (route, isProtected = false, isAdmin = false) => {
+  const renderRoute = (route, isProtected = false) => {
     return (
       <Route
         key={route.path}
         path={route.path}
-        element={renderRouteElement(route, isProtected, isAdmin)}
+        element={renderRouteElement(route, isProtected)}
       />
     );
   };
@@ -209,7 +177,6 @@ export default function AppView() {
               <Routes location={location} key={location.pathname}>
                 {publicRoutes.map((route) => renderRoute(route))}
                 {protectedRoutes.map((route) => renderRoute(route, true, false))}
-                {adminRoutes.map((route) => renderRoute(route, false, true))}
                 {additionalRoutes.map((route) => renderRoute(route))}
               </Routes>
             </AnimatePresence>

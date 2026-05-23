@@ -1,6 +1,5 @@
 // Lazy loaded components for better performance
-export const lazyComponents = {
-  // User routes
+export const userLazyComponents = {
   Home: () => import("../views/user/Home"),
   ProductCatalog: () => import("../views/product/ProductCatalog"),
   ProductDetail: () => import("../views/product/ProductDetail"),
@@ -24,13 +23,17 @@ export const lazyComponents = {
   // Auth routes
   Login: () => import("../views/auth/pages/Login"),
   Register: () => import("../views/auth/pages/Register"),
-  AdminLogin: () => import("../views/auth/pages/AdminLogin"),
-  StaffLogin: () => import("../views/auth/pages/StaffLogin"),
   ForgotPassword: () => import("../views/auth/pages/ForgotPassword"),
   ResetPassword: () => import("../views/auth/pages/ResetPassword"),
   CompleteProfile: () => import("../views/auth/pages/CompleteProfile"),
 
-  // Admin routes
+  // Error routes
+  NotFound: () => import("../views/errors/NotFound"),
+};
+
+export const adminLazyComponents = {
+  AdminLogin: () => import("../views/auth/pages/AdminLogin"),
+  StaffLogin: () => import("../views/auth/pages/StaffLogin"),
   AdminDashboard: () => import("../views/admin/Dashboard"),
   AdminProductsList: () => import("../views/admin/Products/List"),
   AdminProductsAdd: () => import("../views/admin/Products/Add"),
@@ -45,20 +48,17 @@ export const lazyComponents = {
   AdminCashReport: () => import("../views/admin/CashReport"),
   SellerDashboard: () => import("../views/admin/SellerDashboard"),
   SellerPaymentQueue: () => import("../views/admin/PaymentQueue"),
+};
 
-  // Error routes
-  NotFound: () => import("../views/errors/NotFound"),
+export const lazyComponents = {
+  ...userLazyComponents,
+  ...adminLazyComponents,
 };
 
 // Route configurations
 export const publicRoutes = [
   { path: "/login", component: "Login" },
   { path: "/register", component: "Register" },
-  { path: "/admin/login", component: "AdminLogin" },
-  { path: "/seller", component: "StaffLogin" },
-  { path: "/seller/login", component: "StaffLogin" },
-  { path: "/delivery", component: "StaffLogin" },
-  { path: "/delivery/login", component: "StaffLogin" },
   { path: "/forgot-password", component: "ForgotPassword" },
   { path: "/reset-password", component: "ResetPassword" },
   { path: "/", component: "Home" },
