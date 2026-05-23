@@ -6,14 +6,59 @@ export const portalConfig = {
   customerUrl: normalizeUrl(import.meta.env.VITE_CUSTOMER_URL),
 };
 
+const getCurrentOrigin = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return normalizeUrl(window.location.origin);
+};
+
+const getCurrentHostname = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.location.hostname.toLowerCase();
+};
+
+export const getActivePortal = () => {
+  const currentOrigin = getCurrentOrigin();
+  const currentHostname = getCurrentHostname();
+
+  if (portalConfig.adminUrl && currentOrigin === portalConfig.adminUrl) {
+    return "admin";
+  }
+
+  if (portalConfig.customerUrl && currentOrigin === portalConfig.customerUrl) {
+    return "customer";
+  }
+
+  if (
+    currentHostname.startsWith("admin.") ||
+    currentHostname.includes("admin-frontend")
+  ) {
+    return "admin";
+  }
+
+  if (
+    currentHostname.startsWith("customer.") ||
+    currentHostname.includes("customer-frontend")
+  ) {
+    return "customer";
+  }
+
+  return portalConfig.portal;
+};
+
 export const isPortalPath = (pathname) =>
   pathname.startsWith("/admin") ||
   pathname.startsWith("/seller") ||
   pathname.startsWith("/delivery");
 
-export const isCustomerPortal = () => portalConfig.portal === "customer";
+export const isCustomerPortal = () => getActivePortal() === "customer";
 
-export const isAdminPortal = () => portalConfig.portal === "admin";
+export const isAdminPortal = () => getActivePortal() === "admin";
 
 export const buildPortalUrl = (baseUrl, location, fallbackPath = "/") => {
   const path = location.pathname || fallbackPath;
