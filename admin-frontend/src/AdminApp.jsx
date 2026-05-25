@@ -32,7 +32,7 @@ export default function AdminApp() {
   const location = useLocation();
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("dark");
     document.documentElement.lang = "en";
     document.documentElement.dataset.language = "en";
   }, []);
@@ -84,7 +84,7 @@ export default function AdminApp() {
   return (
     <ErrorBoundary>
       <ScrollToTop />
-      <main className="min-h-screen bg-slate-950 text-slate-100">
+      <main className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
         <Suspense fallback={<Loading />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
