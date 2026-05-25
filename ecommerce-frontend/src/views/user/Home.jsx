@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { motion as Motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -34,16 +34,23 @@ function ProductSection({
     const scrollProducts = (direction) => {
         if (!scrollRef.current) return;
 
-        const scrollDistance = scrollRef.current.clientWidth * 0.85;
-        scrollRef.current.scrollBy({
+        const container = scrollRef.current;
+        const firstCard = container.querySelector("[data-product-card]");
+        const styles = window.getComputedStyle(container);
+        const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+        const cardWidth = firstCard?.getBoundingClientRect().width || container.clientWidth;
+        const visibleCards = window.matchMedia("(max-width: 639px)").matches ? 2 : 1;
+        const scrollDistance = (cardWidth + gap) * visibleCards;
+
+        container.scrollBy({
             left: direction === "next" ? scrollDistance : -scrollDistance,
             behavior: "smooth",
         });
     };
 
     const productsContainerClass = isHorizontal
-        ? "flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-5 pr-3 sm:gap-6 md:gap-8"
-        : "grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16";
+        ? "flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-5 pr-3 sm:gap-5 md:gap-6"
+        : "grid auto-rows-fr grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16";
 
     return (
         <section className="space-y-6">
@@ -71,18 +78,32 @@ function ProductSection({
 
             <div className="relative">
                 {isHorizontal && (
-                    <button
-                        type="button"
-                        onClick={() => scrollProducts("next")}
-                        className={`absolute right-1 top-1/2 z-20 inline-flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-16 sm:w-16 ${
-                            isDark
-                                ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
-                                : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
-                        }`}
-                        aria-label={`Scroll ${section.title} right`}
-                    >
-                        <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" />
-                    </button>
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => scrollProducts("prev")}
+                            className={`absolute left-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:left-2 sm:h-14 sm:w-14 ${
+                                isDark
+                                    ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
+                                    : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                            }`}
+                            aria-label={`Scroll ${section.title} left`}
+                        >
+                            <ChevronLeft className="h-5 w-5 sm:h-7 sm:w-7" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => scrollProducts("next")}
+                            className={`absolute right-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-14 sm:w-14 ${
+                                isDark
+                                    ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
+                                    : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                            }`}
+                            aria-label={`Scroll ${section.title} right`}
+                        >
+                            <ChevronRight className="h-5 w-5 sm:h-7 sm:w-7" />
+                        </button>
+                    </>
                 )}
 
                 <Motion.div
@@ -101,7 +122,7 @@ function ProductSection({
                             isInWishlist={isInWishlist}
                             user={user}
                             variants={gridItemVariants}
-                            className={isHorizontal ? "h-[34rem] w-[74vw] max-w-[19rem] flex-none snap-start sm:h-[36rem] sm:w-72 sm:max-w-none md:h-[37rem] md:w-80" : ""}
+                            className={isHorizontal ? "h-[27rem] w-[calc((100%_-_0.75rem)/2)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72" : ""}
                         />
                     ))}
                 </Motion.div>

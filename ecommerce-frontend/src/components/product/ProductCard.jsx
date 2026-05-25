@@ -31,17 +31,18 @@ const ProductCard = ({
 
   return (
     <Motion.article
+      data-product-card
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className={`group relative flex flex-col h-full rounded-[2rem] overflow-hidden transition-shadow duration-500 border ${
+      className={`group relative flex flex-col h-full rounded-2xl overflow-hidden transition-shadow duration-500 border sm:rounded-[2rem] ${
         isDark
           ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
           : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(122,150,126,0.25)]'
       } ${className}`}
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
-      <div className={`relative aspect-square overflow-hidden rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
+      <div className={`relative aspect-square overflow-hidden rounded-xl sm:rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
         <Link to={`/products/${product._id}`} className="block w-full h-full">
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
@@ -55,13 +56,13 @@ const ProductCard = ({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.03)_0%,_transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
         {/* ── Badges ── */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+        <div className="absolute top-2 left-2 flex flex-col gap-2 z-10 sm:top-4 sm:left-4">
           {outOfStock ? (
-            <span className="bg-stone-900 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+            <span className="bg-stone-900 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-wider shadow-sm sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-widest">
               {t('product.soldOut')}
             </span>
           ) : hasDiscount && (
-            <span className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm shadow-primary/30">
+            <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-primary/30 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-widest">
               {t('product.save')} {discountPercent}%
             </span>
           )}
@@ -71,17 +72,17 @@ const ProductCard = ({
         <Motion.button
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlistToggle(product); }}
-          className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 border-2 cursor-pointer ${inWishlist
+          className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-300 border-2 cursor-pointer sm:top-4 sm:right-4 sm:p-2.5 ${inWishlist
             ? `${isDark ? '[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]'} border-transparent shadow-md text-indigo-600`
             : `${isDark ? 'bg-slate-900/80 border-slate-600 text-slate-400 hover:text-primary-light hover:border-primary' : 'bg-transparent border-stone-300 text-stone-400 hover:text-primary hover:border-primary'}`
             }`}
         >
-          <Heart className="w-4 h-4" strokeWidth={2.5} />
+          <Heart className="w-3.5 h-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
         </Motion.button>
       </div>
 
       {/* ═══ CONTENT SECTION ═══ */}
-      <div className={`flex flex-col flex-1 p-5 pt-6 gap-3 relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+      <div className={`flex flex-col flex-1 p-3 pt-4 gap-2 relative sm:gap-3 sm:p-5 sm:pt-6 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
 
         {/* Floating Quick Add Button (Desktop) - Overlaps Image/Content */}
         <div className="absolute -top-6 left-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
@@ -110,7 +111,7 @@ const ProductCard = ({
 
         {/* Category & Rating */}
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+          <span className="max-w-[6.5rem] truncate text-[9px] font-bold uppercase tracking-wider text-primary sm:max-w-none sm:text-[10px] sm:tracking-[0.2em]">
             {product.category ? translateCategory(product.category, t) : t('product.essentials')}
           </span>
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
@@ -123,13 +124,13 @@ const ProductCard = ({
 
         {/* Title */}
         <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
-          <h3 className={`font-bold text-lg leading-snug line-clamp-2 min-h-[2.75rem] ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
+          <h3 className={`font-bold text-sm leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.75rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {localizedProduct.title}
           </h3>
         </Link>
 
         {/* Description Snippet (Optional - keeps card informative) */}
-        <p className={`text-xs font-medium line-clamp-3 ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
+        <p className={`text-[11px] font-medium line-clamp-2 sm:line-clamp-3 sm:text-xs ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
           {localizedProduct.description || t('product.premiumQuality')}
         </p>
 
@@ -137,14 +138,12 @@ const ProductCard = ({
         <div className={`w-full h-px my-1 ${isDark ? 'bg-slate-700' : 'bg-stone-100'}`} />
 
         {/* Price Row */}
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex flex-col">
-            {hasDiscount && (
-              <span className={`text-xs font-bold line-through ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
-                ${price.toFixed(2)}
-              </span>
-            )}
-            <span className={`text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-stone-900'}`}>
+        <div className="mt-auto flex min-h-[3.5rem] items-end justify-between gap-2">
+          <div className="flex min-h-[3.25rem] flex-col justify-end">
+            <span className={`h-4 text-xs font-bold line-through ${hasDiscount ? '' : 'invisible'} ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
+              ${price.toFixed(2)}
+            </span>
+            <span className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}>
               ${finalPrice.toFixed(2)}
             </span>
           </div>
@@ -153,7 +152,7 @@ const ProductCard = ({
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}
-              className={`md:hidden rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider ${isDark ? 'bg-primary/15 text-primary-light' : 'bg-primary/10 text-primary'}`}
+              className={`md:hidden rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider sm:px-4 sm:text-xs ${isDark ? 'bg-primary/15 text-primary-light' : 'bg-primary/10 text-primary'}`}
             >
               Size
             </Link>
@@ -161,7 +160,7 @@ const ProductCard = ({
             <button
               onClick={() => onAddToCart(product)}
               disabled={!user || outOfStock}
-              className={`md:hidden text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl cursor-pointer ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              className={`md:hidden text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl cursor-pointer sm:px-4 sm:text-xs ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
               {outOfStock ? t('product.soldOut') : t('product.add')}
             </button>
