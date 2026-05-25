@@ -12,6 +12,7 @@ import {
 import { UserModel } from "../models/userModel.js";
 
 const USER_STORAGE_KEY = "user";
+export const AUTH_SESSION_EXPIRED_EVENT = "auth-session-expired";
 
 const normalizeAuthPayload = (payload) => {
   const rawUser = payload?.user || payload?.data?.user || payload?.data || payload;
@@ -111,6 +112,11 @@ export const authService = {
 
   logout() {
     localStorage.removeItem(USER_STORAGE_KEY);
+  },
+
+  expireSession() {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
   },
 
   isAuthenticated() {

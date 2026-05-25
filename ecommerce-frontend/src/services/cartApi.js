@@ -1,7 +1,21 @@
 import axios from "axios";
 import { config } from "../config/index.js";
+import { authService } from "./authService.js";
 
 const API_URL = `${config.API_BASE_URL}/cart`;
+
+const cartClient = axios.create();
+
+cartClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      authService.expireSession();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Get authentication token from localStorage
 const getAuthToken = () => {
@@ -17,7 +31,7 @@ export const fetchCart = async () => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(API_URL, config);
+  const response = await cartClient.get(API_URL, config);
   return response.data;
 };
 
@@ -29,7 +43,7 @@ export const addItemToCart = async (productData) => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.post(`${API_URL}/add`, productData, config);
+  const response = await cartClient.post(`${API_URL}/add`, productData, config);
   return response.data;
 };
 
@@ -41,7 +55,7 @@ export const updateCartItemQuantity = async (productId, quantity, size = "") => 
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.put(
+  const response = await cartClient.put(
     `${API_URL}/${productId}`,
     { quantity, size },
     config
@@ -58,7 +72,7 @@ export const removeItemFromCart = async (productId, size = "") => {
     },
     params: size ? { size } : {},
   };
-  const response = await axios.delete(`${API_URL}/remove/${productId}`, config); // ✅ Add /remove/
+  const response = await cartClient.delete(`${API_URL}/remove/${productId}`, config); // ✅ Add /remove/
   return response.data;
 };
 
@@ -70,6 +84,6 @@ export const clearUserCart = async () => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.delete(API_URL, config);
+  const response = await cartClient.delete(API_URL, config);
   return response.data;
 };

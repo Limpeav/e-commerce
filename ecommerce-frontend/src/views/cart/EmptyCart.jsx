@@ -3,12 +3,13 @@ import {
   ShoppingBag,
   Sparkles,
   ArrowRight,
-  Baby,
 } from "lucide-react";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function EmptyCart() {
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen bg-bg-base flex items-center justify-center overflow-hidden font-sans transition-colors duration-300">
@@ -39,11 +40,11 @@ export default function EmptyCart() {
 
           {/* Heading */}
           <h1 className="text-4xl md:text-5xl font-bold text-text-main mb-6 font-display tracking-tight leading-tight">
-            Your cart is empty
+            {t("cart.emptyTitle")}
           </h1>
           <p className="text-lg text-text-muted mb-10 max-w-lg mx-auto leading-relaxed">
-            Looks like you haven't added anything to your cart yet. <br className="hidden md:block" />
-            Start shopping to find the best essentials for your baby.
+            {t("cart.emptyMessage")} <br className="hidden md:block" />
+            {t("cart.emptyHint")}
           </p>
 
           {/* CTA Button */}
@@ -51,7 +52,7 @@ export default function EmptyCart() {
             to="/"
             className="group inline-flex items-center gap-3 rounded-xl bg-primary px-10 py-4 text-sm font-bold text-white shadow-xl transform transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95"
           >
-            <span>Start Shopping</span>
+            <span>{t("cart.startShopping")}</span>
             <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>

@@ -13,11 +13,13 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
+import { useLanguage } from '../../context/useLanguage';
 
 const ProfileSidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isDark] = useDarkMode();
+    const { t } = useLanguage();
 
     const handleLogout = () => {
         logout();
@@ -25,12 +27,12 @@ const ProfileSidebar = () => {
     };
 
     const menuItems = [
-        { path: '/customer/profile', icon: User, label: 'My Profile' },
-        { path: '/customer/orders', icon: ShoppingBag, label: 'My Orders' },
-        { path: '/customer/wishlist', icon: Heart, label: 'Wishlist' },
+        { path: '/customer/profile', icon: User, label: t('profile.myProfile') },
+        { path: '/customer/orders', icon: ShoppingBag, label: t('profile.myOrders') },
+        { path: '/customer/wishlist', icon: Heart, label: t('profile.wishlist') },
         // { path: '/addresses', icon: MapPin, label: 'Address Book' }, // Future Implementation
         // { path: '/payment-methods', icon: CreditCard, label: 'Payment Methods' }, // Future Implementation
-        { path: '/customer/settings', icon: Settings, label: 'Settings' },
+        { path: '/customer/settings', icon: Settings, label: t('profile.settings') },
     ];
 
     return (
@@ -49,7 +51,7 @@ const ProfileSidebar = () => {
                 <h2 className="text-xl font-bold text-text-main">{user?.name}</h2>
                 <p className="text-sm text-text-muted font-medium mb-1">{user?.email}</p>
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full mt-2">
-                    {user?.role === 'admin' ? 'Administrator' : 'Valued Customer'}
+                    {user?.role === 'admin' ? t('profile.administrator') : t('profile.valuedCustomer')}
                 </span>
             </div>
 
@@ -88,7 +90,7 @@ const ProfileSidebar = () => {
                         className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-bold text-sm group border ${isDark ? "text-slate-100 border-green-500/40 hover:bg-green-500/10" : "text-black border-green-500 hover:bg-green-50"}`}
                     >
                         <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        Sign Out
+                        {t('profile.signOut')}
                     </button>
                 </div>
             </nav>

@@ -1,7 +1,21 @@
 import axios from "axios";
 import { config } from "../config/index.js";
+import { authService } from "./authService.js";
 
 const API_URL = `${config.API_BASE_URL}/wishlist`;
+
+const wishlistClient = axios.create();
+
+wishlistClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      authService.expireSession();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Get authentication token from localStorage
 const getAuthToken = () => {
@@ -17,7 +31,7 @@ export const fetchWishlist = async () => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(API_URL, config);
+  const response = await wishlistClient.get(API_URL, config);
   return response.data;
 };
 
@@ -29,7 +43,7 @@ export const addItemToWishlist = async (productId) => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.post(
+  const response = await wishlistClient.post(
     `${API_URL}/add`,
     { productId },
     config
@@ -45,7 +59,7 @@ export const removeItemFromWishlist = async (productId) => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.delete(
+  const response = await wishlistClient.delete(
     `${API_URL}/remove/${productId}`,
     config
   );

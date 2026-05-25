@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin, X, Check, Search, Navigation } from "lucide-react";
+import { useLanguage } from "../context/useLanguage";
 
 // Google Maps API Key - Uses environment variable if available, otherwise uses the provided key
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
@@ -20,6 +21,7 @@ const isWithinCambodiaBounds = ({ lat, lng }) =>
   lng <= CAMBODIA_BOUNDS.east;
 
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
     DEFAULT_LOCATION
@@ -42,7 +44,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
   const searchInputRef = useRef(null);
 
   const setCambodiaOnlyError = () => {
-    setLocationError("Please choose a location inside Cambodia only.");
+    setLocationError(t("mapPicker.cambodiaOnly"));
   };
 
   const extractLocationDetails = (result, fallbackLocation = selectedLocation) => {
@@ -448,7 +450,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       setLocationError("");
     } catch (error) {
       console.error("Error initializing map:", error);
-      setLocationError("Failed to initialize map. Please try again.");
+      setLocationError(t("mapPicker.mapInitFailed"));
       setIsMapLoading(false);
     }
 
@@ -461,7 +463,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by your browser.");
+      setLocationError(t("mapPicker.geolocationUnsupported"));
       return;
     }
 
@@ -518,15 +520,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
     const handleLocationError = (error) => {
       setDetectingLocation(false);
-      let errorMessage = "Could not detect your location.";
+      let errorMessage = t("mapPicker.detectionFailed");
       switch (error.code) {
         case error.PERMISSION_DENIED:
           errorMessage =
-            "Location access denied. Allow location for this site in your browser settings.";
+            t("mapPicker.locationDenied");
           break;
         case error.POSITION_UNAVAILABLE:
           errorMessage =
-            "Current location is unavailable. Turn on device location services and try again.";
+            t("mapPicker.locationUnavailable");
           break;
         case error.TIMEOUT:
           errorMessage =
@@ -592,7 +594,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
         className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-purple-100 transition-all duration-300 border border-blue-200 font-semibold shadow-sm hover:shadow-md active:scale-95"
       >
         <MapPin className="w-4 h-4" />
-        {initialLocation ? "Update Location on Map" : "Select Location on Map"}
+        {initialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
       </button>
 
       {/* Full Screen Modal - Mobile First */}
@@ -618,7 +620,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg md:rounded-xl">
                     <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
                   </div>
-                  <span>Select Location</span>
+                  <span>{t("mapPicker.selectLocation")}</span>
                 </h2>
               </div>
               {/* Spacer for mobile centering */}
@@ -639,8 +641,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100" style={{ zIndex: 5 }}>
                   <div className="text-center">
                     <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                    <p className="text-gray-700 font-semibold text-sm md:text-lg">Loading Map...</p>
-                    <p className="text-gray-500 text-xs md:text-sm mt-1">Please wait a moment</p>
+                    <p className="text-gray-700 font-semibold text-sm md:text-lg">{t("mapPicker.loadingMap")}</p>
+                    <p className="text-gray-500 text-xs md:text-sm mt-1">{t("mapPicker.pleaseWait")}</p>
                   </div>
                 </div>
               )}
@@ -655,7 +657,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Search location..."
+                    placeholder={t("mapPicker.searchPlaceholder")}
                     className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 rounded-2xl border-0 bg-white text-gray-900 placeholder:text-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 text-sm md:text-base font-medium"
                     style={{
                       boxShadow: isSearchFocused
@@ -692,14 +694,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   onClick={detectUserLocation}
                   disabled={detectingLocation}
                   className="w-12 h-12 md:w-auto md:h-auto md:px-4 md:py-3 bg-white rounded-full md:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 disabled:opacity-50 flex items-center justify-center md:gap-2.5 font-semibold text-gray-900 active:scale-90 group"
-                  title="Use current location"
+                  title={t("mapPicker.useCurrentLocation")}
                 >
                   {detectingLocation ? (
                     <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
                       <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="hidden md:inline text-sm">Current Location</span>
+                      <span className="hidden md:inline text-sm">{t("mapPicker.currentLocation")}</span>
                     </>
                   )}
                 </button>
@@ -731,7 +733,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider mb-0.5">
-                            Delivery Location
+                            {t("mapPicker.deliveryLocation")}
                           </p>
                           <p className="text-xs md:text-sm font-semibold text-gray-900 line-clamp-2 leading-relaxed">
                             {addressName}
@@ -749,7 +751,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                       </p>
                     </div>
                     <p className="text-[10px] md:text-xs text-gray-400 hidden md:block">
-                      Tap the map or drag the marker
+                      {t("mapPicker.mapHint")}
                     </p>
                   </div>
 
@@ -760,7 +762,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                       onClick={handleClose}
                       className="flex-1 md:flex-none px-5 py-3.5 md:py-3 bg-gray-100 text-gray-700 rounded-2xl md:rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold text-sm active:scale-95"
                     >
-                      Cancel
+                      {t("mapPicker.cancel")}
                     </button>
                     <button
                       type="button"
@@ -773,7 +775,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                       }}
                     >
                       <Check className="w-4 h-4 md:w-5 md:h-5" />
-                      {isConfirmingLocation ? "Saving..." : "Confirm Location"}
+                      {isConfirmingLocation ? t("mapPicker.saving") : t("mapPicker.confirmLocation")}
                     </button>
                   </div>
                 </div>

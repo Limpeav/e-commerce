@@ -29,6 +29,7 @@ import { AlertMessage, StatCard, FormInput } from "../../components";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
@@ -66,6 +67,7 @@ const itemVariants = {
 const Profile = () => {
   const { user, login } = useAuth();
   const [isDark] = useDarkMode();
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -172,7 +174,7 @@ const Profile = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("Avatar image must be less than 5MB");
+        setError(t("profile.avatarTooLarge"));
         return;
       }
       setFormData((prev) => ({ ...prev, avatar: file }));
@@ -188,7 +190,7 @@ const Profile = () => {
 
     try {
       const token = getAuthToken();
-      if (!token) throw new Error("Not authenticated");
+      if (!token) throw new Error(t("profile.notAuthenticated"));
 
       const updateData = {
         name: formData.name,
@@ -197,9 +199,9 @@ const Profile = () => {
       };
 
       if (formData.newPassword) {
-        if (!formData.currentPassword) throw new Error("Current password is required to change password");
-        if (formData.newPassword !== formData.confirmPassword) throw new Error("New passwords do not match");
-        if (formData.newPassword.length < 6) throw new Error("New password must be at least 6 characters");
+        if (!formData.currentPassword) throw new Error(t("profile.currentPasswordRequired"));
+        if (formData.newPassword !== formData.confirmPassword) throw new Error(t("profile.passwordsDoNotMatch"));
+        if (formData.newPassword.length < 6) throw new Error(t("profile.passwordTooShort"));
         
         updateData.currentPassword = formData.currentPassword;
         updateData.newPassword = formData.newPassword;
@@ -226,7 +228,7 @@ const Profile = () => {
       localStorage.setItem("user", JSON.stringify(updatedUser));
       login(updatedUser);
 
-      setSuccess("Profile updated successfully!");
+      setSuccess(t("profile.profileUpdated"));
       setFormData((prev) => ({
         ...prev,
         currentPassword: "",
@@ -236,7 +238,7 @@ const Profile = () => {
 
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to update profile");
+      setError(err.response?.data?.message || err.message || t("profile.updateFailed"));
     } finally {
       setLoading(false);
     }
@@ -255,10 +257,10 @@ const Profile = () => {
           <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-500"}`}>
             <Lock className="w-10 h-10" />
           </div>
-          <h2 className={`text-3xl font-bold mb-3 tracking-tight ${isDark ? "text-slate-50" : "text-stone-800"}`}>Access Denied</h2>
-          <p className={`${isDark ? "text-slate-400" : "text-stone-500"} font-medium mb-8`}>Please log in to view your profile dashboard and manage your account.</p>
+          <h2 className={`text-3xl font-bold mb-3 tracking-tight ${isDark ? "text-slate-50" : "text-stone-800"}`}>{t("profile.accessDenied")}</h2>
+          <p className={`${isDark ? "text-slate-400" : "text-stone-500"} font-medium mb-8`}>{t("profile.accessDeniedMessage")}</p>
           <Link to="/login" className="w-full rounded-xl bg-primary py-4 font-bold text-white flex items-center justify-center gap-2 transition-all shadow-lg hover:bg-primary-dark hover:shadow-primary/30">
-            Sign In Now <ChevronRight className="w-5 h-5" />
+            {t("profile.signInNow")} <ChevronRight className="w-5 h-5" />
           </Link>
         </motion.div>
       </div>
@@ -289,14 +291,14 @@ const Profile = () => {
                   isDark ? "bg-slate-800" : "bg-stone-100"
                 }`}>
                   {avatarPreview ? (
-                     <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                     <img src={avatarPreview} alt={t("profile.myProfile")} className="w-full h-full object-cover" />
                   ) : (
                      <User className={`w-12 h-12 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                   )}
                   {activeTab === "edit" && (
                     <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
                       <Camera className="w-6 h-6 mb-1" />
-                      <span className="text-xs font-bold">Change</span>
+                      <span className="text-xs font-bold">{t("profile.change")}</span>
                       <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
                     </label>
                   )}
@@ -321,12 +323,12 @@ const Profile = () => {
         <AnimatePresence>
           {success && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
-              <AlertMessage type="success" message={success} title="Success" onClose={() => setSuccess("")} />
+              <AlertMessage type="success" message={success} title={t("profile.success")} onClose={() => setSuccess("")} />
             </motion.div>
           )}
           {error && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
-              <AlertMessage type="error" message={error} title="Error" onClose={() => setError("")} />
+              <AlertMessage type="error" message={error} title={t("profile.error")} onClose={() => setError("")} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -356,9 +358,9 @@ const Profile = () => {
               }`}
             >
               {[
-                { id: "overview", label: "Dashboard", icon: TrendingUp },
-                { id: "edit", label: "Profile Details", icon: Settings },
-                { id: "security", label: "Security & Login", icon: Shield },
+                { id: "overview", label: t("profile.dashboard"), icon: TrendingUp },
+                { id: "edit", label: t("profile.profileDetails"), icon: Settings },
+                { id: "security", label: t("profile.securityLogin"), icon: Shield },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -392,9 +394,9 @@ const Profile = () => {
                   {/* Premium Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
-                      { to: "/customer/orders", label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
-                      { to: "/customer/wishlist", label: "Wishlist Items", value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
-                      { to: "/customer/cart", label: "Items in Cart", value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
+                      { to: "/customer/orders", label: t("profile.totalOrders"), value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
+                      { to: "/customer/wishlist", label: t("profile.wishlistItems"), value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
+                      { to: "/customer/cart", label: t("profile.itemsInCart"), value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
                     ].map((stat, idx) => (
                       <motion.div
                         key={idx}
@@ -413,7 +415,7 @@ const Profile = () => {
                           <p className={`font-medium text-sm ${isDark ? "text-slate-400" : "text-stone-600"}`}>{stat.label}</p>
                           <h3 className={`text-3xl font-black mt-1 ${isDark ? "text-slate-50" : "text-stone-800"}`}>{stat.value}</h3>
                           <Link to={stat.to} className="inline-flex items-center gap-1 text-sm font-bold mt-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `var(--color-primary)` }}>
-                            View All <ChevronRight className="w-4 h-4" />
+                            {t("profile.viewAll")} <ChevronRight className="w-4 h-4" />
                           </Link>
                         </div>
                       </motion.div>
@@ -425,9 +427,9 @@ const Profile = () => {
                     <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
                       <div className={`flex items-center justify-between mb-8 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
                         <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <User className="w-5 h-5 text-primary" /> Account Summary
+                          <User className="w-5 h-5 text-primary" /> {t("profile.accountSummary")}
                         </h3>
-                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>Edit</button>
+                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>{t("profile.edit")}</button>
                       </div>
                       
                       <div className="space-y-6 relative">
@@ -435,10 +437,10 @@ const Profile = () => {
                         <div className={`absolute left-6 top-8 bottom-4 w-px z-0 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
                         
                         {[
-                          { icon: User, label: "Full Name", value: user.name },
-                          { icon: Mail, label: "Email", value: user.email },
-                          { icon: Phone, label: "Phone", value: user.phone || "Not provided" },
-                          { icon: Calendar, label: "Joined", value: new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
+                          { icon: User, label: t("profile.fullName"), value: user.name },
+                          { icon: Mail, label: t("profile.email"), value: user.email },
+                          { icon: Phone, label: t("profile.phone"), value: user.phone || t("profile.notProvided") },
+                          { icon: Calendar, label: t("profile.joined"), value: new Date(user.createdAt || Date.now()).toLocaleDateString(language === "km" ? "km-KH" : "en-US", { month: 'long', year: 'numeric' }) }
                         ].map((item, idx) => (
                           <div key={idx} className="flex gap-4 relative z-10 group">
                             <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all ${
@@ -461,9 +463,9 @@ const Profile = () => {
                     <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
                       <div className={`flex items-center justify-between mb-6 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
                         <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <Package className="w-5 h-5 text-primary" /> Recent Activity
+                          <Package className="w-5 h-5 text-primary" /> {t("profile.recentActivity")}
                         </h3>
-                        <Link to="/customer/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>View All</Link>
+                        <Link to="/customer/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>{t("profile.viewAll")}</Link>
                       </div>
                       
                       <div className="space-y-4 flex-1">
@@ -492,12 +494,12 @@ const Profile = () => {
                                     </span>
                                   </div>
                                   <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>
-                                    {new Date(order.createdAt).toLocaleDateString()}
+                                    {new Date(order.createdAt).toLocaleDateString(language === "km" ? "km-KH" : undefined)}
                                   </p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-lg font-bold text-primary">${order.totalPrice?.toFixed(2)}</p>
-                                  <p className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>{order.orderItems?.length} items</p>
+                                  <p className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>{order.orderItems?.length} {t("cart.items")}</p>
                                 </div>
                               </motion.div>
                             </Link>
@@ -507,9 +509,9 @@ const Profile = () => {
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-sm mb-4 ${isDark ? "bg-slate-900" : "bg-white"}`}>
                               <ShoppingBag className={`w-6 h-6 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                             </div>
-                            <p className={`font-bold ${isDark ? "text-slate-100" : "text-stone-800"}`}>No orders yet</p>
-                            <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>When you make a purchase, it will appear here.</p>
-                            <Link to="/products" className="mt-4 text-sm font-bold text-primary hover:text-primary-dark underline">Start Shopping</Link>
+                            <p className={`font-bold ${isDark ? "text-slate-100" : "text-stone-800"}`}>{t("profile.noOrdersYet")}</p>
+                            <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.noOrdersMessage")}</p>
+                            <Link to="/products" className="mt-4 text-sm font-bold text-primary hover:text-primary-dark underline">{t("profile.startShopping")}</Link>
                           </div>
                         )}
                       </div>
@@ -529,8 +531,8 @@ const Profile = () => {
                 >
                   <div className="flex items-center justify-between mb-8">
                     <div>
-                      <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Update Profile</h2>
-                      <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Manage your personal information and contact details.</p>
+                      <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>{t("profile.updateProfile")}</h2>
+                      <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.updateProfileDescription")}</p>
                     </div>
                     {!isEditing ? (
                       <button
@@ -539,7 +541,7 @@ const Profile = () => {
                         className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-95"
                       >
                         <Settings className="h-4 w-4" />
-                        Edit Profile
+                        {t("profile.editProfile")}
                       </button>
                     ) : (
                       <button
@@ -555,7 +557,7 @@ const Profile = () => {
                         }}
                         className={`flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-all active:scale-95 ${isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-stone-200 text-stone-600 hover:bg-stone-50"}`}
                       >
-                        Cancel
+                        {t("profile.cancel")}
                       </button>
                     )}
                   </div>
@@ -564,8 +566,8 @@ const Profile = () => {
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[
-                          { icon: User, label: "Full Name", value: formData.name },
-                          { icon: Mail, label: "Email Address", value: formData.email },
+                          { icon: User, label: t("profile.fullName"), value: formData.name },
+                          { icon: Mail, label: t("profile.emailAddress"), value: formData.email },
                         ].map((item) => (
                           <div key={item.label} className="group">
                             <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{item.label}</label>
@@ -576,7 +578,7 @@ const Profile = () => {
                           </div>
                         ))}
                         <div className="group md:col-span-2">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.phoneNumber")}</label>
                           <div className={`flex items-center gap-3 rounded-xl border px-4 py-4 md:w-1/2 ${isDark ? "border-slate-800 bg-slate-950" : "border-stone-100 bg-stone-50"}`}>
                             <Phone className={`h-5 w-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
                             <span className={`font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>{CAMBODIA_DIAL_CODE}{formData.phone}</span>
@@ -588,7 +590,7 @@ const Profile = () => {
                     <form onSubmit={handleUpdateProfile} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="group">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Full Name</label>
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.fullName")}</label>
                           <div className="relative">
                             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                               <User className="h-5 w-5" />
@@ -603,7 +605,7 @@ const Profile = () => {
                         </div>
 
                         <div className="group">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.emailAddress")}</label>
                           <div className="relative">
                             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                               <Mail className="h-5 w-5" />
@@ -618,7 +620,7 @@ const Profile = () => {
                         </div>
 
                         <div className="group md:col-span-2">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Phone Number</label>
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.phoneNumber")}</label>
                           <div className="relative md:w-1/2 md:pr-3">
                             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-indigo-300" : "text-stone-400 group-focus-within:text-indigo-500"}`}>
                               <Phone className="h-5 w-5" />
@@ -639,7 +641,7 @@ const Profile = () => {
                       <div className={`pt-6 mt-6 border-t flex justify-end gap-3 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                         <button type="submit" disabled={loading} className="bg-indigo-600 text-white py-4 px-8 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
                           {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Save className="w-5 h-5" />}
-                          {loading ? "Saving..." : "Save Changes"}
+                          {loading ? t("profile.saving") : t("profile.saveChanges")}
                         </button>
                       </div>
                     </form>
@@ -661,14 +663,14 @@ const Profile = () => {
                       <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${isDark ? "bg-indigo-400" : "bg-indigo-100"}`}></div>
                       <Shield className="w-10 h-10 relative z-10" />
                     </div>
-                    <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>Security Settings</h2>
-                    <p className={`text-sm mt-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Update your password to keep your account secure.</p>
+                    <h2 className={`text-2xl font-bold ${isDark ? "text-slate-50" : "text-stone-800"}`}>{t("profile.securitySettings")}</h2>
+                    <p className={`text-sm mt-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.securityDescription")}</p>
                   </div>
 
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="space-y-5">
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Current Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.currentPassword")}</label>
                         <div className="relative">
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-amber-300" : "text-stone-400 group-focus-within:text-amber-500"}`}>
                             <Lock className="h-5 w-5" />
@@ -677,7 +679,7 @@ const Profile = () => {
                             className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder="Enter current password"
+                            placeholder={t("profile.enterCurrentPassword")}
                           />
                           <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-amber-300" : "text-stone-400 hover:text-amber-600"}`}>
                             {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -686,7 +688,7 @@ const Profile = () => {
                       </div>
 
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>New Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.newPassword")}</label>
                         <div className="relative">
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Lock className="h-5 w-5" />
@@ -695,7 +697,7 @@ const Profile = () => {
                             className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder="Enter new password"
+                            placeholder={t("profile.enterNewPassword")}
                           />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-emerald-300" : "text-stone-400 hover:text-emerald-600"}`}>
                             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -704,7 +706,7 @@ const Profile = () => {
                       </div>
 
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Confirm New Password</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.confirmNewPassword")}</label>
                         <div className="relative">
                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Lock className="h-5 w-5" />
@@ -713,7 +715,7 @@ const Profile = () => {
                             className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder="Confirm new password"
+                            placeholder={t("profile.confirmNewPasswordPlaceholder")}
                           />
                         </div>
                       </div>
@@ -722,7 +724,7 @@ const Profile = () => {
                     <div className="pt-8 flex justify-center">
                       <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className={`text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed ${isDark ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700"}`}>
                         {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
-                        {loading ? "Updating Security..." : "Update Password"}
+                        {loading ? t("profile.updatingSecurity") : t("profile.updatePassword")}
                       </button>
                     </div>
                   </form>

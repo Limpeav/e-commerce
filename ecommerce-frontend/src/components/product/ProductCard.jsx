@@ -14,7 +14,8 @@ const ProductCard = ({
   onWishlistToggle,
   isInWishlist,
   user,
-  variants
+  variants,
+  className = ""
 }) => {
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
@@ -37,7 +38,7 @@ const ProductCard = ({
         isDark
           ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
           : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(122,150,126,0.25)]'
-      }`}
+      } ${className}`}
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
       <div className={`relative aspect-square overflow-hidden rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
@@ -83,7 +84,7 @@ const ProductCard = ({
       <div className={`flex flex-col flex-1 p-5 pt-6 gap-3 relative ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
 
         {/* Floating Quick Add Button (Desktop) - Overlaps Image/Content */}
-        <div className="absolute -top-6 right-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
+        <div className="absolute -top-6 left-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}

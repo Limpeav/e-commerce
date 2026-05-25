@@ -13,20 +13,20 @@ const OrderSummary = ({ total }) => {
   return (
     <div className={`rounded-[2rem] border p-8 sticky top-32 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-lg"}`}>
       <h3 className="text-xl font-bold mb-8 text-text-main">
-        Order Summary
+        {t("cart.orderSummary")}
       </h3>
 
       <div className="space-y-4 mb-8">
         <div className="flex justify-between text-text-muted font-medium text-sm">
-          <span>Subtotal</span>
+          <span>{t("cart.subtotal")}</span>
           <span className="text-text-main font-semibold">${total.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
-          <span>Shipping</span>
-          <span className="text-secondary font-bold">Free</span>
+          <span>{t("cart.shipping")}</span>
+          <span className="text-secondary font-bold">{t("cart.free")}</span>
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
-          <span>Tax (8.0%)</span>
+          <span>{t("cart.tax")}</span>
           <span className="text-text-main font-semibold">
             ${tax.toFixed(2)}
           </span>
@@ -36,7 +36,7 @@ const OrderSummary = ({ total }) => {
 
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-            <span className={`font-medium text-xs mb-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>Total</span>
+            <span className={`font-medium text-xs mb-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>{t("cart.total")}</span>
             <span className="text-3xl font-bold text-text-main">
               ${finalTotal.toFixed(2)}
             </span>
