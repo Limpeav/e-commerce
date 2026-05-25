@@ -5,6 +5,7 @@ const CATEGORY_TRANSLATION_KEYS = {
   Milk: "categories.milk",
   Toy: "categories.toy",
   Clothing: "categories.clothing",
+  Shoes: "categories.shoes",
   "Feeding & Nursing": "categories.feedingNursing",
   "Diapering & Care": "categories.diaperingCare",
   "Nursery & Decor": "categories.nurseryDecor",

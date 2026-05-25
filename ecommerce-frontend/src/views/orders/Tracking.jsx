@@ -98,7 +98,7 @@ export default function OrderTracking() {
             </div>
             <button
               onClick={handleTrackOrder}
-              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-text-main px-8 py-3 text-sm font-bold text-white transition-all hover:bg-primary active:scale-95"
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95"
             >
               <Search className="h-4 w-4" />
               Track

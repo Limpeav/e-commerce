@@ -26,6 +26,7 @@ export const PAYMENT_STATUS = {
 export const PRODUCT_CATEGORIES = {
   TOY: 'Toy',
   CLOTHING: 'Clothing',
+  SHOES: 'Shoes',
   MILK: 'Milk',
   FEEDING_AND_NURSING: 'Feeding & Nursing',
   DIAPERING_AND_CARE: 'Diapering & Care',

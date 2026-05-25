@@ -100,7 +100,7 @@ export default function Contact() {
                                     <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.message")}</label>
                                     <textarea rows="4" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder={t("contact.yourMessage")}></textarea>
                                 </div>
-                                <button className="w-full bg-text-main text-white py-4 rounded-xl font-bold text-sm hover:bg-primary transition-all shadow-lg hover:shadow-primary/20 flex items-center justify-center gap-3 group active:scale-95">
+                                <button className="w-full rounded-xl border-2 border-primary bg-primary py-4 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-dark hover:border-primary-dark hover:shadow-primary/25 active:scale-95 flex items-center justify-center gap-3 group">
                                     {t("contact.sendMessage")}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </button>

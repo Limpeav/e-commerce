@@ -112,7 +112,7 @@ const ProductInfo = ({
         {needsSize && (
           <div className="space-y-2">
             <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Size</label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {sizeOptions.map((size) => {
                 const isSelected = selectedSize === size;
 
