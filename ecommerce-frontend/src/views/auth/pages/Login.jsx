@@ -304,13 +304,13 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading
+              className={`w-full py-5 rounded-2xl border-2 font-black uppercase tracking-[0.2em] transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading
                 ? isDark
-                  ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                  : "bg-stone-200 text-stone-500 cursor-not-allowed"
+                  ? "border-slate-700 bg-transparent text-slate-500 cursor-not-allowed"
+                  : "border-stone-200 bg-transparent text-stone-500 cursor-not-allowed"
                 : isDark
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500 hover:shadow-indigo-500/20 hover:-translate-y-1 active:scale-95"
-                  : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95"
+                  ? "border-primary bg-transparent text-primary hover:border-primary-light hover:text-primary-light hover:shadow-lg hover:shadow-primary/15 hover:-translate-y-1 active:scale-95"
+                  : "border-primary bg-transparent text-primary hover:border-primary-dark hover:text-primary-dark hover:shadow-lg hover:shadow-primary/15 hover:-translate-y-1 active:scale-95"
                 }`}
             >
               {loading ? (

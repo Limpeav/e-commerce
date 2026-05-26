@@ -11,52 +11,60 @@ import {
     Sparkles
 } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
-
-const stats = [
-    { label: "Daily Products", value: "4.2K+" },
-    { label: "Value Delivered", value: "$10M+" },
-    { label: "Happy Customers", value: "50K+" },
-    { label: "Trusted Brands", value: "100+" },
-];
-
-const values = [
-    {
-        icon: ShieldCheck,
-        title: "Secure Technology",
-        description: "Your security is our priority. We use state-of-the-art encryption to ensure your data and transactions are always safe.",
-    },
-    {
-        icon: Award,
-        title: "Quality Assurance",
-        description: "We handpick every item in our collection. Only the best products make it to our store shelves with certified verification.",
-    },
-    {
-        icon: Smile,
-        title: "Customer Support",
-        description: "Our dedicated support team is here to help you around the clock. Your satisfaction is 100% guaranteed.",
-    },
-];
-
-const team = [
-    { name: "Sophea Chea", role: "CEO & Founder" },
-    { name: "Vannak Som", role: "Head of Operations" },
-    { name: "Borey Khiev", role: "Tech Lead" },
-    { name: "Ratanak Meas", role: "Marketing Director" },
-];
-
-const milestones = [
-    { year: "2019", label: "Founded", detail: "Launched with a vision to transform online shopping" },
-    { year: "2021", label: "10K Customers", detail: "Reached 10,000 happy customers across Cambodia" },
-    { year: "2023", label: "Regional Expansion", detail: "Expanded delivery network to 5 provinces" },
-    { year: "2025", label: "50K Milestone", detail: "Served 50,000 customers with 100+ brand partners" },
-];
+import { useLanguage } from "../../context/useLanguage";
 
 export default function About() {
+    const { t } = useLanguage();
+
+    const stats = [
+        { label: t("about.stats.dailyProducts"), value: "4.2K+" },
+        { label: t("about.stats.valueDelivered"), value: "$10M+" },
+        { label: t("about.stats.happyCustomers"), value: "50K+" },
+        { label: t("about.stats.trustedBrands"), value: "100+" },
+    ];
+
+    const values = [
+        {
+            icon: ShieldCheck,
+            title: t("about.values.secureTechnology.title"),
+            description: t("about.values.secureTechnology.description"),
+        },
+        {
+            icon: Award,
+            title: t("about.values.qualityAssurance.title"),
+            description: t("about.values.qualityAssurance.description"),
+        },
+        {
+            icon: Smile,
+            title: t("about.values.customerSupport.title"),
+            description: t("about.values.customerSupport.description"),
+        },
+    ];
+
+    const team = [
+        { name: "Sophea Chea", role: t("about.team.ceoFounder") },
+        { name: "Vannak Som", role: t("about.team.headOfOperations") },
+        { name: "Borey Khiev", role: t("about.team.techLead") },
+        { name: "Ratanak Meas", role: t("about.team.marketingDirector") },
+    ];
+
+    const milestones = [
+        { year: "2019", label: t("about.milestones.founded.label"), detail: t("about.milestones.founded.detail") },
+        { year: "2021", label: t("about.milestones.customers10k.label"), detail: t("about.milestones.customers10k.detail") },
+        { year: "2023", label: t("about.milestones.regionalExpansion.label"), detail: t("about.milestones.regionalExpansion.detail") },
+        { year: "2025", label: t("about.milestones.milestone50k.label"), detail: t("about.milestones.milestone50k.detail") },
+    ];
+
+    const missionHighlights = [
+        { icon: Target, label: t("about.customerFirst"), sub: t("about.customerFirstSub") },
+        { icon: Globe, label: t("about.globalReach"), sub: t("about.globalReachSub") },
+    ];
+
     return (
         <PageLayout
-            title="About Us"
-            subtitle="Redefining the online shopping experience since 2019"
-            badge="Our Story"
+            title={t("about.title")}
+            subtitle={t("about.subtitle")}
+            badge={t("about.badge")}
             icon={Sparkles}
             badgeColor="primary"
             maxWidth="7xl"
@@ -68,28 +76,21 @@ export default function About() {
                     <div className="grid gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
                         <div className="space-y-8 md:space-y-10">
                             <div>
-                                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Our Mission</span>
-                                <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">Curated Quality</h2>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.mission")}</span>
+                                <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.curatedQuality")}</h2>
                                 <p className="mt-4 text-sm leading-6 text-text-muted sm:leading-7">
-                                    To revolutionize your online shopping experience by curating exceptional products that
-                                    enhance your lifestyle. We're committed to making premium quality accessible while
-                                    maintaining the highest standards of customer service and satisfaction.
+                                    {t("about.missionText")}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">Our Vision</span>
-                                <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">Modern Essentials</h2>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">{t("about.vision")}</span>
+                                <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.modernEssentials")}</h2>
                                 <p className="mt-4 text-sm leading-6 text-text-muted sm:leading-7">
-                                    To become the world's most trusted online marketplace where quality meets convenience.
-                                    We envision a future where every customer can shop with confidence, knowing they're getting
-                                    the best products at fair prices with exceptional service.
+                                    {t("about.visionText")}
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-6 pt-2">
-                                {[
-                                    { icon: Target, label: "Customer First", sub: "Our top priority" },
-                                    { icon: Globe, label: "Global Reach", sub: "Delivering everywhere" },
-                                ].map((item) => (
+                                {missionHighlights.map((item) => (
                                     <div key={item.label} className="flex items-center gap-4">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10" style={{ borderColor: "var(--color-border)" }}>
                                             <item.icon className="h-5 w-5 text-primary" />
@@ -110,9 +111,9 @@ export default function About() {
                                         <Award className="h-8 w-8 text-primary" />
                                     </div>
                                     <p className="text-5xl font-bold text-text-main sm:text-6xl md:text-7xl">05+</p>
-                                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">Years of Growth</p>
+                                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-text-muted">{t("about.yearsOfGrowth")}</p>
                                     <p className="mt-6 max-w-xs text-sm leading-6 text-text-muted">
-                                        Building trust and delivering quality to thousands of customers across Cambodia.
+                                        {t("about.growthText")}
                                     </p>
                                 </div>
                             </div>
@@ -137,8 +138,8 @@ export default function About() {
                 {/* Values */}
                 <section>
                     <div className="mb-8 max-w-xl md:mb-10">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Our Advantages</span>
-                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">Why Choose Us</h2>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.advantages")}</span>
+                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.whyChooseUs")}</h2>
                     </div>
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         {values.map((item) => (
@@ -160,8 +161,8 @@ export default function About() {
                 {/* Timeline */}
                 <section>
                     <div className="mb-8 max-w-xl md:mb-10">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Our Journey</span>
-                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">Milestones</h2>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.journey")}</span>
+                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.milestonesTitle")}</h2>
                     </div>
                     <div className="rounded-2xl border bg-bg-card p-6 sm:p-8 md:p-10" style={{ borderColor: "var(--color-border)" }}>
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -180,8 +181,8 @@ export default function About() {
                 {/* Team */}
                 <section>
                     <div className="mb-8 text-center md:mb-10">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Leadership</span>
-                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">Our Team</h2>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.leadership")}</span>
+                        <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.teamTitle")}</h2>
                     </div>
                     <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
                         {team.map((member) => (
