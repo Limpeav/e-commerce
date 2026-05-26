@@ -111,6 +111,7 @@ export default function ProductDetail() {
             quantity={quantity}
             setQuantity={setQuantity}
             onAddToCart={handleAddToCart}
+            onLoginRequired={() => navigate("/login")}
             user={user}
           />
         </div>

@@ -28,7 +28,11 @@ const CheckoutSuccess = ({ isDark, orderId, onViewOrderDetails, onContinueShoppi
         <button
           onClick={onViewOrderDetails}
           type="button"
-          className="px-8 py-4 bg-text-main text-white rounded-xl hover:bg-primary transition-all font-bold text-sm shadow-xl shadow-primary/10 hover:-translate-y-1 active:scale-95"
+          className={`px-8 py-4 rounded-xl transition-all font-bold text-sm shadow-xl shadow-primary/10 hover:-translate-y-1 active:scale-95 ${
+            isDark
+              ? "bg-primary text-slate-950 hover:bg-primary-light"
+              : "bg-text-main text-white hover:bg-primary"
+          }`}
         >
           View Order Details
         </button>

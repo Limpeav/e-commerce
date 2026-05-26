@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
@@ -28,6 +28,16 @@ const ProductCard = ({
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
   const localizedProduct = getLocalizedProductText(product, language);
+  const navigate = useNavigate();
+
+  const handleAddClick = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    onAddToCart(product);
+  };
 
   return (
     <Motion.article
@@ -96,10 +106,12 @@ const ProductCard = ({
             </Link>
           ) : (
             <button
-              onClick={() => onAddToCart(product)}
-              disabled={!user || outOfStock}
+              onClick={handleAddClick}
+              disabled={outOfStock}
               className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 ${!user || outOfStock
-              ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
+              ? outOfStock
+                ? `${isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`
+                : `${isDark ? 'bg-primary/15 text-primary-light cursor-pointer' : 'bg-primary/10 text-primary cursor-pointer'}`
               : 'bg-primary text-white shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] cursor-pointer'
               }`}
               title={t('product.quickAdd')}
@@ -158,11 +170,11 @@ const ProductCard = ({
             </Link>
           ) : (
             <button
-              onClick={() => onAddToCart(product)}
-              disabled={!user || outOfStock}
-              className={`md:hidden text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl cursor-pointer sm:px-4 sm:text-xs ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${(!user || outOfStock) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              onClick={handleAddClick}
+              disabled={outOfStock}
+              className={`md:hidden text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl cursor-pointer sm:px-4 sm:text-xs ${isDark ? 'text-primary-light bg-primary/15' : 'text-primary bg-primary/10'} ${outOfStock ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
-              {outOfStock ? t('product.soldOut') : t('product.add')}
+              {outOfStock ? t('product.soldOut') : user ? t('product.add') : t('product.login')}
             </button>
           )}
 

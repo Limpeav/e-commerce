@@ -77,7 +77,11 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       <button
         type="submit"
         disabled={loading || cartItems.length === 0}
-        className="w-full py-4 bg-text-main text-white font-bold rounded-xl hover:bg-primary shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm active:scale-95"
+        className={`w-full py-4 font-bold rounded-xl shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm active:scale-95 ${
+          isDark
+            ? "bg-primary text-slate-950 hover:bg-primary-light"
+            : "bg-text-main text-white hover:bg-primary"
+        }`}
       >
         {loading ? (
           <>

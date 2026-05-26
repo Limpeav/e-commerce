@@ -10,6 +10,7 @@ const ProductInfo = ({
   quantity,
   setQuantity,
   onAddToCart,
+  onLoginRequired,
   user
 }) => {
   const [isDark] = useDarkMode();
@@ -37,8 +38,8 @@ const ProductInfo = ({
           className={`text-[11px] font-black tracking-[0.18em] uppercase px-3 py-1 rounded-full border ${
             isInStock
               ? isDark
-                ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/20"
-                : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                ? "text-primary bg-primary/10 border-primary/25"
+                : "text-primary-dark bg-primary/10 border-primary/25"
               : isDark
                 ? "text-rose-300 bg-rose-500/10 border-rose-500/20"
                 : "text-rose-700 bg-rose-50 border-rose-200"
@@ -161,13 +162,20 @@ const ProductInfo = ({
 
           {/* Add to Cart Button */}
           <button
-            onClick={() => onAddToCart({ size: selectedSize })}
+            onClick={() => {
+              if (!user) {
+                onLoginRequired?.();
+                return;
+              }
+
+              onAddToCart({ size: selectedSize });
+            }}
             disabled={user && needsSize && !selectedSize}
             className={`group relative flex w-full flex-1 items-center justify-center gap-3 overflow-hidden rounded-[1.15rem] border-2 py-3.5 text-base font-bold transition-all duration-300 active:scale-95 sm:py-0 ${user
               ? needsSize && !selectedSize
                 ? isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
                 : 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
-              : isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
+              : isDark ? 'bg-primary/15 border-primary/30 text-primary-light cursor-pointer hover:bg-primary hover:text-slate-950' : 'bg-primary/10 border-primary/25 text-primary cursor-pointer hover:bg-primary hover:text-white'
               }`}
           >
             {user ? (

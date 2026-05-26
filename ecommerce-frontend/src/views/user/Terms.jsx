@@ -137,9 +137,9 @@ const sections = [
         title: "Limitation of Liability",
         icon: AlertCircle,
         content: (
-            <div className="rounded-2xl border bg-red-500/5 p-5 sm:p-6" style={{ borderColor: "rgba(239, 68, 68, 0.2)" }}>
+            <div className="rounded-2xl border bg-[color:var(--color-surface-soft)] p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
                 <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                     <div>
                         <h3 className="text-sm font-bold text-text-main">Liability Cap</h3>
                         <p className="mt-2 text-sm leading-6 text-text-muted">

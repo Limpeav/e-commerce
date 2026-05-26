@@ -4,9 +4,11 @@ import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
 import { useLanguage } from "../../context/useLanguage";
+import { useDarkMode } from "../../hooks";
 
 export default function Location() {
     const { t } = useLanguage();
+    const [isDark] = useDarkMode();
     const offices = [
         {
             city: "San Francisco",
@@ -119,16 +121,22 @@ export default function Location() {
                         </div>
                     </ContentBox>
 
-                    <div className="bg-text-main rounded-[3rem] p-10 text-white flex flex-col justify-center relative overflow-hidden group shadow-2xl shadow-text-main/20">
+                    <div
+                        className={`rounded-[3rem] p-10 flex flex-col justify-center relative overflow-hidden group shadow-2xl ${
+                            isDark
+                                ? "bg-slate-900 text-slate-100 border border-slate-700 shadow-black/30"
+                                : "bg-text-main text-white shadow-text-main/20"
+                        }`}
+                    >
                         <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary opacity-20 rounded-full -mb-16 -mr-16 group-hover:scale-150 transition-transform duration-700"></div>
                         <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 relative z-10">{t("location.uplinkDirectly")}</h4>
                         <div className="space-y-4 relative z-10">
                             <div className="flex items-center gap-3">
-                                <Mail className="w-4 h-4 text-white/40" />
+                                <Mail className={`w-4 h-4 ${isDark ? "text-slate-400" : "text-white/40"}`} />
                                 <span className="text-xs font-bold tracking-widest">LOGISTICS@APPLAC.NET</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <Globe className="w-4 h-4 text-white/40" />
+                                <Globe className={`w-4 h-4 ${isDark ? "text-slate-400" : "text-white/40"}`} />
                                 <span className="text-xs font-bold tracking-widest">HQ.APPLAC.NET</span>
                             </div>
                         </div>

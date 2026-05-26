@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useFlyToCart } from "../../context/FlyToCartContext";
@@ -25,9 +25,15 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
   const { flyToCart } = useFlyToCart();
   const [isDark] = useDarkMode();
   const needsSize = isClothingProduct(product);
+  const navigate = useNavigate();
 
   const handleAdd = () => {
-    if (!user || Number(product.stock || 0) < 1 || needsSize) return;
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (Number(product.stock || 0) < 1 || needsSize) return;
     flyToCart(imageRef.current);
     onAddToCart(product);
   };
@@ -107,7 +113,7 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
         <button
           type="button"
           onClick={handleAdd}
-          disabled={!user || Number(product.stock || 0) < 1}
+          disabled={Number(product.stock || 0) < 1}
           className={`mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold ${
             !user
             ? "border-primary/10 bg-primary/10 text-primary/55 cursor-pointer"
