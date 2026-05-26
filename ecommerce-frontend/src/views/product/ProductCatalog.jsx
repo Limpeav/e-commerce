@@ -31,11 +31,16 @@ const VIEW_CONFIG_KEYS = {
 };
 
 const sortByBestSellers = (products) =>
-  [...products].sort((a, b) => {
-    const soldDelta = Number(b.sold || 0) - Number(a.sold || 0);
-    if (soldDelta !== 0) return soldDelta;
-    return Number(b.rating || 0) - Number(a.rating || 0);
-  });
+  [...products]
+    .filter((product) => Number(product.sold || product.totalSold || 0) > 0)
+    .sort((a, b) => {
+      const soldDelta =
+        Number(b.sold || b.totalSold || 0) -
+        Number(a.sold || a.totalSold || 0);
+      if (soldDelta !== 0) return soldDelta;
+      return Number(b.rating || 0) - Number(a.rating || 0);
+    })
+    .slice(0, 8);
 
 const sortByDeals = (products) =>
   [...products]
@@ -56,6 +61,24 @@ const sortByDeals = (products) =>
         100;
       return discountB - discountA;
     });
+
+const sortByNewest = (products) =>
+  [...products].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  );
+
+const isNewArrivalProduct = (product) =>
+  product.isNewArrival === true ||
+  product.isNewArrival === "true" ||
+  product.isNewArrival === 1 ||
+  product.isNewArrival === "1";
+
+const getNewArrivals = (products) => {
+  const markedNewArrivals = products.filter(isNewArrivalProduct);
+  return sortByNewest(
+    markedNewArrivals.length > 0 ? markedNewArrivals : products
+  ).slice(0, 8);
+};
 
 export default function ProductCatalog() {
   const { addToCart } = useCart();
@@ -83,9 +106,7 @@ export default function ProductCatalog() {
   const visibleProducts = useMemo(() => {
     switch (activeView) {
       case "new-arrivals":
-        return [...filteredProducts].sort(
-          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-        );
+        return getNewArrivals(filteredProducts);
       case "best-sellers":
         return sortByBestSellers(filteredProducts);
       case "deals":
@@ -94,6 +115,7 @@ export default function ProductCatalog() {
         return filteredProducts;
     }
   }, [activeView, filteredProducts]);
+  const productCount = loading ? products.length : visibleProducts.length;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -170,7 +192,7 @@ export default function ProductCatalog() {
               }`}
             >
               <span className="h-2 w-2 rounded-full bg-primary"></span>
-              {visibleProducts.length} {t("product.items")}
+              {productCount} {t("product.items")}
             </div>
           </div>
         </section>
@@ -185,7 +207,7 @@ export default function ProductCatalog() {
             isInWishlist={isInWishlist}
             user={user}
             searchQuery={searchQuery}
-            selectedCategory={selectedCategory}
+            selectedCategory={`${activeView}-${selectedCategory}`}
             onClearFilters={handleClearFilters}
           />
         )}

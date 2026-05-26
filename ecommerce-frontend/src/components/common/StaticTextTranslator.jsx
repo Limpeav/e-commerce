@@ -7,8 +7,11 @@ const textNodeOriginals = new WeakMap();
 const ATTRIBUTE_NAMES = ["placeholder", "aria-label", "title"];
 
 const normalizeText = (value = "") => value.replace(/\s+/g, " ").trim();
+const hasDigit = (value = "") => /\d/.test(value);
 
 const translateTextNode = (node, dictionary, language) => {
+  if (hasDigit(node.nodeValue)) return;
+
   if (!textNodeOriginals.has(node)) {
     textNodeOriginals.set(node, node.nodeValue);
   }
@@ -94,7 +97,7 @@ export default function StaticTextTranslator({ disabled = false }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (disabled) return undefined;
+    if (disabled || language !== "km") return undefined;
 
     const dictionary = staticTextTranslations.km || {};
     const runTranslation = () => translateTree(document.body, dictionary, language);
@@ -114,7 +117,7 @@ export default function StaticTextTranslator({ disabled = false }) {
     });
 
     return () => observer.disconnect();
-  }, [disabled, language, location.pathname]);
+  }, [disabled, language, location.pathname, location.search]);
 
   return null;
 }
