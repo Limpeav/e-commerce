@@ -289,7 +289,7 @@ html.dark {
     color: var(--color-text-muted) !important;
 }
 
-:is(.text-stone-300, .text-stone-400, .text-stone-500, .text-stone-600, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700) {
+:is(.text-stone-300, .text-stone-400, .text-stone-500, .text-stone-600, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-slate-300, .text-slate-400, .text-slate-500, .text-blue-300) {
     color: var(--color-text-muted) !important;
 }
 

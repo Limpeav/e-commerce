@@ -16,6 +16,7 @@ import {
   Info,
   Moon,
   Sun,
+  Monitor,
   Languages,
 } from "lucide-react";
 import { useCart } from "../../context/useCart";
@@ -56,7 +57,7 @@ export default function Navbar() {
   const { wishlist } = useWishlist();
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
-  const [isDark, toggleDarkMode] = useDarkMode();
+  const [isDark, , themeMode, setThemeMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -88,6 +89,32 @@ export default function Navbar() {
     ? "bg-[color:var(--color-surface-soft)] text-text-main"
     : "bg-[color:var(--color-surface-soft)] text-text-main";
   const mutedTextClassName = "text-text-muted";
+  const themeConfig = {
+    light: {
+      icon: Sun,
+      label: t("nav.light"),
+      modeLabel: t("nav.lightMode"),
+      ariaLabel: t("nav.switchToDark"),
+    },
+    dark: {
+      icon: Moon,
+      label: t("nav.dark"),
+      modeLabel: t("nav.darkMode"),
+      ariaLabel: t("nav.switchToSystem"),
+    },
+    system: {
+      icon: Monitor,
+      label: t("nav.system"),
+      modeLabel: t("nav.systemMode"),
+      ariaLabel: t("nav.switchToLight"),
+    },
+  };
+  const themeOrder = ["light", "dark", "system"];
+  const currentThemeIndex = themeOrder.includes(themeMode) ? themeOrder.indexOf(themeMode) : 2;
+  const nextThemeMode = themeOrder[(currentThemeIndex + 1) % themeOrder.length];
+  const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
+  const NextThemeIcon = nextTheme.icon;
+  const handleThemeClick = () => setThemeMode(nextThemeMode);
 
   const handleLogout = () => {
     logout();
@@ -189,13 +216,13 @@ export default function Navbar() {
               <div className="flex items-center gap-3 border-l pl-4" style={{ borderColor: "var(--color-border)" }}>
                 <button
                   type="button"
-                  onClick={() => toggleDarkMode()}
+                  onClick={handleThemeClick}
                   className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-semibold transition-colors ${subtleSurfaceClassName}`}
-                  aria-label={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
-                  title={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
+                  aria-label={nextTheme.ariaLabel}
+                  title={nextTheme.ariaLabel}
                 >
-                  {isDark ? <Sun className="w-4 h-4 text-secondary" /> : <Moon className="w-4 h-4 text-text-main" />}
-                  <span>{isDark ? t("nav.light") : t("nav.dark")}</span>
+                  <NextThemeIcon className="h-4 w-4 text-text-main" />
+                  <span>{nextTheme.label}</span>
                 </button>
                 <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
                 {user ? (
@@ -290,11 +317,11 @@ export default function Navbar() {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => toggleDarkMode()}
+              onClick={handleThemeClick}
               className="rounded-full p-2 text-text-main transition-colors hover:bg-primary/10"
-              aria-label={isDark ? t("nav.switchToLight") : t("nav.switchToDark")}
+              aria-label={nextTheme.ariaLabel}
             >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              <NextThemeIcon className="w-5 h-5" />
             </button>
 
             <Link to="/customer/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/customer/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
@@ -402,11 +429,12 @@ export default function Navbar() {
 
                 <button
                   type="button"
-                  onClick={() => toggleDarkMode()}
+                  onClick={handleThemeClick}
                   className="flex w-full min-w-0 items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-text-main transition-all hover:bg-primary/15"
+                  aria-label={nextTheme.ariaLabel}
                 >
-                  {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
-                  <span className="min-w-0 flex-1 leading-snug">{isDark ? t("nav.lightMode") : t("nav.darkMode")}</span>
+                  <NextThemeIcon className="h-5 w-5 shrink-0" />
+                  <span className="min-w-0 flex-1 leading-snug">{nextTheme.modeLabel}</span>
                 </button>
 
                 <LanguageSelect language={language} setLanguage={setLanguage} t={t} fullWidth />

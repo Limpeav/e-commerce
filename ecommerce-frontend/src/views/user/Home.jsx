@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion as Motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "../../context/useCart";
@@ -30,6 +30,29 @@ function ProductSection({
 }) {
     const scrollRef = useRef(null);
     const isHorizontal = section.layout === "horizontal";
+    const [canScrollPrev, setCanScrollPrev] = useState(false);
+    const [canScrollNext, setCanScrollNext] = useState(false);
+
+    const updateScrollState = useCallback(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        const remainingScroll = container.scrollWidth - container.clientWidth - container.scrollLeft;
+
+        setCanScrollPrev(container.scrollLeft > 4);
+        setCanScrollNext(remainingScroll > 4);
+    }, []);
+
+    useEffect(() => {
+        if (!isHorizontal) return undefined;
+
+        updateScrollState();
+        window.addEventListener("resize", updateScrollState);
+
+        return () => {
+            window.removeEventListener("resize", updateScrollState);
+        };
+    }, [isHorizontal, section.products.length, updateScrollState]);
 
     const scrollProducts = (direction) => {
         if (!scrollRef.current) return;
@@ -79,35 +102,40 @@ function ProductSection({
             <div className="relative">
                 {isHorizontal && (
                     <>
-                        <button
-                            type="button"
-                            onClick={() => scrollProducts("prev")}
-                            className={`absolute left-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:left-2 sm:h-14 sm:w-14 ${
-                                isDark
-                                    ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
-                                    : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
-                            }`}
-                            aria-label={`Scroll ${section.title} left`}
-                        >
-                            <ChevronLeft className="h-5 w-5 sm:h-7 sm:w-7" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => scrollProducts("next")}
-                            className={`absolute right-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-14 sm:w-14 ${
-                                isDark
-                                    ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
-                                    : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
-                            }`}
-                            aria-label={`Scroll ${section.title} right`}
-                        >
-                            <ChevronRight className="h-5 w-5 sm:h-7 sm:w-7" />
-                        </button>
+                        {canScrollPrev && (
+                            <button
+                                type="button"
+                                onClick={() => scrollProducts("prev")}
+                                className={`absolute left-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:left-2 sm:h-14 sm:w-14 ${
+                                    isDark
+                                        ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
+                                        : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                                }`}
+                                aria-label={`Scroll ${section.title} left`}
+                            >
+                                <ChevronLeft className="h-5 w-5 sm:h-7 sm:w-7" />
+                            </button>
+                        )}
+                        {canScrollNext && (
+                            <button
+                                type="button"
+                                onClick={() => scrollProducts("next")}
+                                className={`absolute right-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-14 sm:w-14 ${
+                                    isDark
+                                        ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
+                                        : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                                }`}
+                                aria-label={`Scroll ${section.title} right`}
+                            >
+                                <ChevronRight className="h-5 w-5 sm:h-7 sm:w-7" />
+                            </button>
+                        )}
                     </>
                 )}
 
                 <Motion.div
                     ref={scrollRef}
+                    onScroll={isHorizontal ? updateScrollState : undefined}
                     variants={gridContainerVariants}
                     initial="hidden"
                     animate="show"
