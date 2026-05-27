@@ -6,9 +6,9 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((title, message, type = "info") => {
+  const addToast = useCallback((title, message, type = "info", options = {}) => {
     const id = Date.now();
-    setToasts((prev) => [...prev, { id, title, message, type }]);
+    setToasts((prev) => [...prev, { id, title, message, type, onClick: options.onClick }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
@@ -18,9 +18,9 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const success = useCallback((title, message) => addToast(title, message, "success"), [addToast]);
-  const error = useCallback((title, message) => addToast(title, message, "error"), [addToast]);
-  const info = useCallback((title, message) => addToast(title, message, "info"), [addToast]);
+  const success = useCallback((title, message, options) => addToast(title, message, "success", options), [addToast]);
+  const error = useCallback((title, message, options) => addToast(title, message, "error", options), [addToast]);
+  const info = useCallback((title, message, options) => addToast(title, message, "info", options), [addToast]);
 
   const toastStyles = {
     success: {
@@ -47,13 +47,26 @@ export const ToastProvider = ({ children }) => {
         {toasts.map((toast) => {
           const style = toastStyles[toast.type] || toastStyles.info;
           const Icon = style.icon;
+          const isClickable = typeof toast.onClick === "function";
 
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto overflow-hidden rounded-2xl border p-4 backdrop-blur-sm transition-all ${style.container}`}
-              role="status"
+              className={`pointer-events-auto overflow-hidden rounded-2xl border p-4 backdrop-blur-sm transition-all ${isClickable ? "cursor-pointer hover:-translate-y-0.5" : ""} ${style.container}`}
+              role={isClickable ? "button" : "status"}
+              tabIndex={isClickable ? 0 : undefined}
               aria-live="polite"
+              onClick={() => {
+                if (!isClickable) return;
+                dismissToast(toast.id);
+                toast.onClick();
+              }}
+              onKeyDown={(event) => {
+                if (!isClickable || (event.key !== "Enter" && event.key !== " ")) return;
+                event.preventDefault();
+                dismissToast(toast.id);
+                toast.onClick();
+              }}
             >
               <div className="flex items-start gap-3">
                 <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${style.iconWrap}`}>
@@ -69,7 +82,10 @@ export const ToastProvider = ({ children }) => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => dismissToast(toast.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    dismissToast(toast.id);
+                  }}
                   className="rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
                   aria-label="Dismiss notification"
                 >

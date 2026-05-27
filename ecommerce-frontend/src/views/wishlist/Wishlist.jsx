@@ -11,7 +11,7 @@ export default function Wishlist() {
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [isDark] = useDarkMode();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const handleAddToCart = (product) => {
     addToCart(product);
@@ -39,20 +39,22 @@ export default function Wishlist() {
               </div>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-main mb-4 sm:mb-6 font-display tracking-tight leading-tight">
-              Your wishlist is empty
-            </h2>
-            <p className="text-base sm:text-lg text-text-muted mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed px-2 sm:px-0">
-              Save your favorite items here to find them easily later. <br className="hidden md:block" />
-              Start exploring our collection today.
-            </p>
+            <div className="mx-auto flex w-full max-w-[24rem] flex-col items-center px-5 text-center sm:max-w-lg sm:px-8">
+              <h2 className="mb-4 w-full whitespace-nowrap text-center text-[clamp(1.15rem,5vw,3rem)] font-black leading-tight tracking-tight text-text-main font-display sm:mb-6">
+                {t("Your wishlist is empty")}
+              </h2>
+              <p className="mx-auto mb-8 text-sm leading-relaxed text-text-muted sm:mb-10 sm:text-lg">
+                <span className="block">{t("Save your favorite items here to find them easily later.")}</span>
+                <span className="block">{t("Start exploring our collection today.")}</span>
+              </p>
+            </div>
 
             <Link
               to="/"
               className="inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
             >
               <ShoppingBag className="h-5 w-5" />
-              <span>Start Shopping</span>
+              <span>{t("Start Shopping")}</span>
             </Link>
           </div>
         </div>

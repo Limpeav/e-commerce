@@ -51,8 +51,11 @@ const parseAllowedOrigins = () => {
 const allowedOrigins = parseAllowedOrigins();
 const hasConfiguredOrigins = allowedOrigins.length > 0;
 const isDevelopment = process.env.NODE_ENV !== "production";
+const allowLocalDevOrigins = process.env.ALLOW_LOCAL_DEV_ORIGINS !== "false";
 const localNetworkOriginPattern =
   /^https?:\/\/(?:(?:localhost|127\.0\.0\.1|\[::1\])|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/;
+const localNetworkDomainOriginPattern =
+  /^https?:\/\/(?:(?:localhost|127-0-0-1)|(?:10-\d{1,3}-\d{1,3}-\d{1,3})|(?:192-168-\d{1,3}-\d{1,3})|(?:172-(?:1[6-9]|2\d|3[0-1])-\d{1,3}-\d{1,3})|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))\.sslip\.io(?::\d+)?$/;
 
 const normalizeOrigin = (origin) => origin.replace(/\/+$/, "");
 
@@ -66,7 +69,9 @@ const isOriginAllowed = (origin) => {
   return (
     !hasConfiguredOrigins ||
     allowedOrigins.includes(normalizedOrigin) ||
-    (isDevelopment && localNetworkOriginPattern.test(normalizedOrigin))
+    ((isDevelopment || allowLocalDevOrigins) &&
+      (localNetworkOriginPattern.test(normalizedOrigin) ||
+        localNetworkDomainOriginPattern.test(normalizedOrigin)))
   );
 };
 

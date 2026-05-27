@@ -14,6 +14,10 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: ADMIN_FRONTEND_URL
+        sync: false
+      - key: ALLOW_LOCAL_DEV_ORIGINS
+        value: "true"
 
   - type: web
     name: ecommerce-frontend

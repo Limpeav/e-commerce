@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "./ToastContext";
 import { CartController } from "../controllers/index.js";
 import { useAuth } from "./useAuth";
@@ -21,6 +22,7 @@ export const CartProvider = ({ children }) => {
   const { user } = useAuth();
   const userToken = user?.token;
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const canUseCustomerCart = Boolean(userToken) && !isPortalRoute(pathname);
   const { success, error: toastError, info } = useToast();
 
@@ -63,7 +65,8 @@ export const CartProvider = ({ children }) => {
 
       success(
         "Added to Cart",
-        `${productLabel}${options.size ? ` (${options.size})` : ""} has been added to your cart.`
+        `${productLabel}${options.size ? ` (${options.size})` : ""} has been added to your cart.`,
+        { onClick: () => navigate("/customer/cart") }
       );
     } catch (error) {
       console.error("Error adding to cart:", error);

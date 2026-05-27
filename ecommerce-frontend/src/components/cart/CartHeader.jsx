@@ -8,16 +8,16 @@ const CartHeader = ({ itemCount }) => {
   const itemLabel = itemCount === 1 ? t("cart.item") : t("cart.items");
 
   return (
-    <div className="mb-12">
-      <h2 className="text-4xl font-bold text-text-main mb-3 tracking-tight">
+    <div className="mb-8 text-center sm:mb-12 sm:text-left">
+      <h2 className="mb-3 text-[clamp(2rem,9vw,2.5rem)] font-bold leading-tight tracking-tight text-text-main">
         {t("cart.shoppingCart")}
       </h2>
-      <div className="flex items-center gap-3">
-        <span className="text-text-muted font-medium text-lg">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-start">
+        <span className="text-base font-medium text-text-muted sm:text-lg">
           {t("cart.itemCount", { count: itemCount, itemLabel })}
         </span>
-        <div className={`h-1 w-1 rounded-full ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
-        <span className="text-primary font-bold text-xs uppercase tracking-wide">{t("cart.securePayment")}</span>
+        <div className={`hidden h-1 w-1 rounded-full sm:block ${isDark ? "bg-slate-500" : "bg-stone-300"}`}></div>
+        <span className="text-center text-xs font-bold uppercase tracking-wide text-primary sm:text-left">{t("cart.securePayment")}</span>
       </div>
     </div>
   );

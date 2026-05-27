@@ -64,7 +64,7 @@ export const useProductDetail = (id, user, language = "en") => {
 };
 
 export const useProductReview = (id, user) => {
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState("");
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState("");
@@ -83,9 +83,15 @@ export const useProductReview = (id, user) => {
     setSubmittingReview(true);
     setReviewError("");
 
+    if (!rating) {
+      setReviewError("Please select a rating.");
+      setSubmittingReview(false);
+      return;
+    }
+
     try {
       const result = await ProductController.submitReview(id, user, {
-        rating,
+        rating: Number(rating),
         comment,
       });
 
@@ -93,7 +99,7 @@ export const useProductReview = (id, user) => {
         throw new Error(result.error);
       }
 
-      setRating(5);
+      setRating("");
       setComment("");
       setAlreadyReviewed(true);
 

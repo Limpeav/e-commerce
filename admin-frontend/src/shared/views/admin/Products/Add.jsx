@@ -15,6 +15,7 @@ import {
   Tag,
   FileText,
   Boxes,
+  Check,
   FileSpreadsheet,
   Sparkles,
 } from "lucide-react";
@@ -373,8 +374,11 @@ const AddProduct = () => {
                     type="checkbox"
                     checked={form.isNewArrival}
                     onChange={handleChange}
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="peer sr-only"
                   />
+                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-gray-300 bg-white text-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
                   <span>
                     <span className="flex items-center text-sm font-semibold text-gray-800">
                       <Sparkles className="mr-2 h-4 w-4 text-blue-600" />

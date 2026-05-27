@@ -15,6 +15,7 @@ import {
   Tag,
   FileText,
   Boxes,
+  Check,
   Sparkles,
   Save,
   X,
@@ -227,19 +228,19 @@ const EditProduct = () => {
                     alt="Preview"
                     className="w-full h-64 object-cover rounded-2xl border-4 border-gray-200 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
                   />
-                  <div className="absolute bottom-3 right-3 flex space-x-2">
+                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-end gap-2 rounded-2xl border border-white/20 bg-black/65 p-3 shadow-2xl backdrop-blur-md">
                     {form.image && (
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+                        className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-700"
                         title="Remove new image"
                       >
                         <X className="w-4 h-4" />
                         <span>Remove</span>
                       </button>
                     )}
-                    <label className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 cursor-pointer flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-lg ring-1 ring-black/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50">
                       <Upload className="w-4 h-4" />
                       <span>Change</span>
                       <input
@@ -386,8 +387,11 @@ const EditProduct = () => {
                     type="checkbox"
                     checked={form.isNewArrival}
                     onChange={handleChange}
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="peer sr-only"
                   />
+                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-gray-300 bg-white text-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
                   <span>
                     <span className="flex items-center text-sm font-semibold text-gray-800">
                       <Sparkles className="mr-2 h-4 w-4 text-blue-600" />

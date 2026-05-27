@@ -28,6 +28,19 @@ const Login = () => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
 
+  const getGoogleLoginErrorMessage = (err) => {
+    const backendMessage = err?.response?.data?.message;
+    if (backendMessage) {
+      return backendMessage;
+    }
+
+    if (!err?.response) {
+      return "Cannot reach the backend API. Make sure the local backend is running and your device is on the same network.";
+    }
+
+    return "Google login failed. Please try again.";
+  };
+
   // Add this useEffect
   useEffect(() => {
     // If user is already logged in, redirect appropriately
@@ -122,9 +135,7 @@ const Login = () => {
         navigate("/customer");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Google login failed. Please try again."
-      );
+      setError(getGoogleLoginErrorMessage(err));
       setLoading(false);
     }
   };
@@ -135,7 +146,7 @@ const Login = () => {
       completeGoogleLogin(tokenResponse.access_token);
     },
     onError: () => {
-      setError("Google login failed. Please try again.");
+      setError(`Google login failed. Add ${window.location.origin} to the OAuth client's Authorized JavaScript origins.`);
       setLoading(false);
     },
   });
@@ -202,13 +213,9 @@ const Login = () => {
           <form onSubmit={submitHandler} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div
-                className={`rounded-2xl p-4 flex items-start gap-3 animate-shake ${
-                  isDark ? "bg-red-500/10 border border-red-500/20" : "bg-red-50 border border-red-100"
-                }`}
-              >
-                <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? "text-red-400" : "text-red-500"}`} />
-                <p className={`text-sm font-bold ${isDark ? "text-red-300" : "text-red-700"}`}>{error}</p>
+              <div className="flex animate-shake items-start gap-3 rounded-2xl border border-red-400/30 bg-red-600/90 p-4 shadow-lg shadow-red-950/20">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-white" />
+                <p className="text-sm font-bold leading-relaxed text-white">{error}</p>
               </div>
             )}
 

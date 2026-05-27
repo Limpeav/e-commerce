@@ -13,6 +13,10 @@ export default defineConfig({
     },
   },
   server: {
+    host: "0.0.0.0",
+    allowedHosts: ["10.100.100.79.sslip.io"],
+    port: 5174,
+    strictPort: true,
     proxy: {
       "/api": {
         target: "http://localhost:4000",

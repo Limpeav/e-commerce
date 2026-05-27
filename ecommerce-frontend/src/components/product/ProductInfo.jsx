@@ -4,6 +4,7 @@ import { useDarkMode } from '../../hooks';
 import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 import { useLanguage } from '../../context/useLanguage';
 import { getLocalizedProductText } from '../../utils/productLocalization';
+import { useToast } from '../../context/ToastContext';
 
 const ProductInfo = ({
   product,
@@ -15,6 +16,7 @@ const ProductInfo = ({
 }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
+  const { info } = useToast();
   const localizedProduct = getLocalizedProductText(product, language);
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
@@ -168,12 +170,16 @@ const ProductInfo = ({
                 return;
               }
 
+              if (needsSize && !selectedSize) {
+                info("Select Size", "Please select a size before adding this product to your cart.");
+                return;
+              }
+
               onAddToCart({ size: selectedSize });
             }}
-            disabled={user && needsSize && !selectedSize}
             className={`group relative flex w-full flex-1 items-center justify-center gap-3 overflow-hidden rounded-[1.15rem] border-2 py-3.5 text-base font-bold transition-all duration-300 active:scale-95 sm:py-0 ${user
               ? needsSize && !selectedSize
-                ? isDark ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed'
+                ? isDark ? 'bg-slate-800 border-slate-700 text-slate-300 cursor-pointer hover:border-primary' : 'bg-stone-100 border-stone-200 text-stone-600 cursor-pointer hover:border-primary'
                 : 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
               : isDark ? 'bg-primary/15 border-primary/30 text-primary-light cursor-pointer hover:bg-primary hover:text-slate-950' : 'bg-primary/10 border-primary/25 text-primary cursor-pointer hover:bg-primary hover:text-white'
               }`}

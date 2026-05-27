@@ -111,9 +111,10 @@ export default function Navbar() {
   };
   const themeOrder = ["light", "dark", "system"];
   const currentThemeIndex = themeOrder.includes(themeMode) ? themeOrder.indexOf(themeMode) : 2;
+  const currentTheme = themeConfig[themeMode] || themeConfig.system;
+  const CurrentThemeIcon = currentTheme.icon;
   const nextThemeMode = themeOrder[(currentThemeIndex + 1) % themeOrder.length];
   const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
-  const NextThemeIcon = nextTheme.icon;
   const handleThemeClick = () => setThemeMode(nextThemeMode);
 
   const handleLogout = () => {
@@ -221,8 +222,8 @@ export default function Navbar() {
                   aria-label={nextTheme.ariaLabel}
                   title={nextTheme.ariaLabel}
                 >
-                  <NextThemeIcon className="h-4 w-4 text-text-main" />
-                  <span>{nextTheme.label}</span>
+                  <CurrentThemeIcon className="h-4 w-4 text-text-main" />
+                  <span>{currentTheme.label}</span>
                 </button>
                 <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
                 {user ? (
@@ -321,7 +322,7 @@ export default function Navbar() {
               className="rounded-full p-2 text-text-main transition-colors hover:bg-primary/10"
               aria-label={nextTheme.ariaLabel}
             >
-              <NextThemeIcon className="w-5 h-5" />
+              <CurrentThemeIcon className="w-5 h-5" />
             </button>
 
             <Link to="/customer/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/customer/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
@@ -433,8 +434,8 @@ export default function Navbar() {
                   className="flex w-full min-w-0 items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-semibold text-text-main transition-all hover:bg-primary/15"
                   aria-label={nextTheme.ariaLabel}
                 >
-                  <NextThemeIcon className="h-5 w-5 shrink-0" />
-                  <span className="min-w-0 flex-1 leading-snug">{nextTheme.modeLabel}</span>
+                  <CurrentThemeIcon className="h-5 w-5 shrink-0" />
+                  <span className="min-w-0 flex-1 leading-snug">{currentTheme.modeLabel}</span>
                 </button>
 
                 <LanguageSelect language={language} setLanguage={setLanguage} t={t} fullWidth />
