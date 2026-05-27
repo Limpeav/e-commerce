@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/useAuth";
 import {
   ArrowLeft,
@@ -23,9 +24,15 @@ import Loading from "../../components/common/Loading";
 
 const API_URL = config.API_BASE_URL;
 
+const getLocalizedOrderItemName = (item, language) =>
+  language === "km" && (item.titleKm || item.product?.titleKm)
+    ? item.titleKm || item.product.titleKm
+    : item.name;
+
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,8 +96,28 @@ const OrderDetail = () => {
     }).format(amount || 0);
   };
 
+  const formatDate = (value) =>
+    new Date(value).toLocaleDateString(i18n.language === "km" ? "km-KH" : undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  const normalizeTranslationKey = (value = "") =>
+    String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
+
+  const translateStatus = (status, fallback = "Pending") =>
+    t(`orderDetail.status.${normalizeTranslationKey(status || fallback)}`, {
+      defaultValue: status || fallback,
+    });
+
+  const translatePaymentMethod = (method) =>
+    t(`orderDetail.paymentMethods.${normalizeTranslationKey(method || "undefined")}`, {
+      defaultValue: method || t("orderDetail.undefined"),
+    });
+
   if (loading) {
-    return <Loading message="Loading order..." />;
+    return <Loading message={t("orderDetail.loading")} />;
   }
 
   if (error || !order) {
@@ -99,13 +126,13 @@ const OrderDetail = () => {
         <div className="text-center bg-white p-12 rounded-[2rem] shadow-lg border border-stone-100">
           <AlertCircle className="w-12 h-12 text-red-200 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-text-main mb-4">
-            {error || "Order Not Found"}
+            {error || t("orderDetail.notFound")}
           </h2>
           <button
             onClick={() => navigate("/customer/orders")}
             className="mt-4 px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all font-bold text-sm shadow-md"
           >
-            Back to Orders
+            {t("orderDetail.backToOrders")}
           </button>
         </div>
       </div>
@@ -124,18 +151,16 @@ const OrderDetail = () => {
               className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to orders</span>
+              <span>{t("orderDetail.backToOrders")}</span>
             </button>
             <h1 className="text-3xl font-bold text-text-main">
-              Order #{order._id.slice(-8).toUpperCase()}
+              {t("orderDetail.orderNumber", {
+                number: order._id.slice(-8).toUpperCase(),
+              })}
             </h1>
             <p className="text-sm text-text-muted mt-2 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              {new Date(order.createdAt).toLocaleDateString(undefined, {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {formatDate(order.createdAt)}
             </p>
           </div>
           <div
@@ -143,7 +168,7 @@ const OrderDetail = () => {
               order.orderStatus
             )}`}
           >
-            {order.orderStatus}
+            {translateStatus(order.orderStatus)}
           </div>
         </div>
 
@@ -151,7 +176,7 @@ const OrderDetail = () => {
         <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-4">
           <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-primary" />
-            Items
+            {t("orderDetail.items")}
           </h2>
           {order.orderItems?.map((item, index) => (
             <div
@@ -170,10 +195,12 @@ const OrderDetail = () => {
                 )}
               </div>
               <div className="flex-1">
-                <p className="font-medium text-text-main">{item.name}</p>
+                <p className="font-medium text-text-main">
+                  {getLocalizedOrderItemName(item, i18n.language)}
+                </p>
                 <p className="text-sm text-text-muted">
-                  Qty {item.quantity} · {formatCurrency(item.price)}
-                  {item.size ? ` · Size ${item.size}` : ""}
+                  {t("orderDetail.qty")} {item.quantity} · {formatCurrency(item.price)}
+                  {item.size ? ` · ${t("orderDetail.size")} ${item.size}` : ""}
                 </p>
               </div>
               <div className="font-semibold text-text-main">
@@ -189,7 +216,7 @@ const OrderDetail = () => {
             <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-3">
               <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
-                Shipping
+                {t("orderDetail.shipping")}
               </h2>
               <p className="font-medium text-text-main">
                 {order.shippingAddress.fullName}
@@ -218,30 +245,26 @@ const OrderDetail = () => {
           <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-4">
             <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-primary" />
-              Payment
+              {t("orderDetail.payment")}
             </h2>
             <div className="space-y-1 text-sm text-text-muted">
               <p>
-                Method:{" "}
+                {t("orderDetail.method")}:{" "}
                 <span className="font-semibold text-text-main">
-                  {order.paymentMethod
-                    ? order.paymentMethod.toUpperCase()
-                    : "UNDEFINED"}
+                  {translatePaymentMethod(order.paymentMethod)}
                 </span>
               </p>
               <p>
-                Payment:{" "}
+                {t("orderDetail.paymentStatus")}:{" "}
                 <span className="font-semibold text-text-main">
-                  {order.paymentStatus
-                    ? order.paymentStatus.toUpperCase()
-                    : "PENDING"}
+                  {translateStatus(order.paymentStatus)}
                 </span>
               </p>
               {order.isPaid && order.paidAt && (
                 <p>
-                  Paid on{" "}
+                  {t("orderDetail.paidOn")}{" "}
                   <span className="font-semibold text-text-main">
-                    {new Date(order.paidAt).toLocaleDateString()}
+                    {formatDate(order.paidAt)}
                   </span>
                 </p>
               )}
@@ -253,11 +276,11 @@ const OrderDetail = () => {
         <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-3">
           <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary" />
-            Summary
+            {t("orderDetail.summary")}
           </h2>
           <div className="space-y-2 text-sm text-text-muted">
             <div className="flex justify-between">
-              <span>Subtotal</span>
+              <span>{t("orderDetail.subtotal")}</span>
               <span className="font-semibold text-text-main">
                 {formatCurrency(
                   order.totalPrice -
@@ -267,16 +290,16 @@ const OrderDetail = () => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Shipping</span>
+              <span>{t("orderDetail.shipping")}</span>
               <span className="font-semibold text-text-main">
                 {order.shippingPrice > 0
                   ? formatCurrency(order.shippingPrice)
-                  : "Free"}
+                  : t("orderDetail.free")}
               </span>
             </div>
             {order.taxPrice > 0 && (
               <div className="flex justify-between">
-                <span>Tax</span>
+                <span>{t("orderDetail.tax")}</span>
                 <span className="font-semibold text-text-main">
                   {formatCurrency(order.taxPrice)}
                 </span>
@@ -284,7 +307,7 @@ const OrderDetail = () => {
             )}
             <div className="h-px bg-stone-100 my-2" />
             <div className="flex justify-between text-base">
-              <span className="font-semibold text-text-main">Total</span>
+              <span className="font-semibold text-text-main">{t("orderDetail.total")}</span>
               <span className="font-bold text-text-main">
                 {formatCurrency(order.totalPrice)}
               </span>
@@ -297,10 +320,10 @@ const OrderDetail = () => {
           <div className="bg-green-50 border border-green-100 rounded-3xl p-4 flex items-center gap-3 text-sm text-green-800">
             <CheckCircle className="w-5 h-5" />
             <div>
-              <p className="font-semibold">Delivered</p>
+              <p className="font-semibold">{t("orderDetail.status.delivered")}</p>
               {order.deliveredAt && (
                 <p>
-                  {new Date(order.deliveredAt).toLocaleDateString()}
+                  {formatDate(order.deliveredAt)}
                 </p>
               )}
             </div>

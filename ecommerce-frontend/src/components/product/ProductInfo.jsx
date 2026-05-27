@@ -171,7 +171,7 @@ const ProductInfo = ({
               }
 
               if (needsSize && !selectedSize) {
-                info("Select Size", "Please select a size before adding this product to your cart.");
+                info(t("product.selectSize"), t("product.selectSizeMessage"));
                 return;
               }
 

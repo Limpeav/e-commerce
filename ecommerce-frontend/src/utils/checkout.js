@@ -75,6 +75,7 @@ export const buildOrderPayload = ({
   orderItems: cartItems.map((item) => ({
     product: item.product._id,
     name: item.product.title || item.product.name,
+    titleKm: item.product.titleKm || "",
     quantity: item.quantity,
     size: item.size || "",
     image: item.product.image,

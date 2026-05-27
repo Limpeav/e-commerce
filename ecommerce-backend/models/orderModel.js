@@ -15,6 +15,7 @@ const orderSchema = new mongoose.Schema(
                     ref: "Product",
                 },
                 name: { type: String, required: true },
+                titleKm: { type: String, default: "" },
                 quantity: { type: Number, required: true },
                 size: { type: String, default: "", trim: true, uppercase: true },
                 image: { type: String, required: true },

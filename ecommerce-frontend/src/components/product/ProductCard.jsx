@@ -100,7 +100,7 @@ const ProductCard = ({
             <Link
               to={`/products/${product._id}`}
               className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-xl shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] transition-transform hover:scale-105 active:scale-95"
-              title="Choose size"
+              title={t("product.chooseSize")}
             >
               <ShoppingBag className="w-5 h-5" />
             </Link>
