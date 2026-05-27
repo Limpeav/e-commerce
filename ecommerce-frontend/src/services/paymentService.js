@@ -1,11 +1,12 @@
 import axios from "axios";
 import { config } from "../config/index.js";
+import { getUserToken } from "./http.js";
 
 const API_URL = config.API_BASE_URL;
 
 // Generate BAKONG KHQR code
 export const generateBakongQR = async (orderId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.post(
         `${API_URL}/payments/bakong/generate`,
         { orderId },
@@ -20,7 +21,7 @@ export const generateBakongQR = async (orderId) => {
 
 // Get payment status
 export const getPaymentStatus = async (paymentId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.get(
         `${API_URL}/payments/${paymentId}/status`,
         {
@@ -34,7 +35,7 @@ export const getPaymentStatus = async (paymentId) => {
 
 // Get payment by order ID
 export const getPaymentByOrderId = async (orderId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.get(
         `${API_URL}/payments/order/${orderId}`,
         {
@@ -48,7 +49,7 @@ export const getPaymentByOrderId = async (orderId) => {
 
 // Cancel payment
 export const cancelPayment = async (paymentId) => {
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
     const response = await axios.put(
         `${API_URL}/payments/${paymentId}/cancel`,
         {},

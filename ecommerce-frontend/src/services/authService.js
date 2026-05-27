@@ -112,10 +112,12 @@ export const authService = {
 
   logout() {
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem("token");
   },
 
   expireSession() {
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem("token");
     window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
   },
 

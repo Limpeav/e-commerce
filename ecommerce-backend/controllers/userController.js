@@ -3,11 +3,9 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendPasswordResetCode, sendDeleteAccountOtp } from "../utils/sendEmail.js";
 
-// 🔐 generate token
+// Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET);
 };
 
 const normalizeCambodiaPhone = (phone = "") => {

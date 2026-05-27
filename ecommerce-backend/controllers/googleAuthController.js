@@ -2,11 +2,9 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
-// Generate token
+// Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET);
 };
 
 // @desc    Google OAuth callback
