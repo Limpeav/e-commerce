@@ -37,7 +37,7 @@ export const useProductDetail = (id, user, language = "en") => {
       const isMissingDescription = product?.description && !product.descriptionKm;
 
       if (
-        language !== "km" ||
+        language !== "kh" ||
         !product?._id ||
         (!isMissingTitle && !isMissingDescription)
       ) {

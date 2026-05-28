@@ -1,12 +1,15 @@
 import i18n from "i18next";
 import { translations } from "./translations";
 
+const storedLanguage = localStorage.getItem("language");
+const initialLanguage = storedLanguage === "km" ? "kh" : storedLanguage || "en";
+
 i18n.init({
   resources: {
     en: { translation: translations.en },
-    km: { translation: translations.km },
+    kh: { translation: translations.kh },
   },
-  lng: localStorage.getItem("language") || "en",
+  lng: initialLanguage,
   fallbackLng: "en",
   interpolation: {
     escapeValue: false,

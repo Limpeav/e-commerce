@@ -2,10 +2,12 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 
 export default function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isDark] = useDarkMode();
   const stateOrderId = location.state?.orderId;
   const queryOrderId = new URLSearchParams(location.search).get("orderId");
@@ -28,12 +30,12 @@ export default function OrderSuccess() {
 
   return (
     <div
-      className={`min-h-screen flex items-center justify-center px-6 py-24 font-sans transition-colors duration-300 ${
+      className={`flex min-h-[100dvh] items-center justify-center px-4 py-24 font-sans transition-colors duration-300 sm:px-6 ${
         isDark ? "bg-slate-950" : "bg-bg-base"
       }`}
     >
       <div
-        className={`max-w-2xl w-full rounded-[3rem] p-8 text-center border relative overflow-hidden transition-colors duration-300 sm:p-12 ${
+        className={`relative w-full max-w-2xl overflow-hidden rounded-3xl border p-5 text-center transition-colors duration-300 sm:rounded-[3rem] sm:p-10 md:p-12 ${
           isDark
             ? "bg-slate-900 border-slate-800 shadow-[0_32px_80px_-36px_rgba(2,6,23,0.95)]"
             : "bg-white border-stone-100 shadow-xl"
@@ -41,30 +43,30 @@ export default function OrderSuccess() {
       >
         <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-        <div className="relative z-10 mb-10">
+        <div className="relative z-10 mb-6 sm:mb-10">
           <div
-            className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border ${
+            className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-inner sm:mb-6 sm:h-20 sm:w-20 ${
               isDark
                 ? "bg-slate-800 border-slate-700"
                 : "bg-stone-50 border-stone-100"
             }`}
           >
-            <CheckCircle className="w-10 h-10 text-green-500" />
+            <CheckCircle className="h-8 w-8 text-green-500 sm:h-10 sm:w-10" />
           </div>
-          <h1 className="text-3xl font-bold text-text-main mb-3 font-display tracking-tight sm:text-4xl">
-            Order Placed Successfully!
+          <h1 className="mb-3 text-2xl font-bold leading-tight text-text-main font-display tracking-tight sm:text-4xl">
+            {t("checkout.orderSuccessTitle")}
           </h1>
           <p
-            className={`font-medium text-base max-w-md mx-auto sm:text-lg ${
+            className={`mx-auto max-w-md text-sm font-medium leading-relaxed sm:text-lg ${
               isDark ? "text-slate-400" : "text-text-muted"
             }`}
           >
-            Thank you for your order. We are preparing your items for shipment.
+            {t("checkout.orderSuccessMessage")}
           </p>
         </div>
 
         <div
-          className={`relative z-10 rounded-2xl p-6 mb-8 border inline-block w-full max-w-sm ${
+          className={`relative z-10 mb-6 inline-block w-full max-w-sm rounded-2xl border p-4 sm:mb-8 sm:p-6 ${
             isDark
               ? "bg-slate-800 border-slate-700"
               : "bg-stone-50 border-stone-100"
@@ -75,35 +77,35 @@ export default function OrderSuccess() {
               isDark ? "text-slate-400" : "text-text-muted"
             }`}
           >
-            Order ID
+            {t("checkout.orderId")}
           </p>
-          <p className="text-2xl font-bold text-text-main font-mono tracking-tight">
-            {orderId ? `#${orderId.slice(-8).toUpperCase()}` : "Order Created"}
+          <p className="break-words font-mono text-xl font-bold tracking-tight text-text-main sm:text-2xl">
+            {orderId ? `#${orderId.slice(-8).toUpperCase()}` : t("checkout.orderCreated")}
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="relative z-10 flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
           <button
             onClick={viewOrderDetails}
             type="button"
-            className={`px-8 py-4 rounded-xl transition-all font-bold text-sm shadow-xl shadow-primary/10 hover:-translate-y-1 active:scale-95 ${
+            className={`min-h-12 w-full rounded-xl px-5 py-3 text-sm font-bold shadow-xl shadow-primary/10 transition-all hover:-translate-y-1 active:scale-95 sm:w-auto sm:px-8 sm:py-4 ${
               isDark
                 ? "bg-primary text-slate-950 hover:bg-primary-light"
                 : "bg-text-main text-white hover:bg-primary"
             }`}
           >
-            View Order Details
+            {t("checkout.viewOrderDetails")}
           </button>
           <button
             onClick={() => navigate("/customer")}
             type="button"
-            className={`px-8 py-4 border rounded-xl transition-all font-bold text-sm hover:border-primary hover:text-primary active:scale-95 ${
+            className={`min-h-12 w-full rounded-xl border px-5 py-3 text-sm font-bold transition-all hover:border-primary hover:text-primary active:scale-95 sm:w-auto sm:px-8 sm:py-4 ${
               isDark
                 ? "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800"
                 : "bg-white text-text-muted border-stone-200 hover:shadow-lg"
             }`}
           >
-            Continue Shopping
+            {t("checkout.continueShopping")}
           </button>
         </div>
       </div>

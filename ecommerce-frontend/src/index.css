@@ -65,21 +65,21 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-html:lang(km) body {
+html:lang(kh) body {
     font-family: "Kantumruy Pro", var(--font-sans);
 }
 
-html:lang(km) h1,
-html:lang(km) h2,
-html:lang(km) h3,
-html:lang(km) h4,
-html:lang(km) h5,
-html:lang(km) h6,
-html:lang(km) .font-display {
+html:lang(kh) h1,
+html:lang(kh) h2,
+html:lang(kh) h3,
+html:lang(kh) h4,
+html:lang(kh) h5,
+html:lang(kh) h6,
+html:lang(kh) .font-display {
     font-family: "Koh Santepheap", "Kantumruy Pro", var(--font-sans);
 }
 
-html:lang(km) [class*="tracking-"] {
+html:lang(kh) [class*="tracking-"] {
     letter-spacing: 0 !important;
 }
 

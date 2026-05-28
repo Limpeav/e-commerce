@@ -7,14 +7,18 @@ const STORAGE_KEY = "language";
 const DEFAULT_LANGUAGE = "en";
 const PORTAL_PATH_PREFIXES = ["/admin", "/seller", "/delivery"];
 
+const normalizeLanguage = (language) => (language === "km" ? "kh" : language);
+
 const getEffectiveLanguage = (language) => {
+  const normalizedLanguage = normalizeLanguage(language);
+
   if (typeof window === "undefined") {
-    return language;
+    return normalizedLanguage;
   }
 
   return PORTAL_PATH_PREFIXES.some((prefix) => window.location.pathname.startsWith(prefix))
     ? DEFAULT_LANGUAGE
-    : language;
+    : normalizedLanguage;
 };
 
 const getInitialLanguage = () => {
@@ -22,7 +26,7 @@ const getInitialLanguage = () => {
     return DEFAULT_LANGUAGE;
   }
 
-  const storedLanguage = window.localStorage.getItem(STORAGE_KEY);
+  const storedLanguage = normalizeLanguage(window.localStorage.getItem(STORAGE_KEY));
   return translations[storedLanguage] ? storedLanguage : DEFAULT_LANGUAGE;
 };
 
@@ -39,8 +43,10 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const setLanguage = useCallback((nextLanguage) => {
-    if (translations[nextLanguage]) {
-      setLanguageState(nextLanguage);
+    const normalizedLanguage = normalizeLanguage(nextLanguage);
+
+    if (translations[normalizedLanguage]) {
+      setLanguageState(normalizedLanguage);
     }
   }, []);
 
@@ -55,7 +61,7 @@ export const LanguageProvider = ({ children }) => {
       language,
       setLanguage,
       t,
-      isKhmer: getEffectiveLanguage(language) === "km",
+      isKhmer: getEffectiveLanguage(language) === "kh",
     }),
     [language, setLanguage, t]
   );

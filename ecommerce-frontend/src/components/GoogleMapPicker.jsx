@@ -20,7 +20,7 @@ const isWithinCambodiaBounds = ({ lat, lng }) =>
   lng >= CAMBODIA_BOUNDS.west &&
   lng <= CAMBODIA_BOUNDS.east;
 
-const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
+const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = false }) => {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
@@ -204,9 +204,22 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
   // Load Google Maps Script
   useEffect(() => {
+    const previousAuthFailureHandler = window.gm_authFailure;
+    window.gm_authFailure = () => {
+      setLocationError(
+        t("mapPicker.googleMapsAuthFailed", {
+          origin: window.location.origin,
+        })
+      );
+      setIsGoogleMapsLoaded(false);
+      setIsMapLoading(false);
+    };
+
     if (window.google && window.google.maps) {
       setIsGoogleMapsLoaded(true);
-      return;
+      return () => {
+        window.gm_authFailure = previousAuthFailureHandler;
+      };
     }
 
     const existingScript = document.querySelector(
@@ -222,9 +235,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           setLocationError("");
         };
         existingScript.addEventListener("load", handleLoad);
-        return () => existingScript.removeEventListener("load", handleLoad);
+        return () => {
+          existingScript.removeEventListener("load", handleLoad);
+          window.gm_authFailure = previousAuthFailureHandler;
+        };
       }
-      return;
+      return () => {
+        window.gm_authFailure = previousAuthFailureHandler;
+      };
     }
 
     const script = document.createElement("script");
@@ -239,14 +257,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
     };
 
     script.onerror = () => {
-      setLocationError("Failed to load Google Maps. Please check your API key and try again.");
+      setLocationError(t("mapPicker.googleMapsLoadFailed"));
       setIsGoogleMapsLoaded(false);
     };
 
     document.head.appendChild(script);
 
-    return () => { };
-  }, []);
+    return () => {
+      window.gm_authFailure = previousAuthFailureHandler;
+    };
+  }, [t]);
 
   // Initialize map when modal opens
   useEffect(() => {
@@ -591,7 +611,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
           resetDraftState();
           setIsOpen(true);
         }}
-        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-xl hover:from-blue-100 hover:to-purple-100 transition-all duration-300 border border-blue-200 font-semibold shadow-sm hover:shadow-md active:scale-95"
+        className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 font-semibold shadow-sm transition-all duration-300 hover:shadow-md active:scale-95 ${
+          isDark
+            ? "border-primary/50 bg-primary/15 text-primary-light hover:border-primary hover:bg-primary/20"
+            : "border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 hover:from-blue-100 hover:to-purple-100"
+        }`}
       >
         <MapPin className="w-4 h-4" />
         {initialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
@@ -600,27 +624,27 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
       {/* Full Screen Modal - Mobile First */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col bg-white md:bg-black/60 md:backdrop-blur-md md:items-center md:justify-center md:p-4"
+          className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen flex-col bg-white md:bg-black/60 md:items-center md:justify-center md:p-4 md:backdrop-blur-md"
           style={{ touchAction: "none" }}
         >
           {/* Desktop wrapper */}
-          <div className="flex flex-col w-full h-full md:bg-white md:rounded-3xl md:shadow-2xl md:max-w-5xl md:max-h-[95vh] md:overflow-hidden">
+          <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white md:h-full md:max-h-[95dvh] md:max-w-5xl md:rounded-3xl md:shadow-2xl">
 
             {/* === HEADER === */}
-            <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-white shrink-0 safe-area-top">
+            <div className="safe-area-top flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-3 py-2.5 sm:px-4 md:px-6 md:py-4">
               {/* Close button - left on mobile for thumb reach */}
               <button
                 onClick={handleClose}
-                className="p-2.5 -ml-1 hover:bg-gray-100 rounded-xl transition-all duration-200 active:scale-90 md:order-2 md:ml-4 md:-mr-1"
+                className="-ml-1 rounded-xl p-2.5 transition-all duration-200 hover:bg-gray-100 active:scale-90 md:order-2 md:ml-4 md:-mr-1"
               >
                 <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
               </button>
               <div className="flex-1 text-center md:text-left md:order-1">
-                <h2 className="text-base md:text-xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
-                  <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg md:rounded-xl">
+                <h2 className="flex items-center justify-center gap-2 text-base font-bold text-gray-900 md:justify-start md:text-xl">
+                  <div className="rounded-lg bg-blue-600 p-1.5 md:rounded-xl md:p-2">
                     <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
                   </div>
-                  <span>{t("mapPicker.selectLocation")}</span>
+                  <span className="truncate">{t("mapPicker.selectLocation")}</span>
                 </h2>
               </div>
               {/* Spacer for mobile centering */}
@@ -628,7 +652,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
             </div>
 
             {/* === MAP CONTAINER - Takes full remaining space === */}
-            <div className="flex-1 relative bg-gray-100 min-h-0">
+            <div className="relative min-h-0 flex-1 bg-gray-100">
               {/* Map */}
               <div
                 ref={mapRef}
@@ -649,7 +673,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
               {/* === SEARCH BAR - Floating on map === */}
               <div
-                className="absolute top-3 left-3 right-3 md:top-4 md:left-4 md:right-4"
+                className="absolute left-3 right-3 top-3 sm:left-4 sm:right-4 md:left-4 md:right-4 md:top-4"
                 style={{ zIndex: 20 }}
               >
                 <div className="relative max-w-lg mx-auto md:mx-0 md:max-w-xl">
@@ -674,10 +698,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
 
               {/* === FLOATING ACTION BUTTONS - Right side === */}
               <div
-                className="absolute right-3 md:right-4 flex flex-col items-end gap-2.5"
+                className="absolute right-3 flex flex-col items-end gap-2.5 sm:right-4 md:right-4"
                 style={{
                   zIndex: 15,
-                  bottom: showBottomSheet && addressName ? "228px" : "168px",
+                  bottom: showBottomSheet && addressName ? "min(46dvh, 228px)" : "min(34dvh, 168px)",
                   transition: "bottom 0.3s ease",
                 }}
               >
@@ -693,7 +717,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   type="button"
                   onClick={detectUserLocation}
                   disabled={detectingLocation}
-                  className="w-12 h-12 md:w-auto md:h-auto md:px-4 md:py-3 bg-white rounded-full md:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 disabled:opacity-50 flex items-center justify-center md:gap-2.5 font-semibold text-gray-900 active:scale-90 group"
+                  className="flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 font-semibold text-gray-900 shadow-lg transition-all duration-300 hover:shadow-xl active:scale-90 disabled:opacity-50 md:px-4 group"
                   title={t("mapPicker.useCurrentLocation")}
                 >
                   {detectingLocation ? (
@@ -701,7 +725,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   ) : (
                     <>
                       <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="hidden md:inline text-sm">{t("mapPicker.currentLocation")}</span>
+                      <span className="text-sm">{t("mapPicker.currentLocation")}</span>
                     </>
                   )}
                 </button>
@@ -723,12 +747,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
                 </div>
 
-                <div className="bg-white rounded-t-3xl md:rounded-none shadow-[0_-4px_20px_rgba(0,0,0,0.1)] px-4 pb-4 pt-2 md:px-6 md:py-4 safe-area-bottom">
+                <div className="safe-area-bottom max-h-[46dvh] overflow-y-auto rounded-t-3xl bg-white px-3 pb-3 pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] sm:px-4 sm:pb-4 md:max-h-none md:overflow-visible md:rounded-none md:px-6 md:py-4">
                   {/* Selected Address Info */}
                   {addressName && (
-                    <div className="mb-3 md:mb-4">
-                      <div className="flex items-start gap-3 bg-blue-50 rounded-2xl p-3 md:p-4">
-                        <div className="p-2 bg-blue-600 rounded-xl shrink-0 mt-0.5">
+                    <div className="mb-2.5 md:mb-4">
+                      <div className="flex items-start gap-2.5 rounded-2xl bg-blue-50 p-3 md:gap-3 md:p-4">
+                        <div className="mt-0.5 shrink-0 rounded-xl bg-blue-600 p-2">
                           <MapPin className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -744,23 +768,23 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                   )}
 
                   {/* Coordinates */}
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <div className="bg-gray-100 px-3 py-1.5 rounded-lg">
+                  <div className="mb-3 flex flex-col gap-2 md:mb-4 md:flex-row md:items-center md:justify-between">
+                    <div className="w-fit rounded-lg bg-gray-100 px-3 py-1.5">
                       <p className="text-[10px] md:text-xs font-mono text-gray-500">
                         📍 {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                       </p>
                     </div>
-                    <p className="text-[10px] md:text-xs text-gray-400 hidden md:block">
+                    <p className="text-[10px] text-gray-400 md:text-xs">
                       {t("mapPicker.mapHint")}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="grid grid-cols-[minmax(5.5rem,0.75fr)_minmax(0,2fr)] gap-2.5 sm:gap-3 md:flex">
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="flex-1 md:flex-none px-5 py-3.5 md:py-3 bg-gray-100 text-gray-700 rounded-2xl md:rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold text-sm active:scale-95"
+                      className="min-h-12 rounded-2xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition-all duration-300 hover:bg-gray-200 active:scale-95 md:flex-none md:rounded-xl md:px-5"
                     >
                       {t("mapPicker.cancel")}
                     </button>
@@ -768,14 +792,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address }) => {
                       type="button"
                       onClick={handleConfirmLocation}
                       disabled={isConfirmingLocation}
-                      className="flex-[2] md:flex-none px-6 py-3.5 md:py-3 rounded-2xl md:rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl text-sm active:scale-95"
+                      className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 md:flex-none md:rounded-xl md:px-6"
                       style={{
                         background: "linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%)",
                         color: "#ffffff",
                       }}
                     >
-                      <Check className="w-4 h-4 md:w-5 md:h-5" />
-                      {isConfirmingLocation ? t("mapPicker.saving") : t("mapPicker.confirmLocation")}
+                      <Check className="h-4 w-4 shrink-0 md:h-5 md:w-5" />
+                      <span className="truncate">
+                        {isConfirmingLocation ? t("mapPicker.saving") : t("mapPicker.confirmLocation")}
+                      </span>
                     </button>
                   </div>
                 </div>

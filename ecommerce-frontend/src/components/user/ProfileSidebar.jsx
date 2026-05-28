@@ -11,18 +11,21 @@ import {
     MapPin,
     CreditCard
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
+import { useToast } from '../../context/ToastContext';
 
 const ProfileSidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isDark] = useDarkMode();
     const { t } = useLanguage();
+    const { info } = useToast();
 
     const handleLogout = () => {
         logout();
+        info(t('auth.logoutTitle'), t('auth.logoutMessage'));
         navigate('/login');
     };
 
@@ -73,7 +76,7 @@ const ProfileSidebar = () => {
                                 <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : isDark ? 'text-slate-500 group-hover:text-primary transition-colors' : 'text-stone-400 group-hover:text-primary transition-colors'}`} />
                                 <span className="relative z-10">{item.label}</span>
                                 {isActive && (
-                                    <motion.div
+                                    <Motion.div
                                         layoutId="active-pill"
                                         className="absolute inset-0 bg-primary z-0"
                                         initial={{ borderRadius: 16 }}

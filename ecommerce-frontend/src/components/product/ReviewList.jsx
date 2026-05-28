@@ -6,7 +6,7 @@ import { useLanguage } from '../../context/useLanguage';
 const ReviewList = ({ reviews }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
-  const dateLocale = language === "km" ? "km-KH" : undefined;
+  const dateLocale = language === "kh" ? "km-KH" : undefined;
 
   return (
     <div className="space-y-6 sm:space-y-8">

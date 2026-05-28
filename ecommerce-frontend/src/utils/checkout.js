@@ -27,6 +27,17 @@ export const getEffectiveCartProductPrice = (product) =>
 
 export const getValidCartItems = (cart = []) => cart.filter((item) => item.product);
 
+const checkoutValidationMessages = {
+  incompleteShipping: "Please complete your shipping details before placing the order.",
+  missingLocation: "Please select your delivery location on the map before placing the order.",
+  emptyCart: "Your cart is empty. Add an item before placing the order.",
+};
+
+const getCheckoutValidationMessage = (key, t) =>
+  typeof t === "function"
+    ? t(`checkout.errors.${key}`)
+    : checkoutValidationMessages[key];
+
 export const calculateCheckoutTotals = (cartItems = []) => {
   const subtotal = cartItems.reduce(
     (acc, item) => acc + getEffectiveCartProductPrice(item.product) * item.quantity,
@@ -43,22 +54,22 @@ export const calculateCheckoutTotals = (cartItems = []) => {
   };
 };
 
-export const validateCheckout = (shippingAddress, cartItems = []) => {
+export const validateCheckout = (shippingAddress, cartItems = [], t) => {
   if (
     !shippingAddress.fullName ||
     !shippingAddress.address ||
     !shippingAddress.city ||
     !shippingAddress.phone
   ) {
-    return "Please complete your shipping details before placing the order.";
+    return getCheckoutValidationMessage("incompleteShipping", t);
   }
 
   if (shippingAddress.latitude == null || shippingAddress.longitude == null) {
-    return "Please select your delivery location on the map before placing the order.";
+    return getCheckoutValidationMessage("missingLocation", t);
   }
 
   if (cartItems.length === 0) {
-    return "Your cart is empty. Add an item before placing the order.";
+    return getCheckoutValidationMessage("emptyCart", t);
   }
 
   return "";

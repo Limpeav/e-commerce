@@ -27,6 +27,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { supportedLanguages } from "../../i18n/translations";
+import { useToast } from "../../context/ToastContext";
 
 const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
   <label
@@ -57,6 +58,7 @@ export default function Navbar() {
   const { wishlist } = useWishlist();
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { info } = useToast();
   const [isDark, , themeMode, setThemeMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -119,6 +121,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
+    info(t("auth.logoutTitle"), t("auth.logoutMessage"));
     setShowDropdown(false);
     setShowMobileMenu(false);
     navigate("/customer");

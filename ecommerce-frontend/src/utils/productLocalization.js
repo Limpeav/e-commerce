@@ -1,5 +1,5 @@
 export const getLocalizedProductText = (product, language = "en") => {
-  const useKhmer = language === "km";
+  const useKhmer = language === "kh";
 
   return {
     title: useKhmer && product?.titleKm ? product.titleKm : product?.title || product?.name || "",

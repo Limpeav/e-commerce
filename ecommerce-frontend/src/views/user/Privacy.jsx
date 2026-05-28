@@ -113,7 +113,7 @@ export default function Privacy() {
         <PageLayout
             title="Privacy Policy"
             subtitle="How we collect, use, and protect your data"
-            badge={`${t("Last Updated")}: ${new Date().toLocaleDateString(language === "km" ? "km-KH" : undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`}
+            badge={`${t("Last Updated")}: ${new Date().toLocaleDateString(language === "kh" ? "km-KH" : undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`}
             icon={Shield}
             badgeColor="green"
             maxWidth="5xl"

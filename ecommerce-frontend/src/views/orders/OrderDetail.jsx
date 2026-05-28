@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/useAuth";
+import { useLanguage } from "../../context/useLanguage";
 import {
   ArrowLeft,
   Package,
@@ -25,14 +25,14 @@ import Loading from "../../components/common/Loading";
 const API_URL = config.API_BASE_URL;
 
 const getLocalizedOrderItemName = (item, language) =>
-  language === "km" && (item.titleKm || item.product?.titleKm)
+  language === "kh" && (item.titleKm || item.product?.titleKm)
     ? item.titleKm || item.product.titleKm
     : item.name;
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ const OrderDetail = () => {
       setError("");
       const token = getAuthToken();
       if (!token) {
-        throw new Error("Not authenticated");
+        throw new Error(t("orderDetail.notAuthenticated"));
       }
 
       const response = await axios.get(`${API_URL}/orders/${id}`, {
@@ -71,7 +71,7 @@ const OrderDetail = () => {
       setOrder(response.data);
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "Failed to fetch order details"
+        err.response?.data?.message || err.message || t("orderDetail.fetchFailed")
       );
     } finally {
       setLoading(false);
@@ -97,7 +97,7 @@ const OrderDetail = () => {
   };
 
   const formatDate = (value) =>
-    new Date(value).toLocaleDateString(i18n.language === "km" ? "km-KH" : undefined, {
+    new Date(value).toLocaleDateString(language === "kh" ? "km-KH" : undefined, {
       month: "long",
       day: "numeric",
       year: "numeric",
@@ -196,7 +196,7 @@ const OrderDetail = () => {
               </div>
               <div className="flex-1">
                 <p className="font-medium text-text-main">
-                  {getLocalizedOrderItemName(item, i18n.language)}
+                  {getLocalizedOrderItemName(item, language)}
                 </p>
                 <p className="text-sm text-text-muted">
                   {t("orderDetail.qty")} {item.quantity} · {formatCurrency(item.price)}

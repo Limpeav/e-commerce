@@ -440,7 +440,7 @@ const Profile = () => {
                           { icon: User, label: t("profile.fullName"), value: user.name },
                           { icon: Mail, label: t("profile.email"), value: user.email },
                           { icon: Phone, label: t("profile.phone"), value: user.phone || t("profile.notProvided") },
-                          { icon: Calendar, label: t("profile.joined"), value: new Date(user.createdAt || Date.now()).toLocaleDateString(language === "km" ? "km-KH" : "en-US", { month: 'long', year: 'numeric' }) }
+                          { icon: Calendar, label: t("profile.joined"), value: new Date(user.createdAt || Date.now()).toLocaleDateString(language === "kh" ? "km-KH" : "en-US", { month: 'long', year: 'numeric' }) }
                         ].map((item, idx) => (
                           <div key={idx} className="flex gap-4 relative z-10 group">
                             <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all ${
@@ -494,7 +494,7 @@ const Profile = () => {
                                     </span>
                                   </div>
                                   <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>
-                                    {new Date(order.createdAt).toLocaleDateString(language === "km" ? "km-KH" : undefined)}
+                                    {new Date(order.createdAt).toLocaleDateString(language === "kh" ? "km-KH" : undefined)}
                                   </p>
                                 </div>
                                 <div className="text-right">

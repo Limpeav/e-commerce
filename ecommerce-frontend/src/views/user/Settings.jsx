@@ -186,7 +186,7 @@ export default function Settings() {
                     style={borderStyle}
                   >
                     <option value="en">English</option>
-                    <option value="km">Khmer</option>
+                    <option value="kh">Khmer</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-text-muted">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>

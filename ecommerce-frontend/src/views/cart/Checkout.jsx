@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import CheckoutError from "../../components/cart/checkout/CheckoutError";
 import CheckoutSuccess from "../../components/cart/checkout/CheckoutSuccess";
 import OrderSummaryPanel from "../../components/cart/checkout/OrderSummaryPanel";
 import PaymentMethodSection from "../../components/cart/checkout/PaymentMethodSection";
@@ -9,6 +8,7 @@ import ShippingAddressSection from "../../components/cart/checkout/ShippingAddre
 import { useAuth } from "../../context/useAuth";
 import { useCart } from "../../context/useCart";
 import { CheckoutController } from "../../controllers/checkoutController";
+import { useLanguage } from "../../context/useLanguage";
 import { useDarkMode } from "../../hooks";
 import {
   calculateCheckoutTotals,
@@ -21,6 +21,7 @@ const Checkout = () => {
   const { cart, clearCart } = useCart();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -87,6 +88,7 @@ const Checkout = () => {
       shippingAddress,
       paymentMethod,
       totals,
+      t,
     });
 
     if (!result.success) {
@@ -158,6 +160,8 @@ const Checkout = () => {
                 shippingAddress={shippingAddress}
                 onInputChange={handleInputChange}
                 onLocationSelect={handleLocationSelect}
+                error={error}
+                errorRef={errorRef}
               />
 
               <PaymentMethodSection
@@ -165,8 +169,6 @@ const Checkout = () => {
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={setPaymentMethod}
               />
-
-              <CheckoutError error={error} errorRef={errorRef} isDark={isDark} />
             </div>
 
             <OrderSummaryPanel

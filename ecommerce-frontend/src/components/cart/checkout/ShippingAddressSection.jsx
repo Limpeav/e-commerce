@@ -1,5 +1,6 @@
 import { Building, CheckCircle, MapPin, Phone, User } from "lucide-react";
 import GoogleMapPicker from "../../GoogleMapPicker";
+import CheckoutError from "./CheckoutError";
 import { CAMBODIA_DIAL_CODE, displayValue } from "../../../utils/checkout";
 import { useLanguage } from "../../../context/useLanguage";
 
@@ -8,6 +9,8 @@ const ShippingAddressSection = ({
   shippingAddress,
   onInputChange,
   onLocationSelect,
+  error,
+  errorRef,
 }) => {
   const { t } = useLanguage();
 
@@ -60,6 +63,7 @@ const ShippingAddressSection = ({
           <div className={`rounded-2xl overflow-hidden border shadow-sm ${isDark ? "border-slate-700" : "border-stone-200"}`}>
             <GoogleMapPicker
               onSelectLocation={onLocationSelect}
+              isDark={isDark}
               initialLocation={
                 shippingAddress.latitude && shippingAddress.longitude
                   ? { lat: shippingAddress.latitude, lng: shippingAddress.longitude }
@@ -70,6 +74,8 @@ const ShippingAddressSection = ({
           </div>
         </div>
       </div>
+
+      <CheckoutError error={error} errorRef={errorRef} isDark={isDark} />
 
       <div className="group">
         <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">

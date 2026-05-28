@@ -108,8 +108,8 @@ function ProductSection({
                                 onClick={() => scrollProducts("prev")}
                                 className={`absolute left-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:left-2 sm:h-14 sm:w-14 ${
                                     isDark
-                                        ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
-                                        : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                                        ? "border-primary/60 bg-slate-950/90 text-slate-200 shadow-xl shadow-primary/20 hover:border-primary hover:text-primary-light"
+                                        : "border-primary/60 bg-white/95 text-text-muted shadow-xl shadow-primary/20 hover:border-primary hover:text-primary"
                                 }`}
                                 aria-label={`Scroll ${section.title} left`}
                             >
@@ -122,8 +122,8 @@ function ProductSection({
                                 onClick={() => scrollProducts("next")}
                                 className={`absolute right-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-14 sm:w-14 ${
                                     isDark
-                                        ? "border-slate-700 bg-slate-950/90 text-slate-200 shadow-[0_22px_44px_-18px_rgba(2,6,23,0.95)] hover:border-primary hover:text-primary-light"
-                                        : "border-stone-100 bg-white/95 text-text-muted shadow-[0_20px_44px_-18px_rgba(45,49,46,0.5)] hover:border-primary/40 hover:text-primary"
+                                        ? "border-primary/60 bg-slate-950/90 text-slate-200 shadow-xl shadow-primary/20 hover:border-primary hover:text-primary-light"
+                                        : "border-primary/60 bg-white/95 text-text-muted shadow-xl shadow-primary/20 hover:border-primary hover:text-primary"
                                 }`}
                                 aria-label={`Scroll ${section.title} right`}
                             >

@@ -42,7 +42,7 @@ export const useProducts = (language = "en") => {
           (product.description && !product.descriptionKm)
       );
 
-    if (language !== "km" || !hasMissingKhmerProducts || translatingMissingKhmer) {
+    if (language !== "kh" || !hasMissingKhmerProducts || translatingMissingKhmer) {
       return;
     }
 

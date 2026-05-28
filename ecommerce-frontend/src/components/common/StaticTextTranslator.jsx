@@ -21,7 +21,7 @@ const translateTextNode = (node, dictionary, language) => {
 
   if (!normalizedOriginal) return;
 
-  if (language === "km") {
+  if (language === "kh") {
     const translated = dictionary[normalizedOriginal];
     if (!translated) return;
 
@@ -51,7 +51,7 @@ const translateAttributes = (element, dictionary, language) => {
 
     const normalizedOriginal = normalizeText(originalValue);
 
-    if (language === "km") {
+    if (language === "kh") {
       const translated = dictionary[normalizedOriginal];
       if (translated) {
         const nextValue = originalValue.replace(normalizedOriginal, translated);
@@ -97,12 +97,14 @@ export default function StaticTextTranslator({ disabled = false }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (disabled || language !== "km") return undefined;
+    if (disabled) return undefined;
 
-    const dictionary = staticTextTranslations.km || {};
+    const dictionary = staticTextTranslations.kh || {};
     const runTranslation = () => translateTree(document.body, dictionary, language);
 
     runTranslation();
+
+    if (language !== "kh") return undefined;
 
     const observer = new MutationObserver(() => {
       window.requestAnimationFrame(runTranslation);

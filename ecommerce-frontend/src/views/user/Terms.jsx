@@ -161,7 +161,7 @@ export default function Terms() {
         <PageLayout
             title="Terms of Service"
             subtitle="The rules and guidelines governing your use of our platform"
-            badge={`${t("Version")} 2.4 // ${new Date().toLocaleDateString(language === "km" ? "km-KH" : undefined, { month: 'short', year: 'numeric' })}`}
+            badge={`${t("Version")} 2.4 // ${new Date().toLocaleDateString(language === "kh" ? "km-KH" : undefined, { month: 'short', year: 'numeric' })}`}
             icon={FileText}
             maxWidth="5xl"
         >

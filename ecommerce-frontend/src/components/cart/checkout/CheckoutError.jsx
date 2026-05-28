@@ -8,10 +8,7 @@ const CheckoutError = ({ error, errorRef, isDark }) => {
   return (
     <div
       ref={errorRef}
-      className={`border rounded-2xl p-4 flex items-center gap-3 animate-shake ${
-        isDark ? "bg-red-500/10 border-red-500/20" : "border-red-200"
-      }`}
-      style={!isDark ? { backgroundColor: "#FDE8DD" } : undefined}
+      className="flex items-center gap-3 px-1 animate-shake"
     >
       <AlertCircle className="w-5 h-5" style={{ color: isDark ? "#FCA5A5" : "#B45309" }} />
       <p className="font-medium text-sm" style={{ color: isDark ? "#FECACA" : "#7C2D12" }}>

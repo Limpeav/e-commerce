@@ -4,6 +4,8 @@ import { useToast } from "./ToastContext";
 import { WishlistController } from "../controllers/index.js";
 import { useAuth } from "./useAuth";
 import { WishlistContext } from "./wishlist-context";
+import { useLanguage } from "./useLanguage";
+import { getLocalizedProductText } from "../utils/productLocalization";
 
 const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/admin") ||
@@ -18,6 +20,7 @@ export const WishlistProvider = ({ children }) => {
   const { pathname } = useLocation();
   const canUseCustomerWishlist = Boolean(userToken) && !isPortalRoute(pathname);
   const { success, error: toastError, info } = useToast();
+  const { language, t } = useLanguage();
 
   // Load wishlist from backend when user logs in
   useEffect(() => {
@@ -43,22 +46,25 @@ export const WishlistProvider = ({ children }) => {
   // Add to wishlist
   const addToWishlist = async (product) => {
     if (!canUseCustomerWishlist) {
-      info("Login Required", "Please login to add items to your wishlist");
+      info(t("wishlistAlerts.loginRequired"), t("wishlistAlerts.loginToAdd"));
       return;
     }
 
     try {
-      const productLabel = product?.title || product?.name || "This product";
+      const productLabel = getLocalizedProductText(product, language).title || t("wishlistAlerts.thisProduct");
       const result = await WishlistController.addToWishlist(product);
       if (!result.success) {
         throw new Error(result.error);
       }
 
       setWishlist(result.data || []);
-      success("Saved to Wishlist", `${productLabel} has been saved.`);
+      success(
+        t("wishlistAlerts.savedTitle"),
+        t("wishlistAlerts.savedMessage", { product: productLabel })
+      );
     } catch (error) {
       console.error("Error adding to wishlist:", error);
-      toastError("Action Failed", "Could not add item to wishlist.");
+      toastError(t("wishlistAlerts.actionFailed"), t("wishlistAlerts.addFailed"));
     }
   };
 
@@ -73,10 +79,10 @@ export const WishlistProvider = ({ children }) => {
       }
 
       setWishlist(result.data || []);
-      info("Removed from Wishlist", "Item has been removed from your wishlist.");
+      info(t("wishlistAlerts.removedTitle"), t("wishlistAlerts.removedMessage"));
     } catch (error) {
       console.error("Error removing from wishlist:", error);
-      toastError("Remove Failed", "Could not remove item from wishlist.");
+      toastError(t("wishlistAlerts.removeFailedTitle"), t("wishlistAlerts.removeFailed"));
     }
   };
 
@@ -88,7 +94,7 @@ export const WishlistProvider = ({ children }) => {
   // Toggle wishlist (add if not present, remove if present)
   const toggleWishlist = async (product) => {
     if (!canUseCustomerWishlist) {
-      info("Login Required", "Please login to manage your wishlist");
+      info(t("wishlistAlerts.loginRequired"), t("wishlistAlerts.loginToManage"));
       return;
     }
 

@@ -5,6 +5,10 @@ export const translations = {
       khmer: "Khmer",
       switch: "Language",
     },
+    auth: {
+      logoutTitle: "Logged Out",
+      logoutMessage: "You have been signed out successfully.",
+    },
     nav: {
       home: "Home",
       wishlist: "Wishlist",
@@ -247,6 +251,8 @@ export const translations = {
     orderDetail: {
       loading: "Loading order...",
       notFound: "Order Not Found",
+      fetchFailed: "Something went wrong while loading order details.",
+      notAuthenticated: "Please sign in to view this order.",
       backToOrders: "Back to orders",
       orderNumber: "Order #{{number}}",
       items: "Items",
@@ -353,6 +359,8 @@ export const translations = {
       confirmLocation: "Confirm Location",
       cambodiaOnly: "Please choose a location inside Cambodia only.",
       mapInitFailed: "Failed to initialize map. Please try again.",
+      googleMapsAuthFailed: "Google Maps is not authorized for this site URL. Please allow {{origin}}/* in your Google Maps API key settings.",
+      googleMapsLoadFailed: "Failed to load Google Maps. Please check your API key and try again.",
       geolocationUnsupported: "Geolocation is not supported by your browser.",
       detectionFailed: "Could not detect your location.",
       locationDenied: "Location access denied. Allow location for this site in your browser settings.",
@@ -369,6 +377,31 @@ export const translations = {
       cityProvince: "City / Province",
       cityProvincePlaceholder: "City / Province will appear here",
       phoneNumber: "Phone Number",
+      orderSuccessTitle: "Order Placed Successfully!",
+      orderSuccessMessage: "Thank you for your order. We are preparing your items for shipment.",
+      orderId: "Order ID",
+      orderCreated: "Order Created",
+      viewOrderDetails: "View Order Details",
+      continueShopping: "Continue Shopping",
+      errors: {
+        incompleteShipping: "Please complete your shipping details before placing the order.",
+        missingLocation: "Please select your delivery location on the map before placing the order.",
+        emptyCart: "Your cart is empty. Add an item before placing the order.",
+      },
+    },
+    wishlistAlerts: {
+      loginRequired: "Login Required",
+      loginToAdd: "Please login to add items to your wishlist",
+      loginToManage: "Please login to manage your wishlist",
+      thisProduct: "This product",
+      savedTitle: "Saved to Wishlist",
+      savedMessage: "{{product}} has been saved.",
+      removedTitle: "Removed from Wishlist",
+      removedMessage: "Item has been removed from your wishlist.",
+      actionFailed: "Action Failed",
+      addFailed: "Could not add item to wishlist.",
+      removeFailedTitle: "Remove Failed",
+      removeFailed: "Could not remove item from wishlist.",
     },
     location: {
       title: "Global Presence",
@@ -474,11 +507,15 @@ export const translations = {
       playLearn: "Play & Learn",
     },
   },
-  km: {
+  kh: {
     language: {
       english: "English",
       khmer: "ខ្មែរ",
       switch: "ភាសា",
+    },
+    auth: {
+      logoutTitle: "បានចេញពីគណនី",
+      logoutMessage: "អ្នកបានចេញពីគណនីដោយជោគជ័យ។",
     },
     nav: {
       home: "ទំព័រដើម",
@@ -722,6 +759,8 @@ export const translations = {
     orderDetail: {
       loading: "កំពុងផ្ទុកការបញ្ជាទិញ...",
       notFound: "រកមិនឃើញការបញ្ជាទិញ",
+      fetchFailed: "មានបញ្ហាក្នុងការផ្ទុកព័ត៌មានលម្អិតការបញ្ជាទិញ។",
+      notAuthenticated: "សូមចូលគណនីដើម្បីមើលការបញ្ជាទិញនេះ។",
       backToOrders: "ត្រឡប់ទៅការបញ្ជាទិញ",
       orderNumber: "ការបញ្ជាទិញ #{{number}}",
       items: "ទំនិញ",
@@ -828,6 +867,8 @@ export const translations = {
       confirmLocation: "បញ្ជាក់ទីតាំង",
       cambodiaOnly: "សូមជ្រើសទីតាំងនៅក្នុងប្រទេសកម្ពុជាប៉ុណ្ណោះ។",
       mapInitFailed: "ផ្ទុកផែនទីមិនបានសម្រេច។ សូមព្យាយាមម្តងទៀត។",
+      googleMapsAuthFailed: "Google Maps មិនត្រូវបានអនុញ្ញាតសម្រាប់ URL គេហទំព័រនេះទេ។ សូមអនុញ្ញាត {{origin}}/* ក្នុងការកំណត់ API key របស់ Google Maps។",
+      googleMapsLoadFailed: "ផ្ទុក Google Maps មិនបានសម្រេច។ សូមពិនិត្យ API key ហើយព្យាយាមម្តងទៀត។",
       geolocationUnsupported: "កម្មវិធីរុករករបស់អ្នកមិនគាំទ្រការរកទីតាំងទេ។",
       detectionFailed: "មិនអាចរកទីតាំងរបស់អ្នកបានទេ។",
       locationDenied: "ការចូលប្រើទីតាំងត្រូវបានបដិសេធ។ សូមអនុញ្ញាតទីតាំងសម្រាប់គេហទំព័រនេះក្នុងការកំណត់កម្មវិធីរុករក។",
@@ -844,6 +885,31 @@ export const translations = {
       cityProvince: "ទីក្រុង/ខេត្ត",
       cityProvincePlaceholder: "ទីក្រុង/ខេត្តនឹងបង្ហាញនៅទីនេះ",
       phoneNumber: "លេខទូរស័ព្ទ",
+      orderSuccessTitle: "បានដាក់ការបញ្ជាទិញដោយជោគជ័យ!",
+      orderSuccessMessage: "អរគុណសម្រាប់ការបញ្ជាទិញរបស់អ្នក។ យើងកំពុងរៀបចំទំនិញរបស់អ្នកសម្រាប់ការដឹកជញ្ជូន។",
+      orderId: "លេខបញ្ជាទិញ",
+      orderCreated: "បានបង្កើតការបញ្ជាទិញ",
+      viewOrderDetails: "មើលព័ត៌មានលម្អិតការបញ្ជាទិញ",
+      continueShopping: "បន្តទិញទំនិញ",
+      errors: {
+        incompleteShipping: "សូមបំពេញព័ត៌មានដឹកជញ្ជូនរបស់អ្នកមុនពេលដាក់ការបញ្ជាទិញ។",
+        missingLocation: "សូមជ្រើសរើសទីតាំងដឹកជញ្ជូនរបស់អ្នកលើផែនទីមុនពេលដាក់ការបញ្ជាទិញ។",
+        emptyCart: "កន្រ្តករបស់អ្នកនៅទទេ។ សូមបន្ថែមទំនិញមុនពេលដាក់ការបញ្ជាទិញ។",
+      },
+    },
+    wishlistAlerts: {
+      loginRequired: "ត្រូវការចូលគណនី",
+      loginToAdd: "សូមចូលគណនីដើម្បីបន្ថែមទំនិញទៅបញ្ជីទំនិញរបស់អ្នក",
+      loginToManage: "សូមចូលគណនីដើម្បីគ្រប់គ្រងបញ្ជីទំនិញរបស់អ្នក",
+      thisProduct: "ផលិតផលនេះ",
+      savedTitle: "បានរក្សាទុកទៅបញ្ជីទំនិញ",
+      savedMessage: "{{product}} ត្រូវបានរក្សាទុក។",
+      removedTitle: "បានលុបចេញពីបញ្ជីទំនិញ",
+      removedMessage: "ទំនិញត្រូវបានលុបចេញពីបញ្ជីទំនិញរបស់អ្នក។",
+      actionFailed: "សកម្មភាពបរាជ័យ",
+      addFailed: "មិនអាចបន្ថែមទំនិញទៅបញ្ជីទំនិញបានទេ។",
+      removeFailedTitle: "លុបមិនបានសម្រេច",
+      removeFailed: "មិនអាចលុបទំនិញចេញពីបញ្ជីទំនិញបានទេ។",
     },
     location: {
       title: "វត្តមានសកល",
@@ -966,7 +1032,7 @@ export const translations = {
 };
 
 export const staticTextTranslations = {
-  km: {
+  kh: {
     "Quick category access": "ចូលប្រភេទរហ័ស",
     "Quick Access": "ចូលរហ័ស",
     "Shop by Category": "ទិញតាមប្រភេទ",
@@ -1254,5 +1320,5 @@ export const staticTextTranslations = {
 
 export const supportedLanguages = [
   { code: "en", labelKey: "language.english" },
-  { code: "km", labelKey: "language.khmer" },
+  { code: "kh", labelKey: "language.khmer" },
 ];

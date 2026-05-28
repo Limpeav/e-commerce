@@ -6,8 +6,8 @@ import {
 } from "../utils/checkout";
 
 export class CheckoutController {
-  static async placeOrder({ cartItems, shippingAddress, paymentMethod, totals }) {
-    const validationError = validateCheckout(shippingAddress, cartItems);
+  static async placeOrder({ cartItems, shippingAddress, paymentMethod, totals, t }) {
+    const validationError = validateCheckout(shippingAddress, cartItems, t);
     if (validationError) {
       return { success: false, error: validationError };
     }
