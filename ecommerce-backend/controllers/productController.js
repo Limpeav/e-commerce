@@ -321,20 +321,24 @@ export const createProduct = async (req, res) => {
   try {
     const {
       title,
+      titleKm,
       price,
       discountPrice,
       category,
       description,
+      descriptionKm,
       stock,
       isNewArrival,
     } = req.body;
 
     const productData = await applyAutoKhmerTranslation({
       title,
+      titleKm,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
       category,
       description,
+      descriptionKm,
       stock,
       isNewArrival: parseBoolean(isNewArrival),
       image: req.file?.path || "",
@@ -668,10 +672,12 @@ export const updateProduct = async (req, res) => {
     const translatedProductData = await applyAutoKhmerTranslation(
       {
         title: req.body.title,
+        titleKm: req.body.titleKm,
         price: req.body.price,
         discountPrice: parseOptionalNumber(req.body.discountPrice),
         category: req.body.category,
         description: req.body.description,
+        descriptionKm: req.body.descriptionKm,
         stock: req.body.stock,
         isNewArrival: parseBoolean(req.body.isNewArrival),
       },

@@ -29,10 +29,12 @@ const EditProduct = () => {
 
   const [form, setForm] = useState({
     title: "",
+    titleKm: "",
     price: "",
     discountPrice: "",
     category: "",
     description: "",
+    descriptionKm: "",
     image: null,
     stock: "",
     isNewArrival: false,
@@ -54,10 +56,12 @@ const EditProduct = () => {
 
         setForm({
           title: data.title || "",
+          titleKm: data.titleKm || "",
           price: data.price || "",
           discountPrice: data.discountPrice || "",
           category: normalizeProductCategory(data.category),
           description: data.description || "",
+          descriptionKm: data.descriptionKm || "",
           stock: data.stock || "",
           isNewArrival: Boolean(data.isNewArrival),
           image: null,
@@ -127,12 +131,14 @@ const EditProduct = () => {
 
     const formData = new FormData();
     formData.append("title", form.title);
+    formData.append("titleKm", form.titleKm);
     formData.append("price", form.price);
     if (form.discountPrice) {
       formData.append("discountPrice", form.discountPrice);
     }
     formData.append("category", normalizeProductCategory(form.category));
     formData.append("description", form.description);
+    formData.append("descriptionKm", form.descriptionKm);
     formData.append("stock", form.stock);
     formData.append("isNewArrival", form.isNewArrival);
 
@@ -300,6 +306,23 @@ const EditProduct = () => {
                 </div>
               </div>
 
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Alternate Title
+                  <span className="text-xs text-gray-500 ml-2">(Optional Khmer)</span>
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="titleKm"
+                    placeholder="Enter alternate product title"
+                    value={form.titleKm}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
               {/* Price */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -439,6 +462,24 @@ const EditProduct = () => {
                     name="description"
                     placeholder="Enter product description..."
                     value={form.description}
+                    onChange={handleChange}
+                    rows="4"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Alternate Description
+                  <span className="text-xs text-gray-500 ml-2">(Optional Khmer)</span>
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                  <textarea
+                    name="descriptionKm"
+                    placeholder="Enter alternate product description..."
+                    value={form.descriptionKm}
                     onChange={handleChange}
                     rows="4"
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"

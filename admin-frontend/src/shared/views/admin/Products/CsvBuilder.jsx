@@ -22,10 +22,12 @@ import {
 
 const CSV_COLUMNS = [
   { key: "title", label: "Title", placeholder: "Baby Bottle Set" },
+  { key: "titleKm", label: "Alternate Title", placeholder: "Khmer product title" },
   { key: "price", label: "Price", placeholder: "24.99" },
   { key: "discountPrice", label: "Discount Price", placeholder: "19.99" },
   { key: "category", label: "Category", placeholder: "Select a category" },
   { key: "description", label: "Description", placeholder: "Soft silicone baby bottle set" },
+  { key: "descriptionKm", label: "Alternate Description", placeholder: "Khmer product description" },
   { key: "stock", label: "Stock", placeholder: "30" },
   {
     key: "image",
@@ -36,15 +38,19 @@ const CSV_COLUMNS = [
 
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
+  descriptionkm: "descriptionKm",
+  titlekm: "titleKm",
 };
 
 const createEmptyRow = () => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   title: "",
+  titleKm: "",
   price: "",
   discountPrice: "",
   category: "",
   description: "",
+  descriptionKm: "",
   stock: "",
   image: "",
   imageName: "",
@@ -150,10 +156,12 @@ const sanitizeFileName = (fileName = "") => {
 const mapDraftRow = (row = {}) => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   title: row.title || "",
+  titleKm: row.titleKm || "",
   price: row.price || "",
   discountPrice: row.discountPrice || "",
   category: normalizeProductCategory(row.category),
   description: row.description || "",
+  descriptionKm: row.descriptionKm || "",
   stock: row.stock || "",
   image: row.image || "",
   imageName: row.imageName || "",
@@ -161,12 +169,14 @@ const mapDraftRow = (row = {}) => ({
 });
 
 const buildDraftPayload = (rows = []) =>
-  rows.map(({ title, price, discountPrice, category, description, stock, image, imageName }) => ({
+  rows.map(({ title, titleKm, price, discountPrice, category, description, descriptionKm, stock, image, imageName }) => ({
     title,
+    titleKm,
     price,
     discountPrice,
     category,
     description,
+    descriptionKm,
     stock,
     image,
     imageName,
@@ -394,10 +404,12 @@ const CsvBuilder = () => {
       const parsedRows = parseCsvContent(content).map((row) =>
         mapDraftRow({
           title: row.title,
+          titleKm: row.titleKm,
           price: row.price,
           discountPrice: row.discountPrice,
           category: row.category,
           description: row.description,
+          descriptionKm: row.descriptionKm,
           stock: row.stock,
           image: row.image,
           imageName: getImageNameFromValue(row.image),
@@ -602,7 +614,9 @@ const CsvBuilder = () => {
                     <th
                       key={column.key}
                       className={`border border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 ${
-                        column.key === "description" ? "min-w-[420px]" : ""
+                        column.key === "description" || column.key === "descriptionKm"
+                          ? "min-w-[420px]"
+                          : ""
                       }`}
                     >
                       {column.label}
@@ -623,7 +637,9 @@ const CsvBuilder = () => {
                       <td key={column.key} className="border border-gray-200 bg-white px-3 py-3 align-top">
                         <div
                           className={`flex items-center gap-2 ${
-                            column.key === "description" ? "min-w-[420px]" : "min-w-[150px]"
+                            column.key === "description" || column.key === "descriptionKm"
+                              ? "min-w-[420px]"
+                              : "min-w-[150px]"
                           }`}
                         >
                           {column.key === "category" ? (
@@ -641,7 +657,7 @@ const CsvBuilder = () => {
                                 </option>
                               ))}
                             </select>
-                          ) : column.key === "description" ? (
+                          ) : column.key === "description" || column.key === "descriptionKm" ? (
                             <textarea
                               ref={(element) => autoResizeTextarea(element)}
                               value={row[column.key]}
