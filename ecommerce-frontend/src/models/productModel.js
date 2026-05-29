@@ -15,13 +15,11 @@ export class ProductModel {
 
     return {
       title: data.title?.trim() || "",
-      titleKm: data.titleKm?.trim() || "",
       price: Number(data.price) || 0,
       discountPrice: Number.isFinite(discountPriceValue) ? discountPriceValue : null,
       category: data.category?.trim() || "",
       image: data.image?.trim() || "",
       description: data.description?.trim() || "",
-      descriptionKm: data.descriptionKm?.trim() || "",
       stock: Number(data.stock) || 0,
     };
   }
