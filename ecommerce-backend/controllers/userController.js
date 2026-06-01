@@ -1,7 +1,11 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendPasswordResetCode, sendDeleteAccountOtp } from "../utils/sendEmail.js";
+import {
+  sendAccountVerificationCode,
+  sendPasswordResetCode,
+  sendDeleteAccountOtp,
+} from "../utils/sendEmail.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -27,6 +31,10 @@ const normalizeCambodiaPhone = (phone = "") => {
 
 const normalizeEmail = (email = "") => String(email).trim().toLowerCase();
 
+const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const hashCode = (code) => crypto.createHash("sha256").update(code).digest("hex");
+
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
   try {
@@ -44,6 +52,34 @@ export const registerUser = async (req, res) => {
 
     const userExists = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
     if (userExists) {
+      if (!userExists.isVerified && userExists.verificationCode) {
+        const verificationCode = generateSixDigitCode();
+        userExists.verificationCode = hashCode(verificationCode);
+        userExists.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+        await userExists.save();
+
+        try {
+          await sendAccountVerificationCode(userExists.email, userExists.name, verificationCode);
+          console.log(`✅ Account verification code resent to: ${userExists.email}`);
+        } catch (emailError) {
+          console.error(`⚠️ Could not resend verification email: ${emailError.message}`);
+          return res.status(500).json({
+            message: "Unable to send verification code right now. Please try again later.",
+          });
+        }
+
+        return res.status(200).json({
+          _id: userExists._id,
+          name: userExists.name,
+          phone: userExists.phone,
+          email: userExists.email,
+          role: userExists.role,
+          isVerified: userExists.isVerified,
+          requiresEmailVerification: true,
+          message: "This account is waiting for email verification. We sent a new code.",
+        });
+      }
+
       return res.status(409).json({
         message: "This email is already registered. Please use a different email or login.",
       });
@@ -56,13 +92,31 @@ export const registerUser = async (req, res) => {
       }
     }
 
+    const verificationCode = generateSixDigitCode();
+    const hashedVerificationCode = hashCode(verificationCode);
+    const verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+
     const user = await User.create({
       name,
       phone: normalizedPhone,
       email,
       password,
       role: "user",
+      isVerified: false,
+      verificationCode: hashedVerificationCode,
+      verificationCodeExpires,
     });
+
+    try {
+      await sendAccountVerificationCode(user.email, user.name, verificationCode);
+      console.log(`✅ Account verification code sent to: ${user.email}`);
+    } catch (emailError) {
+      await User.findByIdAndDelete(user._id);
+      console.error(`⚠️ Could not send verification email: ${emailError.message}`);
+      return res.status(500).json({
+        message: "Unable to send verification code right now. Please try again later.",
+      });
+    }
 
     res.status(201).json({
       _id: user._id,
@@ -70,7 +124,9 @@ export const registerUser = async (req, res) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id),
+      isVerified: user.isVerified,
+      requiresEmailVerification: true,
+      message: "Account created. We sent a verification code to your email.",
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern?.email) {
@@ -83,10 +139,86 @@ export const registerUser = async (req, res) => {
   }
 };
 
+// 📧 VERIFY REGISTRATION EMAIL
+export const verifyRegistrationEmail = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const code = req.body.code?.toString().trim();
+
+    if (!email || !code) {
+      return res.status(400).json({ message: "Email and code are required" });
+    }
+
+    const hashedCode = hashCode(code);
+    const user = await User.findOne({
+      email,
+      verificationCode: hashedCode,
+      verificationCodeExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired verification code." });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    res.json({
+      message: "Email verified successfully. You can now log in.",
+      email: user.email,
+      isVerified: user.isVerified,
+    });
+  } catch (error) {
+    console.error("Verify registration email error:", error);
+    res.status(500).json({ message: "Failed to verify email" });
+  }
+};
+
+// 📧 RESEND REGISTRATION VERIFICATION CODE
+export const resendRegistrationVerificationCode = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found for this email." });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "This email is already verified." });
+    }
+
+    const verificationCode = generateSixDigitCode();
+    user.verificationCode = hashCode(verificationCode);
+    user.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    try {
+      await sendAccountVerificationCode(user.email, user.name, verificationCode);
+      console.log(`✅ Account verification code resent to: ${user.email}`);
+    } catch (emailError) {
+      console.error(`⚠️ Could not resend verification email: ${emailError.message}`);
+      return res.status(500).json({ message: "Unable to resend verification code right now." });
+    }
+
+    res.json({ message: "A new verification code has been sent to your email." });
+  } catch (error) {
+    console.error("Resend registration verification code error:", error);
+    res.status(500).json({ message: "Failed to resend verification code" });
+  }
+};
+
 // 🔵 LOGIN (ADMIN + USER)
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -96,6 +228,14 @@ export const loginUser = async (req, res) => {
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!user.isVerified && user.verificationCode) {
+      return res.status(403).json({
+        message: "Please verify your email before logging in.",
+        requiresEmailVerification: true,
+        email: user.email,
+      });
     }
 
     if (user.password && !user.password.startsWith("$2")) {
@@ -109,6 +249,7 @@ export const loginUser = async (req, res) => {
       phone: user.phone,
       email: user.email,
       role: user.role,
+      isVerified: user.isVerified,
       token: generateToken(user._id),
     });
   } catch (error) {

@@ -2,6 +2,8 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import {
   registerUser,
+  verifyRegistrationEmail,
+  resendRegistrationVerificationCode,
   loginUser,
   updateUserProfile,
   forgotPassword,
@@ -36,6 +38,8 @@ const otpLimiter = rateLimit({
 });
 
 router.post("/register", authLimiter, registerUser);
+router.post("/verify-registration-email", resetLimiter, verifyRegistrationEmail);
+router.post("/resend-registration-verification", resetLimiter, resendRegistrationVerificationCode);
 router.post("/login", authLimiter, loginUser);
 router.post("/forgot-password", resetLimiter, forgotPassword);
 router.post("/verify-reset-code", resetLimiter, verifyResetCode);

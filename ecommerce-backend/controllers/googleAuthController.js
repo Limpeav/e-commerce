@@ -57,6 +57,7 @@ export const googleAuth = async (req, res) => {
         email,
         role: "user",
         googleId: sub,
+        isVerified: true,
       });
 
       res.status(201).json({

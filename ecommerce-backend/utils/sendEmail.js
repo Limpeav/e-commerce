@@ -7,6 +7,97 @@ const FROM_EMAIL = process.env.EMAIL_FROM || "onboarding@resend.dev"; // Use you
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "Baby Product Website";
 
 // ─────────────────────────────────────────────────
+// Send Account Verification Code Email
+// ─────────────────────────────────────────────────
+export const sendAccountVerificationCode = async (email, userName, verificationCode) => {
+  const fromName = FROM_NAME;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${fromName} <${FROM_EMAIL}>`,
+      to: [email],
+      subject: `${verificationCode} is your account verification code`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verify Your Account</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f8fafc; color: #18181b; }
+            .container { max-width: 480px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); border: 1px solid #e4e4e7; }
+            .header { background-color: #ffffff; padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #f4f4f5; }
+            .logo-text { font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: -0.5px; margin: 0; text-transform: uppercase; }
+            .content { padding: 40px 32px; text-align: center; }
+            .h1 { font-size: 24px; font-weight: 700; color: #18181b; margin: 0 0 16px; letter-spacing: -0.5px; }
+            .p { font-size: 15px; line-height: 1.6; color: #52525b; margin: 0 0 32px; }
+            .code-box { background-color: #eef2ff; border: 2px dashed #c7d2fe; border-radius: 16px; padding: 24px; margin: 0 0 32px; display: inline-block; min-width: 200px; }
+            .code { font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #4f46e5; letter-spacing: 8px; margin: 0; line-height: 1; display: block; }
+            .code-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 12px; display: block; letter-spacing: 1px; }
+            .expiry { font-size: 13px; color: #71717a; background-color: #fafafa; padding: 12px; border-radius: 8px; display: inline-block; }
+            .footer { background-color: #fafafa; padding: 24px 32px; text-align: center; border-top: 1px solid #f4f4f5; }
+            .footer-text { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin: 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <p class="logo-text">${fromName}</p>
+            </div>
+            <div class="content">
+              <h1 class="h1">Verify your email</h1>
+              <p class="p">Hello ${userName || "there"},<br>Enter this code to finish creating your account.</p>
+
+              <div class="code-box">
+                <span class="code-label">Verification Code</span>
+                <span class="code">${verificationCode}</span>
+              </div>
+
+              <div class="expiry">
+                This code expires in <strong>10 minutes</strong>.
+              </div>
+            </div>
+            <div class="footer">
+              <p class="footer-text">
+                If you didn't create this account, you can safely ignore this email.<br>
+                &copy; ${new Date().getFullYear()} ${fromName}. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+ACCOUNT VERIFICATION CODE: ${verificationCode}
+
+Hello ${userName || "there"},
+
+Enter this code to finish creating your account.
+This code expires in 10 minutes.
+
+If you didn't create this account, please ignore this email.
+
+${fromName}
+      `,
+    });
+
+    if (error) {
+      console.error("❌ Resend error (account verification):", error);
+      throw new Error(error.message || "Failed to send account verification email");
+    }
+
+    console.log("✅ Account verification email sent successfully via Resend!");
+    console.log("   Message ID:", data?.id);
+    console.log("   To:", email);
+    return data;
+  } catch (err) {
+    console.error("❌ Failed to send account verification email:", err);
+    throw new Error(err.message || "Failed to send account verification email");
+  }
+};
+
+// ─────────────────────────────────────────────────
 // Send Password Reset Code Email
 // ─────────────────────────────────────────────────
 export const sendPasswordResetCode = async (email, userName, resetCode) => {

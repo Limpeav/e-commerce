@@ -1,4 +1,8 @@
-import { registerUser } from "../../../services/authApi";
+import {
+  registerUser,
+  verifyRegistrationEmail,
+  resendRegistrationVerification,
+} from "../../../services/authApi";
 import { authService } from "../../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -27,6 +31,9 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [googleUser, setGoogleUser] = useState(null);
   const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -49,8 +56,10 @@ const Register = () => {
         password: form.password,
       };
 
-      await registerUser(formData);
-      navigate("/login");
+      const { data } = await registerUser(formData);
+      setVerificationEmail(data.email || formData.email);
+      setSuccessMessage(data.message || "We sent a verification code to your email.");
+      setLoading(false);
     } catch (err) {
       let errorMessage = "Registration failed. Please try again.";
 
@@ -73,6 +82,43 @@ const Register = () => {
       }
 
       setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async (e) => {
+    e.preventDefault();
+
+    if (!verificationCode.trim()) {
+      setError("Please enter the verification code from your email.");
+      return;
+    }
+
+    try {
+      setError("");
+      setLoading(true);
+      const { data } = await verifyRegistrationEmail({
+        email: verificationEmail,
+        code: verificationCode,
+      });
+      setSuccessMessage(data.message || "Email verified successfully. You can now log in.");
+      setLoading(false);
+      navigate("/login");
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not verify this code. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const { data } = await resendRegistrationVerification({ email: verificationEmail });
+      setSuccessMessage(data.message || "A new verification code has been sent.");
+      setLoading(false);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not resend verification code.");
       setLoading(false);
     }
   };
@@ -185,6 +231,80 @@ const Register = () => {
 
         {/* Register Card */}
         <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-10 mb-6">
+          {verificationEmail ? (
+            <form onSubmit={handleVerifyEmail} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-700 text-sm font-bold">{error}</p>
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-green-700 text-sm font-bold">{successMessage}</p>
+                </div>
+              )}
+
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
+                  <Mail className="w-7 h-7 text-primary" />
+                </div>
+                <h2 className="text-2xl font-black text-text-main mb-2">Verify your email</h2>
+                <p className="text-sm text-text-muted font-semibold">
+                  Enter the 6-digit code sent to{" "}
+                  <span className="text-text-main font-black">{verificationEmail}</span>
+                </p>
+              </div>
+
+              <div className="group">
+                <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  required
+                  className="w-full px-5 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-black text-center text-2xl tracking-[0.35em] placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || verificationCode.length !== 6}
+                className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading || verificationCode.length !== 6
+                  ? "bg-stone-200 text-stone-500 cursor-not-allowed"
+                  : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95 shadow-stone-200"
+                  }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Verify Email
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={loading}
+                className="w-full py-3 text-sm font-black uppercase tracking-widest text-primary hover:text-primary-dark disabled:opacity-50"
+              >
+                Resend Code
+              </button>
+            </form>
+          ) : (
           <form onSubmit={submitHandler} className="space-y-6">
             {/* Error Message */}
             {error && (
@@ -340,9 +460,10 @@ const Register = () => {
               )}
             </button>
           </form>
+          )}
 
           {/* Divider */}
-          <div className="relative my-10">
+          {!verificationEmail && <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-stone-100"></div>
             </div>
@@ -351,10 +472,10 @@ const Register = () => {
                 OR SIGN UP WITH
               </span>
             </div>
-          </div>
+          </div>}
 
           {/* Google Sign Up Button */}
-          <button
+          {!verificationEmail && <button
             type="button"
             onClick={handleGoogleSignUp}
             disabled={loading}
@@ -379,10 +500,10 @@ const Register = () => {
               />
             </svg>
             <span className="text-sm uppercase tracking-widest font-black">Sign up with Google</span>
-          </button>
+          </button>}
 
           {/* Divider */}
-          <div className="relative my-10">
+          {!verificationEmail && <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-stone-100"></div>
             </div>
@@ -391,10 +512,10 @@ const Register = () => {
                 Already Joined?
               </span>
             </div>
-          </div>
+          </div>}
 
           {/* Sign In Link */}
-          <div className="text-center">
+          {!verificationEmail && <div className="text-center">
             <a
               href="/login"
               className="inline-flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group"
@@ -404,7 +525,7 @@ const Register = () => {
                 Login here
               </span>
             </a>
-          </div>
+          </div>}
         </div>
 
         {/* Security Badge */}

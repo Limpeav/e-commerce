@@ -10,6 +10,8 @@ const AUTH_API = axios.create({
 });
 
 export const registerUser = (data) => API.post("/register", data);
+export const verifyRegistrationEmail = (data) => API.post("/verify-registration-email", data);
+export const resendRegistrationVerification = (data) => API.post("/resend-registration-verification", data);
 export const loginUser = (data) => API.post("/login", data);
 export const googleAuth = (data) => AUTH_API.post("/google", data);
 export const forgotPassword = (data) => API.post("/forgot-password", data);
