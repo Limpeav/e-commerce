@@ -13,6 +13,7 @@ import {
     sendOrderTelegramAlert,
     sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
+import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
 import { validateProductSize } from "../utils/productOptions.js";
 
 const createHttpError = (statusCode, message) =>
@@ -422,6 +423,41 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             } catch (notificationError) {
                 console.error("Delivery handoff notification failed:", notificationError.message);
             }
+        }
+
+        if (
+            req.user?.role === "delivery" &&
+            previousStatus !== "Delivered" &&
+            updatedOrder?.orderStatus === "Delivered"
+        ) {
+            setImmediate(async () => {
+                try {
+                    const deliveredOrder = await Order.findById(updatedOrder._id).populate(
+                        "user",
+                        "name email"
+                    );
+
+                    const customerEmail = deliveredOrder?.user?.email;
+
+                    if (!customerEmail) {
+                        console.warn(
+                            `Skipped review request email for order ${updatedOrder._id}: customer email missing`
+                        );
+                        return;
+                    }
+
+                    await sendDeliveryReviewRequestEmail({
+                        email: customerEmail,
+                        customerName:
+                            deliveredOrder.user?.name ||
+                            deliveredOrder.shippingAddress?.fullName,
+                        orderId: deliveredOrder._id,
+                        orderItems: deliveredOrder.orderItems,
+                    });
+                } catch (emailError) {
+                    console.error("Review request email failed:", emailError.message);
+                }
+            });
         }
     } finally {
         await session.endSession();

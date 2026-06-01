@@ -17,7 +17,7 @@ const ReviewSection = ({
   const reviewCount = product.numReviews || 0;
 
   return (
-    <div className={`grid lg:grid-cols-3 gap-10 lg:gap-16 border-t pt-12 sm:pt-20 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
+    <div id="reviews" className={`scroll-mt-24 grid lg:grid-cols-3 gap-10 lg:gap-16 border-t pt-12 sm:pt-20 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
       {/* Review Stats & Form */}
       <div className="lg:col-span-1 space-y-10">
         <div className={`rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 border ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-50 shadow-2xl shadow-primary/5"}`}>

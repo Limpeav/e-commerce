@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
@@ -9,7 +10,20 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.EMAIL_FROM || "onboarding@resend.dev"; // Use your verified domain here
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "Baby Product Website";
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL_TO || FROM_EMAIL;
+const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER || "resend").toLowerCase();
 const IS_RESEND_TEST_SENDER = FROM_EMAIL.toLowerCase() === "onboarding@resend.dev";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const USE_LOCAL_EMAIL_CAPTURE =
+  !IS_PRODUCTION &&
+  EMAIL_PROVIDER !== "smtp" &&
+  (process.env.USE_LOCAL_EMAIL_CAPTURE === "true" || IS_RESEND_TEST_SENDER);
+const LOCAL_SMTP_HOST = process.env.LOCAL_SMTP_HOST || "localhost";
+const LOCAL_SMTP_PORT = Number(process.env.LOCAL_SMTP_PORT || 1025);
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = process.env.SMTP_SECURE !== "false";
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
 
 const escapeHtml = (value = "") =>
   String(value)
@@ -18,6 +32,241 @@ const escapeHtml = (value = "") =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+
+const normalizeUrl = (url = "") => String(url || "").replace(/\/+$/, "");
+
+const getCustomerFrontendUrl = () =>
+  normalizeUrl(process.env.FRONTEND_URL || "http://localhost:5173");
+
+const sendLocalCapturedEmail = async (emailPayload) => {
+  const transporter = nodemailer.createTransport({
+    host: LOCAL_SMTP_HOST,
+    port: LOCAL_SMTP_PORT,
+    secure: false,
+    ignoreTLS: true,
+  });
+
+  try {
+    const info = await transporter.sendMail({
+      ...emailPayload,
+      to: Array.isArray(emailPayload.to) ? emailPayload.to.join(", ") : emailPayload.to,
+    });
+
+    console.log("Local email captured successfully.");
+    console.log("   Message ID:", info.messageId);
+    console.log("   SMTP:", `${LOCAL_SMTP_HOST}:${LOCAL_SMTP_PORT}`);
+    console.log("   Inbox:", process.env.LOCAL_EMAIL_INBOX_URL || "http://localhost:8025");
+    return {
+      id: info.messageId,
+      local: true,
+    };
+  } catch (error) {
+    console.error("Local email capture failed:", error.message);
+    console.error("Start Mailpit, then try again:");
+    console.error("   brew install mailpit");
+    console.error("   mailpit");
+    console.error("Open inbox:");
+    console.error("   http://localhost:8025");
+    throw error;
+  }
+};
+
+const sendSmtpEmail = async (emailPayload) => {
+  if (
+    !SMTP_USER ||
+    !SMTP_PASS ||
+    SMTP_USER === "yourgmail@gmail.com" ||
+    SMTP_PASS === "your_gmail_app_password"
+  ) {
+    throw new Error(
+      "Set SMTP_USER to your Gmail address and SMTP_PASS to a Gmail app password when EMAIL_PROVIDER=smtp"
+    );
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+
+  const info = await transporter.sendMail({
+    ...emailPayload,
+    from: emailPayload.from || `${FROM_NAME} <${FROM_EMAIL || SMTP_USER}>`,
+    to: Array.isArray(emailPayload.to) ? emailPayload.to.join(", ") : emailPayload.to,
+  });
+
+  console.log("SMTP email sent successfully.");
+  console.log("   Message ID:", info.messageId);
+  console.log("   Host:", SMTP_HOST);
+  return {
+    id: info.messageId,
+    smtp: true,
+  };
+};
+
+const sendConfiguredEmail = async (emailPayload, label = "email") => {
+  if (USE_LOCAL_EMAIL_CAPTURE) {
+    return await sendLocalCapturedEmail(emailPayload);
+  }
+
+  if (EMAIL_PROVIDER === "smtp") {
+    return await sendSmtpEmail(emailPayload);
+  }
+
+  const { data, error } = await resend.emails.send(emailPayload);
+
+  if (error) {
+    console.error(`Resend error (${label}):`, error);
+    throw new Error(error.message || `Failed to send ${label}`);
+  }
+
+  return data;
+};
+
+export const sendDeliveryReviewRequestEmail = async ({
+  email,
+  customerName,
+  orderId,
+  orderItems = [],
+}) => {
+  const fromName = FROM_NAME;
+  const reviewBaseUrl = getCustomerFrontendUrl();
+  const shortOrderId = String(orderId || "").slice(-8).toUpperCase();
+  const safeCustomerName = escapeHtml(customerName || "there");
+  const uniqueItems = Array.from(
+    new Map(
+      orderItems
+        .filter((item) => item?.product)
+        .map((item) => [String(item.product), item])
+    ).values()
+  );
+  const primaryReviewUrl = uniqueItems[0]
+    ? `${reviewBaseUrl}/products/${uniqueItems[0].product}#reviews`
+    : `${reviewBaseUrl}/orders`;
+
+  const itemRows = uniqueItems
+    .slice(0, 4)
+    .map((item) => {
+      const productUrl = `${reviewBaseUrl}/products/${item.product}#reviews`;
+      const safeName = escapeHtml(item.name || "Purchased product");
+      const safeImage = escapeHtml(item.image || "");
+
+      return `
+        <tr>
+          <td style="padding:14px 0;border-bottom:1px solid #eef2f7;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="64" style="padding-right:14px;">
+                  ${safeImage
+                    ? `<img src="${safeImage}" alt="${safeName}" width="56" height="56" style="display:block;width:56px;height:56px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;">`
+                    : `<div style="width:56px;height:56px;border-radius:14px;background:#f1f5f9;border:1px solid #e5e7eb;"></div>`}
+                </td>
+                <td style="font-size:14px;line-height:1.45;color:#111827;font-weight:800;">${safeName}</td>
+                <td align="right" style="padding-left:12px;">
+                  <a href="${productUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:12px;font-weight:800;padding:10px 14px;border-radius:999px;">Rate</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  try {
+    const emailPayload = {
+      from: `${fromName} <${FROM_EMAIL}>`,
+      to: [email],
+      subject: `How was your order #${shortOrderId}?`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Rate Your Order</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;padding:32px 14px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,0.10);">
+                  <tr>
+                    <td style="padding:34px 32px 28px;background:#fdf7f1;border-bottom:1px solid #f1e7dc;">
+                      <p style="margin:0 0 12px;font-size:12px;font-weight:900;letter-spacing:1.8px;text-transform:uppercase;color:#9a6b43;">Delivered</p>
+                      <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.8px;color:#111827;">Your order has arrived.</h1>
+                      <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#5b6472;">Hi ${safeCustomerName}, thank you for shopping with ${escapeHtml(fromName)}. Your feedback helps other customers choose with confidence.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:30px 32px;">
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:22px;padding:0 18px;margin-bottom:24px;">
+                        <tr>
+                          <td style="padding:18px 0;font-size:13px;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Order</td>
+                          <td align="right" style="padding:18px 0;font-size:15px;color:#111827;font-weight:900;">#${escapeHtml(shortOrderId)}</td>
+                        </tr>
+                      </table>
+
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                        ${itemRows || `
+                          <tr>
+                            <td style="padding:18px 0;font-size:15px;line-height:1.6;color:#4b5563;">Your items are ready for a review.</td>
+                          </tr>
+                        `}
+                      </table>
+
+                      <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 24px;">
+                        <tr>
+                          <td align="center" style="background:#8DAA91;border-radius:999px;">
+                            <a href="${primaryReviewUrl}" style="display:inline-block;padding:15px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:900;">Rate your products</a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="text-align:center;font-size:22px;letter-spacing:5px;color:#f59e0b;margin-bottom:12px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                      <p style="margin:0;text-align:center;font-size:13px;line-height:1.6;color:#64748b;">It only takes a minute. You can rate each product from its product page.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#fafafa;padding:22px 32px;text-align:center;border-top:1px solid #f1f5f9;">
+                      <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;">If the button does not work, open this link:<br><a href="${primaryReviewUrl}" style="color:#64748b;">${primaryReviewUrl}</a></p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+      text: `
+Hi ${customerName || "there"},
+
+Your order #${shortOrderId} has been delivered.
+
+Please rate your product here:
+${primaryReviewUrl}
+
+Thank you,
+${fromName}
+      `,
+    };
+
+    const data = await sendConfiguredEmail(emailPayload, "delivery review request");
+
+    console.log("Delivery review request email sent successfully.");
+    console.log("   Message ID:", data?.id);
+    console.log("   To:", email);
+    return data;
+  } catch (err) {
+    console.error("Failed to send delivery review request email:", err);
+    throw new Error(err.message || "Failed to send review request email");
+  }
+};
 
 export const sendSupportContactEmail = async ({
   name,
@@ -107,14 +356,9 @@ ${message}
       emailPayload.replyTo = email;
     }
 
-    const { data, error } = await resend.emails.send(emailPayload);
+    const data = await sendConfiguredEmail(emailPayload, "support contact");
 
-    if (error) {
-      console.error("❌ Resend error (support contact):", error);
-      throw new Error(error.message || "Failed to send support email");
-    }
-
-    console.log("✅ Support contact email sent successfully via Resend!");
+    console.log("✅ Support contact email sent successfully!");
     console.log("   Message ID:", data?.id);
     console.log("   To:", SUPPORT_EMAIL);
     return data;
@@ -131,7 +375,7 @@ export const sendAccountVerificationCode = async (email, userName, verificationC
   const fromName = FROM_NAME;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await sendConfiguredEmail({
       from: `${fromName} <${FROM_EMAIL}>`,
       to: [email],
       subject: `${verificationCode} is your account verification code`,
@@ -200,12 +444,7 @@ ${fromName}
       `,
     });
 
-    if (error) {
-      console.error("❌ Resend error (account verification):", error);
-      throw new Error(error.message || "Failed to send account verification email");
-    }
-
-    console.log("✅ Account verification email sent successfully via Resend!");
+    console.log("✅ Account verification email sent successfully!");
     console.log("   Message ID:", data?.id);
     console.log("   To:", email);
     return data;
@@ -222,7 +461,7 @@ export const sendPasswordResetCode = async (email, userName, resetCode) => {
   const fromName = FROM_NAME;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await sendConfiguredEmail({
       from: `${fromName} <${FROM_EMAIL}>`,
       to: [email],
       subject: `${resetCode} is your password reset code`,
@@ -291,12 +530,7 @@ ${fromName}
       `,
     });
 
-    if (error) {
-      console.error("❌ Resend error (password reset):", error);
-      throw new Error(error.message || "Failed to send password reset email");
-    }
-
-    console.log("✅ Password reset code email sent successfully via Resend!");
+    console.log("✅ Password reset code email sent successfully!");
     console.log("   Message ID:", data?.id);
     console.log("   To:", email);
     return data;
@@ -336,7 +570,7 @@ export const sendDeleteAccountOtp = async (email, userName, otp) => {
     .join("");
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await sendConfiguredEmail({
       from: `${fromName} <${FROM_EMAIL}>`,
       to: [email],
       subject: `[Action Required] Confirm your account deletion — ${otp}`,
@@ -441,12 +675,7 @@ ${fromName}
       `,
     });
 
-    if (error) {
-      console.error("❌ Resend error (delete OTP):", error);
-      throw new Error(error.message || "Failed to send confirmation email");
-    }
-
-    console.log("✅ Delete account OTP email sent successfully via Resend!");
+    console.log("✅ Delete account OTP email sent successfully!");
     console.log("   Message ID:", data?.id);
     console.log("   To:", email);
     return data;

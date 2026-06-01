@@ -135,6 +135,19 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     }
   };
 
+  const revealLocationOnMap = (location, { zoom = 17 } = {}) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo(location);
+      mapInstanceRef.current.setZoom(zoom);
+    }
+
+    if (markerRef.current && window.google?.maps?.Animation) {
+      markerRef.current.setPosition(location);
+      markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
+      window.setTimeout(() => markerRef.current?.setAnimation(null), 750);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) return;
     setSelectedLocation(DEFAULT_LOCATION);
@@ -413,14 +426,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                 return;
               }
               setSelectedLocation(newLocation);
-              map.setCenter(newLocation);
-              map.setZoom(17);
-              marker.setPosition(newLocation);
-              marker.setAnimation(window.google.maps.Animation.BOUNCE);
-              setTimeout(() => marker.setAnimation(null), 750);
+              revealLocationOnMap(newLocation);
               setAddressName(place.formatted_address || place.name);
               setSearchQuery(place.formatted_address || place.name || "");
               setIsSearchFocused(false);
+              setShowBottomSheet(true);
               emitLocationSelection(extractLocationDetails(place, newLocation));
               // Blur search input on mobile after selection
               if (searchInputRef.current) {
@@ -502,16 +512,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       }
       setSelectedLocation(location);
 
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.panTo(location);
-        mapInstanceRef.current.setZoom(17);
-      }
-
-      if (markerRef.current) {
-        markerRef.current.setPosition(location);
-        markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
-        setTimeout(() => markerRef.current.setAnimation(null), 750);
-      }
+      revealLocationOnMap(location);
 
       if (window.google && window.google.maps && window.google.maps.Geocoder) {
         try {
@@ -530,12 +531,6 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
       setDetectingLocation(false);
       setShowBottomSheet(true);
-
-      if (mapInstanceRef.current) {
-        window.setTimeout(() => {
-          mapInstanceRef.current?.panBy(0, -120);
-        }, 250);
-      }
     };
 
     const handleLocationError = (error) => {
@@ -565,6 +560,49 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         enableHighAccuracy: false,
         timeout: 12000,
         maximumAge: 300000,
+      }
+    );
+  };
+
+  const handleSearchSubmit = () => {
+    const query = searchQuery.trim();
+
+    if (!query || !window.google?.maps?.Geocoder) {
+      return;
+    }
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode(
+      {
+        address: query,
+        componentRestrictions: { country: CAMBODIA_COUNTRY_CODE },
+      },
+      (results, status) => {
+        if (status !== "OK" || !results?.[0]?.geometry?.location) {
+          setLocationError(t("mapPicker.searchNotFound"));
+          return;
+        }
+
+        const result = results[0];
+        const location = {
+          lat: result.geometry.location.lat(),
+          lng: result.geometry.location.lng(),
+        };
+
+        if (!isWithinCambodiaBounds(location)) {
+          setCambodiaOnlyError();
+          return;
+        }
+
+        setSelectedLocation(location);
+        revealLocationOnMap(location);
+        setAddressName(result.formatted_address);
+        setSearchQuery(result.formatted_address);
+        setIsSearchFocused(false);
+        setShowBottomSheet(true);
+        setLocationError("");
+        emitLocationSelection(extractLocationDetails(result, location));
+        searchInputRef.current?.blur();
       }
     );
   };
@@ -690,6 +728,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                     }}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchSubmit();
+                      }
+                    }}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setIsSearchFocused(false)}
                   />
