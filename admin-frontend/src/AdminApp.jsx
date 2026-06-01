@@ -28,6 +28,18 @@ const isPortalPath = (pathname) =>
   pathname.startsWith("/seller") ||
   pathname.startsWith("/delivery");
 
+const getPortalTitle = (pathname) => {
+  if (pathname.startsWith("/seller")) {
+    return "Seller Portal";
+  }
+
+  if (pathname.startsWith("/delivery")) {
+    return "Delivery Portal";
+  }
+
+  return "Admin Portal";
+};
+
 export default function AdminApp() {
   const location = useLocation();
 
@@ -36,6 +48,10 @@ export default function AdminApp() {
     document.documentElement.lang = "en";
     document.documentElement.dataset.language = "en";
   }, []);
+
+  useEffect(() => {
+    document.title = getPortalTitle(location.pathname);
+  }, [location.pathname]);
 
   if (location.pathname === "/") {
     return <Navigate to="/admin/login" replace />;
