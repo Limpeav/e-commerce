@@ -5,7 +5,7 @@ import { USER_ROLES } from "../constants/roles.js";
 const userSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     password: { type: String },
     phone: { type: String },
     isAdmin: { type: Boolean, default: false },

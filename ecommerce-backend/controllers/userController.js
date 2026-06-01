@@ -25,19 +25,28 @@ const normalizeCambodiaPhone = (phone = "") => {
   return `+855${localDigits}`;
 };
 
+const normalizeEmail = (email = "") => String(email).trim().toLowerCase();
+
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = normalizeEmail(req.body.email);
     const normalizedPhone = req.body.phone ? normalizeCambodiaPhone(req.body.phone) : "";
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
 
     if (req.body.phone && !normalizedPhone) {
       return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
     if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(409).json({
+        message: "This email is already registered. Please use a different email or login.",
+      });
     }
 
     if (normalizedPhone) {
@@ -64,6 +73,12 @@ export const registerUser = async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(409).json({
+        message: "This email is already registered. Please use a different email or login.",
+      });
+    }
+
     res.status(500).json({ message: error.message });
   }
 };

@@ -64,7 +64,9 @@ const Register = () => {
 
       if (
         errorMessage.includes("duplicate") ||
-        errorMessage.includes("E11000")
+        errorMessage.includes("E11000") ||
+        errorMessage.toLowerCase().includes("already registered") ||
+        errorMessage.toLowerCase().includes("already exists")
       ) {
         errorMessage =
           "This email is already registered. Please use a different email or login.";
