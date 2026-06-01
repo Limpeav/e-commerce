@@ -486,13 +486,18 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Telegram receipt bot is not configured");
     }
 
-    order.receiptSent = {
+    const receiptSent = {
         sentAt: Date.now(),
         sentBy: req.user._id,
         channel: "telegram",
     };
 
-    const updatedOrder = await order.save();
+    const updatedOrder = await Order.findByIdAndUpdate(
+        order._id,
+        { $set: { receiptSent } },
+        { new: true }
+    );
+
     emitOrderUpdated(updatedOrder, {
         receiptSent: updatedOrder.receiptSent,
     });
