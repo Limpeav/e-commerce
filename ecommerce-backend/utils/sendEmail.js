@@ -1,10 +1,128 @@
+import dotenv from "dotenv";
 import { Resend } from "resend";
+
+dotenv.config({ path: new URL("../.env", import.meta.url) });
 
 // Initialize Resend client with API key from environment
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "onboarding@resend.dev"; // Use your verified domain here
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "Baby Product Website";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL_TO || FROM_EMAIL;
+const IS_RESEND_TEST_SENDER = FROM_EMAIL.toLowerCase() === "onboarding@resend.dev";
+
+const escapeHtml = (value = "") =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+export const sendSupportContactEmail = async ({
+  name,
+  email,
+  phone = "",
+  topic = "General",
+  message,
+  ticketId,
+}) => {
+  const fromName = FROM_NAME;
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safePhone = escapeHtml(phone || "Not provided");
+  const safeTopic = escapeHtml(topic);
+  const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+  const safeTicketId = escapeHtml(ticketId || "");
+
+  try {
+    const emailPayload = {
+      from: `${fromName} <${FROM_EMAIL}>`,
+      to: [SUPPORT_EMAIL],
+      subject: `New support request: ${topic}`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Support Request</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="100%" style="max-width:640px;background:#ffffff;border:1px solid #e4e4e7;border-radius:20px;overflow:hidden;">
+                  <tr>
+                    <td style="padding:28px 32px;border-bottom:1px solid #f4f4f5;">
+                      <p style="margin:0 0 6px;font-size:12px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#8DAA91;">Support Request</p>
+                      <h1 style="margin:0;font-size:24px;line-height:1.25;color:#18181b;">${safeTopic}</h1>
+                      ${safeTicketId ? `<p style="margin:8px 0 0;font-size:13px;color:#71717a;">Ticket ID: ${safeTicketId}</p>` : ""}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:28px 32px;">
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                        <tr>
+                          <td style="padding:10px 0;font-size:13px;color:#71717a;width:120px;">Name</td>
+                          <td style="padding:10px 0;font-size:14px;font-weight:700;color:#18181b;">${safeName}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:10px 0;font-size:13px;color:#71717a;">Email</td>
+                          <td style="padding:10px 0;font-size:14px;font-weight:700;color:#18181b;">${safeEmail}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:10px 0;font-size:13px;color:#71717a;">Phone</td>
+                          <td style="padding:10px 0;font-size:14px;font-weight:700;color:#18181b;">${safePhone}</td>
+                        </tr>
+                      </table>
+                      <div style="background:#f8fafc;border:1px solid #e4e4e7;border-radius:16px;padding:20px;">
+                        <p style="margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#71717a;">Message</p>
+                        <p style="margin:0;font-size:15px;line-height:1.7;color:#27272a;">${safeMessage}</p>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+      text: `
+New support request
+
+Ticket ID: ${ticketId || "N/A"}
+Topic: ${topic}
+Name: ${name}
+Email: ${email}
+Phone: ${phone || "Not provided"}
+
+Message:
+${message}
+      `,
+    };
+
+    if (!IS_RESEND_TEST_SENDER) {
+      emailPayload.replyTo = email;
+    }
+
+    const { data, error } = await resend.emails.send(emailPayload);
+
+    if (error) {
+      console.error("❌ Resend error (support contact):", error);
+      throw new Error(error.message || "Failed to send support email");
+    }
+
+    console.log("✅ Support contact email sent successfully via Resend!");
+    console.log("   Message ID:", data?.id);
+    console.log("   To:", SUPPORT_EMAIL);
+    return data;
+  } catch (err) {
+    console.error("❌ Failed to send support contact email:", err);
+    throw new Error(err.message || "Failed to send support email");
+  }
+};
 
 // ─────────────────────────────────────────────────
 // Send Account Verification Code Email

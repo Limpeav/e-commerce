@@ -20,38 +20,38 @@ export default function Wishlist() {
   // Empty Wishlist State
   if (wishlist.length === 0) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center overflow-hidden font-sans transition-colors duration-300">
-        <div className="relative mx-auto max-w-4xl px-6">
+      <div className="min-h-[calc(100vh-5rem)] bg-bg-base px-4 py-10 pt-28 font-sans transition-colors duration-300 sm:px-6 sm:py-16 sm:pt-32">
+        <div className="relative mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-5xl items-center justify-center">
           <div className="absolute top-1/2 left-1/2 h-[40rem] w-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px] pointer-events-none"></div>
 
           <div
-            className={`relative z-10 mx-auto max-w-lg overflow-hidden rounded-3xl border p-8 text-center shadow-2xl sm:rounded-[4rem] sm:p-16 ${isDark ? "bg-bg-card shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]" : "bg-bg-card shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"}`}
+            className={`relative z-10 mx-auto w-full max-w-xl overflow-hidden rounded-3xl border px-6 py-8 text-center shadow-2xl sm:rounded-[3rem] sm:px-10 sm:py-12 md:max-w-2xl md:px-14 md:py-16 ${isDark ? "bg-bg-card shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]" : "bg-bg-card shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"}`}
             style={{ borderColor: "var(--color-border)" }}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16"></div>
 
-            <div className="relative mb-8 sm:mb-10">
+            <div className="relative mb-6 sm:mb-8">
               <div
-                className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-[color:var(--color-surface-soft)] shadow-inner sm:h-32 sm:w-32 sm:rounded-[2.5rem]"
+                className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-[color:var(--color-surface-soft)] shadow-inner sm:h-28 sm:w-28 sm:rounded-[2.25rem] md:h-32 md:w-32 md:rounded-[2.5rem]"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <Heart className="h-10 w-10 text-primary/30 sm:h-14 sm:w-14" />
               </div>
             </div>
 
-            <div className="mx-auto flex w-full max-w-[24rem] flex-col items-center px-5 text-center sm:max-w-lg sm:px-8">
-              <h2 className="mb-4 w-full whitespace-nowrap text-center text-[clamp(1.15rem,5vw,3rem)] font-black leading-tight tracking-tight text-text-main font-display sm:mb-6">
+            <div className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
+              <h2 className="mb-4 w-full text-center text-3xl font-black leading-tight tracking-tight text-text-main font-display sm:mb-5 sm:text-4xl md:text-5xl">
                 {t("Your wishlist is empty")}
               </h2>
-              <p className="mx-auto mb-8 text-sm leading-relaxed text-text-muted sm:mb-10 sm:text-lg">
+              <p className="mx-auto mb-7 max-w-md text-sm leading-7 text-text-muted sm:mb-8 sm:text-base md:text-lg">
                 <span className="block">{t("Save your favorite items here to find them easily later.")}</span>
                 <span className="block">{t("Start exploring our collection today.")}</span>
               </p>
             </div>
 
             <Link
-              to="/"
-              className="inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
+              to="/customer"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-primary-dark active:scale-95 sm:px-10 sm:py-4"
             >
               <ShoppingBag className="h-5 w-5" />
               <span>{t("Start Shopping")}</span>

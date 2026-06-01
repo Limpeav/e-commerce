@@ -1,12 +1,69 @@
-import React from "react";
+import React, { useState } from "react";
 import { Mail, Phone, MessageSquare, Send, Clock } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
 import { useLanguage } from "../../context/useLanguage";
+import { useToast } from "../../context/ToastContext";
+import { submitContactSupport } from "../../services/supportService";
 
 export default function Contact() {
     const { t } = useLanguage();
+    const { success, error: toastError } = useToast();
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        topic: t("contact.technicalSupport"),
+        message: "",
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleChange = (field) => (event) => {
+        setFormData((current) => ({
+            ...current,
+            [field]: event.target.value,
+        }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+            toastError(t("contact.sendFailedTitle"), t("contact.requiredFields"));
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const result = await submitContactSupport({
+                name: formData.name,
+                email: formData.email,
+                topic: formData.topic,
+                message: formData.message,
+            });
+
+            if (result.emailSent) {
+                success(t("contact.sendSuccessTitle"), t("contact.sendSuccessMessage"));
+            } else {
+                success(t("contact.sendSuccessTitle"), t("contact.ticketSavedMessage"));
+            }
+
+            setFormData({
+                name: "",
+                email: "",
+                topic: t("contact.technicalSupport"),
+                message: "",
+            });
+        } catch (err) {
+            toastError(
+                t("contact.sendFailedTitle"),
+                err.response?.data?.message || err.message || t("contact.sendFailedMessage")
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const contactMethods = [
         {
             icon: Phone,
@@ -70,38 +127,66 @@ export default function Contact() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                         <div className="space-y-8">
                             <div>
-                                <SectionHeader number={1} title={t("contact.sendMessage")} icon={MessageSquare} />
+                                <SectionHeader title={t("contact.sendMessage")} icon={MessageSquare} />
                                 <p className="text-sm font-medium text-text-muted leading-relaxed mb-8 max-w-md">
                                     {t("contact.formIntro")}
                                 </p>
                             </div>
 
-                            <form className="space-y-6">
+                            <form className="space-y-6" onSubmit={handleSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.fullName")}</label>
-                                        <input type="text" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder={t("contact.enterName")} />
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={handleChange("name")}
+                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            placeholder={t("contact.enterName")}
+                                            required
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.emailAddress")}</label>
-                                        <input type="email" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder={t("contact.enterEmail")} />
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={handleChange("email")}
+                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            placeholder={t("contact.enterEmail")}
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.inquiryTopic")}</label>
-                                    <select className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
-                                        <option>{t("contact.technicalSupport")}</option>
-                                        <option>{t("contact.billingFinance")}</option>
-                                        <option>{t("contact.partnership")}</option>
-                                        <option>{t("contact.otherGeneral")}</option>
+                                    <select
+                                        value={formData.topic}
+                                        onChange={handleChange("topic")}
+                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
+                                    >
+                                        {[t("contact.technicalSupport"), t("contact.billingFinance"), t("contact.partnership"), t("contact.otherGeneral")].map((topic) => (
+                                            <option key={topic} value={topic}>{topic}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.message")}</label>
-                                    <textarea rows="4" className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder={t("contact.yourMessage")}></textarea>
+                                    <textarea
+                                        rows="4"
+                                        value={formData.message}
+                                        onChange={handleChange("message")}
+                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                                        placeholder={t("contact.yourMessage")}
+                                        required
+                                    ></textarea>
                                 </div>
-                                <button className="w-full rounded-xl border-2 border-primary bg-primary py-4 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-dark hover:border-primary-dark hover:shadow-primary/25 active:scale-95 flex items-center justify-center gap-3 group">
-                                    {t("contact.sendMessage")}
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="w-full rounded-xl border-2 border-primary bg-primary py-4 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-dark hover:border-primary-dark hover:shadow-primary/25 active:scale-95 flex items-center justify-center gap-3 group disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    {submitting ? t("contact.sending") : t("contact.sendMessage")}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </button>
                             </form>
@@ -109,7 +194,7 @@ export default function Contact() {
 
                         <div className="lg:pl-16 space-y-12">
                             <div>
-                                <SectionHeader number={2} title={t("contact.businessHours")} icon={Clock} />
+                                <SectionHeader title={t("contact.businessHours")} icon={Clock} />
                                 <div className="space-y-4">
                                     {[
                                         { day: t("contact.mondayFriday"), hours: "08:00 - 20:00" },

@@ -25,3 +25,18 @@ export const getOrderById = async (orderId) => {
   });
   return response.data;
 };
+
+export const trackOrder = async (orderNumber) => {
+  const token = getUserToken();
+  if (!token) {
+    throw new Error("Please log in to track your order.");
+  }
+
+  const response = await axios.get(
+    `${API_BASE_URL}/orders/track/${encodeURIComponent(orderNumber)}`,
+    {
+      headers: withAuthHeaders(token),
+    }
+  );
+  return response.data;
+};

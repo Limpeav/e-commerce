@@ -186,7 +186,7 @@ const AdminOrders = () => {
 
         setConfirmingOrderId(orderId);
         try {
-            await adminService.updateOrderStatus(orderId, "Processing");
+            await adminService.updateOrderStatus(orderId, "Shipped");
             window.dispatchEvent(new Event("admin-orders-updated"));
             await fetchOrders();
         } catch (err) {
@@ -658,6 +658,7 @@ const AdminOrders = () => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
+                            <option value="Shipped">Shipped</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>

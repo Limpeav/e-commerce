@@ -12,6 +12,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
+import supportRoutes from "./routes/supportRoutes.js";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -172,6 +173,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/banners", bannerRoutes);
+app.use("/api/support", supportRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

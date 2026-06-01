@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import SupportTicket from "../models/supportTicketModel.js";
 import Notification from "../models/notificationModel.js";
 import { emitNotificationCreated } from "../realtime/socket.js";
+import { sendSupportContactEmail } from "../utils/sendEmail.js";
 
 const FAQS = [
   {
@@ -83,10 +84,27 @@ export const submitContactForm = asyncHandler(async (req, res) => {
     message,
   });
 
+  let emailSent = false;
+  let emailErrorMessage = "";
+  try {
+    await sendSupportContactEmail({
+      name,
+      email,
+      phone,
+      topic,
+      message,
+      ticketId: ticket._id.toString(),
+    });
+    emailSent = true;
+  } catch (error) {
+    emailErrorMessage = error.message || "Failed to send support email";
+    console.error("Support email failed:", emailErrorMessage);
+  }
+
   // Notify admin stream.
   try {
     const notification = await Notification.create({
-      type: "support",
+      type: "system",
       audience: "admin",
       title: "New Support Ticket",
       message: `${name} submitted a support request: ${topic}`,
@@ -98,9 +116,19 @@ export const submitContactForm = asyncHandler(async (req, res) => {
     console.error("Support notification failed:", error.message);
   }
 
+  if (!emailSent) {
+    res.status(502).json({
+      message: `Support request was saved, but email failed: ${emailErrorMessage}`,
+      ticketId: ticket._id,
+      emailSent,
+    });
+    return;
+  }
+
   res.status(201).json({
     message: "Support request submitted successfully",
     ticketId: ticket._id,
+    emailSent,
   });
 });
 

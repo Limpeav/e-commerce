@@ -4,6 +4,7 @@ import {
     createOrder,
     getAllOrders,
     getOrderById,
+    trackOrder,
     updateOrderStatus,
     updateOrderToPaid,
     updatePaymentStatus,
@@ -37,6 +38,7 @@ const receiptTelegramUpload = multer({
 router.route("/").post(protect, createOrder).get(protect, portalAccess, getAllOrders);
 router.route("/myorders").get(protect, getUserOrders);
 router.route("/stats").get(protect, portalAccess, getOrderStats);
+router.route("/track/:orderNumber").get(protect, trackOrder);
 router.route("/:id").get(protect, getOrderById).delete(protect, admin, deleteOrder);
 router.route("/:id/pay").put(protect, updateOrderToPaid);
 router.route("/:id/status").put(protect, portalAccess, updateOrderStatus);

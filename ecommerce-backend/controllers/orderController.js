@@ -20,6 +20,24 @@ const createHttpError = (statusCode, message) =>
 
 const DELIVERY_ORDER_STATUSES = ["Delivered"];
 
+const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
+    if (nextStatus === "Processing") {
+        order.processedAt = order.processedAt || now;
+    }
+
+    if (nextStatus === "Shipped") {
+        order.processedAt = order.processedAt || now;
+        order.shippedAt = order.shippedAt || now;
+    }
+
+    if (nextStatus === "Delivered") {
+        order.processedAt = order.processedAt || now;
+        order.shippedAt = order.shippedAt || now;
+        order.isDelivered = true;
+        order.deliveredAt = order.deliveredAt || now;
+    }
+};
+
 const dispatchOrderAlerts = ({
     createdOrder,
     shippingAddress,
@@ -258,6 +276,52 @@ export const getOrderById = asyncHandler(async (req, res) => {
     res.json(order);
 });
 
+// @desc    Track an order by full ID or displayed short ID
+// @route   GET /api/orders/track/:orderNumber
+// @access  Private
+export const trackOrder = asyncHandler(async (req, res) => {
+    const rawOrderNumber = String(req.params.orderNumber || "").trim();
+    const normalizedOrderNumber = rawOrderNumber.replace(/^#/, "");
+
+    if (!normalizedOrderNumber) {
+        res.status(400);
+        throw new Error("Order number is required");
+    }
+
+    const query =
+        mongoose.Types.ObjectId.isValid(normalizedOrderNumber) &&
+        normalizedOrderNumber.length === 24
+            ? { _id: normalizedOrderNumber }
+            : { user: req.user._id };
+
+    const orders = await Order.find(query)
+        .populate("user", "name email")
+        .sort({ createdAt: -1 });
+
+    const order = orders.find((candidate) => {
+        const fullId = candidate._id.toString();
+        return (
+            fullId.toLowerCase() === normalizedOrderNumber.toLowerCase() ||
+            fullId.slice(-8).toLowerCase() === normalizedOrderNumber.toLowerCase()
+        );
+    });
+
+    if (!order) {
+        res.status(404);
+        throw new Error("Order not found");
+    }
+
+    const isPortalUser = ["admin", "seller", "delivery"].includes(req.user?.role);
+    const isOwner = order.user?._id?.toString() === req.user?._id?.toString();
+
+    if (!isPortalUser && !isOwner) {
+        res.status(403);
+        throw new Error("Not authorized to track this order");
+    }
+
+    res.json(order);
+});
+
 // @desc    Update order status
 // @route   PUT /api/orders/:id/status
 // @access  Private/Admin
@@ -279,7 +343,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             const nextStatus = req.body.orderStatus || order.orderStatus;
 
             if (req.user?.role === "seller") {
-                if (order.orderStatus !== "Pending" || nextStatus !== "Processing") {
+                if (
+                    order.orderStatus !== "Pending" ||
+                    !["Processing", "Shipped"].includes(nextStatus)
+                ) {
                     res.status(403);
                     throw new Error("Cashier accounts can only confirm pending orders");
                 }
@@ -300,11 +367,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
             previousStatus = order.orderStatus;
             order.orderStatus = nextStatus;
-
-            if (nextStatus === "Delivered") {
-                order.isDelivered = true;
-                order.deliveredAt = Date.now();
-            }
+            applyOrderStatusTimestamps(order, nextStatus);
 
             if (
                 nextStatus === "Cancelled" &&
@@ -332,11 +395,18 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         });
 
         res.json(updatedOrder);
+        emitOrderUpdated(updatedOrder, {
+            orderStatus: updatedOrder.orderStatus,
+            processedAt: updatedOrder.processedAt,
+            shippedAt: updatedOrder.shippedAt,
+            deliveredAt: updatedOrder.deliveredAt,
+            isDelivered: updatedOrder.isDelivered,
+        });
 
         if (
             req.user?.role === "seller" &&
             previousStatus === "Pending" &&
-            updatedOrder?.orderStatus === "Processing"
+            ["Processing", "Shipped"].includes(updatedOrder?.orderStatus)
         ) {
             try {
                 const notification = await Notification.create({
@@ -348,9 +418,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     link: `/delivery/orders/${updatedOrder._id}`,
                 });
 
-                emitOrderUpdated(updatedOrder, {
-                    orderStatus: updatedOrder.orderStatus,
-                });
                 emitNotificationCreated(notification);
             } catch (notificationError) {
                 console.error("Delivery handoff notification failed:", notificationError.message);

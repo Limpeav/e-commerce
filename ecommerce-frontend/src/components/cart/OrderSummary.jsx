@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CreditCard } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
+import { SHIPPING_PRICE, TAX_RATE } from '../../utils/checkout';
 
 const OrderSummary = ({ total }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
-  const tax = total * 0.08;
-  const finalTotal = total * 1.08;
+  const tax = total * TAX_RATE;
+  const finalTotal = total + SHIPPING_PRICE + tax;
 
   return (
     <div className={`rounded-[2rem] border p-8 sticky top-32 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-lg"}`}>
@@ -23,7 +24,7 @@ const OrderSummary = ({ total }) => {
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
           <span>{t("cart.shipping")}</span>
-          <span className="text-secondary font-bold">{t("cart.free")}</span>
+          <span className="text-text-main font-semibold">${SHIPPING_PRICE.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
           <span>{t("cart.tax")}</span>

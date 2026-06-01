@@ -9,7 +9,9 @@ const SectionHeader = ({
 }) => {
   return (
     <div className="flex items-center gap-4 mb-6">
-      <span className="text-4xl font-bold text-primary/20 font-display">{String(number).padStart(2, '0')}</span>
+      {number !== undefined && number !== null && (
+        <span className="text-4xl font-bold text-primary/20 font-display">{String(number).padStart(2, '0')}</span>
+      )}
       <h2 className={titleClass}>{title}</h2>
       {Icon && (
         <div className={`w-10 h-10 bg-${iconBg} rounded-xl flex items-center justify-center`}>

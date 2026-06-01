@@ -238,7 +238,7 @@ const OrderDetails = () => {
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
     const orderStatuses = isDelivery
         ? ["Delivered"]
-        : ["Pending", "Processing", "Delivered", "Cancelled"];
+        : ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid", "Failed"];
     const deliveryLatitude = order.shippingAddress?.latitude;
     const deliveryLongitude = order.shippingAddress?.longitude;
@@ -603,7 +603,9 @@ const OrderDetails = () => {
                                 className={`mb-5 grid gap-2 ${
                                     orderStatuses.length === 2
                                         ? "grid-cols-2"
-                                        : "grid-cols-4"
+                                        : orderStatuses.length === 5
+                                            ? "grid-cols-5"
+                                            : "grid-cols-4"
                                 }`}
                             >
                                 {orderStatuses.map((status, index) => {
