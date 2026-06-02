@@ -4,9 +4,10 @@ import { useAuth } from "../../context/useAuth";
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const returnPath = `${location.pathname}${location.search}${location.hash}`;
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: returnPath }} />;
   }
 
   // Force profile completion if phone is missing

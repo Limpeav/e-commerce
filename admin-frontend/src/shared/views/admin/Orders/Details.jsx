@@ -16,7 +16,6 @@ import {
     Navigation,
     Phone,
     Printer,
-    Mail,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
@@ -32,7 +31,6 @@ const OrderDetails = () => {
     const [updating, setUpdating] = useState(false);
     const [uploadingProof, setUploadingProof] = useState(false);
     const [sendingReceipt, setSendingReceipt] = useState(false);
-    const [sendingReviewEmail, setSendingReviewEmail] = useState(false);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const ordersPath = getPortalOrdersPath(adminUser);
@@ -302,35 +300,6 @@ const OrderDetails = () => {
             alert(sendError.message || "Failed to send receipt to Telegram");
         } finally {
             setSendingReceipt(false);
-        }
-    };
-
-    const handleSendReviewRequestEmail = async () => {
-        if (!order.user?.email) {
-            alert("Customer email is missing.");
-            return;
-        }
-
-        setSendingReviewEmail(true);
-
-        try {
-            const result = await AdminController.sendOrderReviewRequestEmail(id, true);
-
-            if (!result.success) {
-                await fetchOrderDetails();
-                alert(result.error || "Failed to send review request email");
-                return;
-            }
-
-            if (result.data?.order) {
-                setOrder(result.data.order);
-            } else {
-                await fetchOrderDetails();
-            }
-
-            alert(result.data?.message || "Review request email sent.");
-        } finally {
-            setSendingReviewEmail(false);
         }
     };
 
@@ -831,50 +800,6 @@ const OrderDetails = () => {
                                 </label>
                             )}
                         </section>
-
-                        {order.isDelivered && (
-                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <Mail className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Review Request
-                                </h2>
-                                <div className="space-y-3">
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Customer Email</p>
-                                        <p className="mt-1 break-all font-bold text-[var(--color-text-main)]">{order.user?.email || "N/A"}</p>
-                                        {order.reviewRequestEmail?.sentAt && (
-                                            <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">
-                                                Last sent {new Date(order.reviewRequestEmail.sentAt).toLocaleString()}
-                                            </p>
-                                        )}
-                                        {order.reviewRequestEmail?.lastError && (
-                                            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
-                                                <p className="text-xs uppercase tracking-wide text-red-500">Last email error</p>
-                                                <p className="mt-1 break-words">{order.reviewRequestEmail.lastError}</p>
-                                                {order.reviewRequestEmail.failedAt && (
-                                                    <p className="mt-2 text-xs text-red-500">
-                                                        Failed {new Date(order.reviewRequestEmail.failedAt).toLocaleString()}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleSendReviewRequestEmail}
-                                        disabled={sendingReviewEmail || !order.user?.email}
-                                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 font-bold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        <Mail className="h-5 w-5" />
-                                        {sendingReviewEmail
-                                            ? "Sending..."
-                                            : order.reviewRequestEmail?.sentAt
-                                                ? "Resend Review Email"
-                                                : "Send Review Email"}
-                                    </button>
-                                </div>
-                            </section>
-                        )}
 
                         {canManageOrderStatus && isDelivery && renderOrderStatusSection()}
 

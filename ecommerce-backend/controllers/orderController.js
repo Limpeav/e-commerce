@@ -94,10 +94,8 @@ const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {
         deliveredOrder._id,
         {
             $set: {
-                reviewRequestEmail: {
-                    sentAt: new Date(),
-                    messageId: emailResult?.id || "",
-                },
+                "reviewRequestEmail.sentAt": new Date(),
+                "reviewRequestEmail.messageId": emailResult?.id || "",
             },
             $unset: {
                 "reviewRequestEmail.failedAt": "",

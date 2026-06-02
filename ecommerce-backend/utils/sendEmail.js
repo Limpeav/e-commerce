@@ -148,14 +148,16 @@ export const sendDeliveryReviewRequestEmail = async ({
         .map((item) => [String(item.product), item])
     ).values()
   );
-  const primaryReviewUrl = uniqueItems[0]
-    ? `${reviewBaseUrl}/products/${uniqueItems[0].product}#reviews`
+  const primaryReviewUrl = orderId
+    ? `${reviewBaseUrl}/orders/${orderId}/review`
     : `${reviewBaseUrl}/orders`;
 
   const itemRows = uniqueItems
     .slice(0, 4)
     .map((item) => {
-      const productUrl = `${reviewBaseUrl}/products/${item.product}#reviews`;
+      const productUrl = orderId
+        ? `${reviewBaseUrl}/orders/${orderId}/review?product=${item.product}`
+        : `${reviewBaseUrl}/products/${item.product}#reviews`;
       const safeName = escapeHtml(item.name || "Purchased product");
       const safeImage = escapeHtml(item.image || "");
 

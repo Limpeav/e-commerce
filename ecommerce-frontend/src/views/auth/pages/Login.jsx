@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { authService } from "../../../services/authService";
 import { useAuth } from "../../../context/useAuth";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
@@ -25,8 +25,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
+  const requestedRedirect = location.state?.from;
+  const safeRedirect =
+    typeof requestedRedirect === "string" &&
+    requestedRedirect.startsWith("/") &&
+    !requestedRedirect.startsWith("//") &&
+    !requestedRedirect.startsWith("/login") &&
+    !requestedRedirect.startsWith("/register")
+      ? requestedRedirect
+      : "/customer";
 
   const getGoogleLoginErrorMessage = (err) => {
     const backendMessage = err?.response?.data?.message;
@@ -48,10 +58,10 @@ const Login = () => {
       if (!user.phone) {
         navigate("/complete-profile", { replace: true });
       } else {
-        navigate("/customer", { replace: true });
+        navigate(safeRedirect, { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, safeRedirect]);
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -96,7 +106,7 @@ const Login = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/customer");
+        navigate(safeRedirect);
       }
     } catch (err) {
       setError(
@@ -132,7 +142,7 @@ const Login = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/customer");
+        navigate(safeRedirect);
       }
     } catch (err) {
       setError(getGoogleLoginErrorMessage(err));
