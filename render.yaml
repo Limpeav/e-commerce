@@ -19,7 +19,9 @@ services:
       - key: ALLOW_LOCAL_DEV_ORIGINS
         value: "true"
       - key: EMAIL_PROVIDER
-        value: smtp
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
       - key: EMAIL_FROM
         sync: false
       - key: EMAIL_FROM_NAME

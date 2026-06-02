@@ -117,6 +117,10 @@ const sendConfiguredEmail = async (emailPayload, label = "email") => {
     return await sendSmtpEmail(emailPayload);
   }
 
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Set RESEND_API_KEY when EMAIL_PROVIDER=resend");
+  }
+
   const { data, error } = await resend.emails.send(emailPayload);
 
   if (error) {
