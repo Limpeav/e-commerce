@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Package, Send, Star } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { CheckCircle, Package, Send, Star } from "lucide-react";
 import { getOrderById } from "../../services/orderService";
 import { ProductController } from "../../controllers/productController";
 import { useAuth } from "../../context/useAuth";
@@ -26,6 +26,7 @@ const uniqueOrderItems = (items = []) =>
 
 export default function ReviewOrder() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
@@ -135,6 +136,7 @@ export default function ReviewOrder() {
       [productId]: result.data?.alreadyReviewed ? "already" : "submitted",
     }));
     setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
+    navigate("/customer", { replace: true });
   };
 
   if (loading) {
@@ -158,11 +160,6 @@ export default function ReviewOrder() {
   return (
     <main className={`min-h-screen px-4 pb-20 pt-20 sm:px-6 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="mx-auto max-w-5xl">
-        <Link to={`/orders/${order._id}`} className="mb-6 inline-flex items-center gap-2 text-sm font-black text-text-muted hover:text-primary">
-          <ArrowLeft className="h-4 w-4" />
-          Order details
-        </Link>
-
         <header className="mb-8">
           <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-primary">Delivered order</p>
           <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-5xl">Rate your products</h1>
@@ -237,7 +234,7 @@ export default function ReviewOrder() {
 
                         <div>
                           <label className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary" htmlFor={`review-${productId}`}>
-                            Your review
+                            Your Review(optional)
                           </label>
                           <textarea
                             id={`review-${productId}`}

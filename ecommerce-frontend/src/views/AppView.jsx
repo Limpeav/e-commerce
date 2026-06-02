@@ -102,8 +102,11 @@ export default function AppView() {
     location.pathname.startsWith("/seller/orders") ||
     location.pathname.startsWith("/seller/cash-report") ||
     location.pathname.startsWith("/delivery/orders");
+  const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+\/review\/?$/.test(
+    location.pathname
+  );
   const shouldShowNavFooter =
-    !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute;
+    !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute && !isOrderReviewRoute;
 
   const needsPhone =
     user &&
