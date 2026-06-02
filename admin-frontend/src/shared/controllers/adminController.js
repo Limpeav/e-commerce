@@ -104,6 +104,18 @@ export class AdminController {
     }
   }
 
+  static async sendOrderReviewRequestEmail(orderId, force = true) {
+    try {
+      const response = await adminService.sendOrderReviewRequestEmail(orderId, force);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
   // Create product
   static async createProduct(productData) {
     try {

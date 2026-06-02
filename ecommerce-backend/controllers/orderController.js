@@ -39,6 +39,62 @@ const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
     }
 };
 
+const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {}) => {
+    const deliveredOrder = await Order.findById(orderId).populate("user", "name email");
+
+    if (!deliveredOrder) {
+        throw createHttpError(404, "Order not found");
+    }
+
+    if (deliveredOrder.orderStatus !== "Delivered") {
+        throw createHttpError(400, "Review request email can only be sent after delivery");
+    }
+
+    const customerEmail = deliveredOrder.user?.email;
+
+    if (!customerEmail) {
+        throw createHttpError(400, "Customer email is missing");
+    }
+
+    if (!force && deliveredOrder.reviewRequestEmail?.sentAt) {
+        return {
+            sent: false,
+            skipped: true,
+            reason: "already-sent",
+            order: deliveredOrder,
+        };
+    }
+
+    const emailResult = await sendDeliveryReviewRequestEmail({
+        email: customerEmail,
+        customerName:
+            deliveredOrder.user?.name ||
+            deliveredOrder.shippingAddress?.fullName,
+        orderId: deliveredOrder._id,
+        orderItems: deliveredOrder.orderItems,
+    });
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+        deliveredOrder._id,
+        {
+            $set: {
+                reviewRequestEmail: {
+                    sentAt: new Date(),
+                    messageId: emailResult?.id || "",
+                },
+            },
+        },
+        { new: true }
+    ).populate("user", "name email");
+
+    return {
+        sent: true,
+        skipped: false,
+        messageId: emailResult?.id || "",
+        order: updatedOrder,
+    };
+};
+
 const dispatchOrderAlerts = ({
     createdOrder,
     shippingAddress,
@@ -432,50 +488,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         ) {
             setImmediate(async () => {
                 try {
-                    const deliveredOrder = await Order.findById(updatedOrder._id).populate(
-                        "user",
-                        "name email"
-                    );
-
-                    const customerEmail = deliveredOrder?.user?.email;
-
-                    if (!customerEmail) {
-                        console.warn(
-                            `Skipped review request email for order ${updatedOrder._id}: customer email missing`
-                        );
-                        return;
-                    }
-
-                    if (deliveredOrder.reviewRequestEmail?.sentAt) {
+                    const result = await sendAndRecordDeliveryReviewRequest(updatedOrder._id);
+                    if (result.skipped) {
                         console.log(
-                            `Skipped review request email for order ${updatedOrder._id}: already sent`
+                            `Skipped review request email for order ${updatedOrder._id}: ${result.reason}`
                         );
-                        return;
                     }
-
-                    const emailResult = await sendDeliveryReviewRequestEmail({
-                        email: customerEmail,
-                        customerName:
-                            deliveredOrder.user?.name ||
-                            deliveredOrder.shippingAddress?.fullName,
-                        orderId: deliveredOrder._id,
-                        orderItems: deliveredOrder.orderItems,
-                    });
-
-                    await Order.updateOne(
-                        {
-                            _id: deliveredOrder._id,
-                            "reviewRequestEmail.sentAt": { $exists: false },
-                        },
-                        {
-                            $set: {
-                                reviewRequestEmail: {
-                                    sentAt: new Date(),
-                                    messageId: emailResult?.id || "",
-                                },
-                            },
-                        }
-                    );
                 } catch (emailError) {
                     console.error("Review request email failed:", emailError.message);
                 }
@@ -484,6 +502,25 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     } finally {
         await session.endSession();
     }
+});
+
+// @desc    Send or resend delivery review request email
+// @route   POST /api/orders/:id/review-request-email
+// @access  Private/Portal
+export const sendOrderReviewRequestEmail = asyncHandler(async (req, res) => {
+    const force = req.body?.force !== false;
+    const result = await sendAndRecordDeliveryReviewRequest(req.params.id, { force });
+
+    res.json({
+        message: result.sent
+            ? "Review request email sent"
+            : "Review request email was already sent",
+        sent: result.sent,
+        skipped: result.skipped,
+        reason: result.reason,
+        messageId: result.messageId,
+        order: result.order,
+    });
 });
 
 // @desc    Update payment status

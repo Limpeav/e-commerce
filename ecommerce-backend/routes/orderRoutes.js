@@ -13,6 +13,7 @@ import {
     getOrderStats,
     uploadDeliveryProof,
     sendOrderReceiptToTelegram,
+    sendOrderReviewRequestEmail,
 } from "../controllers/orderController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { createUpload } from "../middleware/upload.js";
@@ -49,5 +50,8 @@ router
 router
     .route("/:id/receipt-telegram")
     .post(protect, portalAccess, receiptTelegramUpload.single("receipt"), sendOrderReceiptToTelegram);
+router
+    .route("/:id/review-request-email")
+    .post(protect, portalAccess, sendOrderReviewRequestEmail);
 
 export default router;

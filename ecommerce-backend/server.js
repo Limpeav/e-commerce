@@ -184,7 +184,7 @@ app.get("/test", (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+  const statusCode = err.statusCode || (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500);
   const message = err.message || "Server error";
 
   console.error(`${req.method} ${req.originalUrl} failed:`, message);

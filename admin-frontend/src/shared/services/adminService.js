@@ -156,6 +156,8 @@ export const adminService = {
         "Content-Type": "multipart/form-data",
       },
     }),
+  sendOrderReviewRequestEmail: (orderId, force = true) =>
+    api.post(`/orders/${orderId}/review-request-email`, { force }),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
   // Analytics
