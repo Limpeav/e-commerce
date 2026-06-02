@@ -77,10 +77,10 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       <button
         type="submit"
         disabled={loading || cartItems.length === 0}
-        className={`w-full py-4 font-bold rounded-xl shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm active:scale-95 ${
+        className={`w-full py-4 font-bold rounded-xl shadow-lg shadow-green-700/15 hover:shadow-green-700/25 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
           isDark
-            ? "bg-primary text-slate-950 hover:bg-primary-light"
-            : "bg-text-main text-white hover:bg-primary"
+            ? "bg-green-500 text-slate-950 hover:bg-green-400 focus:ring-offset-slate-900"
+            : "bg-green-600 text-white hover:bg-green-700 focus:ring-offset-white"
         }`}
       >
         {loading ? (

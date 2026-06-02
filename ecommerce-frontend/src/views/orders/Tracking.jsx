@@ -169,10 +169,7 @@ export default function OrderTracking() {
       maxWidth="4xl"
     >
       <div className="space-y-8 sm:space-y-10">
-        <div
-          className="rounded-2xl border bg-bg-card p-4 sm:p-6 md:p-8"
-          style={{ borderColor: "var(--color-border)" }}
-        >
+        <div className="rounded-2xl bg-bg-card p-4 sm:p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
@@ -185,8 +182,7 @@ export default function OrderTracking() {
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleTrackOrder()}
                 placeholder={t("orderTracking.placeholder")}
-                className="w-full rounded-xl border bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
-                style={{ borderColor: error ? "rgb(239 68 68)" : "var(--color-border)" }}
+                className="w-full rounded-xl bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
               />
               {error && (
                 <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium leading-5 text-red-500">
@@ -199,7 +195,7 @@ export default function OrderTracking() {
               type="button"
               onClick={handleTrackOrder}
               disabled={loading}
-              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
             >
               <Search className="h-4 w-4" />
               {loading ? t("orderTracking.tracking") : t("orderTracking.track")}

@@ -107,8 +107,8 @@ export default function Contact() {
                         {contactMethods.map((method, idx) => (
                             <ContentBox key={idx} padding="p-5 sm:p-6 lg:p-8" rounded="rounded-2xl sm:rounded-[2rem]" className="group min-w-0 transition-all duration-500 hover:border-primary/20">
                                 <div className="mb-5 flex min-w-0 items-center gap-3 sm:mb-6">
-                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--color-surface-soft)] shadow-sm transition-all group-hover:scale-105 group-hover:bg-primary sm:h-12 sm:w-12">
-                                        <method.icon title={method.iconTitle} className="h-5 w-5 text-stone-400 transition-colors group-hover:text-white sm:h-6 sm:w-6" />
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--color-surface-soft)] shadow-sm transition-transform group-hover:scale-105 sm:h-12 sm:w-12">
+                                        <method.icon title={method.iconTitle} className="h-5 w-5 text-stone-400 sm:h-6 sm:w-6" />
                                     </div>
                                     <span className="min-w-0 text-xs font-bold uppercase tracking-wide text-primary">{method.iconTitle}</span>
                                 </div>

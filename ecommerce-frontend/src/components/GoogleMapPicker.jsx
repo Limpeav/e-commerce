@@ -330,7 +330,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
       mapInstanceRef.current = map;
 
-      // Create custom marker - slightly larger on mobile for visibility
+      // Create custom marker
       const marker = new window.google.maps.Marker({
         position: selectedLocation,
         map: map,
@@ -339,11 +339,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         zIndex: 1000,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          scale: isMobile ? 16 : 14,
+          scale: isMobile ? 9 : 14,
           fillColor: "#3B82F6",
           fillOpacity: 1,
           strokeColor: "#FFFFFF",
-          strokeWeight: 4,
+          strokeWeight: isMobile ? 3 : 4,
         },
       });
 
