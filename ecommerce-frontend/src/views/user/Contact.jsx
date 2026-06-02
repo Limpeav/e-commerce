@@ -100,21 +100,21 @@ export default function Contact() {
             badgeColor="primary"
             maxWidth="7xl"
         >
-            <div className="space-y-24">
+            <div className="space-y-12 sm:space-y-16 lg:space-y-24">
                 {/* Contact Grid */}
                 <section>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:gap-8">
                         {contactMethods.map((method, idx) => (
-                            <ContentBox key={idx} className="group hover:border-primary/20 transition-all duration-500">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className={`w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary transition-all shadow-sm`}>
-                                        <method.icon title={method.iconTitle} className="w-6 h-6 text-stone-400 group-hover:text-white transition-colors" />
+                            <ContentBox key={idx} padding="p-5 sm:p-6 lg:p-8" rounded="rounded-2xl sm:rounded-[2rem]" className="group min-w-0 transition-all duration-500 hover:border-primary/20">
+                                <div className="mb-5 flex min-w-0 items-center gap-3 sm:mb-6">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--color-surface-soft)] shadow-sm transition-all group-hover:scale-105 group-hover:bg-primary sm:h-12 sm:w-12">
+                                        <method.icon title={method.iconTitle} className="h-5 w-5 text-stone-400 transition-colors group-hover:text-white sm:h-6 sm:w-6" />
                                     </div>
-                                    <span className="text-xs font-bold text-primary uppercase tracking-wide">{method.iconTitle}</span>
+                                    <span className="min-w-0 text-xs font-bold uppercase tracking-wide text-primary">{method.iconTitle}</span>
                                 </div>
-                                <h3 className="text-xs font-bold text-primary uppercase tracking-wide mb-2">{method.title}</h3>
-                                <p className="text-lg font-bold text-text-main mb-1">{method.value}</p>
-                                <p className="text-xs font-medium text-stone-500">
+                                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-primary">{method.title}</h3>
+                                <p className="mb-1 break-words text-base font-bold text-text-main sm:text-lg">{method.value}</p>
+                                <p className="text-xs font-medium leading-5 text-stone-500">
                                     {method.description}
                                 </p>
                             </ContentBox>
@@ -124,8 +124,8 @@ export default function Contact() {
 
                 {/* Message Form & Info */}
                 <section>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                        <div className="space-y-8">
+                    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.78fr)] lg:gap-14 xl:gap-16">
+                        <div className="min-w-0 space-y-6 sm:space-y-8">
                             <div>
                                 <SectionHeader title={t("contact.sendMessage")} icon={MessageSquare} />
                                 <p className="text-sm font-medium text-text-muted leading-relaxed mb-8 max-w-md">
@@ -133,15 +133,15 @@ export default function Contact() {
                                 </p>
                             </div>
 
-                            <form className="space-y-6" onSubmit={handleSubmit}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
+                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wide">{t("contact.fullName")}</label>
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={handleChange("name")}
-                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            className="w-full rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
                                             placeholder={t("contact.enterName")}
                                             required
                                         />
@@ -152,7 +152,7 @@ export default function Contact() {
                                             type="email"
                                             value={formData.email}
                                             onChange={handleChange("email")}
-                                            className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            className="w-full rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
                                             placeholder={t("contact.enterEmail")}
                                             required
                                         />
@@ -163,7 +163,7 @@ export default function Contact() {
                                     <select
                                         value={formData.topic}
                                         onChange={handleChange("topic")}
-                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
+                                        className="w-full cursor-pointer appearance-none rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-primary/20"
                                     >
                                         {[t("contact.technicalSupport"), t("contact.billingFinance"), t("contact.partnership"), t("contact.otherGeneral")].map((topic) => (
                                             <option key={topic} value={topic}>{topic}</option>
@@ -176,7 +176,7 @@ export default function Contact() {
                                         rows="4"
                                         value={formData.message}
                                         onChange={handleChange("message")}
-                                        className="w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                                        className="min-h-32 w-full resize-y rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
                                         placeholder={t("contact.yourMessage")}
                                         required
                                     ></textarea>
@@ -184,7 +184,7 @@ export default function Contact() {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full rounded-xl border-2 border-primary bg-primary py-4 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:bg-primary-dark hover:border-primary-dark hover:shadow-primary/25 active:scale-95 flex items-center justify-center gap-3 group disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="group flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border-2 border-primary bg-primary px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:py-4"
                                 >
                                     {submitting ? t("contact.sending") : t("contact.sendMessage")}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -192,18 +192,18 @@ export default function Contact() {
                             </form>
                         </div>
 
-                        <div className="lg:pl-16 space-y-12">
+                        <div className="min-w-0 space-y-8 lg:pl-6 xl:pl-10">
                             <div>
                                 <SectionHeader title={t("contact.businessHours")} icon={Clock} />
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {[
                                         { day: t("contact.mondayFriday"), hours: "08:00 - 20:00" },
                                         { day: t("contact.saturdaySunday"), hours: "10:00 - 16:00" },
                                         { day: t("contact.publicHolidays"), hours: t("contact.closed") }
                                     ].map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-center border-b border-stone-100 pb-3 last:border-0">
+                                        <div key={idx} className="flex flex-col gap-1 border-b border-stone-100 pb-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
                                             <span className="text-xs font-bold text-text-main">{item.day}</span>
-                                            <span className="text-xs font-medium text-stone-500">{item.hours}</span>
+                                            <span className="text-xs font-medium text-stone-500 sm:text-right">{item.hours}</span>
                                         </div>
                                     ))}
                                 </div>

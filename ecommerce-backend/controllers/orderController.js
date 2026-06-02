@@ -652,46 +652,49 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Order not found");
     }
 
-    const result = await sendOrderReceiptTelegramPhoto({
-        imageBuffer: req.file.buffer,
-        fileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        orderId: order._id.toString().slice(-8).toUpperCase(),
-        customerName: order.shippingAddress?.fullName || order.user?.name,
-        totalPrice: order.totalPrice,
-    });
-
-    if (!result.sent) {
-        res.status(503);
-        throw new Error("Telegram receipt bot is not configured");
-    }
-
     const receiptSent = {
         sentAt: new Date(),
         sentBy: req.user._id,
         channel: "telegram",
     };
 
-    let updatedOrder;
-
-    try {
-        updatedOrder = await Order.findByIdAndUpdate(
-            order._id,
-            { $set: { receiptSent } },
-            { new: true }
-        );
-    } catch (error) {
-        console.error(
-            `Receipt sent to Telegram, but receipt status save failed for order ${order._id}:`,
-            error.message
-        );
-        res.status(500);
-        throw new Error("Receipt sent to Telegram, but the order was not updated. Please refresh and try again.");
-    }
+    const updatedOrder = await Order.findByIdAndUpdate(
+        order._id,
+        { $set: { receiptSent } },
+        { new: true }
+    );
 
     if (!updatedOrder) {
         res.status(404);
-        throw new Error("Receipt sent to Telegram, but the order could not be found for update.");
+        throw new Error("Order not found");
+    }
+
+    let result;
+
+    try {
+        result = await sendOrderReceiptTelegramPhoto({
+            imageBuffer: req.file.buffer,
+            fileName: req.file.originalname,
+            mimeType: req.file.mimetype,
+            orderId: order._id.toString().slice(-8).toUpperCase(),
+            customerName: order.shippingAddress?.fullName || order.user?.name,
+            totalPrice: order.totalPrice,
+        });
+
+        if (!result.sent) {
+            res.status(503);
+            throw new Error("Telegram receipt bot is not configured");
+        }
+    } catch (error) {
+        try {
+            await Order.findByIdAndUpdate(order._id, { $unset: { receiptSent: "" } });
+        } catch (rollbackError) {
+            console.error(
+                `Receipt Telegram send failed and receipt rollback failed for order ${order._id}:`,
+                rollbackError.message
+            );
+        }
+        throw error;
     }
 
     emitOrderUpdated(updatedOrder, {

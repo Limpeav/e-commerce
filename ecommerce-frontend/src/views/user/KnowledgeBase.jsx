@@ -95,19 +95,19 @@ export default function KnowledgeBase() {
             badgeColor="secondary"
             maxWidth="7xl"
         >
-            <div className="space-y-16 md:space-y-20 lg:space-y-24">
+            <div className="space-y-12 sm:space-y-16 md:space-y-20 lg:space-y-24">
                 {/* Hero Search */}
                 <section>
                     <div
-                        className="rounded-[2rem] border bg-bg-card p-6 sm:rounded-[2.5rem] sm:p-8 md:p-12 lg:p-16"
+                        className="rounded-2xl border bg-bg-card p-4 sm:rounded-[2rem] sm:p-8 md:p-12 lg:p-16"
                         style={{ borderColor: "var(--color-border)" }}
                     >
                         <div className="mx-auto max-w-3xl text-center">
-                            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary sm:text-xs">
-                                <Sparkles className="h-3.5 w-3.5" />
-                                {t("help.customerSupportHub")}
+                            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-primary sm:mb-6 sm:px-4 sm:text-xs sm:tracking-[0.18em]">
+                                <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                                <span className="min-w-0 truncate">{t("help.customerSupportHub")}</span>
                             </div>
-                            <h2 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl lg:text-5xl">
+                            <h2 className="text-2xl font-bold leading-tight tracking-tight text-text-main sm:text-3xl md:text-4xl lg:text-5xl">
                                 {t("help.howCanWeHelp")}
                             </h2>
                             <p className="mt-3 text-sm font-medium text-text-muted sm:mt-4 sm:text-base">
@@ -124,13 +124,13 @@ export default function KnowledgeBase() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <div className="mt-6 flex flex-wrap justify-center gap-2">
+                            <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-6">
                                 {[t("help.shippingDelivery"), t("help.ordersProducts"), t("help.paymentsBilling"), t("help.tracking"), t("help.refunds")].map((tag) => (
                                     <button
                                         key={tag}
                                         type="button"
                                         onClick={() => setSearchQuery(tag)}
-                                        className="rounded-full border bg-bg-card px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted transition-colors hover:border-primary/40 hover:bg-primary/8 hover:text-primary sm:px-4 sm:text-xs"
+                                        className="max-w-full rounded-full border bg-bg-card px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-text-muted transition-colors hover:border-primary/40 hover:bg-primary/8 hover:text-primary sm:px-4 sm:text-xs sm:tracking-[0.14em]"
                                         style={{ borderColor: "var(--color-border)" }}
                                     >
                                         {tag}
@@ -156,7 +156,7 @@ export default function KnowledgeBase() {
                         <div className="space-y-6 md:space-y-8">
                             {filteredSections.map((section) => (
                                 <div key={section.category}>
-                                    <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex items-start gap-3">
                                             <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary" style={{ borderColor: "var(--color-border)" }}>
                                                 <section.icon className="h-5 w-5" />
@@ -180,7 +180,7 @@ export default function KnowledgeBase() {
                                                     key={key}
                                                     type="button"
                                                     onClick={() => setOpenFaq(isOpen ? null : key)}
-                                                    className={`w-full rounded-2xl border bg-bg-card px-5 py-4 text-left transition-all duration-300 hover:border-primary/25 sm:px-6 sm:py-5 ${isOpen ? "ring-2 ring-primary/20" : ""}`}
+                                                    className={`w-full rounded-2xl border bg-bg-card px-4 py-4 text-left transition-all duration-300 hover:border-primary/25 sm:px-6 sm:py-5 ${isOpen ? "ring-2 ring-primary/20" : ""}`}
                                                     style={{ borderColor: "var(--color-border)" }}
                                                 >
                                                     <div className="flex items-start justify-between gap-4">
@@ -202,7 +202,7 @@ export default function KnowledgeBase() {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-2xl border bg-bg-card p-8 text-center sm:p-12" style={{ borderColor: "var(--color-border)" }}>
+                        <div className="rounded-2xl border bg-bg-card p-6 text-center sm:p-12" style={{ borderColor: "var(--color-border)" }}>
                             <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">{t("help.noMatches")}</p>
                             <h3 className="mt-3 text-xl font-bold text-text-main sm:text-2xl">{t("help.noQuestions")}</h3>
                             <p className="mx-auto mt-3 max-w-xl text-sm text-text-muted">
@@ -215,7 +215,7 @@ export default function KnowledgeBase() {
                 {/* CTA */}
                 <section>
                     <div
-                        className="rounded-2xl border bg-bg-card p-6 sm:rounded-[2rem] sm:p-8 md:p-10"
+                        className="rounded-2xl border bg-bg-card p-5 sm:rounded-[2rem] sm:p-8 md:p-10"
                         style={{ borderColor: "var(--color-border)" }}
                     >
                         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -230,7 +230,7 @@ export default function KnowledgeBase() {
                             </div>
                             <Link
                                 to="/contact"
-                                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-green-700 sm:px-7"
+                                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-green-700 sm:w-auto sm:px-7"
                             >
                                 {t("help.contactSupport")}
                                 <ArrowRight className="h-4 w-4" />

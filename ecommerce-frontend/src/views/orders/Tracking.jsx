@@ -168,13 +168,13 @@ export default function OrderTracking() {
       badgeColor="primary"
       maxWidth="4xl"
     >
-      <div className="space-y-10">
+      <div className="space-y-8 sm:space-y-10">
         <div
-          className="rounded-2xl border bg-bg-card p-6 sm:p-8"
+          className="rounded-2xl border bg-bg-card p-4 sm:p-6 md:p-8"
           style={{ borderColor: "var(--color-border)" }}
         >
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-4 md:flex-row">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
               <input
                 type="text"
@@ -189,8 +189,8 @@ export default function OrderTracking() {
                 style={{ borderColor: error ? "rgb(239 68 68)" : "var(--color-border)" }}
               />
               {error && (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium leading-5 text-red-500">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {error}
                 </p>
               )}
@@ -199,7 +199,7 @@ export default function OrderTracking() {
               type="button"
               onClick={handleTrackOrder}
               disabled={loading}
-              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
             >
               <Search className="h-4 w-4" />
               {loading ? t("orderTracking.tracking") : t("orderTracking.track")}
@@ -210,37 +210,37 @@ export default function OrderTracking() {
         {trackingData && (
           <div className="space-y-6 animate-[fadeIn_0.4s_ease-out]">
             <div
-              className="rounded-2xl border bg-bg-card p-6 sm:p-8"
+              className="rounded-2xl border bg-bg-card p-4 sm:p-6 md:p-8"
               style={{ borderColor: "var(--color-border)" }}
             >
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.order")}</p>
-                  <p className="mt-1.5 font-mono text-sm font-bold text-text-main">#{displayOrderId}</p>
+                  <p className="mt-1.5 break-all font-mono text-sm font-bold text-text-main">#{displayOrderId}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.status")}</p>
-                  <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    {translateStatus(currentStatus)}
+                  <span className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                    <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+                    <span className="min-w-0 truncate">{translateStatus(currentStatus)}</span>
                   </span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">
                     {delivered ? t("orderTracking.deliveredOn") : t("orderTracking.estimatedDelivery")}
                   </p>
-                  <p className="mt-1.5 text-sm font-bold text-text-main">{formatDate(estimatedDelivery, language, pendingText)}</p>
+                  <p className="mt-1.5 break-words text-sm font-bold text-text-main">{formatDate(estimatedDelivery, language, pendingText)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.trackingId")}</p>
-                  <p className="mt-1.5 font-mono text-sm font-bold text-text-main">#{displayOrderId}</p>
+                  <p className="mt-1.5 break-all font-mono text-sm font-bold text-text-main">#{displayOrderId}</p>
                   <p className="text-xs text-text-muted">{t("orderTracking.storeDelivery")}</p>
                 </div>
               </div>
             </div>
 
             <div
-              className="rounded-2xl border bg-bg-card p-6 sm:p-8"
+              className="rounded-2xl border bg-bg-card p-4 sm:p-6 md:p-8"
               style={{ borderColor: "var(--color-border)" }}
             >
               <div className="mb-6 flex items-center gap-2">
@@ -248,7 +248,7 @@ export default function OrderTracking() {
                 <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t("orderTracking.trackingHistory")}</h3>
               </div>
               <div className="relative space-y-0">
-                <div className="absolute left-[19px] top-3 bottom-3 w-0.5 bg-primary/10" />
+                <div className="absolute bottom-3 left-[17px] top-3 w-0.5 bg-primary/10 sm:left-[19px]" />
                 {timeline.map((event) => {
                   const Icon = statusIcons[event.statusKey] || Package;
                   const color = event.complete
@@ -256,25 +256,25 @@ export default function OrderTracking() {
                     : "text-text-muted";
 
                   return (
-                    <div key={event.statusKey} className="relative flex gap-6 pb-8 last:pb-0">
+                    <div key={event.statusKey} className="relative flex gap-3 pb-8 last:pb-0 sm:gap-6">
                       <div
-                        className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-xl border-2 bg-bg-card ${
+                        className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 bg-bg-card sm:h-10 sm:w-10 ${
                           event.complete ? "border-primary" : ""
                         }`}
                         style={{ borderColor: event.complete ? undefined : "var(--color-border)" }}
                       >
                         <Icon className={`h-4 w-4 ${color}`} />
                       </div>
-                      <div className="flex-1 pt-1.5">
+                      <div className="min-w-0 flex-1 pt-1.5">
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-sm font-bold text-text-main">{t(`orderTracking.timeline.${event.statusKey}`)}</p>
-                          <span className="text-xs font-medium text-text-muted">
+                          <span className="text-xs font-medium text-text-muted sm:text-right">
                             {event.complete ? formatDateTime(event.date, language, pendingText) : pendingText}
                           </span>
                         </div>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <MapPin className="h-3 w-3 text-text-muted" />
-                          <span className="text-xs font-medium text-text-muted">{event.location}</span>
+                        <div className="mt-1 flex items-start gap-1.5">
+                          <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-text-muted" />
+                          <span className="min-w-0 break-words text-xs font-medium text-text-muted">{event.location}</span>
                         </div>
                       </div>
                     </div>
@@ -284,25 +284,25 @@ export default function OrderTracking() {
             </div>
 
             <div
-              className="rounded-2xl border bg-bg-card p-6 sm:p-8"
+              className="rounded-2xl border bg-bg-card p-4 sm:p-6 md:p-8"
               style={{ borderColor: "var(--color-border)" }}
             >
               <div className="grid gap-6 sm:grid-cols-2">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.timeline.orderPlaced")}</p>
-                  <p className="mt-1.5 text-sm font-bold text-text-main">{formatDateTime(trackingData.createdAt, language, pendingText)}</p>
+                  <p className="mt-1.5 break-words text-sm font-bold text-text-main">{formatDateTime(trackingData.createdAt, language, pendingText)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.processed")}</p>
-                  <p className="mt-1.5 text-sm font-bold text-text-main">{formatDateTime(trackingData.processedAt, language, pendingText)}</p>
+                  <p className="mt-1.5 break-words text-sm font-bold text-text-main">{formatDateTime(trackingData.processedAt, language, pendingText)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.destination")}</p>
-                  <p className="mt-1.5 text-sm font-bold text-text-main">{destination || t("orderTracking.deliveryAddress")}</p>
+                  <p className="mt-1.5 break-words text-sm font-bold text-text-main">{destination || t("orderTracking.deliveryAddress")}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted sm:text-xs">{t("orderTracking.recipient")}</p>
-                  <p className="mt-1.5 text-sm font-bold text-text-main">
+                  <p className="mt-1.5 break-words text-sm font-bold text-text-main">
                     {trackingData.shippingAddress?.fullName || trackingData.user?.name || t("orderTracking.customer")}
                   </p>
                 </div>
