@@ -182,7 +182,7 @@ export default function OrderTracking() {
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleTrackOrder()}
                 placeholder={t("orderTracking.placeholder")}
-                className="w-full rounded-xl bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-xl bg-[color:var(--color-surface-soft)] py-3.5 pl-12 pr-4 text-sm font-medium text-text-main shadow-inner outline-none transition-all placeholder:text-text-muted focus:bg-bg-card focus:ring-2 focus:ring-primary/20"
               />
               {error && (
                 <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium leading-5 text-red-500">
