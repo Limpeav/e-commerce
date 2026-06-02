@@ -113,6 +113,8 @@ const orderSchema = new mongoose.Schema(
         reviewRequestEmail: {
             sentAt: { type: Date },
             messageId: { type: String },
+            failedAt: { type: Date },
+            lastError: { type: String },
         },
         stockReduced: {
             type: Boolean,

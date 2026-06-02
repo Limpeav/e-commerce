@@ -65,14 +65,30 @@ const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {
         };
     }
 
-    const emailResult = await sendDeliveryReviewRequestEmail({
-        email: customerEmail,
-        customerName:
-            deliveredOrder.user?.name ||
-            deliveredOrder.shippingAddress?.fullName,
-        orderId: deliveredOrder._id,
-        orderItems: deliveredOrder.orderItems,
-    });
+    let emailResult;
+
+    try {
+        emailResult = await sendDeliveryReviewRequestEmail({
+            email: customerEmail,
+            customerName:
+                deliveredOrder.user?.name ||
+                deliveredOrder.shippingAddress?.fullName,
+            orderId: deliveredOrder._id,
+            orderItems: deliveredOrder.orderItems,
+        });
+    } catch (error) {
+        const errorMessage = error.message || "Failed to send review request email";
+        await Order.updateOne(
+            { _id: deliveredOrder._id },
+            {
+                $set: {
+                    "reviewRequestEmail.failedAt": new Date(),
+                    "reviewRequestEmail.lastError": errorMessage,
+                },
+            }
+        );
+        throw createHttpError(error.statusCode || 500, errorMessage);
+    }
 
     const updatedOrder = await Order.findByIdAndUpdate(
         deliveredOrder._id,
@@ -82,6 +98,10 @@ const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {
                     sentAt: new Date(),
                     messageId: emailResult?.id || "",
                 },
+            },
+            $unset: {
+                "reviewRequestEmail.failedAt": "",
+                "reviewRequestEmail.lastError": "",
             },
         },
         { new: true }

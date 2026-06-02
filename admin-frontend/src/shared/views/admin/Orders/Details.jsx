@@ -317,6 +317,7 @@ const OrderDetails = () => {
             const result = await AdminController.sendOrderReviewRequestEmail(id, true);
 
             if (!result.success) {
+                await fetchOrderDetails();
                 alert(result.error || "Failed to send review request email");
                 return;
             }
@@ -845,6 +846,17 @@ const OrderDetails = () => {
                                             <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">
                                                 Last sent {new Date(order.reviewRequestEmail.sentAt).toLocaleString()}
                                             </p>
+                                        )}
+                                        {order.reviewRequestEmail?.lastError && (
+                                            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                                                <p className="text-xs uppercase tracking-wide text-red-500">Last email error</p>
+                                                <p className="mt-1 break-words">{order.reviewRequestEmail.lastError}</p>
+                                                {order.reviewRequestEmail.failedAt && (
+                                                    <p className="mt-2 text-xs text-red-500">
+                                                        Failed {new Date(order.reviewRequestEmail.failedAt).toLocaleString()}
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                     <button
