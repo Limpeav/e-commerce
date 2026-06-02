@@ -33,10 +33,20 @@ const escapeHtml = (value = "") =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-const normalizeUrl = (url = "") => String(url || "").replace(/\/+$/, "");
+const normalizeUrl = (url = "") => String(url || "").trim().replace(/\/+$/, "");
 
-const getCustomerFrontendUrl = () =>
-  normalizeUrl(process.env.FRONTEND_URL || "http://localhost:5173");
+const getCustomerFrontendUrl = () => {
+  const frontendUrls = String(process.env.FRONTEND_URL || "http://localhost:5173")
+    .split(/[,\s]+/)
+    .map(normalizeUrl)
+    .filter((url) => /^https?:\/\//i.test(url));
+
+  return (
+    frontendUrls.find((url) => url.includes("cherishbabykhstore.store")) ||
+    frontendUrls[0] ||
+    "http://localhost:5173"
+  );
+};
 
 const sendLocalCapturedEmail = async (emailPayload) => {
   const transporter = nodemailer.createTransport({
