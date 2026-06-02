@@ -67,6 +67,8 @@ body {
 
 html:lang(kh) body {
     font-family: "Kantumruy Pro", var(--font-sans);
+    font-size: 1.02rem;
+    line-height: 1.75;
 }
 
 html:lang(kh) h1,
@@ -77,6 +79,13 @@ html:lang(kh) h5,
 html:lang(kh) h6,
 html:lang(kh) .font-display {
     font-family: "Koh Santepheap", "Kantumruy Pro", var(--font-sans);
+    line-height: 1.45;
+}
+
+html:lang(kh) h1,
+html:lang(kh) h2,
+html:lang(kh) h3 {
+    font-size-adjust: 0.52;
 }
 
 html:lang(kh) [class*="tracking-"] {

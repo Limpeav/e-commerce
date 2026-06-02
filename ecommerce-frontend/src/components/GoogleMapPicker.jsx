@@ -491,6 +491,27 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     };
   }, [isOpen, address, isGoogleMapsLoaded, selectedLocation]);
 
+  useEffect(() => {
+    if (!isOpen || !mapInstanceRef.current || !window.google?.maps?.event) {
+      return undefined;
+    }
+
+    const resizeMap = () => {
+      window.google.maps.event.trigger(mapInstanceRef.current, "resize");
+      mapInstanceRef.current.setCenter(selectedLocation);
+    };
+
+    const resizeTimeout = window.setTimeout(resizeMap, 150);
+    window.addEventListener("resize", resizeMap);
+    window.addEventListener("orientationchange", resizeMap);
+
+    return () => {
+      window.clearTimeout(resizeTimeout);
+      window.removeEventListener("resize", resizeMap);
+      window.removeEventListener("orientationchange", resizeMap);
+    };
+  }, [isOpen, selectedLocation]);
+
   const detectUserLocation = () => {
     if (!navigator.geolocation) {
       setLocationError(t("mapPicker.geolocationUnsupported"));
@@ -649,24 +670,25 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
           resetDraftState();
           setIsOpen(true);
         }}
-        className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 font-semibold shadow-sm transition-all duration-300 hover:shadow-md active:scale-95 ${
+        className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-all duration-300 hover:shadow-md active:scale-95 sm:w-auto sm:justify-start sm:text-base ${
           isDark
             ? "border-primary/50 bg-primary/15 text-primary-light hover:border-primary hover:bg-primary/20"
             : "border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 hover:from-blue-100 hover:to-purple-100"
         }`}
       >
-        <MapPin className="w-4 h-4" />
-        {initialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
+        <MapPin className="h-4 w-4 shrink-0" />
+        <span className="truncate">
+          {initialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
+        </span>
       </button>
 
       {/* Full Screen Modal - Mobile First */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen flex-col bg-white md:bg-black/60 md:items-center md:justify-center md:p-4 md:backdrop-blur-md"
-          style={{ touchAction: "none" }}
+          className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white md:bg-black/60 md:items-center md:justify-center md:p-4 md:backdrop-blur-md"
         >
           {/* Desktop wrapper */}
-          <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white md:h-full md:max-h-[95dvh] md:max-w-5xl md:rounded-3xl md:shadow-2xl">
+          <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white md:h-[min(760px,95dvh)] md:max-w-5xl md:rounded-3xl md:shadow-2xl">
 
             {/* === HEADER === */}
             <div className="safe-area-top flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-3 py-2.5 sm:px-4 md:px-6 md:py-4">
@@ -710,11 +732,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
               )}
 
               {/* === SEARCH BAR - Floating on map === */}
-              <div
-                className="absolute left-3 right-3 top-3 sm:left-4 sm:right-4 md:left-4 md:right-4 md:top-4"
+            <div
+                className="absolute left-3 right-3 top-3 sm:left-4 sm:right-4 md:left-5 md:right-5 md:top-5"
                 style={{ zIndex: 20 }}
               >
-                <div className="relative max-w-lg mx-auto md:mx-0 md:max-w-xl">
+                <div className="relative mx-auto max-w-lg md:mx-0 md:max-w-xl">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400 pointer-events-none" />
                   <input
                     ref={searchInputRef}
@@ -742,10 +764,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
               {/* === FLOATING ACTION BUTTONS - Right side === */}
               <div
-                className="absolute right-3 flex flex-col items-end gap-2.5 sm:right-4 md:right-4"
+                className="absolute right-3 flex flex-col items-end gap-2.5 sm:right-4 md:right-5"
                 style={{
                   zIndex: 15,
-                  bottom: showBottomSheet && addressName ? "min(46dvh, 228px)" : "min(34dvh, 168px)",
+                  bottom: showBottomSheet && addressName ? "clamp(196px, 42dvh, 260px)" : "clamp(120px, 28dvh, 180px)",
                   transition: "bottom 0.3s ease",
                 }}
               >
@@ -761,7 +783,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   type="button"
                   onClick={detectUserLocation}
                   disabled={detectingLocation}
-                  className="flex min-h-12 items-center justify-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 font-semibold text-gray-900 shadow-lg transition-all duration-300 hover:shadow-xl active:scale-90 disabled:opacity-50 md:px-4 group"
+                  className="group flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center justify-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 font-semibold text-gray-900 shadow-lg transition-all duration-300 hover:shadow-xl active:scale-90 disabled:opacity-50 md:px-4"
                   title={t("mapPicker.useCurrentLocation")}
                 >
                   {detectingLocation ? (
@@ -769,7 +791,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   ) : (
                     <>
                       <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm">{t("mapPicker.currentLocation")}</span>
+                      <span className="hidden text-sm sm:inline">{t("mapPicker.currentLocation")}</span>
                     </>
                   )}
                 </button>
@@ -791,7 +813,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
                 </div>
 
-                <div className="safe-area-bottom max-h-[46dvh] overflow-y-auto rounded-t-3xl bg-white px-3 pb-3 pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] sm:px-4 sm:pb-4 md:max-h-none md:overflow-visible md:rounded-none md:px-6 md:py-4">
+                <div className="safe-area-bottom max-h-[48dvh] overflow-y-auto rounded-t-3xl bg-white px-3 pb-3 pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] sm:px-4 sm:pb-4 md:max-h-none md:overflow-visible md:rounded-none md:px-6 md:py-4">
                   {/* Selected Address Info */}
                   {addressName && (
                     <div className="mb-2.5 md:mb-4">
@@ -824,7 +846,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-[minmax(5.5rem,0.75fr)_minmax(0,2fr)] gap-2.5 sm:gap-3 md:flex">
+                  <div className="grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-[minmax(5.5rem,0.75fr)_minmax(0,2fr)] sm:gap-3 md:flex">
                     <button
                       type="button"
                       onClick={handleClose}

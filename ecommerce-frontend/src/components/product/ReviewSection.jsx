@@ -37,9 +37,9 @@ const ReviewSection = ({ product }) => {
 
           <div className={`border rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
             <MessageSquare className={`w-8 h-8 mb-4 ${isDark ? "text-slate-500" : "text-primary"}`} />
-            <p className="text-text-main font-black uppercase tracking-widest text-xs mb-3 leading-relaxed">Verified Customer Feedback</p>
+            <p className="text-text-main font-black uppercase tracking-widest text-xs mb-3 leading-relaxed">{t("product.verifiedCustomerFeedback")}</p>
             <p className="text-sm font-bold leading-relaxed text-text-muted">
-              Ratings and comments from delivered purchases appear here.
+              {t("product.deliveredReviewDisplay")}
             </p>
           </div>
         </div>
