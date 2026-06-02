@@ -612,16 +612,32 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
     }
 
     const receiptSent = {
-        sentAt: Date.now(),
+        sentAt: new Date(),
         sentBy: req.user._id,
         channel: "telegram",
     };
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-        order._id,
-        { $set: { receiptSent } },
-        { new: true }
-    );
+    let updatedOrder;
+
+    try {
+        updatedOrder = await Order.findByIdAndUpdate(
+            order._id,
+            { $set: { receiptSent } },
+            { new: true }
+        );
+    } catch (error) {
+        console.error(
+            `Receipt sent to Telegram, but receipt status save failed for order ${order._id}:`,
+            error.message
+        );
+        res.status(500);
+        throw new Error("Receipt sent to Telegram, but the order was not updated. Please refresh and try again.");
+    }
+
+    if (!updatedOrder) {
+        res.status(404);
+        throw new Error("Receipt sent to Telegram, but the order could not be found for update.");
+    }
 
     emitOrderUpdated(updatedOrder, {
         receiptSent: updatedOrder.receiptSent,

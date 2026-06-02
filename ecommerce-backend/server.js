@@ -183,6 +183,18 @@ app.get("/test", (req, res) => {
   res.json({ message: "Backend working fine" });
 });
 
+app.use((err, req, res, next) => {
+  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+  const message = err.message || "Server error";
+
+  console.error(`${req.method} ${req.originalUrl} failed:`, message);
+
+  res.status(statusCode).json({
+    message,
+    ...(process.env.NODE_ENV === "production" ? {} : { stack: err.stack }),
+  });
+});
+
 // START SERVER
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
