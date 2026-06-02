@@ -110,6 +110,10 @@ const orderSchema = new mongoose.Schema(
             },
             channel: { type: String },
         },
+        reviewRequestEmail: {
+            sentAt: { type: Date },
+            messageId: { type: String },
+        },
         stockReduced: {
             type: Boolean,
             required: true,

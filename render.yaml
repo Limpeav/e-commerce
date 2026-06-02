@@ -11,13 +11,31 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://cherishbabykhstore.store,https://www.cherishbabykhstore.store,https://baby-products-wtux.onrender.com
       - key: FRONTEND_URL
-        sync: false
+        value: https://cherishbabykhstore.store
       - key: ADMIN_FRONTEND_URL
         sync: false
       - key: ALLOW_LOCAL_DEV_ORIGINS
         value: "true"
+      - key: EMAIL_PROVIDER
+        value: smtp
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: baby_product
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SUPPORT_EMAIL
+        sync: false
 
   - type: web
     name: ecommerce-frontend

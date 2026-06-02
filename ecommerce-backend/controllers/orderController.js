@@ -446,7 +446,14 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                         return;
                     }
 
-                    await sendDeliveryReviewRequestEmail({
+                    if (deliveredOrder.reviewRequestEmail?.sentAt) {
+                        console.log(
+                            `Skipped review request email for order ${updatedOrder._id}: already sent`
+                        );
+                        return;
+                    }
+
+                    const emailResult = await sendDeliveryReviewRequestEmail({
                         email: customerEmail,
                         customerName:
                             deliveredOrder.user?.name ||
@@ -454,6 +461,21 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                         orderId: deliveredOrder._id,
                         orderItems: deliveredOrder.orderItems,
                     });
+
+                    await Order.updateOne(
+                        {
+                            _id: deliveredOrder._id,
+                            "reviewRequestEmail.sentAt": { $exists: false },
+                        },
+                        {
+                            $set: {
+                                reviewRequestEmail: {
+                                    sentAt: new Date(),
+                                    messageId: emailResult?.id || "",
+                                },
+                            },
+                        }
+                    );
                 } catch (emailError) {
                     console.error("Review request email failed:", emailError.message);
                 }
