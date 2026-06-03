@@ -4,11 +4,13 @@ import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshC
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/useLanguage';
 import axios from 'axios';
 import { config } from '../../config/index.js';
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
 import FormInput from '../../components/ui/FormInput';
+import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import { AlertMessage } from '../../components';
 import {
   getNotificationPreferences,
@@ -31,7 +33,7 @@ export default function Settings() {
   );
   const [isSavingPromotionalEmails, setIsSavingPromotionalEmails] = useState(false);
   const [notificationError, setNotificationError] = useState('');
-  const [language, setLanguage] = useState('en');
+  const { language, setLanguage } = useLanguage();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -43,7 +45,6 @@ export default function Settings() {
   const promotionalPreferenceRequestRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [deleteSuccess, setDeleteSuccess] = useState('');
 
   const isGoogleUser = !!user?.googleId;
   const displayPromotionalEmails = promotionalEmails === true;
@@ -127,7 +128,6 @@ export default function Settings() {
     setShowDeleteModal(false);
     setDeletePassword('');
     setDeleteError('');
-    setDeleteSuccess('');
     setGoogleStep(1);
     setOtpDigits(['', '', '', '', '', '']);
     setMaskedEmail('');
@@ -278,24 +278,13 @@ export default function Settings() {
                     <p className="mt-2 text-xs font-bold uppercase tracking-widest text-primary">Saving preference...</p>
                   )}
                 </div>
-                <div className="shrink-0">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={displayPromotionalEmails}
-                    onClick={() => handlePromotionalEmailsChange(!displayPromotionalEmails)}
+                <div className="shrink-0 rounded-2xl px-1 py-1">
+                  <ToggleSwitch
+                    checked={displayPromotionalEmails}
+                    onChange={handlePromotionalEmailsChange}
+                    label={promotionalEmailStatus}
                     disabled={isSavingPromotionalEmails}
-                    className="inline-flex items-center gap-4 rounded-2xl px-1 py-1 text-sm font-bold uppercase tracking-widest text-text-main transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <span className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 ${
-                      displayPromotionalEmails ? 'bg-primary' : isDark ? 'bg-slate-700' : 'bg-stone-200'
-                    }`}>
-                      <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${
-                        displayPromotionalEmails ? 'translate-x-7' : 'translate-x-1'
-                      }`} />
-                    </span>
-                    <span>{promotionalEmailStatus}</span>
-                  </button>
+                  />
                 </div>
               </div>
             </div>
