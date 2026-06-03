@@ -15,6 +15,21 @@ const getProductId = (item) => {
 const getProductName = (item) =>
   item?.product?.title || item?.product?.name || item?.name || "Purchased product";
 
+const getReviewUserId = (review) => {
+  const reviewUser = review?.user;
+  return typeof reviewUser === "object" ? reviewUser?._id : reviewUser;
+};
+
+const getUserReviewForItem = (item, user) => {
+  const userId = user?._id || user?.id;
+
+  if (!userId || !Array.isArray(item?.product?.reviews)) {
+    return null;
+  }
+
+  return item.product.reviews.find((review) => String(getReviewUserId(review)) === String(userId)) || null;
+};
+
 const uniqueOrderItems = (items = []) =>
   Array.from(
     new Map(
@@ -36,7 +51,6 @@ export default function ReviewOrder() {
   const [forms, setForms] = useState({});
   const [submittingByProduct, setSubmittingByProduct] = useState({});
   const [submittedByProduct, setSubmittedByProduct] = useState({});
-  const [thankYou, setThankYou] = useState(null);
   const focusedProductId = searchParams.get("product");
 
   useEffect(() => {
@@ -57,18 +71,6 @@ export default function ReviewOrder() {
     loadOrder();
   }, [id]);
 
-  useEffect(() => {
-    if (!thankYou) {
-      return undefined;
-    }
-
-    const redirectTimer = window.setTimeout(() => {
-      navigate("/customer/products", { replace: true });
-    }, 3000);
-
-    return () => window.clearTimeout(redirectTimer);
-  }, [navigate, thankYou]);
-
   const reviewItems = useMemo(() => {
     const items = uniqueOrderItems(order?.orderItems || []);
 
@@ -82,6 +84,44 @@ export default function ReviewOrder() {
       return Number(bMatches) - Number(aMatches);
     });
   }, [order?.orderItems, focusedProductId]);
+
+  useEffect(() => {
+    if (!reviewItems.length || !user) {
+      return;
+    }
+
+    setForms((current) => {
+      const next = { ...current };
+
+      reviewItems.forEach((item) => {
+        const productId = String(getProductId(item));
+        const existingReview = getUserReviewForItem(item, user);
+
+        if (existingReview && !next[productId]) {
+          next[productId] = {
+            rating: Number(existingReview.rating) || 0,
+            comment: existingReview.comment || "",
+          };
+        }
+      });
+
+      return next;
+    });
+
+    setSubmittedByProduct((current) => {
+      const next = { ...current };
+
+      reviewItems.forEach((item) => {
+        const productId = String(getProductId(item));
+
+        if (getUserReviewForItem(item, user) && !next[productId]) {
+          next[productId] = "existing";
+        }
+      });
+
+      return next;
+    });
+  }, [reviewItems, user]);
 
   const setRating = (productId, rating) => {
     setForms((current) => ({
@@ -108,6 +148,7 @@ export default function ReviewOrder() {
     const form = forms[productId] || {};
 
     if (!form.rating) {
+      window.alert("Please select a star rating before submitting your review.");
       setForms((current) => ({
         ...current,
         [productId]: {
@@ -146,13 +187,9 @@ export default function ReviewOrder() {
 
     setSubmittedByProduct((current) => ({
       ...current,
-      [productId]: result.data?.alreadyReviewed ? "already" : "submitted",
+      [productId]: result.data?.updated || result.data?.alreadyReviewed ? "updated" : "submitted",
     }));
     setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
-    setThankYou({
-      productName: getProductName(item),
-      status: result.data?.alreadyReviewed ? "already" : "submitted",
-    });
   };
 
   const switchOrderAccount = () => {
@@ -162,35 +199,6 @@ export default function ReviewOrder() {
       replace: true,
     });
   };
-
-  if (thankYou) {
-    return (
-      <main className={`flex min-h-screen items-center justify-center px-4 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
-        <section className={`relative w-full max-w-lg overflow-hidden rounded-2xl border p-8 text-center shadow-xl sm:p-10 ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
-          <div className="absolute left-6 top-6 h-3 w-3 animate-ping rounded-full bg-amber-300" />
-          <div className="absolute right-8 top-10 h-2 w-2 animate-pulse rounded-full bg-primary" />
-          <div className="absolute bottom-8 left-10 h-2.5 w-2.5 animate-bounce rounded-full bg-green-400" />
-
-          <div className="mx-auto mb-6 flex h-20 w-20 animate-bounce items-center justify-center rounded-full bg-green-50 text-green-600">
-            <CheckCircle className="h-11 w-11" />
-          </div>
-
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-primary">
-            {thankYou.status === "already" ? "Review already received" : "Review submitted"}
-          </p>
-          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-4xl">
-            Thank you for your feedback.
-          </h1>
-          <p className="mx-auto mt-4 max-w-sm text-sm font-bold leading-relaxed text-text-muted">
-            Your rating for {thankYou.productName} helps other customers shop with confidence.
-          </p>
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-text-muted">
-            Taking you back to the shop...
-          </p>
-        </section>
-      </main>
-    );
-  }
 
   if (loading) {
     return <Loading message="Loading review page..." />;
@@ -244,6 +252,14 @@ export default function ReviewOrder() {
             const form = forms[productId] || {};
             const submitted = submittedByProduct[productId];
             const isSubmitting = submittingByProduct[productId];
+            const hasExistingReview = submitted === "existing" || submitted === "updated";
+            const statusLabel = submitted === "submitted"
+              ? "Submitted"
+              : submitted === "updated"
+                ? "Review updated"
+                : submitted === "existing"
+                  ? "Already reviewed"
+                  : "";
 
             return (
               <section
@@ -269,70 +285,84 @@ export default function ReviewOrder() {
                           Quantity {item.quantity || 1}
                         </p>
                       </div>
-                      {submitted && (
+                      {statusLabel && (
                         <span className="inline-flex h-9 items-center gap-2 rounded-full bg-green-50 px-4 text-xs font-black uppercase tracking-widest text-green-700">
                           <CheckCircle className="h-4 w-4" />
-                          {submitted === "already" ? "Already reviewed" : "Submitted"}
+                          {statusLabel}
                         </span>
                       )}
                     </div>
 
-                    {!submitted && (
-                      <div className="space-y-5">
-                        <div>
-                          <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-primary">Rating</p>
-                          <div className="flex flex-wrap gap-2">
-                            {[1, 2, 3, 4, 5].map((rating) => (
-                              <button
-                                key={rating}
-                                type="button"
-                                onClick={() => setRating(productId, rating)}
-                                className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-colors ${
-                                  Number(form.rating) >= rating
-                                    ? "border-amber-200 bg-amber-50 text-amber-500"
-                                    : isDark
-                                      ? "border-slate-700 bg-slate-800 text-slate-500 hover:text-amber-400"
-                                      : "border-stone-200 bg-stone-50 text-stone-300 hover:text-amber-400"
-                                }`}
-                                aria-label={`${rating} star rating`}
-                              >
-                                <Star className="h-5 w-5 fill-current" />
-                              </button>
-                            ))}
-                          </div>
+                    <div className="space-y-5">
+                      {hasExistingReview && (
+                        <div className={`rounded-2xl border px-4 py-3 text-sm font-bold leading-relaxed ${
+                          isDark ? "border-emerald-900/60 bg-emerald-950/30 text-emerald-200" : "border-emerald-100 bg-emerald-50 text-emerald-800"
+                        }`}>
+                          You already rated this product. You can change the stars or review text, then update your review.
                         </div>
+                      )}
 
-                        <div>
-                          <label className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary" htmlFor={`review-${productId}`}>
-                            Your Review(optional)
-                          </label>
-                          <textarea
-                            id={`review-${productId}`}
-                            value={form.comment || ""}
-                            onChange={(event) => setComment(productId, event.target.value)}
-                            rows={4}
-                            placeholder="Write your review here..."
-                            className={`w-full resize-none rounded-2xl border-2 p-4 text-sm font-bold text-text-main outline-none transition-colors focus:border-primary ${
-                              isDark ? "border-slate-700 bg-slate-800 placeholder:text-slate-500" : "border-stone-100 bg-stone-50 placeholder:text-stone-400"
-                            }`}
-                          />
+                      {submitted === "submitted" && (
+                        <div className={`rounded-2xl border px-4 py-3 text-sm font-bold leading-relaxed ${
+                          isDark ? "border-blue-900/60 bg-blue-950/30 text-blue-200" : "border-blue-100 bg-blue-50 text-blue-800"
+                        }`}>
+                          Review submitted for this product. You can continue with the next product, or update this one.
                         </div>
+                      )}
 
-                        {form.error && (
-                          <p className="text-sm font-bold text-red-600">{form.error}</p>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => submitReview(item)}
-                          disabled={isSubmitting}
-                          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                        >
-                          <Send className="h-4 w-4" />
-                          {isSubmitting ? "Submitting..." : "Submit review"}
-                        </button>
+                      <div>
+                        <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-primary">Rating</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <button
+                              key={rating}
+                              type="button"
+                              onClick={() => setRating(productId, rating)}
+                              className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-colors ${
+                                Number(form.rating) >= rating
+                                  ? "border-amber-200 bg-amber-50 text-amber-500"
+                                  : isDark
+                                    ? "border-slate-700 bg-slate-800 text-slate-500 hover:text-amber-400"
+                                    : "border-stone-200 bg-stone-50 text-stone-300 hover:text-amber-400"
+                              }`}
+                              aria-label={`${rating} star rating`}
+                            >
+                              <Star className="h-5 w-5 fill-current" />
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    )}
+
+                      <div>
+                        <label className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary" htmlFor={`review-${productId}`}>
+                          Your Review(optional)
+                        </label>
+                        <textarea
+                          id={`review-${productId}`}
+                          value={form.comment || ""}
+                          onChange={(event) => setComment(productId, event.target.value)}
+                          rows={4}
+                          placeholder="Write your review here..."
+                          className={`w-full resize-none rounded-2xl border-2 p-4 text-sm font-bold text-text-main outline-none transition-colors focus:border-primary ${
+                            isDark ? "border-slate-700 bg-slate-800 placeholder:text-slate-500" : "border-stone-100 bg-stone-50 placeholder:text-stone-400"
+                          }`}
+                        />
+                      </div>
+
+                      {form.error && (
+                        <p className="text-sm font-bold text-red-600">{form.error}</p>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => submitReview(item)}
+                        disabled={isSubmitting}
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                      >
+                        <Send className="h-4 w-4" />
+                        {isSubmitting ? "Submitting..." : hasExistingReview || submitted === "submitted" ? "Update review" : "Submit review"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </section>

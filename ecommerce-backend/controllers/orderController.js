@@ -333,7 +333,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 export const getOrderById = asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id)
         .populate("user", "name email")
-        .populate("orderItems.product", "title titleKm name");
+        .populate("orderItems.product", "title titleKm name reviews");
 
     if (!order) {
         res.status(404);

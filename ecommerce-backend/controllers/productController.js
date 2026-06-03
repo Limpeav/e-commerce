@@ -785,7 +785,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// @desc    Create new review
+// @desc    Create or update product review
 // @route   POST /api/products/:id/reviews
 // @access  Private
 export const createProductReview = async (req, res) => {
@@ -799,10 +799,6 @@ export const createProductReview = async (req, res) => {
         (r) => r.user.toString() === req.user._id.toString()
       );
 
-      if (alreadyReviewed) {
-        return res.status(400).json({ message: "Product already reviewed" });
-      }
-
       // Fetch current user data from database to get latest information
       const User = (await import("../models/userModel.js")).default;
       const currentUser = await User.findById(req.user._id);
@@ -811,14 +807,20 @@ export const createProductReview = async (req, res) => {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const review = {
-        name: currentUser.name, // Use current name from database
-        rating: Number(rating),
-        comment,
-        user: req.user._id,
-      };
+      if (alreadyReviewed) {
+        alreadyReviewed.name = currentUser.name;
+        alreadyReviewed.rating = Number(rating);
+        alreadyReviewed.comment = comment;
+      } else {
+        const review = {
+          name: currentUser.name, // Use current name from database
+          rating: Number(rating),
+          comment,
+          user: req.user._id,
+        };
 
-      product.reviews.push(review);
+        product.reviews.push(review);
+      }
 
       product.numReviews = product.reviews.length;
 
@@ -827,7 +829,11 @@ export const createProductReview = async (req, res) => {
         product.reviews.length;
 
       await product.save();
-      res.status(201).json({ message: "Review added" });
+      res.status(alreadyReviewed ? 200 : 201).json({
+        message: alreadyReviewed ? "Review updated" : "Review added",
+        alreadyReviewed: Boolean(alreadyReviewed),
+        updated: Boolean(alreadyReviewed),
+      });
     } else {
       res.status(404).json({ message: "Product not found" });
     }

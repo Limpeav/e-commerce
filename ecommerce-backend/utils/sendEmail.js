@@ -301,6 +301,9 @@ export const sendProductPromotionEmail = async ({
   const price = Number(product?.price || 0);
   const discountPrice = Number(product?.discountPrice || 0);
   const hasPromotion = discountPrice > 0 && discountPrice < price;
+  const discountPercent = hasPromotion
+    ? Math.max(1, Math.round(((price - discountPrice) / price) * 100))
+    : 0;
   const reasonLabels = reasons.length > 0
     ? reasons
     : [
@@ -309,12 +312,30 @@ export const sendProductPromotionEmail = async ({
       ];
   const badgeText = escapeHtml(reasonLabels.join(" + ") || "Store update");
   const subject = hasPromotion
-    ? `${product?.title || "A product"} is on promotion`
+    ? `${discountPercent}% off ${product?.title || "a product"}`
     : `New arrival: ${product?.title || "fresh picks"}`;
 
   const priceHtml = hasPromotion
-    ? `<p style="margin:10px 0 0;font-size:15px;color:#6b7280;"><span style="text-decoration:line-through;">$${price.toFixed(2)}</span> <strong style="font-size:22px;color:#5F7A63;">$${discountPrice.toFixed(2)}</strong></p>`
-    : `<p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#5F7A63;">$${price.toFixed(2)}</p>`;
+    ? `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;">
+        <tr>
+          <td style="padding:18px 20px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:#C2410C;">Limited promotion</p>
+            <p style="margin:0;font-size:15px;color:#78716C;">
+              <span style="text-decoration:line-through;">$${price.toFixed(2)}</span>
+              <strong style="display:inline-block;margin-left:8px;font-size:30px;line-height:1;color:#2F6F4E;">$${discountPrice.toFixed(2)}</strong>
+            </p>
+          </td>
+          <td align="right" width="122" style="padding:18px 20px 18px 0;">
+            <div style="display:inline-block;background:#C2410C;color:#ffffff;border-radius:18px;padding:12px 14px;text-align:center;box-shadow:0 10px 22px rgba(194,65,12,0.18);">
+              <span style="display:block;font-size:30px;line-height:1;font-weight:900;letter-spacing:-0.5px;">${discountPercent}%</span>
+              <span style="display:block;margin-top:3px;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">Off</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    `
+    : `<p style="margin:14px 0 0;font-size:30px;font-weight:900;color:#2F6F4E;">$${price.toFixed(2)}</p>`;
 
   const data = await sendConfiguredEmail(
     {
@@ -329,29 +350,45 @@ export const sendProductPromotionEmail = async ({
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${escapeHtml(subject)}</title>
         </head>
-        <body style="margin:0;padding:0;background:#f7f5f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2D312E;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f1;padding:32px 14px;">
+        <body style="margin:0;padding:0;background:#f4f0ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#26312A;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f0ea;padding:32px 14px;">
             <tr>
               <td align="center">
-                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #EAE3DB;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(95,122,99,0.14);">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #E6DCD1;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(74,61,42,0.14);">
                   <tr>
-                    <td style="padding:34px 32px;background:linear-gradient(135deg,#F7F2EA,#EFF6F0);">
-                      <p style="margin:0 0 12px;font-size:12px;font-weight:900;letter-spacing:1.8px;text-transform:uppercase;color:#7A967E;">${badgeText}</p>
-                      <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.8px;color:#2D312E;">Something new for your little one.</h1>
-                      <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#727871;">Hi ${safeCustomerName}, ${safeTitle} is now available${hasPromotion ? " with a special price" : ""}.</p>
+                    <td style="padding:34px 32px;background:linear-gradient(135deg,#FFF7ED 0%,#F0F7F1 62%,#EAF3FF 100%);">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td valign="top">
+                            <p style="margin:0 0 12px;font-size:12px;font-weight:900;letter-spacing:1.8px;text-transform:uppercase;color:#607C63;">${badgeText}</p>
+                            <h1 style="margin:0;font-size:32px;line-height:1.12;color:#26312A;">${hasPromotion ? `Save ${discountPercent}% on a sweet new pick.` : "Something new for your little one."}</h1>
+                            <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#66716A;">Hi ${safeCustomerName}, ${safeTitle} is now available${hasPromotion ? ` with ${discountPercent}% off for a limited time` : ""}.</p>
+                          </td>
+                          ${hasPromotion
+                            ? `<td align="right" valign="top" width="116" style="padding-left:16px;">
+                                <div style="display:inline-block;background:#26312A;color:#ffffff;border-radius:20px;padding:14px 16px;text-align:center;">
+                                  <span style="display:block;font-size:30px;line-height:1;font-weight:900;">${discountPercent}%</span>
+                                  <span style="display:block;margin-top:4px;font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#FDE68A;">Discount</span>
+                                </div>
+                              </td>`
+                            : ""}
+                        </tr>
+                      </table>
                     </td>
                   </tr>
                   <tr>
                     <td style="padding:30px 32px;">
                       ${safeImage
-                        ? `<img src="${safeImage}" alt="${safeTitle}" style="display:block;width:100%;max-height:320px;object-fit:cover;border-radius:22px;border:1px solid #EAE3DB;margin-bottom:24px;">`
+                        ? `<div style="position:relative;margin-bottom:24px;">
+                            <img src="${safeImage}" alt="${safeTitle}" style="display:block;width:100%;max-height:340px;object-fit:cover;border-radius:22px;border:1px solid #E6DCD1;">
+                          </div>`
                         : ""}
-                      <h2 style="margin:0;font-size:24px;line-height:1.25;color:#2D312E;">${safeTitle}</h2>
+                      <h2 style="margin:0;font-size:24px;line-height:1.25;color:#26312A;">${safeTitle}</h2>
                       ${priceHtml}
-                      <p style="margin:16px 0 26px;font-size:14px;line-height:1.7;color:#727871;">${safeDescription}</p>
+                      <p style="margin:16px 0 26px;font-size:14px;line-height:1.7;color:#66716A;">${safeDescription}</p>
                       <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
                         <tr>
-                          <td align="center" style="background:#7A967E;border-radius:999px;">
+                          <td align="center" style="background:#26312A;border-radius:999px;">
                             <a href="${productUrl}" style="display:inline-block;padding:15px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:900;">View product</a>
                           </td>
                         </tr>
@@ -374,7 +411,7 @@ export const sendProductPromotionEmail = async ({
 Hi ${customerName || "there"},
 
 ${product?.title || "A product"} is ${reasonLabels.join(" + ") || "available now"}.
-${hasPromotion ? `Promotion price: $${discountPrice.toFixed(2)} (was $${price.toFixed(2)})` : `Price: $${price.toFixed(2)}`}
+${hasPromotion ? `Promotion price: $${discountPrice.toFixed(2)} (was $${price.toFixed(2)}) - ${discountPercent}% off` : `Price: $${price.toFixed(2)}`}
 
 View it here:
 ${productUrl}
