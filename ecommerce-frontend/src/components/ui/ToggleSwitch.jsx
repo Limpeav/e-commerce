@@ -9,7 +9,7 @@ const ToggleSwitch = ({
 }) => {
   const [isDark] = useDarkMode();
   return (
-    <label className="flex items-center gap-4 group cursor-pointer">
+    <label className={`flex items-center gap-4 group ${disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
       <div className="relative">
         <input
           type="checkbox"

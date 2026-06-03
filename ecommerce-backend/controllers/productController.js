@@ -47,6 +47,11 @@ const getProductPromotionReasons = (product = {}) => [
   ...(isPromotionalProduct(product) ? ["Promotion"] : []),
 ];
 
+const PROMOTIONAL_EMAIL_CONCURRENCY = Math.max(
+  1,
+  Number.parseInt(process.env.PROMOTIONAL_EMAIL_CONCURRENCY || "5", 10) || 5
+);
+
 const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPromotionReasons(product)) => {
   if (!product || reasons.length === 0) return;
 
@@ -58,7 +63,10 @@ const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPr
     .select("name email")
     .lean();
 
-  for (const subscriber of subscribers) {
+  let sentCount = 0;
+  let failedCount = 0;
+
+  const sendToSubscriber = async (subscriber) => {
     try {
       await sendProductPromotionEmail({
         email: subscriber.email,
@@ -66,10 +74,21 @@ const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPr
         product,
         reasons,
       });
+      sentCount += 1;
     } catch (error) {
+      failedCount += 1;
       console.error(`Failed to send promotional email to ${subscriber.email}:`, error.message);
     }
+  };
+
+  for (let index = 0; index < subscribers.length; index += PROMOTIONAL_EMAIL_CONCURRENCY) {
+    const batch = subscribers.slice(index, index + PROMOTIONAL_EMAIL_CONCURRENCY);
+    await Promise.all(batch.map(sendToSubscriber));
   }
+
+  console.log(
+    `Promotional email notification finished: ${sentCount} sent, ${failedCount} failed, ${subscribers.length} subscribers.`
+  );
 };
 
 const queuePromotionalEmailNotification = (product, reasons = getProductPromotionReasons(product)) => {

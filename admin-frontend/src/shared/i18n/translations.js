@@ -282,7 +282,7 @@ export const translations = {
       light: "ភ្លឺ",
       dark: "ងងឹត",
       lightMode: "របៀបភ្លឺ",
-      darkMode: "របៀបងងឹត",
+      darkMode: "ងងឹត",
       loginRegister: "ចូល/ចុះឈ្មោះ",
       switchToLight: "ប្តូរទៅរបៀបភ្លឺ",
       switchToDark: "ប្តូរទៅរបៀបងងឹត",
