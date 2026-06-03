@@ -28,7 +28,7 @@ export default function ReviewOrder() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isDark] = useDarkMode();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,7 @@ export default function ReviewOrder() {
   const [forms, setForms] = useState({});
   const [submittingByProduct, setSubmittingByProduct] = useState({});
   const [submittedByProduct, setSubmittedByProduct] = useState({});
+  const [thankYou, setThankYou] = useState(null);
   const focusedProductId = searchParams.get("product");
 
   useEffect(() => {
@@ -55,6 +56,18 @@ export default function ReviewOrder() {
 
     loadOrder();
   }, [id]);
+
+  useEffect(() => {
+    if (!thankYou) {
+      return undefined;
+    }
+
+    const redirectTimer = window.setTimeout(() => {
+      navigate("/customer/products", { replace: true });
+    }, 3000);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [navigate, thankYou]);
 
   const reviewItems = useMemo(() => {
     const items = uniqueOrderItems(order?.orderItems || []);
@@ -136,22 +149,79 @@ export default function ReviewOrder() {
       [productId]: result.data?.alreadyReviewed ? "already" : "submitted",
     }));
     setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
-    navigate("/customer", { replace: true });
+    setThankYou({
+      productName: getProductName(item),
+      status: result.data?.alreadyReviewed ? "already" : "submitted",
+    });
   };
+
+  const switchOrderAccount = () => {
+    logout();
+    navigate("/login", {
+      state: { from: `/orders/${id}/review${window.location.search || ""}` },
+      replace: true,
+    });
+  };
+
+  if (thankYou) {
+    return (
+      <main className={`flex min-h-screen items-center justify-center px-4 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <section className={`relative w-full max-w-lg overflow-hidden rounded-2xl border p-8 text-center shadow-xl sm:p-10 ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
+          <div className="absolute left-6 top-6 h-3 w-3 animate-ping rounded-full bg-amber-300" />
+          <div className="absolute right-8 top-10 h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <div className="absolute bottom-8 left-10 h-2.5 w-2.5 animate-bounce rounded-full bg-green-400" />
+
+          <div className="mx-auto mb-6 flex h-20 w-20 animate-bounce items-center justify-center rounded-full bg-green-50 text-green-600">
+            <CheckCircle className="h-11 w-11" />
+          </div>
+
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-primary">
+            {thankYou.status === "already" ? "Review already received" : "Review submitted"}
+          </p>
+          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-4xl">
+            Thank you for your feedback.
+          </h1>
+          <p className="mx-auto mt-4 max-w-sm text-sm font-bold leading-relaxed text-text-muted">
+            Your rating for {thankYou.productName} helps other customers shop with confidence.
+          </p>
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-text-muted">
+            Taking you back to the shop...
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   if (loading) {
     return <Loading message="Loading review page..." />;
   }
 
   if (error || !order) {
+    const isAuthorizationError = /not authorized/i.test(error);
+
     return (
       <div className={`min-h-screen px-4 py-24 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
         <div className={`mx-auto max-w-xl rounded-2xl border p-8 text-center ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
           <p className="mb-4 text-lg font-black text-text-main">Review page unavailable</p>
-          <p className="mb-6 text-sm font-bold text-text-muted">{error || "Order not found."}</p>
-          <Link to="/orders" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-black text-white">
-            Back to orders
-          </Link>
+          <p className="mb-6 text-sm font-bold leading-relaxed text-text-muted">
+            {isAuthorizationError
+              ? "This order belongs to a different customer account. Please sign in with the account that placed this order, then open the review link again."
+              : error || "Order not found."}
+          </p>
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {isAuthorizationError && (
+              <button
+                type="button"
+                onClick={switchOrderAccount}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-black text-white"
+              >
+                Sign in with order account
+              </button>
+            )}
+            <Link to="/orders" className={`inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black ${isAuthorizationError ? "bg-stone-100 text-text-main" : "bg-primary text-white"}`}>
+              Back to orders
+            </Link>
+          </div>
         </div>
       </div>
     );
