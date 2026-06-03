@@ -8,15 +8,25 @@ const ATTRIBUTE_NAMES = ["placeholder", "aria-label", "title"];
 
 const normalizeText = (value = "") => value.replace(/\s+/g, " ").trim();
 const hasDigit = (value = "") => /\d/.test(value);
+const buildReverseDictionary = (dictionary) =>
+  Object.entries(dictionary).reduce((reverseDictionary, [englishText, khmerText]) => {
+    reverseDictionary[normalizeText(khmerText)] = englishText;
+    return reverseDictionary;
+  }, {});
 
-const translateTextNode = (node, dictionary, language) => {
+const getEnglishOriginal = (value, reverseDictionary) => {
+  const normalizedValue = normalizeText(value);
+  return reverseDictionary[normalizedValue] || value;
+};
+
+const translateTextNode = (node, dictionary, reverseDictionary, language) => {
   if (hasDigit(node.nodeValue)) return;
 
   if (!textNodeOriginals.has(node)) {
-    textNodeOriginals.set(node, node.nodeValue);
+    textNodeOriginals.set(node, getEnglishOriginal(node.nodeValue, reverseDictionary));
   }
 
-  const original = textNodeOriginals.get(node);
+  const original = getEnglishOriginal(textNodeOriginals.get(node), reverseDictionary);
   const normalizedOriginal = normalizeText(original);
 
   if (!normalizedOriginal) return;
@@ -32,20 +42,30 @@ const translateTextNode = (node, dictionary, language) => {
     return;
   }
 
-  if (node.nodeValue !== original) {
-    node.nodeValue = original;
+  const englishValue = original.replace(
+    normalizedOriginal,
+    reverseDictionary[normalizeText(node.nodeValue)] || normalizedOriginal
+  );
+
+  if (node.nodeValue !== englishValue) {
+    node.nodeValue = englishValue;
   }
 };
 
-const translateAttributes = (element, dictionary, language) => {
+const translateAttributes = (element, dictionary, reverseDictionary, language) => {
   ATTRIBUTE_NAMES.forEach((name) => {
     const currentValue = element.getAttribute(name);
     if (!currentValue) return;
 
     const originalKey = `data-original-${name}`;
-    const originalValue = element.getAttribute(originalKey) || currentValue;
+    const originalValue = getEnglishOriginal(
+      element.getAttribute(originalKey) || currentValue,
+      reverseDictionary
+    );
 
     if (!element.hasAttribute(originalKey)) {
+      element.setAttribute(originalKey, originalValue);
+    } else if (element.getAttribute(originalKey) !== originalValue) {
       element.setAttribute(originalKey, originalValue);
     }
 
@@ -62,13 +82,18 @@ const translateAttributes = (element, dictionary, language) => {
       return;
     }
 
-    if (element.getAttribute(name) !== originalValue) {
-      element.setAttribute(name, originalValue);
+    const englishValue = originalValue.replace(
+      normalizedOriginal,
+      reverseDictionary[normalizeText(currentValue)] || normalizedOriginal
+    );
+
+    if (element.getAttribute(name) !== englishValue) {
+      element.setAttribute(name, englishValue);
     }
   });
 };
 
-const translateTree = (root, dictionary, language) => {
+const translateTree = (root, dictionary, reverseDictionary, language) => {
   if (!root) return;
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -83,12 +108,12 @@ const translateTree = (root, dictionary, language) => {
 
   let currentNode = walker.nextNode();
   while (currentNode) {
-    translateTextNode(currentNode, dictionary, language);
+    translateTextNode(currentNode, dictionary, reverseDictionary, language);
     currentNode = walker.nextNode();
   }
 
   root.querySelectorAll?.("[placeholder], [aria-label], [title]").forEach((element) => {
-    translateAttributes(element, dictionary, language);
+    translateAttributes(element, dictionary, reverseDictionary, language);
   });
 };
 
@@ -100,15 +125,24 @@ export default function StaticTextTranslator({ disabled = false }) {
     if (disabled) return undefined;
 
     const dictionary = staticTextTranslations.kh || {};
-    const runTranslation = () => translateTree(document.body, dictionary, language);
+    const reverseDictionary = buildReverseDictionary(dictionary);
+    let animationFrame = 0;
+
+    const runTranslation = () => {
+      animationFrame = 0;
+      translateTree(document.body, dictionary, reverseDictionary, language);
+    };
+
+    const scheduleTranslation = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(runTranslation);
+    };
 
     runTranslation();
+    window.setTimeout(scheduleTranslation, 0);
+    window.setTimeout(scheduleTranslation, 120);
 
-    if (language !== "kh") return undefined;
-
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(runTranslation);
-    });
+    const observer = new MutationObserver(scheduleTranslation);
 
     observer.observe(document.body, {
       childList: true,
@@ -118,7 +152,12 @@ export default function StaticTextTranslator({ disabled = false }) {
       attributeFilter: ATTRIBUTE_NAMES,
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
   }, [disabled, language, location.pathname, location.search]);
 
   return null;
