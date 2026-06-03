@@ -54,7 +54,7 @@ const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart } = useCart();
+  const { cart, openCartDrawer } = useCart();
   const { wishlist } = useWishlist();
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -189,8 +189,9 @@ export default function Navbar() {
                   <span>{t("nav.wishlist")}</span>
                 </Link>
 
-                <Link
-                  to="/customer/cart"
+                <button
+                  type="button"
+                  onClick={openCartDrawer}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/customer/cart")
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
@@ -213,7 +214,7 @@ export default function Navbar() {
                     </AnimatePresence>
                   </div>
                   <span>{t("nav.cart")}</span>
-                </Link>
+                </button>
               </div>
 
               {/* Desktop Auth */}
@@ -338,14 +339,19 @@ export default function Navbar() {
               )}
             </Link>
 
-            <Link to="/customer/cart" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
+            <button
+              type="button"
+              onClick={openCartDrawer}
+              className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+              aria-label={t("nav.cart")}
+            >
               <ShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (
                 <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
                   {cartItemCount > 9 ? "9+" : cartItemCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {user ? (
               <Link to="/customer/profile" className="ml-1">

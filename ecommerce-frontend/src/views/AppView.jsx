@@ -105,8 +105,10 @@ export default function AppView() {
   const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+\/review\/?$/.test(
     location.pathname
   );
-  const shouldShowNavFooter =
+  const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);
+  const shouldShowNav =
     !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute && !isOrderReviewRoute;
+  const shouldShowFooter = shouldShowNav && !isWishlistRoute;
 
   const needsPhone =
     user &&
@@ -167,7 +169,7 @@ export default function AppView() {
             : "bg-stone-50 text-text-main transition-colors duration-300"
         }
       >
-        {shouldShowNavFooter && <Navbar />}
+        {shouldShowNav && <Navbar />}
         <StaticTextTranslator disabled={isPortalRoute} />
 
         <main
@@ -186,7 +188,7 @@ export default function AppView() {
           </Suspense>
         </main>
 
-        {shouldShowNavFooter && <Footer />}
+        {shouldShowFooter && <Footer />}
       </div>
     </ErrorBoundary>
   );

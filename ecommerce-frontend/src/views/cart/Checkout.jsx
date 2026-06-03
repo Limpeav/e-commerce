@@ -67,15 +67,127 @@ const Checkout = () => {
     setError("");
   };
 
-  const handleLocationSelect = (location) => {
+  const getCityProvinceFromText = (value = "") => {
+    const parts = String(value)
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((part) => part.toLowerCase() !== "cambodia");
+
+    if (parts.length >= 2) {
+      return parts[parts.length - 1];
+    }
+
+    return parts[0] || "";
+  };
+
+  const getAddressPart = (components = [], ...types) =>
+    components.find((component) =>
+      types.some((type) => component.types?.includes(type))
+    )?.long_name || "";
+
+  const getLocationDetailsFromGeocodeResult = (result, fallbackLocation) => {
+    const components = result?.address_components || [];
+    const streetNumber = getAddressPart(components, "street_number");
+    const route = getAddressPart(components, "route");
+    const neighborhood = getAddressPart(
+      components,
+      "sublocality_level_1",
+      "sublocality",
+      "neighborhood"
+    );
+    const district = getAddressPart(
+      components,
+      "administrative_area_level_2",
+      "administrative_area_level_3"
+    );
+    const province = getAddressPart(components, "administrative_area_level_1");
+    const locality = getAddressPart(components, "locality");
+    const formattedAddress = result?.formatted_address || "";
+    const addressLine = [streetNumber, route].filter(Boolean).join(" ");
+    const address = addressLine || neighborhood || district || formattedAddress;
+    const city = [locality || district, province]
+      .filter(Boolean)
+      .filter((value, index, values) => values.indexOf(value) === index)
+      .join(" / ");
+
+    return {
+      lat: result?.geometry?.location?.lat?.() ?? fallbackLocation.lat,
+      lng: result?.geometry?.location?.lng?.() ?? fallbackLocation.lng,
+      address,
+      city: city || province || locality || district || getCityProvinceFromText(formattedAddress),
+      formattedAddress,
+    };
+  };
+
+  const reverseGeocodeCheckoutLocation = (location) =>
+    new Promise((resolve) => {
+      if (!window.google?.maps?.Geocoder) {
+        resolve(null);
+        return;
+      }
+
+      try {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode(
+          { location: { lat: location.lat, lng: location.lng } },
+          (results, status) => {
+            if (status === "OK" && results?.[0]) {
+              resolve(getLocationDetailsFromGeocodeResult(results[0], location));
+              return;
+            }
+            resolve(null);
+          }
+        );
+      } catch {
+        resolve(null);
+      }
+    });
+
+  const applySelectedLocation = (location) => {
+    const readableAddress =
+      location.address || location.formattedAddress || location.name || "";
+    const cityProvince =
+      location.city ||
+      location.province ||
+      location.district ||
+      getCityProvinceFromText(location.formattedAddress || readableAddress);
+
     setShippingAddress((currentAddress) => ({
       ...currentAddress,
       latitude: location.lat,
       longitude: location.lng,
-      address: location.address || currentAddress.address,
-      city: location.city || currentAddress.city,
+      address: readableAddress || currentAddress.address,
+      city: cityProvince || currentAddress.city,
     }));
     setError("");
+  };
+
+  const handleLocationSelect = async (location) => {
+    if (!location?.lat || !location?.lng) {
+      return;
+    }
+
+    applySelectedLocation(location);
+
+    if (location.address && location.city) {
+      return;
+    }
+
+    const resolvedLocation = await reverseGeocodeCheckoutLocation(location);
+    if (resolvedLocation) {
+      applySelectedLocation({
+        ...resolvedLocation,
+        address:
+          resolvedLocation.address ||
+          resolvedLocation.formattedAddress ||
+          location.address,
+        city:
+          resolvedLocation.city ||
+          location.city ||
+          getCityProvinceFromText(resolvedLocation.formattedAddress),
+      });
+    }
   };
 
   const handlePlaceOrder = async (event) => {

@@ -13,6 +13,9 @@ const ShippingAddressSection = ({
   errorRef,
 }) => {
   const { t } = useLanguage();
+  const mapAddress = [shippingAddress.address, shippingAddress.city]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
@@ -69,7 +72,7 @@ const ShippingAddressSection = ({
                   ? { lat: shippingAddress.latitude, lng: shippingAddress.longitude }
                   : null
               }
-              address={`${shippingAddress.address}, ${shippingAddress.city}`}
+              address={mapAddress}
             />
           </div>
         </div>

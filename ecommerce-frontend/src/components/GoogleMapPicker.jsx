@@ -42,9 +42,24 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   const markerRef = useRef(null);
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
+  const resolvedInitialLocationRef = useRef("");
 
   const setCambodiaOnlyError = () => {
     setLocationError(t("mapPicker.cambodiaOnly"));
+  };
+
+  const getCityProvinceFromText = (value = "") => {
+    const parts = String(value)
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((part) => part.toLowerCase() !== "cambodia");
+
+    if (parts.length >= 2) {
+      return parts[parts.length - 1];
+    }
+
+    return parts[0] || "";
   };
 
   const extractLocationDetails = (result, fallbackLocation = selectedLocation) => {
@@ -89,6 +104,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       result?.formatted_address ||
       result?.name ||
       "";
+    const fallbackFormattedAddress =
+      formattedAddress || result?.formatted_address || result?.name || fallbackAddress;
 
     return {
       lat:
@@ -98,8 +115,13 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         result?.geometry?.location?.lng?.() ??
         fallbackLocation.lng,
       address: fallbackAddress,
-      city: cityProvince || province || locality || district,
-      formattedAddress: formattedAddress || result?.formatted_address || result?.name || "",
+      city:
+        cityProvince ||
+        province ||
+        locality ||
+        district ||
+        getCityProvinceFromText(fallbackFormattedAddress),
+      formattedAddress: fallbackFormattedAddress,
     };
   };
 
@@ -135,6 +157,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     }
   };
 
+  const hasAddressText = (value = "") =>
+    String(value)
+      .split(",")
+      .some((part) => part.trim());
+
   const revealLocationOnMap = (location, { zoom = 17 } = {}) => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.panTo(location);
@@ -154,7 +181,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   }, [isOpen]);
 
   const resetDraftState = () => {
-    setSelectedLocation(DEFAULT_LOCATION);
+    setSelectedLocation(initialLocation || DEFAULT_LOCATION);
     setLocationError("");
     setShowBottomSheet(true);
     setSearchQuery("");
@@ -162,6 +189,24 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     setSelectedDetails(null);
     setIsConfirmingLocation(false);
   };
+
+  useEffect(() => {
+    if (!isGoogleMapsLoaded || !initialLocation || hasAddressText(address)) {
+      return;
+    }
+
+    const locationKey = `${initialLocation.lat}:${initialLocation.lng}`;
+    if (resolvedInitialLocationRef.current === locationKey) {
+      return;
+    }
+
+    resolvedInitialLocationRef.current = locationKey;
+    reverseGeocodeLocation(initialLocation).then((details) => {
+      if (details?.address || details?.city || details?.formattedAddress) {
+        emitLocationSelection(details);
+      }
+    });
+  }, [isGoogleMapsLoaded, initialLocation, address]);
 
   const cleanupMapInstance = () => {
     if (mapInstanceRef.current && window.google?.maps?.event) {
@@ -639,13 +684,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       }
     }
 
-    if (!details) {
+    if (!details || !details.address || !details.city) {
+      const fallbackAddress = details?.formattedAddress || details?.address || addressName || "";
       details = {
-        lat: selectedLocation.lat,
-        lng: selectedLocation.lng,
-        address: addressName || "",
-        city: "",
-        formattedAddress: addressName || "",
+        ...details,
+        lat: details?.lat ?? selectedLocation.lat,
+        lng: details?.lng ?? selectedLocation.lng,
+        address: details?.address || fallbackAddress,
+        city: details?.city || getCityProvinceFromText(fallbackAddress),
+        formattedAddress: details?.formattedAddress || fallbackAddress,
       };
     }
 
@@ -787,11 +834,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   title={t("mapPicker.useCurrentLocation")}
                 >
                   {detectingLocation ? (
-                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <>
+                      <div className="w-5 h-5 flex-shrink-0 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-xs sm:text-sm">{t("mapPicker.currentLocation")}</span>
+                    </>
                   ) : (
                     <>
-                      <Navigation className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="hidden text-sm sm:inline">{t("mapPicker.currentLocation")}</span>
+                      <Navigation className="w-5 h-5 flex-shrink-0 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <span className="text-xs sm:text-sm">{t("mapPicker.currentLocation")}</span>
                     </>
                   )}
                 </button>
