@@ -136,7 +136,7 @@ const ProductCard = ({
 
         {/* Title */}
         <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
-          <h3 className={`font-bold text-sm leading-snug line-clamp-2 min-h-[2.25rem] sm:min-h-[2.75rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
+          <h3 className={`font-bold text-sm leading-snug line-clamp-1 min-h-[1.125rem] sm:min-h-[1.375rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {localizedProduct.title}
           </h3>
         </Link>

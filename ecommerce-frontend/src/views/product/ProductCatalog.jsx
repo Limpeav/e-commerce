@@ -141,12 +141,12 @@ export default function ProductCatalog() {
 
   return (
     <div
-      className={`min-h-screen font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0 transition-colors duration-300 ${
+      className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${
         isDark ? "bg-slate-950" : "bg-bg-base"
       }`}
     >
       <div
-        className={`sticky top-14 sm:top-16 md:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${
+        className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${
           isDark ? "bg-slate-950/88" : "bg-bg-base/80"
         }`}
       >

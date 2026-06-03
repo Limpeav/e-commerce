@@ -194,8 +194,15 @@ const Register = () => {
     setShowGoogleConfirm(false);
   };
 
+  const inputClassName =
+    "w-full border-2 rounded-2xl transition-all text-text-main font-bold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-white/90 border-stone-200 placeholder-stone-400 focus:bg-white dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-500 dark:focus:bg-slate-900";
+  const iconClassName =
+    "absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 group-focus-within:text-primary transition-colors";
+  const labelClassName =
+    "block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1 dark:text-primary-light";
+
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center px-3 sm:px-4 py-8 sm:py-12 pb-20 md:pb-12 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-bg-base flex items-start lg:items-center justify-center px-3 sm:px-4 py-8 sm:py-12 pb-24 lg:pb-12 relative overflow-x-hidden overflow-y-auto font-sans">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -218,7 +225,7 @@ const Register = () => {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
         <div className="text-center mb-6 sm:mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-stone-100 mb-4 sm:mb-8 transform hover:scale-105 transition-transform duration-300">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-stone-100 mb-4 sm:mb-8 transform hover:scale-105 transition-transform duration-300 dark:border-slate-700 dark:bg-slate-900">
             <UserPlus className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-text-main mb-2 sm:mb-3 font-display tracking-tight leading-none">
@@ -230,7 +237,7 @@ const Register = () => {
         </div>
 
         {/* Register Card */}
-        <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-10 mb-6">
+        <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-8 lg:p-10 mb-6 dark:border-slate-700 dark:bg-slate-900/92 dark:shadow-black/40">
           {verificationEmail ? (
             <form onSubmit={handleVerifyEmail} className="space-y-6">
               {error && (
@@ -259,7 +266,7 @@ const Register = () => {
               </div>
 
               <div className="group">
-                <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+                <label className={labelClassName}>
                   Verification Code
                 </label>
                 <input
@@ -270,7 +277,7 @@ const Register = () => {
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   required
-                  className="w-full px-5 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-black text-center text-2xl tracking-[0.35em] placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                  className={`${inputClassName} px-5 py-4 text-center text-2xl font-black tracking-[0.35em]`}
                 />
               </div>
 
@@ -316,11 +323,11 @@ const Register = () => {
 
             {/* Name Input */}
             <div className="group">
-              <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+              <label className={labelClassName}>
                 Full Name
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
+                <div className={iconClassName}>
                   <User className="w-5 h-5" />
                 </div>
                 <input
@@ -329,18 +336,18 @@ const Register = () => {
                   value={form.name || ""}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                  className={`${inputClassName} py-4 pl-12 pr-4`}
                 />
               </div>
             </div>
 
             {/* Email Input */}
             <div className="group">
-              <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+              <label className={labelClassName}>
                 Email Address
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
+                <div className={iconClassName}>
                   <Mail className="w-5 h-5" />
                 </div>
                 <input
@@ -349,18 +356,18 @@ const Register = () => {
                   value={form.email || ""}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
-                  className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                  className={`${inputClassName} py-4 pl-12 pr-4`}
                 />
               </div>
             </div>
 
             {/* Phone Input */}
             <div className="group">
-              <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+              <label className={labelClassName}>
                 Phone Number
               </label>
               <div className="flex gap-2">
-                <div className="flex items-center px-4 py-4 bg-stone-100 border-2 border-stone-100 rounded-2xl text-text-main font-black shadow-sm text-sm">
+                <div className="flex items-center px-4 py-4 bg-stone-100 border-2 border-stone-200 rounded-2xl text-text-main font-black shadow-sm text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
                   +855
                 </div>
                 <input
@@ -370,18 +377,18 @@ const Register = () => {
                   value={form.phone || ""}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   required
-                  className="flex-1 px-5 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                  className={`${inputClassName} min-w-0 flex-1 px-5 py-4`}
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div className="group">
-              <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1">
+              <label className={labelClassName}>
                 Password
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
+                <div className={iconClassName}>
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
@@ -393,12 +400,12 @@ const Register = () => {
                   }
                   required
                   minLength={6}
-                  className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                  className={`${inputClassName} py-4 pl-12 pr-12`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-stone-400 hover:text-primary transition-colors dark:text-slate-400"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -407,11 +414,11 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-2 text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Min. 6 characters</p>
+              <p className="mt-2 text-[10px] text-stone-500 font-bold uppercase tracking-widest pl-1 dark:text-slate-400">Min. 6 characters</p>
             </div>
 
             {/* Terms and Conditions */}
-            <div className="bg-primary/5 rounded-[1.5rem] p-5 border border-primary/10">
+            <div className="bg-primary/5 rounded-[1.5rem] p-5 border border-primary/10 dark:bg-primary/10 dark:border-primary/20">
               <label className="flex items-start gap-4 cursor-pointer group">
                 <input
                   type="checkbox"
@@ -419,7 +426,7 @@ const Register = () => {
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                   className="w-5 h-5 mt-0.5 text-primary border-2 border-stone-300 rounded focus:ring-2 focus:ring-primary accent-primary"
                 />
-                <span className="text-xs text-text-muted leading-relaxed font-semibold">
+                <span className="text-xs text-text-muted leading-relaxed font-semibold dark:text-slate-300">
                   I agree to the{" "}
                   <a
                     href="/terms"
@@ -443,7 +450,7 @@ const Register = () => {
               type="submit"
               disabled={loading || !isFormValid()}
               className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading || !isFormValid()
-                ? "bg-stone-200 text-stone-500 cursor-not-allowed"
+                ? "bg-stone-200 text-stone-500 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500"
                 : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95 shadow-stone-200"
                 }`}
             >
@@ -465,10 +472,10 @@ const Register = () => {
           {/* Divider */}
           {!verificationEmail && <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-100"></div>
+              <div className="w-full border-t border-stone-200 dark:border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-              <span className="px-6 bg-white text-stone-400">
+              <span className="px-6 bg-white text-stone-500 dark:bg-slate-900 dark:text-slate-400">
                 OR SIGN UP WITH
               </span>
             </div>
@@ -479,7 +486,7 @@ const Register = () => {
             type="button"
             onClick={handleGoogleSignUp}
             disabled={loading}
-            className="w-full py-4 bg-white border border-stone-100 rounded-2xl font-bold shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 text-text-main hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-white border border-stone-200 rounded-2xl font-bold shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 text-text-main hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -505,10 +512,10 @@ const Register = () => {
           {/* Divider */}
           {!verificationEmail && <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-100"></div>
+              <div className="w-full border-t border-stone-200 dark:border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-              <span className="px-6 bg-white text-stone-400">
+              <span className="px-6 bg-white text-stone-500 dark:bg-slate-900 dark:text-slate-400">
                 Already Joined?
               </span>
             </div>
@@ -530,7 +537,7 @@ const Register = () => {
 
         {/* Security Badge */}
         <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] bg-white/50 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm">
+          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-500 uppercase tracking-[0.2em] bg-white/70 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-400">
             <ShieldCheck className="w-4 h-4 text-primary" />
             <span>Secure Registration • SSL Encrypted</span>
           </div>

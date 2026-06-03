@@ -131,7 +131,7 @@ export default function Navbar() {
     <>
       {/* Desktop Navbar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[100] hidden border-b backdrop-blur-xl transition-colors duration-300 md:block ${shellClassName}`}
+        className={`fixed top-0 left-0 right-0 z-[100] hidden border-b backdrop-blur-xl transition-colors duration-300 lg:block ${shellClassName}`}
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="max-w-7xl mx-auto px-6">
@@ -297,7 +297,7 @@ export default function Navbar() {
 
       {/* Mobile Header - Compact & Sticky */}
       <nav
-        className={`safe-area-top fixed top-0 left-0 right-0 z-[90] border-b backdrop-blur-xl transition-colors duration-300 md:hidden ${isDark ? "bg-[#1A1C19]/95" : "bg-[#FCF9F5]/95"}`}
+        className={`safe-area-top fixed top-0 left-0 right-0 z-[90] border-b backdrop-blur-xl transition-colors duration-300 lg:hidden ${isDark ? "bg-[#1A1C19]/95" : "bg-[#FCF9F5]/95"}`}
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="px-4 h-16 flex justify-between items-center">
@@ -319,11 +319,30 @@ export default function Navbar() {
 
           {/* Right: Cart & Profile/Auth */}
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleThemeClick}
+              className="rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+              aria-label={nextTheme.ariaLabel}
+              title={nextTheme.ariaLabel}
+            >
+              <CurrentThemeIcon className="w-5 h-5" />
+            </button>
+
+            <Link to="/customer/wishlist" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
+              <Heart className="w-5 h-5" />
+              {wishlistItemCount > 0 && (
+                <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
+                  {wishlistItemCount > 9 ? "9+" : wishlistItemCount}
+                </span>
+              )}
+            </Link>
+
             <Link to="/customer/cart" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
               <ShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (
                 <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
-                  {cartItemCount}
+                  {cartItemCount > 9 ? "9+" : cartItemCount}
                 </span>
               )}
             </Link>

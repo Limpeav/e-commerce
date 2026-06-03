@@ -16,7 +16,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
     };
 
     return (
-        <div className="w-full py-2.5 sm:py-4 px-3 sm:px-4 md:px-6">
+        <div className="w-full px-3 pb-2.5 pt-4 sm:px-4 sm:pb-4 sm:pt-5 md:px-6 lg:py-4">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
                 {/* Search Input Box */}
                 <div className={`flex-1 w-full p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border flex items-center gap-2 transition-colors ${

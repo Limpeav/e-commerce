@@ -150,7 +150,7 @@ function ProductSection({
                             isInWishlist={isInWishlist}
                             user={user}
                             variants={gridItemVariants}
-                            className={isHorizontal ? "h-[27rem] w-[calc((100%_-_0.75rem)/2)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72" : ""}
+                            className={isHorizontal ? "h-[27rem] w-[calc((100%_-_1.5rem)*0.4545)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72" : ""}
                         />
                     ))}
                 </Motion.div>
@@ -283,9 +283,9 @@ export default function Home() {
     }
 
     return (
-        <div className={`min-h-screen font-sans pt-14 sm:pt-16 md:pt-20 pb-16 md:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <div className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
-            <div className={`sticky top-14 sm:top-16 md:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
+            <div className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
