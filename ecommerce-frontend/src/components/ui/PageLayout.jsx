@@ -8,7 +8,8 @@ const PageLayout = ({
   badge,
   icon: Icon,
   maxWidth = "4xl",
-  badgeColor = "primary"
+  badgeColor = "primary",
+  topAction
 }) => {
   const [isDark] = useDarkMode();
 
@@ -21,6 +22,12 @@ const PageLayout = ({
         >
           {/* Abstract Background Element */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+          {topAction && (
+            <div className="relative z-10 mb-8 flex justify-start">
+              {topAction}
+            </div>
+          )}
 
           {/* Header */}
           <div className="relative z-10 mb-10 text-center sm:mb-14 md:mb-16 lg:mb-20">

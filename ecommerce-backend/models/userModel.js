@@ -21,6 +21,9 @@ const userSchema = mongoose.Schema(
     phoneVerificationExpire: { type: Date },
     deleteAccountOtp: { type: String },
     deleteAccountOtpExpire: { type: Date },
+    notificationPreferences: {
+      promotionalEmails: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );

@@ -284,6 +284,115 @@ ${fromName}
   }
 };
 
+export const sendProductPromotionEmail = async ({
+  email,
+  customerName,
+  product,
+  reasons = [],
+}) => {
+  const fromName = FROM_NAME;
+  const frontendUrl = getCustomerFrontendUrl();
+  const productId = product?._id?.toString?.() || product?.id || "";
+  const productUrl = productId ? `${frontendUrl}/products/${productId}` : `${frontendUrl}/products`;
+  const safeCustomerName = escapeHtml(customerName || "there");
+  const safeTitle = escapeHtml(product?.title || "New product");
+  const safeDescription = escapeHtml(product?.description || "A new product is ready for you to discover.");
+  const safeImage = escapeHtml(product?.image || "");
+  const price = Number(product?.price || 0);
+  const discountPrice = Number(product?.discountPrice || 0);
+  const hasPromotion = discountPrice > 0 && discountPrice < price;
+  const reasonLabels = reasons.length > 0
+    ? reasons
+    : [
+        ...(product?.isNewArrival ? ["New arrival"] : []),
+        ...(hasPromotion ? ["Promotion"] : []),
+      ];
+  const badgeText = escapeHtml(reasonLabels.join(" + ") || "Store update");
+  const subject = hasPromotion
+    ? `${product?.title || "A product"} is on promotion`
+    : `New arrival: ${product?.title || "fresh picks"}`;
+
+  const priceHtml = hasPromotion
+    ? `<p style="margin:10px 0 0;font-size:15px;color:#6b7280;"><span style="text-decoration:line-through;">$${price.toFixed(2)}</span> <strong style="font-size:22px;color:#5F7A63;">$${discountPrice.toFixed(2)}</strong></p>`
+    : `<p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#5F7A63;">$${price.toFixed(2)}</p>`;
+
+  const data = await sendConfiguredEmail(
+    {
+      from: `${fromName} <${FROM_EMAIL}>`,
+      to: [email],
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${escapeHtml(subject)}</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f7f5f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2D312E;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f1;padding:32px 14px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #EAE3DB;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(95,122,99,0.14);">
+                  <tr>
+                    <td style="padding:34px 32px;background:linear-gradient(135deg,#F7F2EA,#EFF6F0);">
+                      <p style="margin:0 0 12px;font-size:12px;font-weight:900;letter-spacing:1.8px;text-transform:uppercase;color:#7A967E;">${badgeText}</p>
+                      <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.8px;color:#2D312E;">Something new for your little one.</h1>
+                      <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#727871;">Hi ${safeCustomerName}, ${safeTitle} is now available${hasPromotion ? " with a special price" : ""}.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:30px 32px;">
+                      ${safeImage
+                        ? `<img src="${safeImage}" alt="${safeTitle}" style="display:block;width:100%;max-height:320px;object-fit:cover;border-radius:22px;border:1px solid #EAE3DB;margin-bottom:24px;">`
+                        : ""}
+                      <h2 style="margin:0;font-size:24px;line-height:1.25;color:#2D312E;">${safeTitle}</h2>
+                      ${priceHtml}
+                      <p style="margin:16px 0 26px;font-size:14px;line-height:1.7;color:#727871;">${safeDescription}</p>
+                      <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+                        <tr>
+                          <td align="center" style="background:#7A967E;border-radius:999px;">
+                            <a href="${productUrl}" style="display:inline-block;padding:15px 28px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:900;">View product</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#FCF9F5;padding:22px 32px;text-align:center;border-top:1px solid #EAE3DB;">
+                      <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;">You are receiving this because promotional emails are enabled in your account settings.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+      text: `
+Hi ${customerName || "there"},
+
+${product?.title || "A product"} is ${reasonLabels.join(" + ") || "available now"}.
+${hasPromotion ? `Promotion price: $${discountPrice.toFixed(2)} (was $${price.toFixed(2)})` : `Price: $${price.toFixed(2)}`}
+
+View it here:
+${productUrl}
+
+You are receiving this because promotional emails are enabled in your account settings.
+
+${fromName}
+      `,
+    },
+    "product promotion"
+  );
+
+  console.log("Product promotional email sent successfully.");
+  console.log("   Message ID:", data?.id);
+  console.log("   To:", email);
+  return data;
+};
+
 export const sendSupportContactEmail = async ({
   name,
   email,

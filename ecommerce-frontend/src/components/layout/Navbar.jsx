@@ -317,26 +317,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Right: Wishlist, Cart & Profile/Auth */}
+          {/* Right: Cart & Profile/Auth */}
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={handleThemeClick}
-              className="rounded-full p-2 text-text-main transition-colors hover:bg-primary/10"
-              aria-label={nextTheme.ariaLabel}
-            >
-              <CurrentThemeIcon className="w-5 h-5" />
-            </button>
-
-            <Link to="/customer/wishlist" className={`relative rounded-full border-2 p-2 transition-all duration-300 ${isActive("/customer/wishlist") ? `${isDark ? '[background:linear-gradient(#242723,#242723)_padding-box,linear-gradient(to_right,#A7C7AD,#D4A38B)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#8DAA91,#E6BAA3)_border-box]'} border-transparent text-primary shadow-md shadow-primary/10` : `bg-transparent border-transparent text-text-muted hover:bg-primary/10 hover:text-primary`}`}>
-              <Heart className="w-5 h-5" />
-              {wishlistItemCount > 0 && (
-                <span className={`absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-white ring-2 ${isDark ? "ring-[#1A1C19]" : "ring-white"}`}>
-                  {wishlistItemCount}
-                </span>
-              )}
-            </Link>
-
             <Link to="/customer/cart" className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary">
               <ShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (

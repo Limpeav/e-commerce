@@ -10,6 +10,8 @@ import {
   verifyResetCode,
   resendResetCode,
   resetPassword,
+  getNotificationPreferences,
+  updateNotificationPreferences,
   startPhoneVerification,
   verifyPhone,
   requestDeleteOtp,
@@ -46,6 +48,8 @@ router.post("/verify-reset-code", resetLimiter, verifyResetCode);
 router.post("/resend-reset-code", resetLimiter, resendResetCode);
 router.post("/reset-password", resetLimiter, resetPassword);
 router.put("/profile", protect, updateUserProfile);
+router.get("/notification-preferences", protect, getNotificationPreferences);
+router.put("/notification-preferences", protect, updateNotificationPreferences);
 router.post("/start-phone-verification", protect, otpLimiter, startPhoneVerification);
 router.post("/verify-phone", protect, otpLimiter, verifyPhone);
 router.post("/request-delete-otp", protect, otpLimiter, requestDeleteOtp);

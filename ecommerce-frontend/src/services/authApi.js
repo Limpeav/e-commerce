@@ -24,6 +24,17 @@ export const updateUserProfile = (token, data) =>
     data,
     { headers: { Authorization: `Bearer ${token}` } }
   );
+export const getNotificationPreferences = (token) =>
+  API.get(
+    "/notification-preferences",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+export const updateNotificationPreferences = (token, data) =>
+  API.put(
+    "/notification-preferences",
+    data,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 export const startPhoneVerification = (token, phone) =>
   API.post(
     "/start-phone-verification",

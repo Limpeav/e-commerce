@@ -49,6 +49,7 @@ export const googleAuth = async (req, res) => {
         email: user.email,
         role: user.role,
         googleId: user.googleId || null,
+        notificationPreferences: user.notificationPreferences || { promotionalEmails: true },
         token: generateToken(user._id),
       });
     } else {
@@ -67,6 +68,7 @@ export const googleAuth = async (req, res) => {
         email: user.email,
         role: user.role,
         googleId: user.googleId || null,
+        notificationPreferences: user.notificationPreferences || { promotionalEmails: true },
         token: generateToken(user._id),
       });
     }

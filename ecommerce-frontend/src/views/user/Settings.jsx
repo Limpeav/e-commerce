@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw, Moon, Globe } from 'lucide-react';
+import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw, Moon, Globe, ArrowLeft } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -8,17 +8,29 @@ import axios from 'axios';
 import { config } from '../../config/index.js';
 import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
-import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import FormInput from '../../components/ui/FormInput';
 import { AlertMessage } from '../../components';
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from '../../services/authApi';
 
 const API_URL = config.API_BASE_URL;
+
+const normalizePromotionalEmailPreference = (value) => {
+  if (value === false || value === 'false' || value === 0 || value === '0') return false;
+  return true;
+};
 
 export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isDark, toggleDarkMode] = useDarkMode();
-  const [notifications, setNotifications] = useState(true);
+  const [promotionalEmails, setPromotionalEmails] = useState(
+    normalizePromotionalEmailPreference(user?.notificationPreferences?.promotionalEmails)
+  );
+  const [isSavingPromotionalEmails, setIsSavingPromotionalEmails] = useState(false);
+  const [notificationError, setNotificationError] = useState('');
   const [language, setLanguage] = useState('en');
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -28,11 +40,88 @@ export default function Settings() {
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef([]);
+  const promotionalPreferenceRequestRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [deleteSuccess, setDeleteSuccess] = useState('');
 
   const isGoogleUser = !!user?.googleId;
+  const displayPromotionalEmails = promotionalEmails === true;
+  const promotionalEmailStatus = displayPromotionalEmails ? 'On' : 'Off';
+
+  useEffect(() => {
+    if (!user?.token) return;
+
+    let isMounted = true;
+
+    const requestId = ++promotionalPreferenceRequestRef.current;
+
+    const loadNotificationPreferences = async () => {
+      try {
+        const response = await getNotificationPreferences(user.token);
+        if (isMounted && requestId === promotionalPreferenceRequestRef.current) {
+          setPromotionalEmails(normalizePromotionalEmailPreference(response.data?.promotionalEmails));
+          setNotificationError('');
+        }
+      } catch (error) {
+        if (isMounted && requestId === promotionalPreferenceRequestRef.current) {
+          setNotificationError(error.response?.data?.message || 'Unable to load notification preferences.');
+        }
+      }
+    };
+
+    loadNotificationPreferences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
+  const handlePromotionalEmailsChange = async (checked) => {
+    if (!user?.token) return;
+
+    const requestId = ++promotionalPreferenceRequestRef.current;
+    const nextValue = checked === true;
+    const previousValue = promotionalEmails === true;
+
+    setPromotionalEmails(nextValue);
+    setIsSavingPromotionalEmails(true);
+    setNotificationError('');
+
+    try {
+      const response = await updateNotificationPreferences(user.token, {
+        promotionalEmails: nextValue,
+      });
+      const savedValue = typeof response.data?.promotionalEmails === 'boolean'
+        ? response.data.promotionalEmails
+        : nextValue;
+
+      if (requestId !== promotionalPreferenceRequestRef.current) return;
+
+      setPromotionalEmails(savedValue);
+
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          ...storedUser,
+          notificationPreferences: {
+            ...(storedUser.notificationPreferences || {}),
+            promotionalEmails: savedValue,
+          },
+        })
+      );
+    } catch (error) {
+      if (requestId !== promotionalPreferenceRequestRef.current) return;
+
+      setPromotionalEmails(previousValue);
+      setNotificationError(error.response?.data?.message || 'Unable to update promotional email preference.');
+    } finally {
+      if (requestId === promotionalPreferenceRequestRef.current) {
+        setIsSavingPromotionalEmails(false);
+      }
+    }
+  };
 
   const closeModal = () => {
     setShowDeleteModal(false);
@@ -127,11 +216,22 @@ export default function Settings() {
       title="Settings"
       subtitle="Manage your account preferences"
       maxWidth="4xl"
+      topAction={
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 rounded-2xl border bg-bg-card px-4 py-2.5 text-sm font-bold text-text-main transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          style={borderStyle}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+      }
     >
       <div className="space-y-8">
         {/* Profile Settings */}
         <section>
-          <SectionHeader number={1} title="Profile Settings" icon={User} />
+          <SectionHeader title="Profile Settings" icon={User} />
           <div className={sectionCard} style={borderStyle}>
             <div className="grid gap-5 sm:grid-cols-2">
               <FormInput
@@ -153,26 +253,58 @@ export default function Settings() {
 
         {/* Notifications */}
         <section>
-          <SectionHeader number={2} title="Notifications" icon={Bell} />
+          <SectionHeader title="Notifications" icon={Bell} />
           <div className={sectionCard} style={borderStyle}>
             <div className="space-y-4">
-              <ToggleSwitch
-                checked={notifications}
-                onChange={setNotifications}
-                label="Order Updates"
-              />
-              <ToggleSwitch
-                checked={false}
-                onChange={() => {}}
-                label="Promotional Emails"
-              />
+              {notificationError && (
+                <AlertMessage type="error" message={notificationError} onClose={() => setNotificationError('')} />
+              )}
+              <div className="flex flex-col gap-4 rounded-2xl border bg-[color:var(--color-surface-soft)]/45 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5" style={borderStyle}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm font-black uppercase tracking-widest text-text-main">Promotional Emails</p>
+                    <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${
+                      displayPromotionalEmails
+                        ? 'bg-primary/15 text-primary'
+                        : 'bg-stone-200 text-text-muted'
+                    }`}>
+                      {promotionalEmailStatus}
+                    </span>
+                  </div>
+                  <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-text-muted">
+                    Keep this on to receive email updates when the store adds a new arrival or marks a product with a promotion. You can turn it off anytime.
+                  </p>
+                  {isSavingPromotionalEmails && (
+                    <p className="mt-2 text-xs font-bold uppercase tracking-widest text-primary">Saving preference...</p>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={displayPromotionalEmails}
+                    onClick={() => handlePromotionalEmailsChange(!displayPromotionalEmails)}
+                    disabled={isSavingPromotionalEmails}
+                    className="inline-flex items-center gap-4 rounded-2xl px-1 py-1 text-sm font-bold uppercase tracking-widest text-text-main transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 ${
+                      displayPromotionalEmails ? 'bg-primary' : isDark ? 'bg-slate-700' : 'bg-stone-200'
+                    }`}>
+                      <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                        displayPromotionalEmails ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </span>
+                    <span>{promotionalEmailStatus}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Appearance */}
         <section>
-          <SectionHeader number={3} title="Appearance" icon={Palette} />
+          <SectionHeader title="Appearance" icon={Palette} />
           <div className={sectionCard} style={borderStyle}>
             <div className="space-y-6">
               <div>
@@ -221,7 +353,7 @@ export default function Settings() {
 
         {/* Security */}
         <section>
-          <SectionHeader number={4} title="Security & Privacy" icon={Shield} />
+          <SectionHeader title="Security & Privacy" icon={Shield} />
           <div className={sectionCard} style={borderStyle}>
             <div className="flex flex-wrap gap-3">
               <button className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary" style={borderStyle}>

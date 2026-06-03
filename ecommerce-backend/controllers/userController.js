@@ -35,6 +35,12 @@ const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).t
 
 const hashCode = (code) => crypto.createHash("sha256").update(code).digest("hex");
 
+const parsePreferenceBoolean = (value, defaultValue = true) => {
+  if (value === true || value === "true" || value === "1" || value === 1) return true;
+  if (value === false || value === "false" || value === "0" || value === 0) return false;
+  return defaultValue;
+};
+
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
   try {
@@ -250,6 +256,7 @@ export const loginUser = async (req, res) => {
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
+      notificationPreferences: user.notificationPreferences || { promotionalEmails: true },
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -320,7 +327,47 @@ export const updateUserProfile = async (req, res) => {
       phone: updatedUser.phone,
       email: updatedUser.email,
       role: updatedUser.role,
+      notificationPreferences: updatedUser.notificationPreferences || { promotionalEmails: true },
       token: generateToken(updatedUser._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getNotificationPreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("notificationPreferences");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      promotionalEmails: user.notificationPreferences?.promotionalEmails !== false,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateNotificationPreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.notificationPreferences = {
+      ...(user.notificationPreferences?.toObject?.() || user.notificationPreferences || {}),
+      promotionalEmails: parsePreferenceBoolean(req.body.promotionalEmails, true),
+    };
+
+    await user.save();
+
+    res.json({
+      promotionalEmails: user.notificationPreferences.promotionalEmails,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

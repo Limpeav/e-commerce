@@ -2,30 +2,22 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
 import { Link } from "react-router-dom";
 import {
-  Camera,
   Save,
-  AlertCircle,
-  ShoppingBag,
-  Heart,
-  ShoppingCart,
   User,
   Mail,
   Phone,
   Lock,
   Eye,
   EyeOff,
-  Package,
   Shield,
   Settings,
-  Calendar,
   ChevronRight,
-  TrendingUp,
 } from "lucide-react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 // UI Components
-import { AlertMessage, StatCard, FormInput } from "../../components";
+import { AlertMessage } from "../../components";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
@@ -59,28 +51,16 @@ const containerVariants = {
   exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-};
-
 const Profile = () => {
   const { user, login } = useAuth();
   const [isDark] = useDarkMode();
-  const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("overview");
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState("edit");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    cartItems: 0,
-    wishlistItems: 0,
-  });
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [avatarPreview, setAvatarPreview] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -90,7 +70,6 @@ const Profile = () => {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    avatar: null,
   });
 
   useEffect(() => {
@@ -102,54 +81,9 @@ const Profile = () => {
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
-        avatar: null,
       });
-      fetchUserStats();
-      fetchRecentOrders();
     }
   }, [user]);
-
-  const fetchUserStats = async () => {
-    try {
-      const token = getAuthToken();
-      if (!token) return;
-
-      const [ordersRes, cartRes, wishlistRes] = await Promise.allSettled([
-        axios.get(`${API_URL}/orders/myorders`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_URL}/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${API_URL}/wishlist`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-
-      setStats({
-        totalOrders: ordersRes.status === "fulfilled" ? ordersRes.value.data.length || 0 : 0,
-        cartItems: cartRes.status === "fulfilled" ? cartRes.value.data.items?.length || 0 : 0,
-        wishlistItems: wishlistRes.status === "fulfilled" ? wishlistRes.value.data.length || 0 : 0,
-      });
-    } catch (err) {
-      console.error("Error fetching user stats:", err);
-    }
-  };
-
-  const fetchRecentOrders = async () => {
-    try {
-      const token = getAuthToken();
-      if (!token) return;
-
-      const response = await axios.get(`${API_URL}/orders/myorders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setRecentOrders(response.data.slice(0, 3));
-    } catch (err) {
-      console.error("Error fetching recent orders:", err);
-    }
-  };
 
   const getAuthToken = () => {
     const storedUser = localStorage.getItem("user");
@@ -168,18 +102,6 @@ const Profile = () => {
     }));
     setError("");
     setSuccess("");
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError(t("profile.avatarTooLarge"));
-        return;
-      }
-      setFormData((prev) => ({ ...prev, avatar: file }));
-      setAvatarPreview(URL.createObjectURL(file));
-    }
   };
 
   const handleUpdateProfile = async (e) => {
@@ -268,57 +190,17 @@ const Profile = () => {
   }
 
   return (
-    <div className={`min-h-screen pb-20 font-sans transition-colors ${isDark ? "bg-transparent" : "bg-stone-50"}`}>
-      {/* Dynamic Header Banner */}
-      <div className="relative h-72 w-full overflow-hidden bg-[linear-gradient(135deg,#7A967E_0%,#8DAA91_48%,#E6BAA3_100%)]">
-        {/* Abstract shapes for visual interest */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
-          <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white mix-blend-overlay blur-3xl"></div>
-          <div className="absolute bottom-0 right-10 h-80 w-80 rounded-full bg-secondary/40 mix-blend-overlay blur-3xl"></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-full flex flex-col justify-end pb-10 relative z-10">
-          <motion.div 
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="flex items-end gap-6"
-          >
-            <div className="relative group">
-              <div className={`w-32 h-32 rounded-2xl p-1 shadow-2xl transform rotate-3 transition-transform group-hover:rotate-0 duration-300 ${
-                isDark ? "bg-slate-900/95 ring-1 ring-white/10" : "bg-white"
-              }`}>
-                <div className={`w-full h-full rounded-xl overflow-hidden flex items-center justify-center relative ${
-                  isDark ? "bg-slate-800" : "bg-stone-100"
-                }`}>
-                  {avatarPreview ? (
-                     <img src={avatarPreview} alt={t("profile.myProfile")} className="w-full h-full object-cover" />
-                  ) : (
-                     <User className={`w-12 h-12 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
-                  )}
-                  {activeTab === "edit" && (
-                    <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
-                      <Camera className="w-6 h-6 mb-1" />
-                      <span className="text-xs font-bold">{t("profile.change")}</span>
-                      <input type="file" onChange={handleAvatarChange} className="hidden" accept="image/*" />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mb-2 text-white">
-              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-md">
-                {user.name}
-              </h1>
-              <p className="mt-2 flex items-center gap-2 font-medium text-white/85">
-                <Mail className="w-4 h-4" /> {user.email}
-              </p>
-            </div>
-          </motion.div>
-        </div>
+    <div className={`min-h-screen pb-20 font-sans transition-colors ${isDark ? "bg-transparent" : "bg-[#FCF9F5]"}`}>
+      {/* Visual Header Banner */}
+      <div className="relative h-56 w-full overflow-hidden md:h-64">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,#6F8A73_0%,#AFC7B2_48%,#F1D2C2_100%)]" />
+        <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.42),transparent_26%),radial-gradient(circle_at_82%_24%,rgba(255,255,255,0.28),transparent_24%)]" />
+        <div className="absolute -bottom-20 left-[-10%] h-44 w-[120%] rounded-[50%] bg-white/18 blur-2xl" />
+        <div className="absolute bottom-[-5.5rem] left-[-8%] h-40 w-[116%] rounded-[50%] border border-white/30" />
+        <div className="relative mx-auto h-full max-w-7xl px-4 sm:px-6 md:px-8" aria-hidden="true" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-8 relative z-20">
+      <div className="relative z-20 mx-auto -mt-8 max-w-7xl px-4 sm:px-6 md:px-8">
         
         <AnimatePresence>
           {success && (
@@ -333,193 +215,25 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} variant="mobile" />
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
           
           {/* Sidebar Area */}
-          <div className="lg:col-span-1">
-            <motion.div 
+          <div className="hidden lg:block">
+            <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               className="sticky top-24"
             >
-              <ProfileSidebar />
+              <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} />
             </motion.div>
           </div>
 
-          {/* Main Dashboard Area */}
-          <div className="lg:col-span-3 space-y-6">
-            
-            {/* Elegant Tab Navigation */}
-            <motion.div 
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className={`rounded-2xl p-1.5 shadow-sm border flex flex-nowrap overflow-x-auto no-scrollbar transition-colors ${
-                isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"
-              }`}
-            >
-              {[
-                { id: "overview", label: t("profile.dashboard"), icon: TrendingUp },
-                { id: "edit", label: t("profile.profileDetails"), icon: Settings },
-                { id: "security", label: t("profile.securityLogin"), icon: Shield },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl transition-all duration-300 font-semibold text-sm whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "bg-primary text-white shadow-md transform scale-[1.02]"
-                      : isDark
-                        ? "text-slate-400 hover:bg-slate-800 hover:text-primary"
-                        : "text-stone-500 hover:bg-stone-50 hover:text-primary"
-                  }`}
-                >
-                  <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "animate-pulse" : ""}`} />
-                  {tab.label}
-                </button>
-              ))}
-            </motion.div>
-
+          {/* Main Profile Area */}
+          <div className="min-w-0 space-y-6">
             {/* Content Area */}
             <AnimatePresence mode="wait">
-              
-              {activeTab === "overview" && (
-                <motion.div
-                  key="overview"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="space-y-6"
-                >
-                  {/* Premium Stats Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[
-                      { to: "/customer/orders", label: t("profile.totalOrders"), value: stats.totalOrders, icon: ShoppingBag, color: "from-primary-dark to-primary", bg: "bg-[color:var(--color-surface-soft)] border-[color:var(--color-border)]" },
-                      { to: "/customer/wishlist", label: t("profile.wishlistItems"), value: stats.wishlistItems, icon: Heart, color: "from-secondary to-primary-light", bg: "bg-[color:var(--color-secondary-light)] border-[color:var(--color-border)]" },
-                      { to: "/customer/cart", label: t("profile.itemsInCart"), value: stats.cartItems, icon: ShoppingCart, color: "from-primary-light to-secondary", bg: "bg-[color:color-mix(in_srgb,var(--color-primary-light)_24%,white)] border-[color:var(--color-border)]" }
-                    ].map((stat, idx) => (
-                      <motion.div
-                        key={idx}
-                        variants={itemVariants}
-                        className={`rounded-[2rem] p-6 border shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${
-                          isDark ? "bg-slate-900/90 border-slate-800" : stat.bg
-                        }`}
-                      >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500">
-                          <stat.icon className="w-24 h-24" />
-                        </div>
-                        <div className="relative z-10">
-                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center shadow-lg mb-4`}>
-                            <stat.icon className="w-6 h-6" />
-                          </div>
-                          <p className={`font-medium text-sm ${isDark ? "text-slate-400" : "text-stone-600"}`}>{stat.label}</p>
-                          <h3 className={`text-3xl font-black mt-1 ${isDark ? "text-slate-50" : "text-stone-800"}`}>{stat.value}</h3>
-                          <Link to={stat.to} className="inline-flex items-center gap-1 text-sm font-bold mt-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: `var(--color-primary)` }}>
-                            {t("profile.viewAll")} <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Minimalist Quick Info */}
-                    <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
-                      <div className={`flex items-center justify-between mb-8 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
-                        <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <User className="w-5 h-5 text-primary" /> {t("profile.accountSummary")}
-                        </h3>
-                        <button onClick={() => setActiveTab("edit")} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>{t("profile.edit")}</button>
-                      </div>
-                      
-                      <div className="space-y-6 relative">
-                        {/* Decorative Line */}
-                        <div className={`absolute left-6 top-8 bottom-4 w-px z-0 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
-                        
-                        {[
-                          { icon: User, label: t("profile.fullName"), value: user.name },
-                          { icon: Mail, label: t("profile.email"), value: user.email },
-                          { icon: Phone, label: t("profile.phone"), value: user.phone || t("profile.notProvided") },
-                          { icon: Calendar, label: t("profile.joined"), value: new Date(user.createdAt || Date.now()).toLocaleDateString(language === "kh" ? "km-KH" : "en-US", { month: 'long', year: 'numeric' }) }
-                        ].map((item, idx) => (
-                          <div key={idx} className="flex gap-4 relative z-10 group">
-                            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all ${
-                              isDark
-                                ? "bg-slate-950 border-slate-700 text-slate-400 group-hover:border-primary group-hover:text-primary-light group-hover:shadow-[0_0_0_1px_rgba(167,199,173,0.18)]"
-                                : "bg-white border-stone-200 text-stone-500 group-hover:border-primary-light group-hover:text-primary group-hover:shadow-md"
-                            }`}>
-                              <item.icon className="w-5 h-5" />
-                            </div>
-                            <div className="pt-1">
-                              <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-500" : "text-stone-400"}`}>{item.label}</p>
-                              <p className={`font-medium text-lg ${isDark ? "text-slate-100" : "text-stone-800"}`}>{item.value}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    {/* Exquisite Recent Orders */}
-                    <motion.div variants={itemVariants} className={`rounded-[2rem] p-8 border shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col ${isDark ? "bg-slate-900/90 border-slate-800" : "bg-white border-stone-100"}`}>
-                      <div className={`flex items-center justify-between mb-6 pb-4 border-b ${isDark ? "border-slate-800" : "border-stone-50"}`}>
-                        <h3 className={`text-xl font-bold flex items-center gap-2 ${isDark ? "text-slate-50" : "text-stone-800"}`}>
-                          <Package className="w-5 h-5 text-primary" /> {t("profile.recentActivity")}
-                        </h3>
-                        <Link to="/customer/orders" className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${isDark ? "text-primary-light bg-primary/15 hover:bg-primary/25" : "text-primary bg-primary/10 hover:bg-primary/15"}`}>{t("profile.viewAll")}</Link>
-                      </div>
-                      
-                      <div className="space-y-4 flex-1">
-                        {recentOrders.length > 0 ? (
-                          recentOrders.map((order, idx) => (
-                            <Link key={order._id} to={`/customer/orders/${order._id}`} className="block">
-                              <motion.div 
-                                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}
-                                className={`p-4 rounded-xl border transition-all group flex items-center justify-between relative overflow-hidden ${
-                                  isDark
-                                    ? "border-slate-800 hover:border-primary/40 hover:bg-slate-800/90"
-                                    : "border-stone-100 hover:border-primary/20 hover:bg-primary/5"
-                                }`}
-                              >
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${isDark ? "text-slate-300 bg-slate-800" : "text-stone-500 bg-stone-100"}`}>#{order._id.slice(-6).toUpperCase()}</span>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
-                                      ${order.orderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
-                                        order.orderStatus === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-amber-100 text-amber-700'
-                                      }`}
-                                    >
-                                      {order.orderStatus}
-                                    </span>
-                                  </div>
-                                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-stone-800"}`}>
-                                    {new Date(order.createdAt).toLocaleDateString(language === "kh" ? "km-KH" : undefined)}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg font-bold text-primary">${order.totalPrice?.toFixed(2)}</p>
-                                  <p className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>{order.orderItems?.length} {t("cart.items")}</p>
-                                </div>
-                              </motion.div>
-                            </Link>
-                          ))
-                        ) : (
-                          <div className={`h-full flex flex-col items-center justify-center text-center p-6 rounded-2xl border border-dashed ${isDark ? "bg-slate-950/60 border-slate-800" : "bg-stone-50 border-stone-200"}`}>
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-sm mb-4 ${isDark ? "bg-slate-900" : "bg-white"}`}>
-                              <ShoppingBag className={`w-6 h-6 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
-                            </div>
-                            <p className={`font-bold ${isDark ? "text-slate-100" : "text-stone-800"}`}>{t("profile.noOrdersYet")}</p>
-                            <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.noOrdersMessage")}</p>
-                            <Link to="/products" className="mt-4 text-sm font-bold text-primary hover:text-primary-dark underline">{t("profile.startShopping")}</Link>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-
               {activeTab === "edit" && (
                 <motion.div
                   key="edit"

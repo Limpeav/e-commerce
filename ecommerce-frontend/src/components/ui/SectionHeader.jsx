@@ -12,12 +12,12 @@ const SectionHeader = ({
       {number !== undefined && number !== null && (
         <span className="text-4xl font-bold text-primary/20 font-display">{String(number).padStart(2, '0')}</span>
       )}
-      <h2 className={titleClass}>{title}</h2>
       {Icon && (
         <div className={`w-10 h-10 bg-${iconBg} rounded-xl flex items-center justify-center`}>
           <Icon className="w-5 h-5 text-primary" />
         </div>
       )}
+      <h2 className={titleClass}>{title}</h2>
     </div>
   );
 };

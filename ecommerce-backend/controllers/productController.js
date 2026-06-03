@@ -1,6 +1,7 @@
 import axios from "axios";
 import https from "https";
 import Product from "../models/Product.js";
+import User from "../models/userModel.js";
 import Order from "../models/orderModel.js";
 import {
   containsThaiScript,
@@ -8,6 +9,7 @@ import {
   translateTextWithGemini,
 } from "../utils/geminiTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
+import { sendProductPromotionEmail } from "../utils/sendEmail.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -33,6 +35,50 @@ const parseOptionalNumber = (value) => {
 
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
+
+const isPromotionalProduct = (product = {}) => {
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  return discountPrice > 0 && discountPrice < price;
+};
+
+const getProductPromotionReasons = (product = {}) => [
+  ...(product.isNewArrival ? ["New arrival"] : []),
+  ...(isPromotionalProduct(product) ? ["Promotion"] : []),
+];
+
+const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPromotionReasons(product)) => {
+  if (!product || reasons.length === 0) return;
+
+  const subscribers = await User.find({
+    role: "user",
+    email: { $exists: true, $ne: "" },
+    "notificationPreferences.promotionalEmails": { $ne: false },
+  })
+    .select("name email")
+    .lean();
+
+  for (const subscriber of subscribers) {
+    try {
+      await sendProductPromotionEmail({
+        email: subscriber.email,
+        customerName: subscriber.name,
+        product,
+        reasons,
+      });
+    } catch (error) {
+      console.error(`Failed to send promotional email to ${subscriber.email}:`, error.message);
+    }
+  }
+};
+
+const queuePromotionalEmailNotification = (product, reasons = getProductPromotionReasons(product)) => {
+  if (!product || reasons.length === 0) return;
+
+  notifyPromotionalEmailSubscribers(product, reasons).catch((error) => {
+    console.error("Failed to notify promotional email subscribers:", error.message);
+  });
+};
 
 let geminiTranslationUnavailable = false;
 let geminiTranslationWarningLogged = false;
@@ -344,6 +390,7 @@ export const createProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     const saved = await product.save();
+    queuePromotionalEmailNotification(saved);
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -448,6 +495,7 @@ export const importProductsFromCsv = async (req, res) => {
       productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
     );
     const createdProducts = await Product.insertMany(translatedProducts);
+    createdProducts.forEach((product) => queuePromotionalEmailNotification(product));
 
     return res.status(201).json({
       message: `Imported ${createdProducts.length} products successfully`,
@@ -517,6 +565,9 @@ export const upsertProductsFromCsv = async (req, res) => {
       );
 
       if (existingProduct) {
+        const wasNewArrival = existingProduct.isNewArrival;
+        const wasPromotional = isPromotionalProduct(existingProduct);
+
         existingProduct.price = translatedProductData.price;
         existingProduct.discountPrice = translatedProductData.discountPrice;
         existingProduct.titleKm = translatedProductData.titleKm;
@@ -526,11 +577,17 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.image = translatedProductData.image;
         syncLowStockAlertFlag(existingProduct);
         await existingProduct.save();
+        const reasons = [
+          ...(!wasNewArrival && existingProduct.isNewArrival ? ["New arrival"] : []),
+          ...(!wasPromotional && isPromotionalProduct(existingProduct) ? ["Promotion"] : []),
+        ];
+        queuePromotionalEmailNotification(existingProduct, reasons);
         updatedCount += 1;
       } else {
         const product = new Product(translatedProductData);
         syncLowStockAlertFlag(product);
-        await product.save();
+        const createdProduct = await product.save();
+        queuePromotionalEmailNotification(createdProduct);
         createdCount += 1;
       }
     }
@@ -665,6 +722,9 @@ export const updateProduct = async (req, res) => {
     if (!product)
       return res.status(404).json({ message: "Product not found" });
 
+    const wasNewArrival = product.isNewArrival;
+    const wasPromotional = isPromotionalProduct(product);
+
     const translatedProductData = await applyAutoKhmerTranslation(
       {
         title: req.body.title,
@@ -695,6 +755,11 @@ export const updateProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     await product.save();
+    const reasons = [
+      ...(!wasNewArrival && product.isNewArrival ? ["New arrival"] : []),
+      ...(!wasPromotional && isPromotionalProduct(product) ? ["Promotion"] : []),
+    ];
+    queuePromotionalEmailNotification(product, reasons);
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
