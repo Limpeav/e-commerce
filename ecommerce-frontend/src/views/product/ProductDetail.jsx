@@ -12,6 +12,7 @@ import ProductInfo from "../../components/product/ProductInfo";
 import ReviewSection from "../../components/product/ReviewSection";
 import RelatedProducts from "../../components/product/RelatedProducts";
 import Loading from "../../components/common/Loading";
+import SEO from "../../components/seo/SEO";
 
 // Hooks
 import { useProductDetail } from "../../hooks/useProductDetail";
@@ -82,8 +83,38 @@ export default function ProductDetail() {
     );
   }
 
+  const productJsonLd = product ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.image || product.images?.[0],
+    sku: product._id,
+    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+    offers: {
+      "@type": "Offer",
+      price: product.discountPrice || product.price,
+      priceCurrency: "USD",
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+    aggregateRating: product.rating ? {
+      "@type": "AggregateRating",
+      ratingValue: product.rating,
+      reviewCount: product.numReviews || 0,
+    } : undefined,
+  } : null
+
   return (
-    <div className={`min-h-screen pt-14 sm:pt-16 md:pt-22 pb-16 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+    <>
+      <SEO
+        title={product?.name || "Product Detail"}
+        description={product?.description ? `${product.name} — ${product.description.substring(0, 160)}` : "View product details at Applac."}
+        canonical={`/products/${id}`}
+        ogImage={product?.image || product?.images?.[0]}
+        ogType="product"
+        jsonLd={productJsonLd}
+      />
+      <div className={`min-h-screen pt-14 sm:pt-16 md:pt-22 pb-16 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
 
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
@@ -132,5 +163,6 @@ export default function ProductDetail() {
         .animate-slideDown { animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
       `}</style>
     </div>
+    </>
   );
 }

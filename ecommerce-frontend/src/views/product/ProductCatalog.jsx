@@ -9,6 +9,7 @@ import ErrorState from "../../components/product/ErrorState";
 import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
 import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
+import SEO from "../../components/seo/SEO";
 import { useLanguage } from "../../context/useLanguage";
 
 const VIEW_CONFIG_KEYS = {
@@ -141,12 +142,26 @@ export default function ProductCatalog() {
     return <ErrorState error={error} onRetry={handleRetry} />;
   }
 
+  const seoMeta = {
+    all: { title: "All Products", description: "Browse our full collection of baby and kids products. From newborn essentials to toys and apparel — find everything your family needs." },
+    "new-arrivals": { title: "New Arrivals", description: "Discover the latest baby and kids products at Applac. Fresh arrivals added weekly." },
+    "best-sellers": { title: "Best Sellers", description: "Shop Applac's most popular baby and kids products — loved by thousands of families." },
+    deals: { title: "Deals & Discounts", description: "Save big on top-rated baby and kids products. Limited-time deals and discounts on Applac's best-sellers." },
+  }
+  const activeSeo = seoMeta[activeView] || seoMeta.all
+
   return (
-    <div
-      className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${
-        isDark ? "bg-slate-950" : "bg-bg-base"
-      }`}
-    >
+    <>
+      <SEO
+        title={activeSeo.title}
+        description={activeSeo.description}
+        canonical={isDealsRoute ? "/deals" : "/products"}
+      />
+      <div
+        className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${
+          isDark ? "bg-slate-950" : "bg-bg-base"
+        }`}
+      >
       <div
         className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${
           isDark ? "bg-slate-950/88" : "bg-bg-base/80"
@@ -215,5 +230,6 @@ export default function ProductCatalog() {
         )}
       </main>
     </div>
+    </>
   );
 }

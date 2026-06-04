@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDarkMode } from '../../hooks';
+import SEO from '../seo/SEO';
 
 const PageLayout = ({
   children,
@@ -9,12 +10,21 @@ const PageLayout = ({
   icon: Icon,
   maxWidth = "4xl",
   badgeColor = "primary",
-  topAction
+  topAction,
+  seoTitle,
+  seoDescription,
+  canonical,
 }) => {
   const [isDark] = useDarkMode();
 
   return (
-    <div className="min-h-screen bg-bg-base px-4 pb-10 pt-24 font-sans transition-colors duration-300 sm:px-6 sm:pb-12 sm:pt-28 md:pt-32">
+    <>
+      <SEO
+        title={seoTitle || title}
+        description={seoDescription || subtitle}
+        canonical={canonical}
+      />
+      <div className="min-h-screen bg-bg-base px-4 pb-10 pt-24 font-sans transition-colors duration-300 sm:px-6 sm:pb-12 sm:pt-28 md:pt-32">
       <div className={`max-w-${maxWidth} mx-auto`}>
         <div
           className={`relative overflow-hidden rounded-3xl border p-5 transition-colors duration-300 sm:rounded-[2.5rem] sm:p-8 md:p-12 lg:rounded-[4rem] lg:p-20 ${isDark ? "bg-bg-card shadow-[0_28px_80px_-34px_rgba(12,16,12,0.65)]" : "bg-bg-card shadow-[0_28px_80px_-34px_rgba(141,170,145,0.18)]"}`}
@@ -59,6 +69,7 @@ const PageLayout = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -99,6 +99,9 @@ export default function Contact() {
             icon={Send}
             badgeColor="primary"
             maxWidth="7xl"
+            seoTitle={t("contact.title")}
+            seoDescription={t("contact.subtitle")}
+            canonical="/contact"
         >
             <div className="space-y-12 sm:space-y-16 lg:space-y-24">
                 {/* Contact Grid */}

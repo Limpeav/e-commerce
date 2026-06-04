@@ -117,6 +117,9 @@ export default function Privacy() {
             icon={Shield}
             badgeColor="green"
             maxWidth="5xl"
+            seoTitle="Privacy Policy"
+            seoDescription="How we collect, use, and protect your data"
+            canonical="/privacy"
         >
             <div className="space-y-12 md:space-y-16">
                 {sections.map((section) => (

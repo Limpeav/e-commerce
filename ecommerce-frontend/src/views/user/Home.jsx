@@ -11,6 +11,7 @@ import SearchBar from "../../components/home/SearchBar";
 import ErrorState from "../../components/product/ErrorState";
 import ProductCard from "../../components/product/ProductCard";
 import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
+import SEO from "../../components/seo/SEO";
 import { useDarkMode } from "../../hooks";
 
 // Hooks
@@ -283,7 +284,13 @@ export default function Home() {
     }
 
     return (
-        <div className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <>
+            <SEO
+                title="Home"
+                description="Shop the best baby and kids products at Applac. Discover curated essentials, toys, clothing, and more — delivered to your door."
+                canonical="/"
+            />
+            <div className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
             <div className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
                 <SearchBar
@@ -339,5 +346,6 @@ export default function Home() {
                 </div>
             </main>
         </div>
+        </>
     );
 }

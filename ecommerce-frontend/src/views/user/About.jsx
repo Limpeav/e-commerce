@@ -68,6 +68,9 @@ export default function About() {
             icon={Sparkles}
             badgeColor="primary"
             maxWidth="7xl"
+            seoTitle={t("about.title")}
+            seoDescription={t("about.subtitle")}
+            canonical="/about"
         >
             <div className="space-y-16 md:space-y-20 lg:space-y-24">
 

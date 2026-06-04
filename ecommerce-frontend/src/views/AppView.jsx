@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
@@ -8,6 +8,7 @@ import {
   publicRoutes,
   userLazyComponents,
 } from "../config/routes";
+import { routeMeta } from "../config/seo";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
 import { useDarkMode } from "../hooks";
@@ -19,6 +20,8 @@ import Loading from "../components/common/Loading";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
 import StaticTextTranslator from "../components/common/StaticTextTranslator";
+import SEO from "../components/seo/SEO";
+import { organizationSchema, websiteSchema } from "../config/seo";
 import {
   buildPortalUrl,
   isAdminPortal,
@@ -120,6 +123,17 @@ export default function AppView() {
     return <Navigate to="/complete-profile" replace />;
   }
 
+  const currentRouteMeta = useMemo(() => {
+    const path = location.pathname
+    const customerPath = path.replace(/^\/customer/, "")
+    const candidates = [
+      routeMeta[path],
+      routeMeta[customerPath],
+      routeMeta["*"],
+    ]
+    return candidates.find(Boolean) || routeMeta["*"]
+  }, [location.pathname])
+
   const renderRouteElement = (route, isProtected) => {
     const Component = LazyComponents[route.component];
     const isUserAuthPage =
@@ -162,6 +176,18 @@ export default function AppView() {
   return (
     <ErrorBoundary>
       <ScrollToTop />
+      {!isPortalRoute && (
+        <>
+          <SEO
+            title={currentRouteMeta.title}
+            description={currentRouteMeta.description}
+            noIndex={currentRouteMeta.noIndex}
+            canonical={currentRouteMeta.canonical || location.pathname}
+          />
+          <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
+          <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+        </>
+      )}
       <div
         className={
           isPortalRoute || isDark
