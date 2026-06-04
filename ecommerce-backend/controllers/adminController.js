@@ -3,12 +3,13 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
+import { normalizeProductCategory } from "../utils/productCategories.js";
 
 const sanitizeDraftRow = (row = {}) => ({
   title: String(row.title || "").trim(),
   price: String(row.price || "").trim(),
   discountPrice: String(row.discountPrice || "").trim(),
-  category: String(row.category || "").trim(),
+  category: normalizeProductCategory(row.category),
   description: String(row.description || "").trim(),
   stock: String(row.stock || "").trim(),
   image: String(row.image || "").trim(),

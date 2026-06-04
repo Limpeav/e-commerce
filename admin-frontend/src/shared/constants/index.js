@@ -30,7 +30,7 @@ export const PRODUCT_CATEGORIES = {
   MILK: 'Milk',
   FEEDING_AND_NURSING: 'Feeding & Nursing',
   DIAPERING_AND_CARE: 'Diapering & Care',
-  NURSERY_AND_DECOR: 'Nursery & Decor',
+  FURNITURE: 'Furniture',
   TRAVEL_AND_GEAR: 'Travel & Gear',
   BATH_AND_SKIN: 'Bath & Skin',
   PLAY_AND_LEARN: 'Play & Learn',

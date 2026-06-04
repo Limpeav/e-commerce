@@ -21,6 +21,7 @@ import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrdersPath, getStoredAdminUser } from "../../../utils/adminSession";
+import { joinOrderRoom, subscribeRealtimeEvent } from "../../../services/realtime";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -36,8 +37,10 @@ const OrderDetails = () => {
     const isSeller = adminUser?.role === "seller";
     const ordersPath = getPortalOrdersPath(adminUser);
 
-    const fetchOrderDetails = useCallback(async () => {
-        setLoading(true);
+    const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
+        if (!silent) {
+            setLoading(true);
+        }
         const result = await AdminController.getOrderById(id);
 
         if (result.success) {
@@ -47,12 +50,32 @@ const OrderDetails = () => {
             setError(result.error || "Failed to fetch order details");
         }
 
-        setLoading(false);
+        if (!silent) {
+            setLoading(false);
+        }
     }, [id]);
 
     useEffect(() => {
         fetchOrderDetails();
     }, [fetchOrderDetails]);
+
+    useEffect(() => {
+        const refreshCurrentOrder = (payload = {}) => {
+            if (!payload.orderId || payload.orderId === id) {
+                fetchOrderDetails({ silent: true });
+            }
+        };
+
+        const leaveOrderRoom = joinOrderRoom(id);
+        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", refreshCurrentOrder);
+        const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshCurrentOrder);
+
+        return () => {
+            leaveOrderRoom();
+            unsubscribeUpdated();
+            unsubscribeCreated();
+        };
+    }, [fetchOrderDetails, id]);
 
     const handleStatusUpdate = async (newStatus) => {
         setUpdating(true);

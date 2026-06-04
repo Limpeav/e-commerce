@@ -1,21 +1,3 @@
-export const PRODUCT_CATEGORY_OPTIONS = [
-  "Milk",
-  "Toy",
-  "Clothing",
-  "Shoes",
-  "Feeding & Nursing",
-  "Diapering & Care",
-  "Furniture",
-  "Travel & Gear",
-  "Bath & Skin",
-  "Play & Learn",
-];
-
-export const PRODUCT_CATEGORY_OPTIONS_WITH_ALL = [
-  "All",
-  ...PRODUCT_CATEGORY_OPTIONS,
-];
-
 export const PRODUCT_CATEGORY_ALIASES = {
   Milk: ["Milk", "Formula"],
   Toy: ["Toy", "Toys"],
@@ -45,4 +27,16 @@ export const normalizeProductCategory = (category = "") => {
   if (!trimmedCategory) return "";
 
   return CATEGORY_NORMALIZATION_MAP[trimmedCategory.toLowerCase()] || trimmedCategory;
+};
+
+export const getProductCategoryLookupValues = (category = "") => {
+  const normalizedCategory = normalizeProductCategory(category);
+  if (!normalizedCategory) return [];
+
+  return [
+    ...new Set([
+      normalizedCategory,
+      ...(PRODUCT_CATEGORY_ALIASES[normalizedCategory] || []),
+    ]),
+  ];
 };

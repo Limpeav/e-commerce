@@ -8,7 +8,7 @@ const CATEGORY_TRANSLATION_KEYS = {
   Shoes: "categories.shoes",
   "Feeding & Nursing": "categories.feedingNursing",
   "Diapering & Care": "categories.diaperingCare",
-  "Nursery & Decor": "categories.nurseryDecor",
+  Furniture: "categories.furniture",
   "Travel & Gear": "categories.travelGear",
   "Bath & Skin": "categories.bathSkin",
   "Play & Learn": "categories.playLearn",

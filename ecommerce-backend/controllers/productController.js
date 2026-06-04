@@ -10,6 +10,10 @@ import {
 } from "../utils/geminiTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendStorePromotionEmail } from "../utils/sendEmail.js";
+import {
+  getProductCategoryLookupValues,
+  normalizeProductCategory,
+} from "../utils/productCategories.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -254,6 +258,7 @@ const attachSalesMetrics = async (products) => {
 
     return {
       ...productData,
+      category: normalizeProductCategory(productData.category),
       sold,
       totalSold: sold,
       isBestSeller: sold > 0,
@@ -334,7 +339,7 @@ const parseCsv = (content = "") => {
 const validateAndBuildProductRow = ({ data, rowNumber }) => {
   const title = data.title?.trim();
   const titleKm = data.titleKm?.trim() || "";
-  const category = data.category?.trim();
+  const category = normalizeProductCategory(data.category);
   const description = data.description?.trim() || "";
   const descriptionKm = data.descriptionKm?.trim() || "";
   const image = data.image?.trim();
@@ -407,7 +412,7 @@ export const createProduct = async (req, res) => {
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
-      category,
+      category: normalizeProductCategory(category),
       description,
       stock,
       isNewArrival: parseBoolean(isNewArrival),
@@ -640,7 +645,7 @@ export const upsertProductsFromCsv = async (req, res) => {
     for (const productData of productsToUpsert) {
       const existingProduct = await Product.findOne({
         title: productData.title,
-        category: productData.category,
+        category: { $in: getProductCategoryLookupValues(productData.category) },
       }).sort({ createdAt: -1, _id: -1 });
 
       const translatedProductData = await applyAutoKhmerTranslation(
@@ -651,6 +656,7 @@ export const upsertProductsFromCsv = async (req, res) => {
       if (existingProduct) {
         existingProduct.price = translatedProductData.price;
         existingProduct.discountPrice = translatedProductData.discountPrice;
+        existingProduct.category = translatedProductData.category;
         existingProduct.titleKm = translatedProductData.titleKm;
         existingProduct.description = translatedProductData.description;
         existingProduct.descriptionKm = translatedProductData.descriptionKm;
@@ -802,7 +808,7 @@ export const updateProduct = async (req, res) => {
         title: req.body.title,
         price: req.body.price,
         discountPrice: parseOptionalNumber(req.body.discountPrice),
-        category: req.body.category,
+        category: normalizeProductCategory(req.body.category),
         description: req.body.description,
         stock: req.body.stock,
         isNewArrival: parseBoolean(req.body.isNewArrival),
@@ -814,7 +820,7 @@ export const updateProduct = async (req, res) => {
     product.titleKm = translatedProductData.titleKm;
     product.price = translatedProductData.price;
     product.discountPrice = translatedProductData.discountPrice;
-    product.category = translatedProductData.category;
+    product.category = normalizeProductCategory(translatedProductData.category);
     product.description = translatedProductData.description;
     product.descriptionKm = translatedProductData.descriptionKm;
     product.stock = translatedProductData.stock;

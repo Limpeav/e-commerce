@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     CalendarDays,
@@ -18,6 +18,7 @@ import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import { subscribeRealtimeEvent } from "../../../services/realtime";
 
 const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
 
@@ -36,9 +37,41 @@ const AdminOrders = () => {
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
 
+    const fetchOrders = useCallback(async ({ silent = false } = {}) => {
+        try {
+            if (!silent) {
+                setLoading(true);
+            }
+            const response = await adminService.getOrders();
+            setOrders(response.data);
+            setFilteredOrders(response.data);
+            setLoading(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to fetch orders");
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchOrders();
-    }, []);
+    }, [fetchOrders]);
+
+    useEffect(() => {
+        const refreshOrders = () => {
+            fetchOrders({ silent: true });
+        };
+
+        const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshOrders);
+        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", refreshOrders);
+
+        window.addEventListener("admin-orders-updated", refreshOrders);
+
+        return () => {
+            unsubscribeCreated();
+            unsubscribeUpdated();
+            window.removeEventListener("admin-orders-updated", refreshOrders);
+        };
+    }, [fetchOrders]);
 
     useEffect(() => {
         filterOrders();
@@ -124,19 +157,6 @@ const AdminOrders = () => {
             return next;
         });
     }, [groupedOrders]);
-
-    const fetchOrders = async () => {
-        try {
-            setLoading(true);
-            const response = await adminService.getOrders();
-            setOrders(response.data);
-            setFilteredOrders(response.data);
-            setLoading(false);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to fetch orders");
-            setLoading(false);
-        }
-    };
 
     const filterOrders = () => {
         let filtered = isDelivery

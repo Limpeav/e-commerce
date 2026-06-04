@@ -190,6 +190,7 @@ export default function ReviewOrder() {
       [productId]: result.data?.updated || result.data?.alreadyReviewed ? "updated" : "submitted",
     }));
     setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
+    navigate("/customer");
   };
 
   const switchOrderAccount = () => {

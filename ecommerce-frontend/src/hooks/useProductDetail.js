@@ -103,11 +103,12 @@ export const useProductReview = (id, user) => {
       setComment("");
       setAlreadyReviewed(true);
 
-      if (onSuccess) onSuccess();
+      onSuccess?.();
     } catch (err) {
       if (err.message === "Product already reviewed") {
         setAlreadyReviewed(true);
         setReviewError("");
+        onSuccess?.();
       } else {
         setReviewError(err.message || "An error occurred. Please try again.");
       }

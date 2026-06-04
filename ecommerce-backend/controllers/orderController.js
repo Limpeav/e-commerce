@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
 import Notification from "../models/notificationModel.js";
-import { emitNotificationCreated, emitOrderUpdated } from "../realtime/socket.js";
+import { emitNotificationCreated, emitOrderCreated, emitOrderUpdated } from "../realtime/socket.js";
 import {
     shouldSendLowStockAlert,
     syncLowStockAlertFlag,
@@ -312,6 +312,8 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
 
             await notification.save();
+            emitOrderCreated(createdOrder);
+            emitNotificationCreated(notification);
 
             res.status(201).json(createdOrder);
 
@@ -634,6 +636,11 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
 
         const updatedOrder = await order.save();
         res.json(updatedOrder);
+        emitOrderUpdated(updatedOrder, {
+            paymentStatus: updatedOrder.paymentStatus,
+            isPaid: updatedOrder.isPaid,
+            paidAt: updatedOrder.paidAt,
+        });
     } else {
         res.status(404);
         throw new Error("Order not found");
@@ -778,6 +785,11 @@ export const updateOrderToPaid = asyncHandler(async (req, res) => {
 
         const updatedOrder = await order.save();
         res.json(updatedOrder);
+        emitOrderUpdated(updatedOrder, {
+            paymentStatus: updatedOrder.paymentStatus,
+            isPaid: updatedOrder.isPaid,
+            paidAt: updatedOrder.paidAt,
+        });
     } else {
         res.status(404);
         throw new Error("Order not found");

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { normalizeProductCategory } from "../utils/productCategories.js";
 
 const reviewSchema = mongoose.Schema(
   {
@@ -37,6 +38,7 @@ const productSchema = mongoose.Schema(
     category: {
       type: String,
       required: true,
+      set: normalizeProductCategory,
     },
     image: {
       type: String,

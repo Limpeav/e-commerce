@@ -122,12 +122,51 @@ export const emitToAdmins = (eventName, payload) => {
   ioInstance.to("role:admin").emit(eventName, payload);
 };
 
+export const emitToRoles = (roles = [], eventName, payload) => {
+  if (!ioInstance) {
+    return;
+  }
+
+  roles.forEach((role) => {
+    if (role) {
+      ioInstance.to(`role:${role}`).emit(eventName, payload);
+    }
+  });
+};
+
 export const emitToUsers = (eventName, payload) => {
   if (!ioInstance) {
     return;
   }
 
   ioInstance.to("role:user").emit(eventName, payload);
+};
+
+export const emitOrderCreated = (order) => {
+  if (!order) {
+    return;
+  }
+
+  const orderId = resolveUserId(order._id);
+  const userId = resolveUserId(order.user);
+
+  const payload = {
+    orderId,
+    userId,
+    orderStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    isPaid: Boolean(order.isPaid),
+    isDelivered: Boolean(order.isDelivered),
+    totalPrice: order.totalPrice,
+    createdAt: order.createdAt || new Date().toISOString(),
+    updatedAt: order.updatedAt || new Date().toISOString(),
+  };
+
+  emitToRoles(["admin", "seller"], "order:created", payload);
+
+  if (userId) {
+    emitToUser(userId, "order:created", payload);
+  }
 };
 
 export const emitOrderUpdated = (order, details = {}) => {
@@ -153,7 +192,7 @@ export const emitOrderUpdated = (order, details = {}) => {
     emitToUser(userId, "order:updated", payload);
   }
 
-  emitToAdmins("order:updated", payload);
+  emitToRoles(["admin", "seller", "delivery"], "order:updated", payload);
 
   if (ioInstance && orderId) {
     ioInstance.to(`order:${orderId}`).emit("order:updated", payload);
@@ -179,7 +218,7 @@ export const emitNotificationCreated = (notification) => {
   };
 
   if (audience === "admin") {
-    emitToAdmins("notification:created", payload);
+    emitToRoles(["admin", "seller"], "notification:created", payload);
     return;
   }
 
@@ -189,6 +228,6 @@ export const emitNotificationCreated = (notification) => {
   }
 
   // Fallback for broadcast.
-  emitToAdmins("notification:created", payload);
+  emitToRoles(["admin", "seller", "delivery"], "notification:created", payload);
   emitToUsers("notification:created", payload);
 };
