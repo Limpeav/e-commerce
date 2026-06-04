@@ -3,6 +3,12 @@ import FormData from "form-data";
 
 const TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
 
+const buildTelegramPayload = ({ chatId, threadId, ...payload }) => ({
+  chat_id: chatId,
+  ...(threadId ? { message_thread_id: Number(threadId) } : {}),
+  ...payload,
+});
+
 const escapeHtml = (value) =>
   String(value)
     .replaceAll("&", "&amp;")
@@ -19,6 +25,7 @@ const getTelegramConfig = (type = "default") => {
     return {
       botToken,
       chatId,
+      threadId: process.env.TELEGRAM_THREAD_ID_1,
       enabled: Boolean(botToken && chatId),
     };
   }
@@ -30,6 +37,7 @@ const getTelegramConfig = (type = "default") => {
     return {
       botToken,
       chatId,
+      threadId: process.env.TELEGRAM_THREAD_ID_2,
       enabled: Boolean(botToken && chatId),
     };
   }
@@ -41,6 +49,7 @@ const getTelegramConfig = (type = "default") => {
     return {
       botToken,
       chatId,
+      threadId: process.env.TELEGRAM_THREAD_ID_3,
       enabled: Boolean(botToken && chatId),
     };
   }
@@ -51,12 +60,13 @@ const getTelegramConfig = (type = "default") => {
   return {
     botToken,
     chatId,
+    threadId: process.env.TELEGRAM_THREAD_ID,
     enabled: Boolean(botToken && chatId),
   };
 };
 
 export const sendTelegramMessage = async (message) => {
-  const { botToken, chatId, enabled } = getTelegramConfig();
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig();
 
   if (!enabled) {
     return { sent: false, reason: "missing-config" };
@@ -66,6 +76,7 @@ export const sendTelegramMessage = async (message) => {
     return await sendTelegramPhotoOrMessage({
       botToken,
       chatId,
+      threadId,
       caption: message,
     });
   } catch (error) {
@@ -89,6 +100,7 @@ export const sendTelegramMessage = async (message) => {
 const sendTelegramPhotoOrMessage = async ({
   botToken,
   chatId,
+  threadId,
   caption,
   imageUrl,
 }) => {
@@ -96,12 +108,13 @@ const sendTelegramPhotoOrMessage = async ({
     try {
       await axios.post(
         `https://api.telegram.org/bot${botToken}/sendPhoto`,
-        {
-          chat_id: chatId,
+        buildTelegramPayload({
+          chatId,
+          threadId,
           photo: imageUrl,
           caption,
           parse_mode: "HTML",
-        },
+        }),
         {
           timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
         }
@@ -130,11 +143,12 @@ const sendTelegramPhotoOrMessage = async ({
 
   await axios.post(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
-    {
-      chat_id: chatId,
+    buildTelegramPayload({
+      chatId,
+      threadId,
       text: caption,
       parse_mode: "HTML",
-    },
+    }),
     {
       timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
     }
@@ -211,7 +225,7 @@ export const sendLowStockTelegramAlert = async ({
   productId,
   imageUrl,
 }) => {
-  const { botToken, chatId, enabled } = getTelegramConfig("low-stock");
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig("low-stock");
 
   if (!enabled) {
     return { sent: false, reason: "missing-config" };
@@ -228,6 +242,7 @@ export const sendLowStockTelegramAlert = async ({
     return await sendTelegramPhotoOrMessage({
       botToken,
       chatId,
+      threadId,
       caption,
       imageUrl,
     });
@@ -257,7 +272,7 @@ export const sendOrderTelegramAlert = async ({
   shippingAddress,
   googleMapsLink,
 }) => {
-  const { botToken, chatId, enabled } = getTelegramConfig("order");
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig("order");
 
   if (!enabled) {
     return { sent: false, reason: "missing-config" };
@@ -277,11 +292,12 @@ export const sendOrderTelegramAlert = async ({
   try {
     await axios.post(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        chat_id: chatId,
+      buildTelegramPayload({
+        chatId,
+        threadId,
         text: message,
         parse_mode: "HTML",
-      },
+      }),
       {
         timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
       }
@@ -325,7 +341,7 @@ export const sendOrderReceiptTelegramPhoto = async ({
   customerName,
   totalPrice,
 }) => {
-  const { botToken, chatId, enabled } = getTelegramConfig("receipt");
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig("receipt");
 
   if (!enabled) {
     return { sent: false, reason: "missing-config" };
@@ -339,6 +355,9 @@ export const sendOrderReceiptTelegramPhoto = async ({
 
   const form = new FormData();
   form.append("chat_id", chatId);
+  if (threadId) {
+    form.append("message_thread_id", String(threadId));
+  }
   form.append("caption", caption);
   form.append("parse_mode", "HTML");
   form.append("photo", imageBuffer, {
