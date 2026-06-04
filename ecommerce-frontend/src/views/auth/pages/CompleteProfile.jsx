@@ -101,7 +101,7 @@ const CompleteProfile = () => {
 
                 {/* Header */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-6">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-6 dark:bg-slate-900 dark:border-slate-800">
                         <Smartphone className="w-8 h-8 text-primary" />
                     </div>
                     <h1 className="text-3xl font-black text-text-main mb-2 font-display">
@@ -113,19 +113,19 @@ const CompleteProfile = () => {
                 </div>
 
                 {/* Card */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white p-8 sm:p-10">
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white p-8 sm:p-10 dark:bg-slate-900/80 dark:border-slate-800">
 
                     {error && (
-                        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 mb-6 animate-shake">
+                        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 mb-6 animate-shake dark:bg-red-950/20 dark:border-red-900/30">
                             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-red-700 text-sm font-bold">{error}</p>
+                            <p className="text-red-700 text-sm font-bold dark:text-red-400">{error}</p>
                         </div>
                     )}
 
                     {/* Enter Phone Form */}
                     {!completed && (
                         <form onSubmit={handlePhoneSubmit} className="space-y-6">
-                            <div className="bg-primary/5 rounded-2xl p-4 text-center">
+                            <div className="bg-primary/5 rounded-2xl p-4 text-center dark:bg-primary/10 dark:border dark:border-primary/20">
                                 <p className="text-sm text-text-muted font-medium">
                                     Please add your phone number before continuing.
                                 </p>
@@ -186,11 +186,11 @@ const CompleteProfile = () => {
                     {/* Success */}
                     {completed && (
                         <div className="text-center py-8">
-                            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce">
+                            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce dark:bg-green-950/30">
                                 <CheckCircle className="w-10 h-10 text-green-500" />
                             </div>
-                            <h3 className="text-xl font-black text-green-800 mb-2">Success!</h3>
-                            <p className="text-green-600 mb-6">Redirecting you to home page...</p>
+                            <h3 className="text-xl font-black text-green-800 mb-2 dark:text-green-400">Success!</h3>
+                            <p className="text-green-600 mb-6 dark:text-green-500">Redirecting you to home page...</p>
                             <Loader className="w-6 h-6 text-primary animate-spin mx-auto" />
                         </div>
                     )}
