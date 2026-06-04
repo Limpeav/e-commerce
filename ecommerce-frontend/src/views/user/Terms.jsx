@@ -164,6 +164,9 @@ export default function Terms() {
             badge={`${t("Version")} 2.4 // ${new Date().toLocaleDateString(language === "kh" ? "km-KH" : undefined, { month: 'short', year: 'numeric' })}`}
             icon={FileText}
             maxWidth="5xl"
+            seoTitle="Terms of Service"
+            seoDescription="The rules and guidelines governing your use of our platform"
+            canonical="/terms"
         >
             <div className="space-y-12 md:space-y-16">
                 {sections.map((section) => (

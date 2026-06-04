@@ -1,3 +1,4 @@
+import SEO from "../../components/seo/SEO";
 import { useCart } from "../../context/useCart";
 import EmptyCart from "./EmptyCart";
 
@@ -11,6 +12,8 @@ import { getCartItemKey } from "../../utils/productOptions";
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity } = useCart();
   const [isDark] = useDarkMode();
+
+
 
   // Filter out invalid items (where product is null)
   const validCartItems = cart.filter((item) => item.product);

@@ -38,6 +38,9 @@ export default function Location() {
             icon={MapPin}
             badgeColor="blue"
             maxWidth="7xl"
+            seoTitle={t("location.title")}
+            seoDescription={t("location.subtitle")}
+            canonical="/location"
         >
             <div className="space-y-24">
                 {/* Main Map Visual Placeholder */}

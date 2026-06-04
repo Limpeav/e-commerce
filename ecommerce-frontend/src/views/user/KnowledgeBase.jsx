@@ -94,6 +94,9 @@ export default function KnowledgeBase() {
             icon={BookOpen}
             badgeColor="secondary"
             maxWidth="7xl"
+            seoTitle={t("help.title")}
+            seoDescription={t("help.subtitle")}
+            canonical="/knowledge-base"
         >
             <div className="space-y-12 sm:space-y-16 md:space-y-20 lg:space-y-24">
                 {/* Hero Search */}
