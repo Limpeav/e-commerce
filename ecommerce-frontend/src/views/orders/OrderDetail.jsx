@@ -9,6 +9,7 @@ import {
   DollarSign,
   Truck,
   CheckCircle,
+  XCircle,
   MapPin,
   CreditCard,
   User,
@@ -21,6 +22,7 @@ import {
 import axios from "axios";
 import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
+import { cancelOrder } from "../../services/orderService";
 
 const API_URL = config.API_BASE_URL;
 
@@ -36,6 +38,7 @@ const OrderDetail = () => {
   const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -84,7 +87,7 @@ const OrderDetail = () => {
       Processing: "bg-primary/5 text-primary border-primary/10",
       Shipped: "bg-blue-50 text-blue-600 border-blue-100",
       Delivered: "bg-green-50 text-green-600 border-green-100",
-      Cancelled: "bg-red-50 text-red-600 border-red-100",
+      Cancelled: "bg-[#342331] text-[#ffc7cf] border-[#7b2942]",
     };
     return colors[status] || "bg-stone-50 text-stone-500 border-stone-100";
   };
@@ -115,6 +118,39 @@ const OrderDetail = () => {
     t(`orderDetail.paymentMethods.${normalizeTranslationKey(method || "undefined")}`, {
       defaultValue: method || t("orderDetail.undefined"),
     });
+
+  const getStatusIcon = (status) => {
+    if (status === "Cancelled") {
+      return <XCircle className="h-4 w-4" />;
+    }
+
+    return null;
+  };
+
+  const currentOrderStatus = String(order?.orderStatus || "").trim();
+  const canCancelOrder = currentOrderStatus === "Pending";
+
+  const handleCancelOrder = async () => {
+    if (!canCancelOrder || cancelling) return;
+
+    if (!window.confirm("Cancel this order? You can only cancel before the seller confirms it.")) {
+      return;
+    }
+
+    try {
+      setCancelling(true);
+      setError("");
+      const updatedOrder = await cancelOrder(order._id);
+      setOrder(updatedOrder);
+      await fetchOrderDetails();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || err.message || "Failed to cancel order"
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (loading) {
     return <Loading message={t("orderDetail.loading")} />;
@@ -147,11 +183,11 @@ const OrderDetail = () => {
         <div className="bg-white rounded-3xl border border-stone-100 p-8 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <button
-              onClick={() => navigate("/customer/orders")}
+              onClick={() => navigate("/customer")}
               className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{t("orderDetail.backToOrders")}</span>
+              <span>{t("orderDetail.backToHome", { defaultValue: "Back to home" })}</span>
             </button>
             <h1 className="text-3xl font-bold text-text-main">
               {t("orderDetail.orderNumber", {
@@ -163,12 +199,30 @@ const OrderDetail = () => {
               {formatDate(order.createdAt)}
             </p>
           </div>
-          <div
-            className={`px-4 py-2 rounded-full text-xs font-semibold border ${getStatusColor(
-              order.orderStatus
-            )}`}
-          >
-            {translateStatus(order.orderStatus)}
+          <div className="flex flex-col items-start gap-3 md:items-end">
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold ${getStatusColor(
+                order.orderStatus
+              )}`}
+            >
+              {getStatusIcon(order.orderStatus)}
+              {translateStatus(order.orderStatus)}
+            </div>
+            {canCancelOrder && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-bold text-red-700 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelling ? "Cancelling..." : "Cancel Order"}
+              </button>
+            )}
+            {currentOrderStatus === "Cancelled" && (
+              <p className="max-w-[220px] text-right text-xs font-semibold text-red-600">
+                This order has been cancelled.
+              </p>
+            )}
           </div>
         </div>
 

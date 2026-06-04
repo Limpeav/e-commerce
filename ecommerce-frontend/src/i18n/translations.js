@@ -286,6 +286,7 @@ export const translations = {
       fetchFailed: "Something went wrong while loading order details.",
       notAuthenticated: "Please sign in to view this order.",
       backToOrders: "Back to orders",
+      backToHome: "Back to home",
       orderNumber: "Order #{{number}}",
       items: "Items",
       qty: "Qty",
@@ -452,6 +453,8 @@ export const translations = {
       orderSuccessMessage: "Thank you for your order. We are preparing your items for shipment.",
       orderId: "Order ID",
       orderCreated: "Order Created",
+      cancelNoticeTitle: "Need to cancel?",
+      cancelNoticeMessage: "You can cancel this order from My Orders until the seller confirms it.",
       viewOrderDetails: "View Order Details",
       continueShopping: "Continue Shopping",
       errors: {
@@ -870,6 +873,7 @@ export const translations = {
       fetchFailed: "មានបញ្ហាក្នុងការផ្ទុកព័ត៌មានលម្អិតការបញ្ជាទិញ។",
       notAuthenticated: "សូមចូលគណនីដើម្បីមើលការបញ្ជាទិញនេះ។",
       backToOrders: "ត្រឡប់ទៅការបញ្ជាទិញ",
+      backToHome: "ត្រឡប់ទៅទំព័រដើម",
       orderNumber: "ការបញ្ជាទិញ #{{number}}",
       items: "ទំនិញ",
       qty: "ចំនួន",
@@ -1036,6 +1040,8 @@ export const translations = {
       orderSuccessMessage: "អរគុណសម្រាប់ការបញ្ជាទិញរបស់អ្នក។ យើងកំពុងរៀបចំទំនិញរបស់អ្នកសម្រាប់ការដឹកជញ្ជូន។",
       orderId: "លេខបញ្ជាទិញ",
       orderCreated: "បានបង្កើតការបញ្ជាទិញ",
+      cancelNoticeTitle: "ត្រូវការបោះបង់មែនទេ?",
+      cancelNoticeMessage: "អ្នកអាចបោះបង់ការបញ្ជាទិញនេះពីការបញ្ជាទិញរបស់ខ្ញុំ រហូតដល់អ្នកលក់បញ្ជាក់វា។",
       viewOrderDetails: "មើលព័ត៌មានលម្អិតការបញ្ជាទិញ",
       continueShopping: "បន្តទិញទំនិញ",
       errors: {

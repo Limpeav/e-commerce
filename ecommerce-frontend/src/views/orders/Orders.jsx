@@ -18,6 +18,7 @@ import axios from "axios";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
 import Loading from "../../components/common/Loading";
+import { cancelOrder } from "../../services/orderService";
 
 const API_URL = config.API_BASE_URL;
 
@@ -27,6 +28,7 @@ const Orders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingOrderId, setCancellingOrderId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -69,6 +71,27 @@ const Orders = () => {
     }
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (cancellingOrderId) return;
+
+    if (!window.confirm("Cancel this order? You can only cancel before the seller confirms it.")) {
+      return;
+    }
+
+    try {
+      setCancellingOrderId(orderId);
+      setError("");
+      await cancelOrder(orderId);
+      await fetchOrders();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || err.message || "Failed to cancel order"
+      );
+    } finally {
+      setCancellingOrderId("");
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       Pending: isDark
@@ -83,9 +106,7 @@ const Orders = () => {
       Delivered: isDark
         ? "bg-emerald-500/12 text-emerald-200 border-emerald-500/20"
         : "bg-emerald-50 text-emerald-700 border-emerald-200",
-      Cancelled: isDark
-        ? "bg-rose-500/12 text-rose-200 border-rose-500/20"
-        : "bg-rose-50 text-rose-700 border-rose-200",
+      Cancelled: "bg-[#342331] text-[#ffc7cf] border-[#7b2942]",
     };
     return colors[status] || (isDark
       ? "bg-slate-800/90 text-slate-300 border-slate-700"
@@ -343,17 +364,34 @@ const Orders = () => {
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => navigate(`/customer/orders/${order._id}`)}
-                          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 ${
-                            isDark
-                              ? "bg-slate-950 border border-slate-700 text-slate-100 hover:border-indigo-400 hover:text-indigo-300"
-                              : "bg-white border border-stone-200 text-text-main hover:border-primary hover:text-primary"
-                          }`}
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Details
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          {String(order.orderStatus || "").trim() === "Pending" && (
+                            <button
+                              type="button"
+                              onClick={() => handleCancelOrder(order._id)}
+                              disabled={cancellingOrderId === order._id}
+                              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
+                                isDark
+                                  ? "bg-rose-500/10 border border-rose-500/20 text-rose-200 hover:bg-rose-500/15"
+                                  : "bg-rose-50 border border-rose-100 text-rose-700 hover:bg-rose-100"
+                              }`}
+                            >
+                              <XCircle className="w-4 h-4" />
+                              {cancellingOrderId === order._id ? "Cancelling..." : "Cancel Order"}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => navigate(`/customer/orders/${order._id}`)}
+                            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 ${
+                              isDark
+                                ? "bg-slate-950 border border-slate-700 text-slate-100 hover:border-indigo-400 hover:text-indigo-300"
+                                : "bg-white border border-stone-200 text-text-main hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

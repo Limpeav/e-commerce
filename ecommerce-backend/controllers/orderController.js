@@ -39,6 +39,28 @@ const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
     }
 };
 
+const restoreOrderStockIfNeeded = async (order, session) => {
+    if (!order.stockReduced || order.stockRestored) {
+        return;
+    }
+
+    for (const item of order.orderItems) {
+        const product = await Product.findById(item.product).session(session);
+
+        if (product) {
+            product.stock += item.quantity;
+            product.totalSold = Math.max(
+                0,
+                Number(product.totalSold || 0) - Number(item.quantity || 0)
+            );
+            syncLowStockAlertFlag(product);
+            await product.save({ session });
+        }
+    }
+
+    order.stockRestored = true;
+};
+
 const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {}) => {
     const deliveredOrder = await Order.findById(orderId).populate("user", "name email");
 
@@ -450,20 +472,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 order.stockReduced &&
                 !order.stockRestored
             ) {
-                for (const item of order.orderItems) {
-                    const product = await Product.findById(item.product).session(session);
-
-                    if (product) {
-                        product.stock += item.quantity;
-                        product.totalSold = Math.max(
-                            0,
-                            Number(product.totalSold || 0) - Number(item.quantity || 0)
-                        );
-                        syncLowStockAlertFlag(product);
-                        await product.save({ session });
-                    }
-                }
-                order.stockRestored = true;
+                await restoreOrderStockIfNeeded(order, session);
             }
 
             updatedOrder = await order.save({ session });
@@ -517,6 +526,48 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 }
             });
         }
+    } finally {
+        await session.endSession();
+    }
+});
+
+// @desc    Cancel own order before seller confirmation
+// @route   PUT /api/orders/:id/cancel
+// @access  Private
+export const cancelUserOrder = asyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+
+    try {
+        let updatedOrder;
+
+        await session.withTransaction(async () => {
+            const order = await Order.findById(req.params.id).session(session);
+
+            if (!order) {
+                res.status(404);
+                throw new Error("Order not found");
+            }
+
+            if (order.user.toString() !== req.user._id.toString()) {
+                res.status(403);
+                throw new Error("Not authorized to cancel this order");
+            }
+
+            if (order.orderStatus !== "Pending") {
+                res.status(400);
+                throw new Error("Orders can only be cancelled before the seller confirms them");
+            }
+
+            order.orderStatus = "Cancelled";
+            await restoreOrderStockIfNeeded(order, session);
+            updatedOrder = await order.save({ session });
+        });
+
+        res.json(updatedOrder);
+        emitOrderUpdated(updatedOrder, {
+            orderStatus: updatedOrder.orderStatus,
+            stockRestored: updatedOrder.stockRestored,
+        });
     } finally {
         await session.endSession();
     }

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 
@@ -66,7 +66,7 @@ export default function OrderSuccess() {
         </div>
 
         <div
-          className={`relative z-10 mb-6 inline-block w-full max-w-sm rounded-2xl border p-4 sm:mb-8 sm:p-6 ${
+          className={`relative z-10 mb-4 inline-block w-full max-w-sm rounded-2xl border p-4 sm:p-6 ${
             isDark
               ? "bg-slate-800 border-slate-700"
               : "bg-stone-50 border-stone-100"
@@ -82,6 +82,22 @@ export default function OrderSuccess() {
           <p className="break-words font-mono text-xl font-bold tracking-tight text-text-main sm:text-2xl">
             {orderId ? `#${orderId.slice(-8).toUpperCase()}` : t("checkout.orderCreated")}
           </p>
+        </div>
+
+        <div
+          className={`relative z-10 mx-auto mb-6 flex w-full max-w-sm items-start gap-3 rounded-2xl border p-4 text-left sm:mb-8 ${
+            isDark
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div>
+            <p className="text-sm font-black">{t("checkout.cancelNoticeTitle")}</p>
+            <p className={`mt-1 text-xs font-semibold leading-relaxed ${isDark ? "text-amber-100/80" : "text-amber-800"}`}>
+              {t("checkout.cancelNoticeMessage")}
+            </p>
+          </div>
         </div>
 
         <div className="relative z-10 flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">

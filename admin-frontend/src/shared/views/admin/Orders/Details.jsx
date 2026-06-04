@@ -33,6 +33,7 @@ const OrderDetails = () => {
     const [sendingReceipt, setSendingReceipt] = useState(false);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
+    const isSeller = adminUser?.role === "seller";
     const ordersPath = getPortalOrdersPath(adminUser);
 
     const fetchOrderDetails = useCallback(async () => {
@@ -148,6 +149,11 @@ const OrderDetails = () => {
 
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
+
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "bg-green-100 text-green-800 border-green-300";
+        }
+
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
             Processing: "bg-blue-100 text-blue-800 border-blue-300",
@@ -170,6 +176,16 @@ const OrderDetails = () => {
         }
 
         return undefined;
+    };
+
+    const getOrderStatusLabel = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
+
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "Confirmed";
+        }
+
+        return normalizedStatus;
     };
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
@@ -235,11 +251,20 @@ const OrderDetails = () => {
     const fullAddress = formatAddress(order.shippingAddress);
     const displayOrderId = order._id.slice(-8);
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
+    const currentProgressStatus =
+        !isDelivery && currentOrderStatus === "Shipped" ? "Confirmed" : currentOrderStatus;
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
-    const orderStatuses = isDelivery
+    const orderProgressStatuses = isDelivery
         ? ["Delivered"]
-        : ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
-    const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid", "Failed"];
+        : ["Pending", "Confirmed", "Delivered"];
+    const availableOrderActionStatuses = isDelivery
+        ? [{ label: "Delivered", value: "Delivered" }]
+        : [
+            { label: "Pending", value: "Pending" },
+            { label: "Confirmed", value: "Shipped" },
+            { label: "Delivered", value: "Delivered" },
+        ];
+    const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid"];
     const deliveryLatitude = order.shippingAddress?.latitude;
     const deliveryLongitude = order.shippingAddress?.longitude;
     const mapUrl =
@@ -311,17 +336,17 @@ const OrderDetails = () => {
             </h2>
             <div
                 className={`mb-5 grid gap-2 ${
-                    orderStatuses.length === 2
+                    orderProgressStatuses.length === 2
                         ? "grid-cols-2"
-                        : orderStatuses.length === 5
+                        : orderProgressStatuses.length === 5
                             ? "grid-cols-5"
                             : "grid-cols-4"
                 }`}
             >
-                {orderStatuses.map((status, index) => {
-                    const isActive = currentOrderStatus === status;
+                {orderProgressStatuses.map((status, index) => {
+                    const isActive = currentProgressStatus === status;
                     const isPast =
-                        orderStatuses.indexOf(currentOrderStatus) >= index &&
+                        orderProgressStatuses.indexOf(currentProgressStatus) >= index &&
                         currentOrderStatus !== "Cancelled";
 
                     return (
@@ -337,39 +362,41 @@ const OrderDetails = () => {
                 })}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-                {orderStatuses.map(
-                    (status) => (
+                {availableOrderActionStatuses.map(
+                    ({ label, value }) => {
+                        const isCurrent = currentOrderStatus === value;
+
+                        return (
                         <button
-                            key={status}
-                            onClick={() => handleStatusUpdate(status)}
-                            disabled={updating || currentOrderStatus === status}
+                            key={label}
+                            onClick={() => handleStatusUpdate(value)}
+                            disabled={updating || isCurrent}
                             aria-label={
-                                currentOrderStatus === status
-                                    ? `Current order status: ${status}`
-                                    : `Mark order as ${status}`
+                                isCurrent
+                                    ? `Current order status: ${label}`
+                                    : `Mark order as ${label}`
                             }
                             title={
-                                currentOrderStatus === status
-                                    ? `Current order status: ${status}`
-                                    : `Mark as ${status}`
+                                isCurrent
+                                    ? `Current order status: ${label}`
+                                    : `Mark as ${label}`
                             }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${currentOrderStatus === status
+                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent
                                 ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
-                                : status === "Cancelled"
-                                    ? "bg-[var(--color-secondary)] text-white hover:opacity-90"
-                                    : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                 }`}
                         >
-                            {currentOrderStatus === status ? (
+                            {isCurrent ? (
                                 <span className="flex items-center justify-center">
                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                    {status}
+                                    {label}
                                 </span>
                             ) : (
-                                `Mark as ${status}`
+                                `Mark as ${label}`
                             )}
                         </button>
-                    )
+                        );
+                    }
                 )}
             </div>
         </section>
@@ -414,7 +441,7 @@ const OrderDetails = () => {
                                 className={`rounded-lg border px-4 py-2 ${getStatusColor(order.orderStatus)}`}
                                 style={getStatusStyle(order.orderStatus)}
                             >
-                                <span className="text-sm font-bold">Order: {currentOrderStatus}</span>
+                                <span className="text-sm font-bold">Order: {getOrderStatusLabel(order.orderStatus)}</span>
                             </div>
                         </div>
                     </div>

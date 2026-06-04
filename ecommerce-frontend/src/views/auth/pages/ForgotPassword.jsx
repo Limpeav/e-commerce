@@ -287,7 +287,7 @@ const ForgotPassword = () => {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-8 transform hover:scale-105 transition-transform duration-300">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-8 transform hover:scale-105 transition-transform duration-300 dark:bg-[#232624] dark:border-[#383D39]">
             {config.icon}
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-text-main mb-3 font-display tracking-tight leading-none">
@@ -302,7 +302,7 @@ const ForgotPassword = () => {
         <StepIndicator />
 
         {/* Card */}
-        <div className="bg-white/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white p-10">
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white p-10 dark:bg-[#232624]/95 dark:border-[#383D39]">
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake mb-6">
@@ -314,7 +314,7 @@ const ForgotPassword = () => {
           {/* ===== STEP 1: Find Account ===== */}
           {step === STEPS.FIND_ACCOUNT && (
             <form onSubmit={handleFindAccount} className="space-y-6">
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10">
+              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 dark:bg-[#1A1C1B] dark:border-[#383D39]">
                 <p className="text-sm text-text-muted leading-relaxed">
                   Please enter your email address to search for your account.
                   We'll send you a 6-digit code to verify your identity.
@@ -337,7 +337,7 @@ const ForgotPassword = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoFocus
-                    className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full pl-12 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white dark:bg-[#1A1C1B] dark:border-[#383D39] dark:placeholder-[#727871] dark:focus:bg-[#1A1C1B]"
                   />
                 </div>
               </div>
@@ -346,7 +346,7 @@ const ForgotPassword = () => {
               <div className="flex gap-3">
                 <Link
                   to="/login"
-                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2 dark:border-[#383D39] dark:bg-[#1A1C1B] dark:hover:bg-[#2D312E]"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Cancel
@@ -378,7 +378,7 @@ const ForgotPassword = () => {
           {/* ===== STEP 2: Verify Code ===== */}
           {step === STEPS.VERIFY_CODE && (
             <form onSubmit={handleVerifyCode} className="space-y-6">
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 text-center">
+              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 text-center dark:bg-[#1A1C1B] dark:border-[#383D39]">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
@@ -420,7 +420,7 @@ const ForgotPassword = () => {
                       }}
                       className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black border-2 rounded-xl transition-all focus:outline-none ${digit
                         ? "border-primary bg-primary/5 text-primary"
-                        : "border-stone-200 bg-stone-50/50 text-text-main focus:border-primary focus:ring-4 focus:ring-primary/5"
+                        : "border-stone-200 bg-stone-50/50 text-text-main focus:border-primary focus:ring-4 focus:ring-primary/5 dark:border-[#383D39] dark:bg-[#1A1C1B]"
                         }`}
                     />
                   ))}
@@ -462,7 +462,7 @@ const ForgotPassword = () => {
                     setError("");
                     setCode(["", "", "", "", "", ""]);
                   }}
-                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2 dark:border-[#383D39] dark:bg-[#1A1C1B] dark:hover:bg-[#2D312E]"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -518,7 +518,7 @@ const ForgotPassword = () => {
                     required
                     minLength={6}
                     autoFocus
-                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white dark:bg-[#1A1C1B] dark:border-[#383D39] dark:placeholder-[#727871] dark:focus:bg-[#1A1C1B]"
                   />
                   <button
                     type="button"
@@ -553,7 +553,7 @@ const ForgotPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white"
+                    className="w-full pl-12 pr-12 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-text-main font-bold placeholder-stone-300 bg-stone-50/50 focus:bg-white dark:bg-[#1A1C1B] dark:border-[#383D39] dark:placeholder-[#727871] dark:focus:bg-[#1A1C1B]"
                   />
                   <button
                     type="button"
@@ -643,7 +643,7 @@ const ForgotPassword = () => {
 
         {/* Security Badge */}
         <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] bg-white/50 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm">
+          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] bg-white/50 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm dark:bg-[#232624]/80 dark:border-[#383D39]">
             <ShieldCheck className="w-4 h-4 text-primary" />
             <span>Secure SSL Encryption</span>
           </div>

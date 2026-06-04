@@ -267,7 +267,7 @@ export default function Navbar() {
                                 <User className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.profile")}</span>
                               </Link>
                               <Link to="/customer/orders" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
-                                <Package className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.orders")}</span>
+                                <Package className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.myOrders")}</span>
                               </Link>
                               <div className="mx-4 my-2 h-px" style={{ backgroundColor: "var(--color-border)" }}></div>
                               <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-text-muted transition-colors hover:bg-secondary/15 hover:text-secondary">

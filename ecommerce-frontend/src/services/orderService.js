@@ -26,6 +26,22 @@ export const getOrderById = async (orderId) => {
   return response.data;
 };
 
+export const cancelOrder = async (orderId) => {
+  const token = getUserToken();
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await axios.put(
+    `${API_BASE_URL}/orders/${orderId}/cancel`,
+    {},
+    {
+      headers: withAuthHeaders(token),
+    }
+  );
+  return response.data;
+};
+
 export const trackOrder = async (orderNumber) => {
   const token = getUserToken();
   if (!token) {

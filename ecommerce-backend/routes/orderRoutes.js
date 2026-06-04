@@ -8,6 +8,7 @@ import {
     updateOrderStatus,
     updateOrderToPaid,
     updatePaymentStatus,
+    cancelUserOrder,
     getUserOrders,
     deleteOrder,
     getOrderStats,
@@ -42,6 +43,7 @@ router.route("/stats").get(protect, portalAccess, getOrderStats);
 router.route("/track/:orderNumber").get(protect, trackOrder);
 router.route("/:id").get(protect, getOrderById).delete(protect, admin, deleteOrder);
 router.route("/:id/pay").put(protect, updateOrderToPaid);
+router.route("/:id/cancel").put(protect, cancelUserOrder);
 router.route("/:id/status").put(protect, portalAccess, updateOrderStatus);
 router.route("/:id/payment-status").put(protect, portalAccess, updatePaymentStatus);
 router

@@ -105,9 +105,9 @@ html.dark body {
 }
 
 html.dark {
-    --color-primary: #A7C7AD;
-    --color-primary-light: #C4DBC8;
-    --color-primary-dark: #8DAA91;
+    --color-primary: #00C853;
+    --color-primary-light: #23E06B;
+    --color-primary-dark: #00A844;
     --color-secondary: #E6BAA3;
     --color-secondary-light: #F1D2C2;
     --color-bg-base: #1A1C1B;
@@ -395,6 +395,20 @@ html.dark :is(.text-slate-300, .text-slate-400, .text-slate-500, .text-gray-300,
 
 html.dark :is(.bg-black\/10, .bg-black\/30, .bg-black\/60) {
     background-color: var(--overlay-soft) !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.bg-primary, .bg-primary\/10, .bg-primary\/15, .bg-primary\/20, .bg-green-500, .bg-green-600, .bg-blue-600, .bg-text-main) {
+    background-color: #00C853 !important;
+    color: #07130B !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.hover\:bg-primary:hover, .hover\:bg-primary-dark:hover, .hover\:bg-primary\/15:hover, .hover\:bg-primary\/20:hover, .hover\:bg-green-400:hover, .hover\:bg-green-700:hover, .hover\:bg-blue-700:hover) {
+    background-color: #23E06B !important;
+    color: #07130B !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.bg-primary, .bg-primary\/10, .bg-primary\/15, .bg-primary\/20, .bg-green-500, .bg-green-600, .bg-blue-600, .bg-text-main) :is(svg, span) {
+    color: currentColor !important;
 }
 
 /* Improve touch targets on mobile */

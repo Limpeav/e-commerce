@@ -261,8 +261,23 @@ const AdminOrders = () => {
         return trimmedStatus;
     };
 
+    const getStatusLabel = (status) => {
+        const normalizedStatus = normalizeOrderStatus(status);
+
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "Confirmed";
+        }
+
+        return normalizedStatus;
+    };
+
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
+
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "bg-green-100 text-green-800";
+        }
+
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800",
             Processing: "bg-blue-100 text-blue-800",
@@ -658,7 +673,7 @@ const AdminOrders = () => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
+                            <option value="Shipped">{isDelivery ? "Shipped" : "Confirmed"}</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
@@ -800,7 +815,7 @@ const AdminOrders = () => {
                                                             )}`}
                                                             style={getStatusStyle(order.orderStatus)}
                                                         >
-                                                            {normalizeOrderStatus(order.orderStatus)}
+                                                            {getStatusLabel(order.orderStatus)}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
