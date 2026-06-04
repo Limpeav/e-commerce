@@ -133,7 +133,11 @@ const Checkout = () => {
           { location: { lat: location.lat, lng: location.lng } },
           (results, status) => {
             if (status === "OK" && results?.[0]) {
-              resolve(getLocationDetailsFromGeocodeResult(results[0], location));
+              resolve({
+                ...getLocationDetailsFromGeocodeResult(results[0], location),
+                lat: location.lat,
+                lng: location.lng,
+              });
               return;
             }
             resolve(null);
@@ -146,7 +150,7 @@ const Checkout = () => {
 
   const applySelectedLocation = (location) => {
     const readableAddress =
-      location.address || location.formattedAddress || location.name || "";
+      location.formattedAddress || location.address || location.name || "";
     const cityProvince =
       location.city ||
       location.province ||

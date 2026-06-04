@@ -7,6 +7,7 @@ import {
   createProduct,
   createProductReview,
   importProductsFromCsv,
+  sendStorePromotionEmailBlast,
   translateMissingProductsToKhmer,
   translateProductToKhmer,
   upsertProductsFromCsv,
@@ -25,6 +26,7 @@ const csvUpload = multer({
 router.post("/", protect, admin, upload.single("image"), createProduct);
 router.post("/import-csv", protect, admin, csvUpload.single("file"), importProductsFromCsv);
 router.post("/upsert-csv", protect, admin, csvUpload.single("file"), upsertProductsFromCsv);
+router.post("/promotions/email", protect, admin, sendStorePromotionEmailBlast);
 
 // REVIEWS
 router.route("/:id/reviews").post(protect, createProductReview);

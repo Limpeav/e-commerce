@@ -33,7 +33,7 @@ export default function DiscountBanner() {
 
                         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
                             <Link
-                                to="/products?sort=sale"
+                                to="/deals"
                                 className="px-8 py-4 bg-white text-primary-dark rounded-2xl font-bold text-lg hover:bg-stone-50 transition-all transform hover:scale-105 hover:shadow-lg flex items-center gap-2 group"
                             >
                                 Shop Sale

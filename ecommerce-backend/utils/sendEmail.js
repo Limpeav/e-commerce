@@ -178,8 +178,8 @@ export const sendDeliveryReviewRequestEmail = async ({
               <tr>
                 <td width="64" style="padding-right:14px;">
                   ${safeImage
-                    ? `<img src="${safeImage}" alt="${safeName}" width="56" height="56" style="display:block;width:56px;height:56px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;">`
-                    : `<div style="width:56px;height:56px;border-radius:14px;background:#f1f5f9;border:1px solid #e5e7eb;"></div>`}
+          ? `<img src="${safeImage}" alt="${safeName}" width="56" height="56" style="display:block;width:56px;height:56px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;">`
+          : `<div style="width:56px;height:56px;border-radius:14px;background:#f1f5f9;border:1px solid #e5e7eb;"></div>`}
                 </td>
                 <td style="font-size:14px;line-height:1.45;color:#111827;font-weight:800;">${safeName}</td>
                 <td align="right" style="padding-left:12px;">
@@ -307,9 +307,9 @@ export const sendProductPromotionEmail = async ({
   const reasonLabels = reasons.length > 0
     ? reasons
     : [
-        ...(product?.isNewArrival ? ["New arrival"] : []),
-        ...(hasPromotion ? ["Promotion"] : []),
-      ];
+      ...(product?.isNewArrival ? ["New arrival"] : []),
+      ...(hasPromotion ? ["Promotion"] : []),
+    ];
   const badgeText = escapeHtml(reasonLabels.join(" + ") || "Store update");
   const subject = hasPromotion
     ? `${discountPercent}% off ${product?.title || "a product"}`
@@ -365,13 +365,13 @@ export const sendProductPromotionEmail = async ({
                             <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#66716A;">Hi ${safeCustomerName}, ${safeTitle} is now available${hasPromotion ? ` with ${discountPercent}% off for a limited time` : ""}.</p>
                           </td>
                           ${hasPromotion
-                            ? `<td align="right" valign="top" width="116" style="padding-left:16px;">
+          ? `<td align="right" valign="top" width="116" style="padding-left:16px;">
                                 <div style="display:inline-block;background:#26312A;color:#ffffff;border-radius:20px;padding:14px 16px;text-align:center;">
                                   <span style="display:block;font-size:30px;line-height:1;font-weight:900;">${discountPercent}%</span>
                                   <span style="display:block;margin-top:4px;font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#FDE68A;">Discount</span>
                                 </div>
                               </td>`
-                            : ""}
+          : ""}
                         </tr>
                       </table>
                     </td>
@@ -379,10 +379,10 @@ export const sendProductPromotionEmail = async ({
                   <tr>
                     <td style="padding:30px 32px;">
                       ${safeImage
-                        ? `<div style="position:relative;margin-bottom:24px;">
+          ? `<div style="position:relative;margin-bottom:24px;">
                             <img src="${safeImage}" alt="${safeTitle}" style="display:block;width:100%;max-height:340px;object-fit:cover;border-radius:22px;border:1px solid #E6DCD1;">
                           </div>`
-                        : ""}
+          : ""}
                       <h2 style="margin:0;font-size:24px;line-height:1.25;color:#26312A;">${safeTitle}</h2>
                       ${priceHtml}
                       <p style="margin:16px 0 26px;font-size:14px;line-height:1.7;color:#66716A;">${safeDescription}</p>
@@ -416,15 +416,122 @@ ${hasPromotion ? `Promotion price: $${discountPrice.toFixed(2)} (was $${price.to
 View it here:
 ${productUrl}
 
-You are receiving this because promotional emails are enabled in your account settings.
-
-${fromName}
+Thank you for shopping with Cherish Baby KH Store.
       `,
     },
     "product promotion"
   );
 
   console.log("Product promotional email sent successfully.");
+  console.log("   Message ID:", data?.id);
+  console.log("   To:", email);
+  return data;
+};
+
+export const sendStorePromotionEmail = async ({
+  email,
+  customerName,
+  discountRange,
+  promotionCount = 0,
+  dealsUrl,
+}) => {
+  const fromName = FROM_NAME;
+  const frontendUrl = getCustomerFrontendUrl();
+  const storeDealsUrl = dealsUrl || `${frontendUrl}/deals`;
+  const safeCustomerName = escapeHtml(customerName || "there");
+  const safeDealsUrl = escapeHtml(storeDealsUrl);
+  const safePromotionCount = Number(promotionCount || 0);
+  const minDiscount = Number(discountRange?.min || 0);
+  const maxDiscount = Number(discountRange?.max || 0);
+  const discountText =
+    minDiscount > 0 && maxDiscount > 0
+      ? minDiscount === maxDiscount
+        ? `${maxDiscount}%`
+        : `${minDiscount}%-${maxDiscount}%`
+      : "Special";
+  const subject = "New store promotions are available";
+
+  const data = await sendConfiguredEmail(
+    {
+      from: `${fromName} <${FROM_EMAIL}>`,
+      to: [email],
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${escapeHtml(subject)}</title>
+        </head>
+        <body style="margin:0;padding:0;background:#b7dff1;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f3340;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#b7dff1;padding:28px 14px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border-radius:6px;overflow:hidden;box-shadow:0 18px 46px rgba(23,74,95,0.18);">
+                  <tr>
+                    <td style="padding:26px 34px 18px;background:#ffffff;text-align:center;">
+                      <p style="margin:0;font-size:34px;line-height:1;font-weight:900;letter-spacing:-1px;color:#3f7183;">cherish<span style="color:#f7a13b;">baby</span></p>
+                      <table cellpadding="0" cellspacing="0" align="center" style="margin:24px auto 0;">
+                        <tr>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">New!</td>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Toys</td>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Best Sellers</td>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Sale</td>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Baby Deals</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:48px 44px 44px;background:#e6f6fc;text-align:center;">
+                      <span style="display:inline-block;margin:0 0 22px;border-radius:999px;background:#f79a35;color:#ffffff;padding:10px 18px;font-size:12px;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;box-shadow:0 10px 24px rgba(247,154,53,0.24);">🔥 TODAY'S DEALS</span>
+                      <h1 style="margin:0;font-size:40px;line-height:1.05;font-weight:900;letter-spacing:-0.8px;color:#263945;">Fresh deals are waiting for you.</h1>
+                      <p style="margin:20px 0 0;font-size:46px;line-height:1;font-weight:900;letter-spacing:-1px;color:#f79a35;">${escapeHtml(discountText)} OFF</p>
+                      <p style="margin:8px 0 0;font-size:17px;font-weight:900;color:#4b7d90;">Selected Items</p>
+                      <p style="margin:18px auto 0;max-width:460px;font-size:15px;line-height:1.7;color:#5b6b74;">Hi ${safeCustomerName}, our store has <strong style="color:#263945;">${safePromotionCount} promoted ${safePromotionCount === 1 ? "product" : "products"}</strong> available now.</p>
+                      <p style="margin:18px auto 0;max-width:470px;font-size:15px;line-height:1.7;color:#5b6b74;">Open the deals page to see every product currently on promotion and choose what fits your family best.</p>
+                      <table cellpadding="0" cellspacing="0" align="center" style="margin:26px auto 0;">
+                        <tr>
+                          <td align="center" style="background:#f79a35;border-radius:9px;box-shadow:0 10px 22px rgba(247,154,53,0.24);">
+                            <a href="${safeDealsUrl}" style="display:inline-block;padding:15px 34px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:900;">View all deals →</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#4f8397;padding:30px 36px;text-align:center;">
+                      <p style="margin:0;font-size:13px;line-height:1.8;color:#dcecf2;">Thank you for shopping with Cherish Baby KH Store.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+      text: `
+Hi ${customerName || "there"},
+
+Fresh deals are waiting for you.
+
+Our store has ${safePromotionCount} promoted ${safePromotionCount === 1 ? "product" : "products"} available now.
+Deal range: ${discountText} OFF
+
+View all deals here:
+${storeDealsUrl}
+
+You are receiving this because promotional emails are enabled in your account settings.
+
+${fromName}
+      `,
+    },
+    "store promotion"
+  );
+
+  console.log("Store promotional email sent successfully.");
   console.log("   Message ID:", data?.id);
   console.log("   To:", email);
   return data;

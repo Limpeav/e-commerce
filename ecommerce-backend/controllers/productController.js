@@ -9,7 +9,7 @@ import {
   translateTextWithGemini,
 } from "../utils/geminiTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
-import { sendProductPromotionEmail } from "../utils/sendEmail.js";
+import { sendStorePromotionEmail } from "../utils/sendEmail.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -36,26 +36,19 @@ const parseOptionalNumber = (value) => {
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
 
-const isPromotionalProduct = (product = {}) => {
-  const price = Number(product.price || 0);
-  const discountPrice = Number(product.discountPrice || 0);
-  return discountPrice > 0 && discountPrice < price;
-};
-
-const getProductPromotionReasons = (product = {}) => [
-  ...(product.isNewArrival ? ["New arrival"] : []),
-  ...(isPromotionalProduct(product) ? ["Promotion"] : []),
-];
-
 const PROMOTIONAL_EMAIL_CONCURRENCY = Math.max(
   1,
-  Number.parseInt(process.env.PROMOTIONAL_EMAIL_CONCURRENCY || "5", 10) || 5
+  Number.parseInt(process.env.PROMOTIONAL_EMAIL_CONCURRENCY || "2", 10) || 2
+);
+const PROMOTIONAL_EMAIL_BATCH_DELAY_MS = Math.max(
+  0,
+  Number.parseInt(process.env.PROMOTIONAL_EMAIL_BATCH_DELAY_MS || "1200", 10) || 1200
 );
 
-const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPromotionReasons(product)) => {
-  if (!product || reasons.length === 0) return;
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const subscribers = await User.find({
+const getPromotionalEmailSubscribers = () =>
+  User.find({
     role: "user",
     email: { $exists: true, $ne: "" },
     "notificationPreferences.promotionalEmails": { $ne: false },
@@ -63,20 +56,33 @@ const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPr
     .select("name email")
     .lean();
 
+const notifyPromotionalEmailSubscribers = async ({
+  discountRange,
+  promotionCount,
+  dealsUrl,
+}) => {
+  const subscribers = await getPromotionalEmailSubscribers();
+
   let sentCount = 0;
   let failedCount = 0;
+  const failedRecipients = [];
 
   const sendToSubscriber = async (subscriber) => {
     try {
-      await sendProductPromotionEmail({
+      await sendStorePromotionEmail({
         email: subscriber.email,
         customerName: subscriber.name,
-        product,
-        reasons,
+        discountRange,
+        promotionCount,
+        dealsUrl,
       });
       sentCount += 1;
     } catch (error) {
       failedCount += 1;
+      failedRecipients.push({
+        email: subscriber.email,
+        reason: error.message || "Unknown email provider error",
+      });
       console.error(`Failed to send promotional email to ${subscriber.email}:`, error.message);
     }
   };
@@ -84,19 +90,23 @@ const notifyPromotionalEmailSubscribers = async (product, reasons = getProductPr
   for (let index = 0; index < subscribers.length; index += PROMOTIONAL_EMAIL_CONCURRENCY) {
     const batch = subscribers.slice(index, index + PROMOTIONAL_EMAIL_CONCURRENCY);
     await Promise.all(batch.map(sendToSubscriber));
+
+    const hasMoreSubscribers = index + PROMOTIONAL_EMAIL_CONCURRENCY < subscribers.length;
+    if (hasMoreSubscribers && PROMOTIONAL_EMAIL_BATCH_DELAY_MS > 0) {
+      await delay(PROMOTIONAL_EMAIL_BATCH_DELAY_MS);
+    }
   }
 
   console.log(
     `Promotional email notification finished: ${sentCount} sent, ${failedCount} failed, ${subscribers.length} subscribers.`
   );
-};
 
-const queuePromotionalEmailNotification = (product, reasons = getProductPromotionReasons(product)) => {
-  if (!product || reasons.length === 0) return;
-
-  notifyPromotionalEmailSubscribers(product, reasons).catch((error) => {
-    console.error("Failed to notify promotional email subscribers:", error.message);
-  });
+  return {
+    sentCount,
+    failedCount,
+    recipientCount: subscribers.length,
+    failedRecipients,
+  };
 };
 
 let geminiTranslationUnavailable = false;
@@ -177,7 +187,7 @@ const translateToKhmer = async (text = "") => {
 const productNeedsKhmerTranslation = (product) =>
   Boolean(
     (product.title && !product.titleKm) ||
-      (product.description && !product.descriptionKm)
+    (product.description && !product.descriptionKm)
   );
 
 const applyAutoKhmerTranslation = async (productData, existingProduct = {}) => {
@@ -253,16 +263,15 @@ const attachSalesMetrics = async (products) => {
   return Array.isArray(products) ? withMetrics : withMetrics[0];
 };
 
-const normalizeCsvHeader = (header = "") =>
-  {
-    const normalizedHeader = header
-      .trim()
-      .replace(/^\uFEFF/, "")
-      .toLowerCase()
-      .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
+const normalizeCsvHeader = (header = "") => {
+  const normalizedHeader = header
+    .trim()
+    .replace(/^\uFEFF/, "")
+    .toLowerCase()
+    .replace(/[\s_-]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""));
 
-    return CSV_HEADER_ALIASES[normalizedHeader] || normalizedHeader;
-  };
+  return CSV_HEADER_ALIASES[normalizedHeader] || normalizedHeader;
+};
 
 const parseCsvLine = (line) => {
   const values = [];
@@ -409,10 +418,67 @@ export const createProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     const saved = await product.save();
-    queuePromotionalEmailNotification(saved);
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const sendStorePromotionEmailBlast = async (req, res) => {
+  try {
+    const promotionalProducts = await Product.find({
+      stock: { $gt: 0 },
+      discountPrice: { $gt: 0 },
+      $expr: { $lt: ["$discountPrice", "$price"] },
+    })
+      .select("price discountPrice")
+      .lean();
+    const promotionCount = promotionalProducts.length;
+
+    if (promotionCount === 0) {
+      return res.status(400).json({
+        message: "No active promotional products found. Add discount prices before sending.",
+      });
+    }
+
+    const discountPercents = promotionalProducts
+      .map((product) => {
+        const price = Number(product.price || 0);
+        const discountPrice = Number(product.discountPrice || 0);
+        if (price <= 0 || discountPrice <= 0 || discountPrice >= price) return null;
+        return Math.max(1, Math.round(((price - discountPrice) / price) * 100));
+      })
+      .filter((discountPercent) => Number.isFinite(discountPercent));
+    const discountRange = {
+      min: Math.min(...discountPercents),
+      max: Math.max(...discountPercents),
+    };
+
+    const result = await notifyPromotionalEmailSubscribers({
+      discountRange,
+      promotionCount,
+    });
+
+    if (result.recipientCount > 0 && result.sentCount === 0 && result.failedCount > 0) {
+      return res.status(502).json({
+        message: "Promotion email could not be sent to any customers. Check email configuration and try again.",
+        discountRange,
+        promotionCount,
+        ...result,
+      });
+    }
+
+    return res.json({
+      message:
+        result.recipientCount === 0
+          ? "No customers have promotional emails enabled."
+          : `Promotion email sent to ${result.sentCount} customer${result.sentCount === 1 ? "" : "s"}.`,
+      promotionCount,
+      discountRange,
+      ...result,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -514,7 +580,6 @@ export const importProductsFromCsv = async (req, res) => {
       productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
     );
     const createdProducts = await Product.insertMany(translatedProducts);
-    createdProducts.forEach((product) => queuePromotionalEmailNotification(product));
 
     return res.status(201).json({
       message: `Imported ${createdProducts.length} products successfully`,
@@ -584,9 +649,6 @@ export const upsertProductsFromCsv = async (req, res) => {
       );
 
       if (existingProduct) {
-        const wasNewArrival = existingProduct.isNewArrival;
-        const wasPromotional = isPromotionalProduct(existingProduct);
-
         existingProduct.price = translatedProductData.price;
         existingProduct.discountPrice = translatedProductData.discountPrice;
         existingProduct.titleKm = translatedProductData.titleKm;
@@ -596,17 +658,11 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.image = translatedProductData.image;
         syncLowStockAlertFlag(existingProduct);
         await existingProduct.save();
-        const reasons = [
-          ...(!wasNewArrival && existingProduct.isNewArrival ? ["New arrival"] : []),
-          ...(!wasPromotional && isPromotionalProduct(existingProduct) ? ["Promotion"] : []),
-        ];
-        queuePromotionalEmailNotification(existingProduct, reasons);
         updatedCount += 1;
       } else {
         const product = new Product(translatedProductData);
         syncLowStockAlertFlag(product);
-        const createdProduct = await product.save();
-        queuePromotionalEmailNotification(createdProduct);
+        await product.save();
         createdCount += 1;
       }
     }
@@ -640,26 +696,26 @@ export const getProductById = async (req, res) => {
 
     if (product.reviews && product.reviews.length > 0) {
       const User = (await import("../models/userModel.js")).default;
-      
+
       for (const review of product.reviews) {
         try {
           // Check if user still exists and get current user data
           const currentUser = await User.findById(review.user);
-          
+
           if (currentUser) {
             // Create review object with current user name
             const updatedReview = {
               ...review.toObject(),
               name: currentUser.name // Use current name from database
             };
-            
+
             // Check if name has changed
             if (review.name !== currentUser.name) {
               hasChanges = true;
             }
-            
+
             validReviews.push(updatedReview);
-            
+
             // Check if current user has already reviewed this product
             if (req.user && review.user.toString() === req.user._id.toString()) {
               alreadyReviewed = true;
@@ -686,7 +742,7 @@ export const getProductById = async (req, res) => {
     if (hasChanges) {
       product.reviews = validReviews;
       product.numReviews = validReviews.length;
-      
+
       if (validReviews.length > 0) {
         product.rating =
           validReviews.reduce((acc, item) => item.rating + acc, 0) /
@@ -694,7 +750,7 @@ export const getProductById = async (req, res) => {
       } else {
         product.rating = 0;
       }
-      
+
       await product.save();
       console.log(`Product updated: ${validReviews.length} reviews remaining`);
     }
@@ -741,9 +797,6 @@ export const updateProduct = async (req, res) => {
     if (!product)
       return res.status(404).json({ message: "Product not found" });
 
-    const wasNewArrival = product.isNewArrival;
-    const wasPromotional = isPromotionalProduct(product);
-
     const translatedProductData = await applyAutoKhmerTranslation(
       {
         title: req.body.title,
@@ -774,11 +827,6 @@ export const updateProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     await product.save();
-    const reasons = [
-      ...(!wasNewArrival && product.isNewArrival ? ["New arrival"] : []),
-      ...(!wasPromotional && isPromotionalProduct(product) ? ["Promotion"] : []),
-    ];
-    queuePromotionalEmailNotification(product, reasons);
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });

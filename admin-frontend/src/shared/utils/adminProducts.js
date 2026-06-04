@@ -13,6 +13,9 @@ export const getNumericDiscount = (product) => {
   return discountPrice > 0 && discountPrice < price ? discountPrice : null;
 };
 
+export const isPromotionalProduct = (product) =>
+  getNumericDiscount(product) !== null;
+
 export const getProductSoldCount = (product) =>
   Number(product?.sold || product?.totalSold || 0);
 
@@ -26,7 +29,12 @@ export const getProductCategories = (products = []) => [
 
 export const filterAdminProducts = (
   products = [],
-  { searchTerm = "", categoryFilter = "all", showLowStockOnly = false } = {}
+  {
+    searchTerm = "",
+    categoryFilter = "all",
+    showLowStockOnly = false,
+    showPromotionOnly = false,
+  } = {}
 ) => {
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -44,8 +52,9 @@ export const filterAdminProducts = (
       category.toLowerCase() === categoryFilter.toLowerCase();
 
     const matchesStock = !showLowStockOnly || isLowStockProduct(product);
+    const matchesPromotion = !showPromotionOnly || isPromotionalProduct(product);
 
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesSearch && matchesCategory && matchesStock && matchesPromotion;
   });
 };
 
@@ -53,6 +62,7 @@ export const getProductStats = (products = [], categories = []) => ({
   totalProducts: products.length,
   categoryCount: Math.max(categories.length - 1, 0),
   lowStockCount: products.filter(isLowStockProduct).length,
+  promotionCount: products.filter(isPromotionalProduct).length,
   newArrivalCount: products.filter((product) => product.isNewArrival).length,
   bestSellerCount: products.filter((product) => getProductSoldCount(product) > 0).length,
 });

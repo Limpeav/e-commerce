@@ -43,6 +43,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
   const resolvedInitialLocationRef = useRef("");
+  const addressRequestIdRef = useRef(0);
 
   const setCambodiaOnlyError = () => {
     setLocationError(t("mapPicker.cambodiaOnly"));
@@ -136,7 +137,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location }, (results, status) => {
           if (status === "OK" && results[0]) {
-            resolve(extractLocationDetails(results[0], location));
+            resolve({
+              ...extractLocationDetails(results[0], location),
+              lat: location.lat,
+              lng: location.lng,
+            });
             return;
           }
           resolve(null);
@@ -146,12 +151,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       }
     });
 
-  const emitLocationSelection = (details) => {
+  const updateDraftLocationDetails = (details) => {
     setSelectedDetails(details);
     if (details?.formattedAddress || details?.address) {
       setAddressName(details.formattedAddress || details.address);
       setSearchQuery(details.formattedAddress || details.address);
     }
+  };
+
+  const emitLocationSelection = (details) => {
+    updateDraftLocationDetails(details);
     if (typeof onSelectLocation === "function") {
       onSelectLocation(details);
     }
@@ -395,9 +404,14 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       markerRef.current = marker;
 
       const updateAddress = async (location) => {
+        const requestId = addressRequestIdRef.current + 1;
+        addressRequestIdRef.current = requestId;
         const details = await reverseGeocodeLocation(location);
+        if (addressRequestIdRef.current !== requestId) {
+          return;
+        }
         if (details) {
-          emitLocationSelection(details);
+          updateDraftLocationDetails(details);
           setLocationError("");
         } else {
           setSelectedDetails((prev) => prev || {
@@ -476,7 +490,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
               setSearchQuery(place.formatted_address || place.name || "");
               setIsSearchFocused(false);
               setShowBottomSheet(true);
-              emitLocationSelection(extractLocationDetails(place, newLocation));
+              updateDraftLocationDetails(extractLocationDetails(place, newLocation));
               // Blur search input on mobile after selection
               if (searchInputRef.current) {
                 searchInputRef.current.blur();
@@ -512,6 +526,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
               marker.setPosition(results[0].geometry.location);
               setAddressName(results[0].formatted_address);
               setSearchQuery(results[0].formatted_address);
+              updateDraftLocationDetails({
+                ...extractLocationDetails(results[0], location),
+                lat: location.lat,
+                lng: location.lng,
+              });
             }
           });
         } catch {
@@ -534,7 +553,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
       }
     };
-  }, [isOpen, address, isGoogleMapsLoaded, selectedLocation]);
+  }, [isOpen, address, isGoogleMapsLoaded]);
 
   useEffect(() => {
     if (!isOpen || !mapInstanceRef.current || !window.google?.maps?.event) {
@@ -587,7 +606,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
             if (status === "OK" && results[0]) {
               setAddressName(results[0].formatted_address);
               setSearchQuery(results[0].formatted_address);
-              emitLocationSelection(extractLocationDetails(results[0], location));
+              updateDraftLocationDetails({
+                ...extractLocationDetails(results[0], location),
+                lat: location.lat,
+                lng: location.lng,
+              });
             }
           });
         } catch {
@@ -667,7 +690,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         setIsSearchFocused(false);
         setShowBottomSheet(true);
         setLocationError("");
-        emitLocationSelection(extractLocationDetails(result, location));
+        updateDraftLocationDetails(extractLocationDetails(result, location));
         searchInputRef.current?.blur();
       }
     );
@@ -696,7 +719,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       };
     }
 
-    emitLocationSelection(details);
+    emitLocationSelection({
+      ...details,
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng,
+    });
     setIsConfirmingLocation(false);
     cleanupMapInstance();
     setIsOpen(false);

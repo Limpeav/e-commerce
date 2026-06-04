@@ -20,6 +20,10 @@ const ProductList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [sendingPromotionEmails, setSendingPromotionEmails] = useState(false);
+  const [promotionEmailStatus, setPromotionEmailStatus] = useState("");
+  const [promotionEmailStatusType, setPromotionEmailStatusType] = useState("success");
+  const [promotionEmailFailures, setPromotionEmailFailures] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,6 +57,46 @@ const ProductList = () => {
   );
 
   const goToAddProduct = () => navigate("/admin/products/add");
+
+  const handleSendPromotionEmails = async () => {
+    if (stats.promotionCount === 0) {
+      setPromotionEmailStatusType("error");
+      setPromotionEmailStatus("Add discount prices before sending promotion emails.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Send one store promotion email to customers for ${stats.promotionCount} promoted product${stats.promotionCount === 1 ? "" : "s"}?`
+      )
+    ) {
+      return;
+    }
+
+    setSendingPromotionEmails(true);
+    setPromotionEmailStatus("");
+    setPromotionEmailStatusType("success");
+    setPromotionEmailFailures([]);
+
+    const result = await AdminProductController.sendStorePromotionEmails();
+    if (result.success) {
+      const sentCount = result.data?.sentCount ?? 0;
+      const failedCount = result.data?.failedCount ?? 0;
+      const recipientCount = result.data?.recipientCount ?? 0;
+      setPromotionEmailFailures(result.data?.failedRecipients || []);
+      setPromotionEmailStatus(
+        recipientCount === 0
+          ? "No customers have promotional emails enabled."
+          : `Promotion email sent to ${sentCount} customer${sentCount === 1 ? "" : "s"}${failedCount ? `; ${failedCount} failed` : ""}.`
+      );
+    } else {
+      setPromotionEmailStatusType("error");
+      setPromotionEmailStatus(result.error);
+      setPromotionEmailFailures(result.data?.failedRecipients || []);
+    }
+
+    setSendingPromotionEmails(false);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this product?")) {
@@ -89,13 +133,43 @@ const ProductList = () => {
       <ProductListHeader
         onAddBanner={() => navigate("/admin/banners")}
         onAddProduct={goToAddProduct}
+        onSendPromotionEmails={handleSendPromotionEmails}
+        promotionCount={stats.promotionCount}
+        sendingPromotionEmails={sendingPromotionEmails}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {promotionEmailStatus && (
+          <div
+            className={`mb-6 rounded-xl border px-5 py-4 text-sm font-semibold ${
+              promotionEmailStatusType === "error"
+                ? "border-red-200 bg-red-50 text-red-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            {promotionEmailStatus}
+            {promotionEmailFailures.length > 0 && (
+              <div className="mt-3 space-y-1 text-xs font-medium">
+                {promotionEmailFailures.slice(0, 6).map((failure) => (
+                  <p key={failure.email}>
+                    {failure.email}: {failure.reason}
+                  </p>
+                ))}
+                {promotionEmailFailures.length > 6 && (
+                  <p>And {promotionEmailFailures.length - 6} more failed recipients.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <ProductStatsGrid
           stats={stats}
           showLowStockOnly={showLowStockOnly}
           onToggleLowStock={() => setShowLowStockOnly((current) => !current)}
+          onOpenPromotions={() => navigate("/admin/products/promotions")}
+          onOpenBestSellers={() => navigate("/admin/products/best-sellers")}
+          onOpenNewArrivals={() => navigate("/admin/products/new-arrivals")}
         />
 
         <ProductFilters
@@ -111,7 +185,9 @@ const ProductList = () => {
         {filteredProducts.length === 0 ? (
           <EmptyProductsState
             hasActiveFilters={
-              Boolean(searchTerm) || categoryFilter !== "all" || showLowStockOnly
+              Boolean(searchTerm) ||
+              categoryFilter !== "all" ||
+              showLowStockOnly
             }
             onAddProduct={goToAddProduct}
           />

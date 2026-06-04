@@ -61,7 +61,7 @@ export default function Footer() {
                 { name: t('footer.allProducts'), to: '/products' },
                 { name: t('footer.newArrivals'), to: '/products?view=new-arrivals' },
                 { name: t('footer.bestSellers'), to: '/products?view=best-sellers' },
-                { name: t('footer.deals'), to: '/products?view=deals' },
+                { name: t('footer.deals'), to: '/deals' },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
+import { RefreshCw, Zap } from 'lucide-react';
 
 const ErrorState = ({ error, onRetry }) => {
   return (
@@ -11,9 +11,11 @@ const ErrorState = ({ error, onRetry }) => {
         <h3 className="text-xl font-bold text-text-main mb-2">Something went wrong</h3>
         <p className="text-text-muted mb-6">{error}</p>
         <button
+          type="button"
           onClick={onRetry}
-          className="px-6 py-2 bg-text-main text-white rounded-full font-bold hover:bg-stone-800 transition-colors"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--color-text-main)] px-6 py-2 font-bold text-[var(--color-bg-base)] shadow-sm transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-base)]"
         >
+          <RefreshCw className="h-4 w-4" />
           Try Again
         </button>
       </div>

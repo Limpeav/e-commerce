@@ -1,0 +1,25 @@
+import { TrendingUp } from "lucide-react";
+import { getProductSoldCount } from "../../../utils/adminProducts";
+import ProductSubsetPage from "./ProductSubsetPage";
+
+const hasSales = (product) => getProductSoldCount(product) > 0;
+
+const sortBySales = (products) =>
+  [...products].sort((a, b) => getProductSoldCount(b) - getProductSoldCount(a));
+
+const BestSellerProducts = () => (
+  <ProductSubsetPage
+    accent="emerald"
+    badge="Sold products"
+    countLabel="Best sellers"
+    description="Products sorted by sold quantity so admins can see what customers buy most."
+    filterProduct={hasSales}
+    icon={TrendingUp}
+    loadingMessage="Loading best seller products..."
+    searchPlaceholder="Search best seller products..."
+    sortProducts={sortBySales}
+    title="Best Seller Products"
+  />
+);
+
+export default BestSellerProducts;

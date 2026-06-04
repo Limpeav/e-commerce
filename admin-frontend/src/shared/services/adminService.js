@@ -119,6 +119,7 @@ export const adminService = {
       },
     });
   },
+  sendStorePromotionEmails: () => api.post("/products/promotions/email"),
   deleteProduct: (id) => api.delete(`/products/${id}`),
 
   // Banner methods

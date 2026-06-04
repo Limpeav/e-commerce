@@ -42,6 +42,8 @@ export const publicRoutes = [
   { path: "/customer", component: "Home" },
   { path: "/products", component: "ProductCatalog" },
   { path: "/customer/products", component: "ProductCatalog" },
+  { path: "/deals", component: "ProductCatalog" },
+  { path: "/customer/deals", component: "ProductCatalog" },
   { path: "/products/:id", component: "ProductDetail" },
   { path: "/customer/products/:id", component: "ProductDetail" },
   { path: "/cart", component: "Cart" },

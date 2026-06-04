@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -86,6 +86,7 @@ export default function ProductCatalog() {
   const { user } = useAuth();
   const { language, t } = useLanguage();
   const [isDark] = useDarkMode();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const { products, loading, error } = useProducts(language);
@@ -98,7 +99,8 @@ export default function ProductCatalog() {
     filteredProducts,
   } = useProductFilters(products);
 
-  const currentView = searchParams.get("view") || "all";
+  const isDealsRoute = /^\/(?:customer\/)?deals\/?$/.test(location.pathname);
+  const currentView = isDealsRoute ? "deals" : searchParams.get("view") || "all";
   const activeView = VIEW_CONFIG_KEYS[currentView] ? currentView : "all";
   const activeConfig = VIEW_CONFIG_KEYS[activeView];
   const activeTitle = t(activeConfig.title);
