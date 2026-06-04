@@ -378,7 +378,7 @@ const CartPreviewDrawer = ({
                             <span className="text-xs font-bold text-text-muted line-through">
                               ${(originalPrice * item.quantity).toFixed(2)}
                             </span>
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                            <span className="rounded-full bg-[#FF3B30] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-sm shadow-[#FF3B30]/30">
                               {t("cart.discountOff", { percent: discountPercent })}
                             </span>
                           </div>

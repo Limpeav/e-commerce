@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 export default function DiscountBanner() {
     return (
         <div className="relative w-full max-w-7xl mx-auto px-6 mb-16">
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-primary-dark shadow-2xl shadow-primary/20">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-[#FF3B30] shadow-2xl shadow-[#FF3B30]/20">
                 {/* Abstract Background Shapes */}
                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary rounded-full blur-[100px] opacity-20"></div>
                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-secondary rounded-full blur-[80px] opacity-20"></div>
@@ -54,7 +54,7 @@ export default function DiscountBanner() {
                             <div className="absolute inset-0 border border-white/10 rounded-full scale-90 animate-[spin_10s_linear_infinite]"></div>
                             <div className="absolute inset-0 border border-white/10 rounded-full scale-75 animate-[spin_15s_linear_infinite_reverse]"></div>
 
-                            <div className="bg-gradient-to-br from-white to-stone-50 text-primary-dark rounded-full w-48 h-48 flex flex-col items-center justify-center shadow-2xl animate-bounce duration-[2000ms]">
+                            <div className="bg-[#D92D20] text-white rounded-full w-48 h-48 flex flex-col items-center justify-center shadow-2xl shadow-[#FF3B30]/20 animate-bounce duration-[2000ms]">
                                 <span className="text-xl font-bold uppercase tracking-widest opacity-90">Save</span>
                                 <span className="text-6xl font-black font-display">50%</span>
                                 <span className="text-sm font-bold opacity-90">On Selected Items</span>

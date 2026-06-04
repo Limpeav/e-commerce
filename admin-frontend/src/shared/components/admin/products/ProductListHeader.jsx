@@ -21,7 +21,7 @@ const ProductListHeader = ({
             type="button"
             onClick={onSendPromotionEmails}
             disabled={sendingPromotionEmails || promotionCount === 0}
-            className="flex items-center space-x-2 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-3 text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500 hover:bg-emerald-100 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-emerald-200 disabled:hover:bg-emerald-50"
+            className="flex items-center space-x-2 rounded-xl border border-[#FF3B30]/35 bg-[#FF3B30] px-6 py-3 text-white shadow-sm shadow-[#FF3B30]/30 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D92D20] hover:bg-[#D92D20] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-[#FF3B30]/35 disabled:hover:bg-[#FF3B30]"
             title={
               promotionCount === 0
                 ? "Add discount prices before sending promotion emails"

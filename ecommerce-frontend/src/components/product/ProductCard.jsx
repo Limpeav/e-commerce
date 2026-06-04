@@ -72,7 +72,7 @@ const ProductCard = ({
               {t('product.soldOut')}
             </span>
           ) : hasDiscount && (
-            <span className="bg-primary text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-primary/30 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-widest">
+            <span className="bg-[#FF3B30] text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-[#FF3B30]/30 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-widest">
               {t('product.save')} {discountPercent}%
             </span>
           )}

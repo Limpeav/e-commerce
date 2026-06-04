@@ -91,7 +91,7 @@ const ProductInfo = ({
             <span className={`mb-1 line-through text-lg font-bold decoration-2 sm:mb-1.5 sm:text-xl ${isDark ? "text-slate-500" : "text-stone-400"}`}>
               ${price.toFixed(2)}
             </span>
-            <div className="mb-1.5 rounded-xl bg-rose-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-sm shadow-rose-200 sm:mb-2">
+            <div className="mb-1.5 rounded-xl bg-[#FF3B30] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-sm shadow-[#FF3B30]/30 sm:mb-2">
               Save {discountPercent}%
             </div>
           </>
@@ -142,21 +142,21 @@ const ProductInfo = ({
         )}
 
         <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Quantity</label>
-        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+        <div className="flex flex-row items-stretch gap-2 sm:gap-4">
           {/* Quantity Selector */}
-          <div className={`flex w-full items-center justify-between gap-3 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:w-fit sm:justify-start ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
+          <div className={`flex shrink-0 items-center justify-between gap-1 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:gap-3 ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
             <button
               onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
             >
               −
             </button>
-            <span className={`w-12 text-center font-display text-xl font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
+            <span className={`w-9 text-center font-display text-lg font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
               {quantity}
             </span>
             <button
               onClick={() => setQuantity((currentQuantity) => currentQuantity + 1)}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700" : "bg-stone-50 hover:bg-stone-100 text-stone-600 border-stone-100 hover:shadow-sm"}`}
             >
               +
             </button>
@@ -177,7 +177,7 @@ const ProductInfo = ({
 
               onAddToCart({ size: selectedSize });
             }}
-            className={`group relative flex w-full flex-1 items-center justify-center gap-3 overflow-hidden rounded-[1.15rem] border-2 py-3.5 text-base font-bold transition-all duration-300 active:scale-95 sm:py-0 ${user
+            className={`group relative flex min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-3 py-3 text-sm font-bold transition-all duration-300 active:scale-95 sm:gap-3 sm:px-4 sm:text-base ${user
               ? needsSize && !selectedSize
                 ? isDark ? 'bg-slate-800 border-slate-700 text-slate-300 cursor-pointer hover:border-primary' : 'bg-stone-100 border-stone-200 text-stone-600 cursor-pointer hover:border-primary'
                 : 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] cursor-pointer'
@@ -186,13 +186,13 @@ const ProductInfo = ({
           >
             {user ? (
               <>
-                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-                <span className="tracking-wide">Add to Cart</span>
+                <ShoppingCart className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
+                <span className="truncate tracking-wide">Add to Cart</span>
               </>
             ) : (
               <>
-                <Lock className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-                <span className="tracking-wide">Log in to Buy</span>
+                <Lock className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
+                <span className="truncate tracking-wide">Log in to Buy</span>
               </>
             )}
           </button>

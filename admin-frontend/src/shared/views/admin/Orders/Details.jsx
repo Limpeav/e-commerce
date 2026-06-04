@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -32,6 +32,8 @@ const OrderDetails = () => {
     const [updating, setUpdating] = useState(false);
     const [uploadingProof, setUploadingProof] = useState(false);
     const [sendingReceipt, setSendingReceipt] = useState(false);
+    const [receiptNotice, setReceiptNotice] = useState("");
+    const receiptNoticeTimeoutRef = useRef(null);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
@@ -58,6 +60,14 @@ const OrderDetails = () => {
     useEffect(() => {
         fetchOrderDetails();
     }, [fetchOrderDetails]);
+
+    useEffect(() => {
+        return () => {
+            if (receiptNoticeTimeoutRef.current) {
+                window.clearTimeout(receiptNoticeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const refreshCurrentOrder = (payload = {}) => {
@@ -343,7 +353,14 @@ const OrderDetails = () => {
                 await fetchOrderDetails();
             }
             window.dispatchEvent(new Event("admin-orders-updated"));
-            alert("Receipt photo sent to Telegram.");
+            setReceiptNotice("Receipt photo sent to Telegram.");
+            if (receiptNoticeTimeoutRef.current) {
+                window.clearTimeout(receiptNoticeTimeoutRef.current);
+            }
+            receiptNoticeTimeoutRef.current = window.setTimeout(() => {
+                setReceiptNotice("");
+                receiptNoticeTimeoutRef.current = null;
+            }, 2000);
         } catch (sendError) {
             alert(sendError.message || "Failed to send receipt to Telegram");
         } finally {
@@ -427,6 +444,11 @@ const OrderDetails = () => {
 
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
+            {receiptNotice && (
+                <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                    {receiptNotice}
+                </div>
+            )}
             {/* Header */}
             <div className={`border-b border-[var(--color-border)] bg-[var(--color-bg-card)] ${
                 isDelivery ? "sticky top-0 z-30 shadow-sm" : ""

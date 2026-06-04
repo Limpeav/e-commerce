@@ -59,7 +59,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
                   ${discountPrice.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500 line-through">${price.toFixed(2)}</p>
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                <span className="bg-[#FF3B30] text-white text-xs font-bold px-2 py-0.5 rounded shadow-sm shadow-[#FF3B30]/30">
                   {Math.round(((price - discountPrice) / price) * 100)}% OFF
                 </span>
               </div>

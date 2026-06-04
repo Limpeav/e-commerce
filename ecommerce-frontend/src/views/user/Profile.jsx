@@ -22,6 +22,12 @@ import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
+import {
+  forgotPassword,
+  resendResetCode,
+  resetPassword,
+  verifyResetCode,
+} from "../../services/authApi";
 
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
@@ -60,8 +66,12 @@ const Profile = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [securityStep, setSecurityStep] = useState("email");
+  const [securityEmail, setSecurityEmail] = useState("");
+  const [securityCode, setSecurityCode] = useState("");
+  const [securityResetToken, setSecurityResetToken] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -82,8 +92,21 @@ const Profile = () => {
         newPassword: "",
         confirmPassword: "",
       });
+      setSecurityEmail(user.email || "");
     }
   }, [user]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   const getAuthToken = () => {
     const storedUser = localStorage.getItem("user");
@@ -120,15 +143,6 @@ const Profile = () => {
         phone: toCambodiaPhone(formData.phone),
       };
 
-      if (formData.newPassword) {
-        if (!formData.currentPassword) throw new Error(t("profile.currentPasswordRequired"));
-        if (formData.newPassword !== formData.confirmPassword) throw new Error(t("profile.passwordsDoNotMatch"));
-        if (formData.newPassword.length < 6) throw new Error(t("profile.passwordTooShort"));
-        
-        updateData.currentPassword = formData.currentPassword;
-        updateData.newPassword = formData.newPassword;
-      }
-
       const response = await axios.put(`${API_URL}/users/profile`, updateData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -161,6 +175,127 @@ const Profile = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.message || err.message || t("profile.updateFailed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetSecurityForm = () => {
+    setSecurityStep("email");
+    setSecurityCode("");
+    setSecurityResetToken("");
+    setResendCooldown(0);
+    setFormData((prev) => ({
+      ...prev,
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }));
+  };
+
+  const handleSendSecurityCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const email = securityEmail.trim();
+      if (!email) {
+        throw new Error("Please enter your email address.");
+      }
+
+      if (user?.email && email.toLowerCase() !== user.email.toLowerCase()) {
+        throw new Error("Please enter the email address for this account.");
+      }
+
+      await forgotPassword({ email });
+      setSecurityStep("code");
+      setResendCooldown(60);
+      setSuccess("Verification code sent to your email.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to send verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySecurityCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const code = securityCode.trim();
+      if (code.length !== 6) {
+        throw new Error("Please enter the 6-digit verification code.");
+      }
+
+      const { data } = await verifyResetCode({
+        email: securityEmail.trim(),
+        code,
+      });
+      setSecurityResetToken(data.resetToken);
+      setSecurityStep("password");
+      setSuccess("Code verified. Enter your new password.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to verify code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSecurityCode = async () => {
+    if (loading || resendCooldown > 0) return;
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await resendResetCode({ email: securityEmail.trim() });
+      setSecurityCode("");
+      setResendCooldown(60);
+      setSuccess("A new verification code was sent.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to resend verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSecurityPasswordReset = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      if (!securityResetToken) {
+        throw new Error("Please verify your email code first.");
+      }
+
+      if (formData.newPassword !== formData.confirmPassword) {
+        throw new Error(t("profile.passwordsDoNotMatch"));
+      }
+
+      if (formData.newPassword.length < 6) {
+        throw new Error(t("profile.passwordTooShort"));
+      }
+
+      await resetPassword({
+        token: securityResetToken,
+        password: formData.newPassword,
+      });
+
+      resetSecurityForm();
+      setSuccess("Password updated successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to update password.");
     } finally {
       setLoading(false);
     }
@@ -381,67 +516,159 @@ const Profile = () => {
                     <p className={`text-sm mt-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.securityDescription")}</p>
                   </div>
 
-                  <form onSubmit={handleUpdateProfile} className="space-y-6">
-                    <div className="space-y-5">
-                      <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.currentPassword")}</label>
-                        <div className="relative">
-                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-amber-300" : "text-stone-400 group-focus-within:text-amber-500"}`}>
-                            <Lock className="h-5 w-5" />
-                          </div>
-                          <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formData.currentPassword} onChange={handleInputChange}
-                            className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium ${
-                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                            }`}
-                            placeholder={t("profile.enterCurrentPassword")}
-                          />
-                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-amber-300" : "text-stone-400 hover:text-amber-600"}`}>
-                            {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
+                  <div className="mb-8 grid grid-cols-3 gap-2">
+                    {[
+                      ["email", "Email"],
+                      ["code", "Verify"],
+                      ["password", "Password"],
+                    ].map(([stepKey, label], index) => {
+                      const steps = ["email", "code", "password"];
+                      const isActive = securityStep === stepKey;
+                      const isComplete = steps.indexOf(securityStep) > index;
 
+                      return (
+                        <div
+                          key={stepKey}
+                          className={`rounded-xl px-3 py-3 text-center text-xs font-black uppercase tracking-wider ${
+                            isActive || isComplete
+                              ? "bg-green-600 text-white"
+                              : isDark
+                                ? "bg-slate-950 text-slate-500"
+                                : "bg-stone-100 text-stone-400"
+                          }`}
+                        >
+                          {label}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {securityStep === "email" && (
+                    <form onSubmit={handleSendSecurityCode} className="space-y-6">
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.newPassword")}</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
                         <div className="relative">
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
-                            <Lock className="h-5 w-5" />
+                            <Mail className="h-5 w-5" />
                           </div>
-                          <input type={showPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} onChange={handleInputChange}
-                            className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
-                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                            }`}
-                            placeholder={t("profile.enterNewPassword")}
-                          />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-emerald-300" : "text-stone-400 hover:text-emerald-600"}`}>
-                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.confirmNewPassword")}</label>
-                        <div className="relative">
-                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
-                            <Lock className="h-5 w-5" />
-                          </div>
-                          <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange}
+                          <input
+                            type="email"
+                            value={securityEmail}
+                            onChange={(event) => {
+                              setSecurityEmail(event.target.value);
+                              setError("");
+                              setSuccess("");
+                            }}
                             className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder={t("profile.confirmNewPasswordPlaceholder")}
+                            placeholder="Enter your account email"
                           />
                         </div>
                       </div>
-                    </div>
 
-                    <div className="pt-8 flex justify-center">
-                      <button type="submit" disabled={loading || !formData.currentPassword || !formData.newPassword} className={`text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed ${isDark ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700"}`}>
-                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
-                        {loading ? t("profile.updatingSecurity") : t("profile.updatePassword")}
-                      </button>
-                    </div>
-                  </form>
+                      <div className="pt-4 flex justify-center">
+                        <button type="submit" disabled={loading || !securityEmail.trim()} className="text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
+                          {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Mail className="w-5 h-5" />}
+                          {loading ? "Sending Code..." : "Send Verification Code"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {securityStep === "code" && (
+                    <form onSubmit={handleVerifySecurityCode} className="space-y-6">
+                      <div className="group">
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Verification Code</label>
+                        <div className="relative">
+                          <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
+                            <Shield className="h-5 w-5" />
+                          </div>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            value={securityCode}
+                            onChange={(event) => {
+                              setSecurityCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                              setError("");
+                              setSuccess("");
+                            }}
+                            className={`block w-full pl-11 pr-4 py-4 border rounded-xl text-center text-2xl font-black tracking-[0.35em] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                              isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                            }`}
+                            placeholder="000000"
+                          />
+                        </div>
+                        <p className={`mt-3 text-sm font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>
+                          We sent a 6-digit code to {securityEmail}.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-center">
+                        <button type="submit" disabled={loading || securityCode.length !== 6} className="text-white w-full sm:w-auto py-4 sm:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
+                          {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
+                          {loading ? "Verifying..." : "Verify Code"}
+                        </button>
+                        <button type="button" onClick={handleResendSecurityCode} disabled={loading || resendCooldown > 0} className={`w-full rounded-xl border py-4 font-bold transition-all active:scale-95 disabled:cursor-not-allowed sm:w-auto sm:px-8 ${
+                          isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800 disabled:text-slate-600" : "border-stone-200 text-stone-700 hover:bg-stone-50 disabled:text-stone-400"
+                        }`}>
+                          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {securityStep === "password" && (
+                    <form onSubmit={handleSecurityPasswordReset} className="space-y-6">
+                      <div className="space-y-5">
+                        <div className="group">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.newPassword")}</label>
+                          <div className="relative">
+                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
+                              <Lock className="h-5 w-5" />
+                            </div>
+                            <input type={showPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} onChange={handleInputChange}
+                              className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
+                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                              }`}
+                              placeholder={t("profile.enterNewPassword")}
+                            />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-emerald-300" : "text-stone-400 hover:text-emerald-600"}`}>
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="group">
+                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.confirmNewPassword")}</label>
+                          <div className="relative">
+                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
+                              <Lock className="h-5 w-5" />
+                            </div>
+                            <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange}
+                              className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
+                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
+                              }`}
+                              placeholder={t("profile.confirmNewPasswordPlaceholder")}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 pt-8 sm:flex-row sm:justify-center">
+                        <button type="submit" disabled={loading || !formData.newPassword || !formData.confirmPassword} className="text-white w-full sm:w-auto py-4 sm:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
+                          {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
+                          {loading ? t("profile.updatingSecurity") : t("profile.updatePassword")}
+                        </button>
+                        <button type="button" onClick={resetSecurityForm} className={`w-full rounded-xl border py-4 font-bold transition-all active:scale-95 sm:w-auto sm:px-8 ${
+                          isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                        }`}>
+                          Start Over
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </motion.div>
               )}
 

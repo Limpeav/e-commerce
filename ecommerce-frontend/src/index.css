@@ -332,7 +332,7 @@ html.dark {
     --tw-ring-color: color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
 }
 
-:is(.bg-red-50, .bg-red-100, .bg-red-500\/10, .bg-red-500\/20, .bg-red-600, .bg-rose-500, .bg-orange-500, .bg-orange-600) {
+:is(.bg-red-50, .bg-red-100, .bg-red-500\/10, .bg-red-500\/20, .bg-rose-500, .bg-orange-500, .bg-orange-600) {
     background-color: var(--color-secondary) !important;
 }
 

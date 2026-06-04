@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     CalendarDays,
@@ -33,6 +33,8 @@ const AdminOrders = () => {
     const [expandedOrderDates, setExpandedOrderDates] = useState({});
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
+    const [receiptNotice, setReceiptNotice] = useState("");
+    const receiptNoticeTimeoutRef = useRef(null);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
@@ -55,6 +57,14 @@ const AdminOrders = () => {
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    useEffect(() => {
+        return () => {
+            if (receiptNoticeTimeoutRef.current) {
+                window.clearTimeout(receiptNoticeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const refreshOrders = () => {
@@ -247,7 +257,14 @@ const AdminOrders = () => {
             await adminService.sendOrderReceiptToTelegram(order._id, formData);
             window.dispatchEvent(new Event("admin-orders-updated"));
             await fetchOrders();
-            alert("Receipt photo sent to Telegram. You can now confirm this order.");
+            setReceiptNotice("Receipt photo sent to Telegram. You can now confirm this order.");
+            if (receiptNoticeTimeoutRef.current) {
+                window.clearTimeout(receiptNoticeTimeoutRef.current);
+            }
+            receiptNoticeTimeoutRef.current = window.setTimeout(() => {
+                setReceiptNotice("");
+                receiptNoticeTimeoutRef.current = null;
+            }, 2000);
         } catch (err) {
             alert(err.response?.data?.message || err.message || "Failed to send receipt to Telegram");
         } finally {
@@ -438,6 +455,11 @@ const AdminOrders = () => {
     if (isDelivery) {
         return (
             <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:px-8 lg:pt-8">
+                {receiptNotice && (
+                    <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                        {receiptNotice}
+                    </div>
+                )}
                 <div className="mx-auto max-w-3xl">
                     <div className="mb-5 flex items-end justify-between gap-4">
                         <div>
@@ -607,6 +629,11 @@ const AdminOrders = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
+            {receiptNotice && (
+                <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                    {receiptNotice}
+                </div>
+            )}
             {/* Header */}
             <div className="mb-6">
                 <div className="flex items-center justify-between">

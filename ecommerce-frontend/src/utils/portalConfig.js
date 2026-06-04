@@ -29,12 +29,16 @@ const getCurrentHostname = () => {
 export const getActivePortal = () => {
   const currentOrigin = getCurrentOrigin();
   const currentHostname = getCurrentHostname();
+  const hasDistinctPortalUrls =
+    portalConfig.adminUrl &&
+    portalConfig.customerUrl &&
+    portalConfig.adminUrl !== portalConfig.customerUrl;
 
-  if (portalConfig.adminUrl && currentOrigin === portalConfig.adminUrl) {
+  if (hasDistinctPortalUrls && currentOrigin === portalConfig.adminUrl) {
     return "admin";
   }
 
-  if (portalConfig.customerUrl && currentOrigin === portalConfig.customerUrl) {
+  if (hasDistinctPortalUrls && currentOrigin === portalConfig.customerUrl) {
     return "customer";
   }
 
