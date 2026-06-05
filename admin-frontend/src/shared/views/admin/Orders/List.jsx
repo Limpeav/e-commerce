@@ -22,6 +22,7 @@ import { subscribeRealtimeEvent } from "../../../services/realtime";
 
 const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
+const DELIVERY_ORDERS_VIEW_STATE_KEY = "adminDeliveryOrdersViewState";
 
 const readCachedDeliveryOrders = () => {
     try {
@@ -32,19 +33,31 @@ const readCachedDeliveryOrders = () => {
     }
 };
 
+const readCachedDeliveryViewState = () => {
+    try {
+        const cachedState = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_VIEW_STATE_KEY) || "{}");
+        return cachedState && typeof cachedState === "object" ? cachedState : {};
+    } catch {
+        return {};
+    }
+};
+
 const AdminOrders = () => {
     const navigate = useNavigate();
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
     const initialDeliveryOrders = isDelivery ? readCachedDeliveryOrders() : [];
+    const initialDeliveryViewState = isDelivery ? readCachedDeliveryViewState() : {};
     const [orders, setOrders] = useState(initialDeliveryOrders);
     const [filteredOrders, setFilteredOrders] = useState(initialDeliveryOrders);
     const [loading, setLoading] = useState(!(isDelivery && initialDeliveryOrders.length > 0));
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All");
-    const [expandedOrderDates, setExpandedOrderDates] = useState({});
+    const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
+    const [statusFilter, setStatusFilter] = useState(initialDeliveryViewState.statusFilter || "All");
+    const [expandedOrderDates, setExpandedOrderDates] = useState(
+        initialDeliveryViewState.expandedOrderDates || {}
+    );
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const [receiptNotice, setReceiptNotice] = useState("");
@@ -76,6 +89,19 @@ const AdminOrders = () => {
             sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(orders));
         }
     }, [isDelivery, orders]);
+
+    useEffect(() => {
+        if (isDelivery) {
+            sessionStorage.setItem(
+                DELIVERY_ORDERS_VIEW_STATE_KEY,
+                JSON.stringify({
+                    searchTerm,
+                    statusFilter,
+                    expandedOrderDates,
+                })
+            );
+        }
+    }, [expandedOrderDates, isDelivery, searchTerm, statusFilter]);
 
     useEffect(() => {
         return () => {
