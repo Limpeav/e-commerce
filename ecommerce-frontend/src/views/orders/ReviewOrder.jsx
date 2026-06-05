@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Send, Star } from "lucide-react";
 import { getOrderById } from "../../services/orderService";
@@ -51,6 +51,8 @@ export default function ReviewOrder() {
   const [forms, setForms] = useState({});
   const [submittingByProduct, setSubmittingByProduct] = useState({});
   const [submittedByProduct, setSubmittedByProduct] = useState({});
+  const [showThankYou, setShowThankYou] = useState(false);
+  const redirectTimeoutRef = useRef(null);
   const focusedProductId = searchParams.get("product");
 
   useEffect(() => {
@@ -70,6 +72,14 @@ export default function ReviewOrder() {
 
     loadOrder();
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const reviewItems = useMemo(() => {
     const items = uniqueOrderItems(order?.orderItems || []);
@@ -190,7 +200,15 @@ export default function ReviewOrder() {
       [productId]: result.data?.updated || result.data?.alreadyReviewed ? "updated" : "submitted",
     }));
     setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
-    navigate("/customer");
+    setShowThankYou(true);
+
+    if (redirectTimeoutRef.current) {
+      window.clearTimeout(redirectTimeoutRef.current);
+    }
+
+    redirectTimeoutRef.current = window.setTimeout(() => {
+      navigate("/customer", { replace: true });
+    }, 3000);
   };
 
   const switchOrderAccount = () => {
@@ -233,6 +251,25 @@ export default function ReviewOrder() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (showThankYou) {
+    return (
+      <main className={`flex min-h-screen items-center justify-center px-4 py-20 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+        <section className={`w-full max-w-xl rounded-3xl border p-8 text-center shadow-xl sm:p-10 ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-700">
+            <CheckCircle className="h-9 w-9" />
+          </div>
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-primary">Review submitted</p>
+          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-4xl">
+            Thank you for your review
+          </h1>
+          <p className="mx-auto mt-4 max-w-md text-sm font-bold leading-relaxed text-text-muted sm:text-base">
+            Your feedback helps other customers choose with confidence. Redirecting you to home...
+          </p>
+        </section>
+      </main>
     );
   }
 
