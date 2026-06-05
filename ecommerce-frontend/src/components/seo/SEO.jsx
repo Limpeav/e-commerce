@@ -14,7 +14,9 @@ export default function SEO({
   noIndex = false,
   jsonLd,
 }) {
-  const fullTitle = title ? `${SITE_NAME}: ${title}` : SITE_NAME
+  const isHomeTitle = String(title || "").trim().toLowerCase() === "home"
+  const fullTitle = title && !isHomeTitle ? `${SITE_NAME}: ${title}` : SITE_NAME
+  const socialTitle = isHomeTitle ? SITE_NAME : title || SITE_NAME
   const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : SITE_URL
 
   return (
@@ -23,7 +25,7 @@ export default function SEO({
       <meta name="description" content={description || ""} />
       <link rel="canonical" href={canonicalUrl} />
 
-      <meta property="og:title" content={title || SITE_NAME} />
+      <meta property="og:title" content={socialTitle} />
       <meta property="og:description" content={description || ""} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content={ogType} />
@@ -31,7 +33,7 @@ export default function SEO({
       <meta property="og:image" content={ogImage || `${SITE_URL}${DEFAULT_OG_IMAGE}`} />
 
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title || SITE_NAME} />
+      <meta name="twitter:title" content={socialTitle} />
       <meta name="twitter:description" content={description || ""} />
       <meta name="twitter:image" content={ogImage || `${SITE_URL}${DEFAULT_OG_IMAGE}`} />
       <meta name="twitter:site" content={TWITTER_HANDLE} />
