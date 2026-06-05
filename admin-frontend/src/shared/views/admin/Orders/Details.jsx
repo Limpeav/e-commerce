@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
     ArrowLeft,
     Camera,
@@ -26,6 +26,7 @@ import { joinOrderRoom, subscribeRealtimeEvent } from "../../../services/realtim
 const OrderDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -38,6 +39,38 @@ const OrderDetails = () => {
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
     const ordersPath = getPortalOrdersPath(adminUser);
+    const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
+
+    const cacheDeliveryOrder = useCallback((updatedOrder) => {
+        if (!isDelivery || !updatedOrder?._id) {
+            return;
+        }
+
+        try {
+            const cacheKey = "adminDeliveryOrdersCache";
+            const cachedOrders = JSON.parse(sessionStorage.getItem(cacheKey) || "[]");
+            if (!Array.isArray(cachedOrders)) {
+                return;
+            }
+
+            sessionStorage.setItem(
+                cacheKey,
+                JSON.stringify(
+                    cachedOrders.map((cachedOrder) =>
+                        cachedOrder._id === updatedOrder._id
+                            ? {
+                                ...cachedOrder,
+                                ...updatedOrder,
+                                user: updatedOrder.user || cachedOrder.user,
+                            }
+                            : cachedOrder
+                    )
+                )
+            );
+        } catch {
+            // Cache is only a convenience for smoother back navigation.
+        }
+    }, [isDelivery]);
 
     const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
         if (!silent) {
@@ -47,6 +80,7 @@ const OrderDetails = () => {
 
         if (result.success) {
             setOrder(result.data);
+            cacheDeliveryOrder(result.data);
             setError(null);
         } else {
             setError(result.error || "Failed to fetch order details");
@@ -55,7 +89,7 @@ const OrderDetails = () => {
         if (!silent) {
             setLoading(false);
         }
-    }, [id]);
+    }, [cacheDeliveryOrder, id]);
 
     useEffect(() => {
         fetchOrderDetails();
@@ -85,7 +119,7 @@ const OrderDetails = () => {
                     return currentOrder;
                 }
 
-                return {
+                const updatedOrder = {
                     ...currentOrder,
                     ...Object.fromEntries(
                         Object.entries({
@@ -108,6 +142,9 @@ const OrderDetails = () => {
                         }).filter(([, value]) => value !== undefined)
                     ),
                 };
+
+                cacheDeliveryOrder(updatedOrder);
+                return updatedOrder;
             });
         };
 
@@ -120,7 +157,16 @@ const OrderDetails = () => {
             unsubscribeUpdated();
             unsubscribeCreated();
         };
-    }, [fetchOrderDetails, id]);
+    }, [cacheDeliveryOrder, fetchOrderDetails, id]);
+
+    const handleBackToOrders = () => {
+        if (shouldReturnToDeliveryHistory) {
+            navigate(-1);
+            return;
+        }
+
+        navigate(ordersPath);
+    };
 
     const handleStatusUpdate = async (newStatus) => {
         setUpdating(true);
@@ -132,12 +178,16 @@ const OrderDetails = () => {
             return;
         }
 
-        setOrder((currentOrder) => ({
-            ...currentOrder,
-            ...result.data,
-            user: result.data?.user || currentOrder?.user,
-            orderStatus: result.data?.orderStatus || newStatus,
-        }));
+        setOrder((currentOrder) => {
+            const updatedOrder = {
+                ...currentOrder,
+                ...result.data,
+                user: result.data?.user || currentOrder?.user,
+                orderStatus: result.data?.orderStatus || newStatus,
+            };
+            cacheDeliveryOrder(updatedOrder);
+            return updatedOrder;
+        });
         setUpdating(false);
     };
 
@@ -186,6 +236,7 @@ const OrderDetails = () => {
         }
 
         setOrder(result.data);
+        cacheDeliveryOrder(result.data);
         window.dispatchEvent(new Event("admin-orders-updated"));
         setUploadingProof(false);
     };
@@ -309,7 +360,7 @@ const OrderDetails = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
                     <p className="text-red-800">{error || "Order not found"}</p>
                     <button
-                        onClick={() => navigate(ordersPath)}
+                        onClick={handleBackToOrders}
                         className="mt-4 text-blue-600 hover:text-blue-800"
                     >
                         ← Back to Orders
@@ -506,7 +557,7 @@ const OrderDetails = () => {
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
-                                onClick={() => navigate(ordersPath)}
+                                onClick={handleBackToOrders}
                                 className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
                                 aria-label="Back to orders"
                             >

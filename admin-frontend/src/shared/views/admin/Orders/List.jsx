@@ -21,12 +21,26 @@ import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/ad
 import { subscribeRealtimeEvent } from "../../../services/realtime";
 
 const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
+const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
+
+const readCachedDeliveryOrders = () => {
+    try {
+        const cachedOrders = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_CACHE_KEY) || "[]");
+        return Array.isArray(cachedOrders) ? cachedOrders : [];
+    } catch {
+        return [];
+    }
+};
 
 const AdminOrders = () => {
     const navigate = useNavigate();
-    const [orders, setOrders] = useState([]);
-    const [filteredOrders, setFilteredOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const adminUser = getStoredAdminUser();
+    const isDelivery = adminUser?.role === "delivery";
+    const isSeller = adminUser?.role === "seller";
+    const initialDeliveryOrders = isDelivery ? readCachedDeliveryOrders() : [];
+    const [orders, setOrders] = useState(initialDeliveryOrders);
+    const [filteredOrders, setFilteredOrders] = useState(initialDeliveryOrders);
+    const [loading, setLoading] = useState(!(isDelivery && initialDeliveryOrders.length > 0));
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
@@ -35,10 +49,6 @@ const AdminOrders = () => {
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const [receiptNotice, setReceiptNotice] = useState("");
     const receiptNoticeTimeoutRef = useRef(null);
-    const adminUser = getStoredAdminUser();
-    const isDelivery = adminUser?.role === "delivery";
-    const isSeller = adminUser?.role === "seller";
-
     const fetchOrders = useCallback(async ({ silent = false } = {}) => {
         try {
             if (!silent) {
@@ -47,6 +57,9 @@ const AdminOrders = () => {
             const response = await adminService.getOrders();
             setOrders(response.data);
             setFilteredOrders(response.data);
+            if (isDelivery) {
+                sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(response.data));
+            }
             setLoading(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch orders");
@@ -55,8 +68,14 @@ const AdminOrders = () => {
     }, []);
 
     useEffect(() => {
-        fetchOrders();
+        fetchOrders({ silent: isDelivery && initialDeliveryOrders.length > 0 });
     }, [fetchOrders]);
+
+    useEffect(() => {
+        if (isDelivery) {
+            sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(orders));
+        }
+    }, [isDelivery, orders]);
 
     useEffect(() => {
         return () => {
@@ -244,7 +263,9 @@ const AdminOrders = () => {
     };
 
     const handleRowNavigation = (orderId) => {
-        navigate(getPortalOrderDetailsPath(orderId, adminUser));
+        navigate(getPortalOrderDetailsPath(orderId, adminUser), {
+            state: isDelivery ? { fromDeliveryOrders: true } : undefined,
+        });
     };
 
     const handleConfirmOrder = async (orderId) => {
