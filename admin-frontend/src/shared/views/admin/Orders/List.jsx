@@ -71,8 +71,39 @@ const AdminOrders = () => {
             fetchOrders({ silent: true });
         };
 
+        const patchOrderFromRealtime = (payload = {}) => {
+            const orderId = payload.orderId || payload._id;
+
+            if (!orderId) {
+                return;
+            }
+
+            setOrders((currentOrders) =>
+                currentOrders.map((order) =>
+                    order._id === orderId
+                        ? {
+                            ...order,
+                            ...Object.fromEntries(
+                                Object.entries({
+                                    orderStatus: payload.orderStatus,
+                                    paymentStatus: payload.paymentStatus,
+                                    isPaid: payload.isPaid,
+                                    isDelivered: payload.isDelivered,
+                                    processedAt: payload.processedAt,
+                                    shippedAt: payload.shippedAt,
+                                    deliveredAt: payload.deliveredAt,
+                                    receiptSent: payload.receiptSent,
+                                    updatedAt: payload.updatedAt,
+                                }).filter(([, value]) => value !== undefined)
+                            ),
+                        }
+                        : order
+                )
+            );
+        };
+
         const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshOrders);
-        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", refreshOrders);
+        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", patchOrderFromRealtime);
 
         window.addEventListener("admin-orders-updated", refreshOrders);
 
@@ -216,9 +247,21 @@ const AdminOrders = () => {
 
         setConfirmingOrderId(orderId);
         try {
-            await adminService.updateOrderStatus(orderId, "Shipped");
-            window.dispatchEvent(new Event("admin-orders-updated"));
-            await fetchOrders();
+            const response = await adminService.updateOrderStatus(orderId, "Shipped");
+            const updatedOrder = response.data;
+
+            setOrders((currentOrders) =>
+                currentOrders.map((order) =>
+                    order._id === orderId
+                        ? {
+                            ...order,
+                            ...updatedOrder,
+                            user: updatedOrder?.user || order.user,
+                            orderStatus: updatedOrder?.orderStatus || "Shipped",
+                        }
+                        : order
+                )
+            );
         } catch (err) {
             alert(err.response?.data?.message || "Failed to confirm order");
             setConfirmingOrderId("");
