@@ -17,8 +17,7 @@ import { useDarkMode } from "../../hooks";
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
-
-const BEST_SELLER_SOLD_THRESHOLD = 5;
+import { getBestSellersByCategory } from "../../utils/bestSellers";
 
 function ProductSection({
     section,
@@ -234,14 +233,7 @@ export default function Home() {
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
             .slice(0, 8);
 
-        const bestSellers = [...normalizedProducts]
-            .filter((product) => Number(product.sold || product.totalSold || 0) > BEST_SELLER_SOLD_THRESHOLD)
-            .sort((a, b) => {
-                const soldDelta = Number(b.sold || b.totalSold || 0) - Number(a.sold || a.totalSold || 0);
-                if (soldDelta !== 0) return soldDelta;
-                return Number(b.rating || 0) - Number(a.rating || 0);
-            })
-            .slice(0, 8);
+        const bestSellers = getBestSellersByCategory(normalizedProducts);
 
         const deals = normalizedProducts
             .filter((product) => product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price)
@@ -289,7 +281,7 @@ export default function Home() {
         <>
             <SEO
                 title="Home"
-                description="Shop the best baby and kids products at Applac. Discover curated essentials, toys, clothing, and more — delivered to your door."
+                description="Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door."
                 canonical="/"
             />
             <div className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>

@@ -34,6 +34,7 @@ const ProductSubsetPage = ({
   description,
   emptyHasActiveFilters,
   filterProduct,
+  getSubsetProducts,
   icon: Icon,
   loadingMessage,
   searchPlaceholder,
@@ -67,7 +68,10 @@ const ProductSubsetPage = ({
 
   const subsetProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const baseProducts = products.filter(filterProduct);
+    const baseProducts =
+      typeof getSubsetProducts === "function"
+        ? getSubsetProducts(products)
+        : products.filter(filterProduct);
     const sortedProducts =
       typeof sortProducts === "function" ? sortProducts(baseProducts) : baseProducts;
 
@@ -80,11 +84,14 @@ const ProductSubsetPage = ({
         product.category?.toLowerCase().includes(normalizedSearch)
       );
     });
-  }, [filterProduct, products, searchTerm, sortProducts]);
+  }, [filterProduct, getSubsetProducts, products, searchTerm, sortProducts]);
 
   const totalCount = useMemo(
-    () => products.filter(filterProduct).length,
-    [filterProduct, products]
+    () =>
+      typeof getSubsetProducts === "function"
+        ? getSubsetProducts(products).length
+        : products.filter(filterProduct).length,
+    [filterProduct, getSubsetProducts, products]
   );
 
   const handleDelete = async (id) => {

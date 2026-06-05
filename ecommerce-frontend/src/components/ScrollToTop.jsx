@@ -1,16 +1,49 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
+
+const scrollPositions = new Map();
+
+const restoreScrollPosition = (top) => {
+  let attempts = 0;
+
+  const restore = () => {
+    window.scrollTo(0, top);
+    attempts += 1;
+
+    if (attempts < 60 && Math.abs(window.scrollY - top) > 4) {
+      window.requestAnimationFrame(restore);
+    }
+  };
+
+  window.requestAnimationFrame(restore);
+};
 
 export default function ScrollToTop() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const navigationType = useNavigationType();
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "instant", // or "smooth" if you prefer smooth scrolling
-    });
-  }, [pathname]);
+    if (!("scrollRestoration" in window.history)) return undefined;
+
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+
+    return () => {
+      window.history.scrollRestoration = previous;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (navigationType === "POP") {
+      restoreScrollPosition(scrollPositions.get(location.key) || 0);
+    } else {
+      window.scrollTo(0, 0);
+    }
+
+    return () => {
+      scrollPositions.set(location.key, window.scrollY);
+    };
+  }, [location.key, navigationType]);
 
   return null;
 }

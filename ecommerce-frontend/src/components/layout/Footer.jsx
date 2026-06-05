@@ -33,7 +33,7 @@ export default function Footer() {
               <div className="rounded-xl bg-primary p-2.5 shadow-xl shadow-primary/20 transition-transform duration-500 group-hover:rotate-12 sm:rounded-2xl sm:p-3">
                 <Package className="h-6 w-6 text-white sm:h-7 sm:w-7" />
               </div>
-              <span className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Applac</span>
+              <span className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Cherish Baby Store</span>
             </Link>
             <p className="max-w-xs text-sm leading-6 text-text-muted">
               {t("footer.brandDescription")}
@@ -112,7 +112,7 @@ export default function Footer() {
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
           <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted/50">
-            &copy; {currentYear} Applac Inc. {t("footer.rightsReserved")}
+            &copy; {currentYear} Cherish Baby Store Inc. {t("footer.rightsReserved")}
           </p>
 
           <div className="flex items-center gap-3">

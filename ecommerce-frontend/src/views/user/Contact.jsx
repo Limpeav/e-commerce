@@ -77,7 +77,7 @@ export default function Contact() {
             icon: Mail,
             iconTitle: t("contact.email"),
             title: t("contact.emailTerminal"),
-            value: "support@applac.com",
+            value: "support@cherishbabykhstore.store",
             description: t("contact.emailHours"),
             color: "primary"
         },

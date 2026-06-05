@@ -416,7 +416,7 @@ ${hasPromotion ? `Promotion price: $${discountPrice.toFixed(2)} (was $${price.to
 View it here:
 ${productUrl}
 
-Thank you for shopping with Cherish Baby KH Store.
+Thank you for shopping with Cherish Baby Store.
       `,
     },
     "product promotion"
@@ -502,7 +502,7 @@ export const sendStorePromotionEmail = async ({
                   </tr>
                   <tr>
                     <td style="background:#4f8397;padding:30px 36px;text-align:center;">
-                      <p style="margin:0;font-size:13px;line-height:1.8;color:#dcecf2;">Thank you for shopping with Cherish Baby KH Store.</p>
+                      <p style="margin:0;font-size:13px;line-height:1.8;color:#dcecf2;">Thank you for shopping with Cherish Baby Store.</p>
                     </td>
                   </tr>
                 </table>

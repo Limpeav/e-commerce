@@ -138,7 +138,7 @@ export default function Privacy() {
                                 <p className="text-sm font-medium text-text-muted">
                                     If you have any questions about this Privacy Policy, please reach out to us:
                                 </p>
-                                <p className="mt-2 text-sm font-bold text-text-main">support@applac.com</p>
+                                <p className="mt-2 text-sm font-bold text-text-main">support@cherishbabykhstore.store</p>
                             </div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10" style={{ borderColor: "var(--color-border)" }}>
                                 <Mail className="h-5 w-5 text-primary" />

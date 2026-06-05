@@ -11,6 +11,7 @@ import ProductsGrid from "../../components/product/ProductsGrid";
 import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
 import SEO from "../../components/seo/SEO";
 import { useLanguage } from "../../context/useLanguage";
+import { getBestSellersByCategory } from "../../utils/bestSellers";
 
 const VIEW_CONFIG_KEYS = {
   all: {
@@ -30,20 +31,6 @@ const VIEW_CONFIG_KEYS = {
     description: "product.strongestSavings",
   },
 };
-
-const BEST_SELLER_SOLD_THRESHOLD = 5;
-
-const sortByBestSellers = (products) =>
-  [...products]
-    .filter((product) => Number(product.sold || product.totalSold || 0) > BEST_SELLER_SOLD_THRESHOLD)
-    .sort((a, b) => {
-      const soldDelta =
-        Number(b.sold || b.totalSold || 0) -
-        Number(a.sold || a.totalSold || 0);
-      if (soldDelta !== 0) return soldDelta;
-      return Number(b.rating || 0) - Number(a.rating || 0);
-    })
-    .slice(0, 8);
 
 const sortByDeals = (products) =>
   [...products]
@@ -113,7 +100,7 @@ export default function ProductCatalog() {
       case "new-arrivals":
         return getNewArrivals(filteredProducts);
       case "best-sellers":
-        return sortByBestSellers(filteredProducts);
+        return getBestSellersByCategory(filteredProducts);
       case "deals":
         return sortByDeals(filteredProducts);
       default:
@@ -146,9 +133,9 @@ export default function ProductCatalog() {
 
   const seoMeta = {
     all: { title: "All Products", description: "Browse our full collection of baby and kids products. From newborn essentials to toys and apparel — find everything your family needs." },
-    "new-arrivals": { title: "New Arrivals", description: "Discover the latest baby and kids products at Applac. Fresh arrivals added weekly." },
-    "best-sellers": { title: "Best Sellers", description: "Shop Applac's most popular baby and kids products — loved by thousands of families." },
-    deals: { title: "Deals & Discounts", description: "Save big on top-rated baby and kids products. Limited-time deals and discounts on Applac's best-sellers." },
+    "new-arrivals": { title: "New Arrivals", description: "Discover the latest baby and kids products at Cherish Baby Store. Fresh arrivals added weekly." },
+    "best-sellers": { title: "Best Sellers", description: "Shop Cherish Baby Store's most popular baby and kids products — loved by thousands of families." },
+    deals: { title: "Deals & Discounts", description: "Save big on top-rated baby and kids products. Limited-time deals and discounts on Cherish Baby Store's best-sellers." },
   }
   const activeSeo = seoMeta[activeView] || seoMeta.all
 

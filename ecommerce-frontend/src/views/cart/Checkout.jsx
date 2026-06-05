@@ -81,6 +81,17 @@ const Checkout = () => {
     return parts[0] || "";
   };
 
+  const getBestLocationText = (location = {}) =>
+    [
+      location.formattedAddress,
+      location.address,
+      location.name,
+      location.description,
+      location.vicinity,
+    ]
+      .map((value) => String(value || "").trim())
+      .find(Boolean) || "";
+
   const getAddressPart = (components = [], ...types) =>
     components.find((component) =>
       types.some((type) => component.types?.includes(type))
@@ -149,20 +160,22 @@ const Checkout = () => {
     });
 
   const applySelectedLocation = (location) => {
-    const readableAddress =
-      location.formattedAddress || location.address || location.name || "";
+    const readableAddress = getBestLocationText(location);
     const cityProvince =
       location.city ||
       location.province ||
       location.district ||
-      getCityProvinceFromText(location.formattedAddress || readableAddress);
+      getCityProvinceFromText(readableAddress);
 
     setShippingAddress((currentAddress) => ({
       ...currentAddress,
       latitude: location.lat,
       longitude: location.lng,
       address: readableAddress || currentAddress.address,
-      city: cityProvince || currentAddress.city,
+      city:
+        cityProvince ||
+        (readableAddress ? getCityProvinceFromText(readableAddress) : "") ||
+        currentAddress.city,
     }));
     setError("");
   };

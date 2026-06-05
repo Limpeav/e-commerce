@@ -152,10 +152,25 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     });
 
   const updateDraftLocationDetails = (details) => {
-    setSelectedDetails(details);
-    if (details?.formattedAddress || details?.address) {
-      setAddressName(details.formattedAddress || details.address);
-      setSearchQuery(details.formattedAddress || details.address);
+    const locationText =
+      details?.formattedAddress ||
+      details?.address ||
+      details?.name ||
+      addressName ||
+      "";
+    const nextDetails = details
+      ? {
+          ...details,
+          address: details.address || locationText,
+          city: details.city || getCityProvinceFromText(locationText),
+          formattedAddress: details.formattedAddress || locationText,
+        }
+      : details;
+
+    setSelectedDetails(nextDetails);
+    if (locationText) {
+      setAddressName(locationText);
+      setSearchQuery(locationText);
     }
   };
 

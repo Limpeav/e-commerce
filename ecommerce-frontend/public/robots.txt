@@ -15,4 +15,4 @@ Disallow: /admin
 Disallow: /seller
 Disallow: /delivery
 
-Sitemap: https://applac.com/sitemap.xml
+Sitemap: https://cherishbabykhstore.store/sitemap.xml

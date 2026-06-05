@@ -108,7 +108,7 @@ export default function ProductDetail() {
     <>
       <SEO
         title={product?.name || "Product Detail"}
-        description={product?.description ? `${product.name} — ${product.description.substring(0, 160)}` : "View product details at Applac."}
+        description={product?.description ? `${product.name} — ${product.description.substring(0, 160)}` : "View product details at Cherish Baby Store."}
         canonical={`/products/${id}`}
         ogImage={product?.image || product?.images?.[0]}
         ogType="product"

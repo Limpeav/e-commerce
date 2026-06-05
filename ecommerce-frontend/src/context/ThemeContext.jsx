@@ -1,15 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useState } from "react";
 
 const ThemeContext = createContext();
-const THEME_MODES = ["light", "dark", "system"];
+const THEME_MODES = ["light", "dark"];
 
 const getInitialThemeMode = () => {
   const stored = localStorage.getItem("theme");
-  return THEME_MODES.includes(stored) ? stored : "system";
+  return THEME_MODES.includes(stored) ? stored : "light";
 };
 
-const applyThemeMode = (mode, systemPrefersDark) => {
-  const resolvedDark = mode === "system" ? systemPrefersDark : mode === "dark";
+const applyThemeMode = (mode) => {
+  const resolvedDark = mode === "dark";
   const html = document.documentElement;
 
   html.dataset.theme = mode;
@@ -21,45 +21,26 @@ const applyThemeMode = (mode, systemPrefersDark) => {
 
 export const ThemeProvider = ({ children }) => {
   const [themeMode, setStoredThemeMode] = useState(getInitialThemeMode);
-  const [systemPrefersDark, setSystemPrefersDark] = useState(() =>
-    window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
-  );
 
-  const isDark = themeMode === "system" ? systemPrefersDark : themeMode === "dark";
+  const isDark = themeMode === "dark";
 
   const setThemeMode = useCallback((nextMode) => {
     setStoredThemeMode((currentMode) => {
       const resolvedMode =
         typeof nextMode === "function" ? nextMode(currentMode) : nextMode;
-      const safeMode = THEME_MODES.includes(resolvedMode) ? resolvedMode : "system";
+      const safeMode = THEME_MODES.includes(resolvedMode) ? resolvedMode : "light";
 
-      applyThemeMode(safeMode, systemPrefersDark);
+      applyThemeMode(safeMode);
       localStorage.setItem("theme", safeMode);
 
       return safeMode;
     });
-  }, [systemPrefersDark]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
-    if (!mediaQuery) return undefined;
-
-    const handleChange = (event) => {
-      setSystemPrefersDark(event.matches);
-    };
-
-    setSystemPrefersDark(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
   }, []);
 
   useLayoutEffect(() => {
-    applyThemeMode(themeMode, systemPrefersDark);
+    applyThemeMode(themeMode);
     localStorage.setItem("theme", themeMode);
-  }, [systemPrefersDark, themeMode]);
+  }, [themeMode]);
 
   const cycleThemeMode = () => {
     setThemeMode((currentMode) => {

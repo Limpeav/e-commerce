@@ -17,7 +17,6 @@ import {
 } from "../utils/productCategories.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
-const BEST_SELLER_SOLD_THRESHOLD = 5;
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
   descriptionkm: "descriptionKm",
@@ -263,8 +262,38 @@ const attachSalesMetrics = async (products) => {
       category: normalizeProductCategory(productData.category),
       sold,
       totalSold: sold,
-      isBestSeller: sold > BEST_SELLER_SOLD_THRESHOLD,
+      isBestSeller: false,
     };
+  });
+
+  const bestByCategory = new Map();
+
+  withMetrics.forEach((product) => {
+    if (Number(product.sold || 0) <= 0) return;
+
+    const categoryKey = normalizeProductCategory(product.category).toLowerCase();
+    const currentBest = bestByCategory.get(categoryKey);
+    const soldDelta = Number(product.sold || 0) - Number(currentBest?.sold || 0);
+    const ratingDelta = Number(product.rating || 0) - Number(currentBest?.rating || 0);
+    const createdDelta =
+      new Date(product.createdAt || 0).getTime() -
+      new Date(currentBest?.createdAt || 0).getTime();
+
+    const isBetterTieBreak =
+      soldDelta === 0 &&
+      (ratingDelta > 0 || (ratingDelta === 0 && createdDelta > 0));
+
+    if (!currentBest || soldDelta > 0 || isBetterTieBreak) {
+      bestByCategory.set(categoryKey, product);
+    }
+  });
+
+  const bestSellerIds = new Set(
+    [...bestByCategory.values()].map((product) => product._id.toString())
+  );
+
+  withMetrics.forEach((product) => {
+    product.isBestSeller = bestSellerIds.has(product._id.toString());
   });
 
   return Array.isArray(products) ? withMetrics : withMetrics[0];

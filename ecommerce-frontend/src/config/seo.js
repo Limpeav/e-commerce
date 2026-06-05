@@ -1,12 +1,12 @@
 export const routeMeta = {
   "/": {
     title: "Home",
-    description: "Shop the best baby and kids products at Applac. Discover curated essentials, toys, clothing, and more — delivered to your door.",
+    description: "Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door.",
     ogType: "website",
   },
   "/customer": {
     title: "Home",
-    description: "Shop the best baby and kids products at Applac. Discover curated essentials, toys, clothing, and more — delivered to your door.",
+    description: "Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door.",
     ogType: "website",
   },
   "/products": {
@@ -16,48 +16,48 @@ export const routeMeta = {
   },
   "/deals": {
     title: "Deals & Discounts",
-    description: "Save big on top-rated baby and kids products. Limited-time deals and discounts on Applac's best-sellers.",
+    description: "Save big on top-rated baby and kids products. Limited-time deals and discounts on Cherish Baby Store's best-sellers.",
     ogType: "website",
   },
   "/about": {
     title: "About Us",
-    description: "Learn about Applac's mission to provide quality baby and kids products with exceptional service.",
+    description: "Learn about Cherish Baby Store's mission to provide quality baby and kids products with exceptional service.",
     ogType: "website",
   },
   "/contact": {
     title: "Contact Us",
-    description: "Get in touch with Applac's support team. We're here to help with orders, questions, and feedback.",
+    description: "Get in touch with Cherish Baby Store's support team. We're here to help with orders, questions, and feedback.",
     ogType: "website",
   },
   "/privacy": {
     title: "Privacy Policy",
-    description: "Read Applac's privacy policy to understand how we collect, use, and protect your personal data.",
+    description: "Read Cherish Baby Store's privacy policy to understand how we collect, use, and protect your personal data.",
     ogType: "website",
   },
   "/terms": {
     title: "Terms of Service",
-    description: "Review the terms and conditions for using Applac's e-commerce platform and services.",
+    description: "Review the terms and conditions for using Cherish Baby Store's e-commerce platform and services.",
     ogType: "website",
   },
   "/knowledge-base": {
     title: "Knowledge Base",
-    description: "Find helpful guides, FAQs, and resources about Applac products, orders, shipping, and returns.",
+    description: "Find helpful guides, FAQs, and resources about Cherish Baby Store products, orders, shipping, and returns.",
     ogType: "website",
   },
   "/location": {
     title: "Our Location",
-    description: "Visit Applac's store or find our location. We serve families with quality baby and kids products.",
+    description: "Visit Cherish Baby Store's store or find our location. We serve families with quality baby and kids products.",
     ogType: "website",
   },
   "/login": {
     title: "Sign In",
-    description: "Sign in to your Applac account to manage orders, track shipments, and save your favorites.",
+    description: "Sign in to your Cherish Baby Store account to manage orders, track shipments, and save your favorites.",
     ogType: "website",
     noIndex: true,
   },
   "/register": {
     title: "Create Account",
-    description: "Create an Applac account for faster checkout, order tracking, and personalized recommendations.",
+    description: "Create a Cherish Baby Store account for faster checkout, order tracking, and personalized recommendations.",
     ogType: "website",
     noIndex: true,
   },
@@ -69,43 +69,43 @@ export const routeMeta = {
   },
   "/checkout": {
     title: "Checkout",
-    description: "Complete your purchase securely. Fast checkout for all Applac customers.",
+    description: "Complete your purchase securely. Fast checkout for all Cherish Baby Store customers.",
     ogType: "website",
     noIndex: true,
   },
   "/wishlist": {
     title: "Wishlist",
-    description: "View your saved favorites and wishlist items on Applac.",
+    description: "View your saved favorites and wishlist items on Cherish Baby Store.",
     ogType: "website",
     noIndex: true,
   },
   "/profile": {
     title: "My Profile",
-    description: "Manage your Applac account profile, address book, and preferences.",
+    description: "Manage your Cherish Baby Store account profile, address book, and preferences.",
     ogType: "website",
     noIndex: true,
   },
   "/orders": {
     title: "My Orders",
-    description: "Track and manage your Applac orders. View order history and delivery status.",
+    description: "Track and manage your Cherish Baby Store orders. View order history and delivery status.",
     ogType: "website",
     noIndex: true,
   },
   "/settings": {
     title: "Account Settings",
-    description: "Update your Applac account settings, notifications, and preferences.",
+    description: "Update your Cherish Baby Store account settings, notifications, and preferences.",
     ogType: "website",
     noIndex: true,
   },
   "/forgot-password": {
     title: "Forgot Password",
-    description: "Reset your Applac account password securely.",
+    description: "Reset your Cherish Baby Store account password securely.",
     ogType: "website",
     noIndex: true,
   },
   "/reset-password": {
     title: "Reset Password",
-    description: "Reset your Applac account password.",
+    description: "Reset your Cherish Baby Store account password.",
     ogType: "website",
     noIndex: true,
   },
@@ -119,21 +119,21 @@ export const routeMeta = {
 
 export const productMeta = {
   title: (name) => name,
-  description: (name, brand) => `Shop ${name}${brand ? ` by ${brand}` : ""} at Applac. Quality baby and kids products with fast delivery.`,
+  description: (name, brand) => `Shop ${name}${brand ? ` by ${brand}` : ""} at Cherish Baby Store. Quality baby and kids products with fast delivery.`,
   ogType: "product",
 }
 
 export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Applac",
-  url: "https://applac.com",
-  logo: "https://applac.com/og-image.png",
+  name: "Cherish Baby Store",
+  url: "https://cherishbabykhstore.store",
+  logo: "https://cherishbabykhstore.store/og-image.png",
   contactPoint: {
     "@type": "ContactPoint",
     telephone: "+1-555-000-1234",
     contactType: "customer service",
-    email: "support@applac.com",
+    email: "support@cherishbabykhstore.store",
   },
   sameAs: [],
 }
@@ -141,13 +141,13 @@ export const organizationSchema = {
 export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Applac",
-  url: "https://applac.com",
+  name: "Cherish Baby Store",
+  url: "https://cherishbabykhstore.store",
   potentialAction: {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: "https://applac.com/products?search={search_term_string}",
+      urlTemplate: "https://cherishbabykhstore.store/products?search={search_term_string}",
     },
     "query-input": "required name=search_term_string",
   },

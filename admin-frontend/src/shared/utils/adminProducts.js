@@ -4,7 +4,6 @@ import {
 } from "../constants/productCategories";
 
 export const LOW_STOCK_THRESHOLD = 2;
-export const BEST_SELLER_SOLD_THRESHOLD = 5;
 
 export const getNumericDiscount = (product) => {
   const price = Number(product?.price);
@@ -24,7 +23,39 @@ export const getProductSoldCount = (product) =>
   Number(product?.sold || product?.totalSold || 0);
 
 export const isBestSellerProduct = (product) =>
-  getProductSoldCount(product) > BEST_SELLER_SOLD_THRESHOLD;
+  product?.isBestSeller === true;
+
+const getBestSellerCategoryKey = (product) =>
+  normalizeProductCategory(product?.category || "uncategorized").toLowerCase();
+
+const compareBestSellerRank = (candidate, currentBest) => {
+  const soldDelta = getProductSoldCount(candidate) - getProductSoldCount(currentBest);
+  if (soldDelta !== 0) return soldDelta;
+
+  const ratingDelta = Number(candidate?.rating || 0) - Number(currentBest?.rating || 0);
+  if (ratingDelta !== 0) return ratingDelta;
+
+  return new Date(candidate?.createdAt || 0) - new Date(currentBest?.createdAt || 0);
+};
+
+export const getBestSellerProductsByCategory = (products = []) => {
+  const bestByCategory = new Map();
+
+  products.forEach((product) => {
+    if (getProductSoldCount(product) <= 0) return;
+
+    const categoryKey = getBestSellerCategoryKey(product);
+    const currentBest = bestByCategory.get(categoryKey);
+
+    if (!currentBest || compareBestSellerRank(product, currentBest) > 0) {
+      bestByCategory.set(categoryKey, product);
+    }
+  });
+
+  return [...bestByCategory.values()].sort(
+    (a, b) => getProductSoldCount(b) - getProductSoldCount(a)
+  );
+};
 
 export const isLowStockProduct = (product) =>
   Number(product?.stock) <= LOW_STOCK_THRESHOLD;
@@ -75,5 +106,5 @@ export const getProductStats = (products = [], categories = []) => ({
   lowStockCount: products.filter(isLowStockProduct).length,
   promotionCount: products.filter(isPromotionalProduct).length,
   newArrivalCount: products.filter((product) => product.isNewArrival).length,
-  bestSellerCount: products.filter(isBestSellerProduct).length,
+  bestSellerCount: getBestSellerProductsByCategory(products).length,
 });

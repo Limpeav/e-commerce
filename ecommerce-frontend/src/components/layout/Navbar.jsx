@@ -16,7 +16,6 @@ import {
   Info,
   Moon,
   Sun,
-  Monitor,
   Languages,
 } from "lucide-react";
 import { useCart } from "../../context/useCart";
@@ -102,18 +101,12 @@ export default function Navbar() {
       icon: Moon,
       label: t("nav.dark"),
       modeLabel: t("nav.darkMode"),
-      ariaLabel: t("nav.switchToSystem"),
-    },
-    system: {
-      icon: Monitor,
-      label: t("nav.system"),
-      modeLabel: t("nav.systemMode"),
       ariaLabel: t("nav.switchToLight"),
     },
   };
-  const themeOrder = ["light", "dark", "system"];
-  const currentThemeIndex = themeOrder.includes(themeMode) ? themeOrder.indexOf(themeMode) : 2;
-  const currentTheme = themeConfig[themeMode] || themeConfig.system;
+  const themeOrder = ["light", "dark"];
+  const currentThemeIndex = themeOrder.includes(themeMode) ? themeOrder.indexOf(themeMode) : 0;
+  const currentTheme = themeConfig[themeMode] || themeConfig.light;
   const CurrentThemeIcon = currentTheme.icon;
   const nextThemeMode = themeOrder[(currentThemeIndex + 1) % themeOrder.length];
   const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
@@ -145,7 +138,7 @@ export default function Navbar() {
                 <Baby className="w-7 h-7 text-primary" />
               </Motion.div>
               <h1 className="text-2xl font-bold text-text-main tracking-tight font-display leading-none">
-                Applac
+                Cherish Baby Store
               </h1>
             </Link>
 
@@ -314,7 +307,7 @@ export default function Navbar() {
               <div className="rounded-xl bg-primary/10 p-1.5">
                 <Baby className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">Applac</h1>
+              <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">Cherish Baby Store</h1>
             </Link>
           </div>
 

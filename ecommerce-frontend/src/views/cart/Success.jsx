@@ -100,11 +100,11 @@ export default function OrderSuccess() {
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
+        <div className="relative z-10 mx-auto grid w-full max-w-md grid-cols-2 gap-2 sm:gap-4">
           <button
             onClick={viewOrderDetails}
             type="button"
-            className={`min-h-12 w-full rounded-xl px-5 py-3 text-sm font-bold shadow-xl shadow-primary/10 transition-all hover:-translate-y-1 active:scale-95 sm:w-auto sm:px-8 sm:py-4 ${
+            className={`min-h-12 w-full rounded-xl px-3 py-3 text-xs font-bold leading-tight shadow-xl shadow-primary/10 transition-all hover:-translate-y-1 active:scale-95 sm:px-6 sm:py-4 sm:text-sm ${
               isDark
                 ? "bg-primary text-slate-950 hover:bg-primary-light"
                 : "bg-text-main text-white hover:bg-primary"
@@ -115,7 +115,7 @@ export default function OrderSuccess() {
           <button
             onClick={() => navigate("/customer")}
             type="button"
-            className={`min-h-12 w-full rounded-xl border px-5 py-3 text-sm font-bold transition-all hover:border-primary hover:text-primary active:scale-95 sm:w-auto sm:px-8 sm:py-4 ${
+            className={`min-h-12 w-full rounded-xl border px-3 py-3 text-xs font-bold leading-tight transition-all hover:border-primary hover:text-primary active:scale-95 sm:px-6 sm:py-4 sm:text-sm ${
               isDark
                 ? "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800"
                 : "bg-white text-text-muted border-stone-200 hover:shadow-lg"
