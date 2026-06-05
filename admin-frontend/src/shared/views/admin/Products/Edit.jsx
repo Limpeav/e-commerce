@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 
+const parseBooleanValue = (value) =>
+  value === true || value === "true" || value === "1" || value === 1;
+
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -59,7 +62,7 @@ const EditProduct = () => {
           category: normalizeProductCategory(data.category),
           description: data.description || "",
           stock: data.stock || "",
-          isNewArrival: Boolean(data.isNewArrival),
+          isNewArrival: parseBooleanValue(data.isNewArrival),
           image: null,
           currentImage: data.image || "",
         });
@@ -134,7 +137,7 @@ const EditProduct = () => {
     formData.append("category", normalizeProductCategory(form.category));
     formData.append("description", form.description);
     formData.append("stock", form.stock);
-    formData.append("isNewArrival", form.isNewArrival);
+    formData.append("isNewArrival", form.isNewArrival ? "true" : "false");
 
     if (form.image) {
       formData.append("image", form.image);
@@ -149,6 +152,7 @@ const EditProduct = () => {
         ...currentForm,
         image: null,
         currentImage: updatedImage,
+        isNewArrival: parseBooleanValue(updatedProduct.isNewArrival ?? currentForm.isNewArrival),
       }));
       setImagePreview(updatedImage || imagePreview);
       setSuccessMessage(t("product.updatedSuccess"));
@@ -382,15 +386,17 @@ const EditProduct = () => {
               {/* New Arrival */}
               <div className="md:col-span-2">
                 <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50">
-                  <input
-                    name="isNewArrival"
-                    type="checkbox"
-                    checked={form.isNewArrival}
-                    onChange={handleChange}
-                    className="peer sr-only"
-                  />
-                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-gray-300 bg-white text-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  <span className="relative mt-1 flex h-5 w-5 shrink-0 items-center justify-center">
+                    <input
+                      name="isNewArrival"
+                      type="checkbox"
+                      checked={form.isNewArrival}
+                      onChange={handleChange}
+                      className="h-5 w-5 cursor-pointer rounded border-2 border-gray-300 text-blue-600 accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    />
+                    {form.isNewArrival && (
+                      <Check className="pointer-events-none absolute h-3.5 w-3.5 text-white" strokeWidth={3} />
+                    )}
                   </span>
                   <span>
                     <span className="flex items-center text-sm font-semibold text-gray-800">

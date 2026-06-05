@@ -477,9 +477,15 @@ const AdminOrders = () => {
             Paid: "bg-green-100 text-green-800",
             Failed: "bg-red-100 text-red-800",
             Refunded: "bg-orange-100 text-orange-800",
+            Cancelled: "bg-orange-50 text-orange-800",
         };
         return colors[status] || "bg-gray-100 text-gray-800";
     };
+
+    const getDisplayPaymentStatus = (order) =>
+        normalizeOrderStatus(order?.orderStatus) === "Cancelled"
+            ? "Cancelled"
+            : order?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
 
@@ -712,8 +718,8 @@ const AdminOrders = () => {
                                                             </div>
                                                             <div className="rounded-xl bg-gray-50 p-3">
                                                                 <p className="text-[11px] font-bold uppercase text-gray-500">Payment</p>
-                                                                <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-black ${getPaymentColor(order.paymentStatus)}`}>
-                                                                    {order.paymentStatus || "Pending"}
+                                                                <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-black ${getPaymentColor(getDisplayPaymentStatus(order))}`}>
+                                                                    {getDisplayPaymentStatus(order)}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -979,10 +985,10 @@ const AdminOrders = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentColor(
-                                                                order.paymentStatus
+                                                                getDisplayPaymentStatus(order)
                                                             )}`}
                                                         >
-                                                            {order.paymentStatus || "Pending"}
+                                                            {getDisplayPaymentStatus(order)}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">

@@ -20,6 +20,18 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const serializeProductFormValue = (key, value) => {
+  if (key === "category") {
+    return normalizeProductCategory(value);
+  }
+
+  if (key === "isNewArrival") {
+    return value ? "true" : "false";
+  }
+
+  return value;
+};
+
 const emptyProductForm = {
   title: "",
   price: "",
@@ -83,9 +95,7 @@ const AddProduct = () => {
 
     const formData = new FormData();
     Object.keys(form).forEach((key) => {
-      const value =
-        key === "category" ? normalizeProductCategory(form[key]) : form[key];
-      formData.append(key, value);
+      formData.append(key, serializeProductFormValue(key, form[key]));
     });
 
     try {
@@ -329,15 +339,17 @@ const AddProduct = () => {
               {/* New Arrival */}
               <div className="md:col-span-2">
                 <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50">
-                  <input
-                    name="isNewArrival"
-                    type="checkbox"
-                    checked={form.isNewArrival}
-                    onChange={handleChange}
-                    className="peer sr-only"
-                  />
-                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-gray-300 bg-white text-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  <span className="relative mt-1 flex h-5 w-5 shrink-0 items-center justify-center">
+                    <input
+                      name="isNewArrival"
+                      type="checkbox"
+                      checked={form.isNewArrival}
+                      onChange={handleChange}
+                      className="h-5 w-5 cursor-pointer rounded border-2 border-gray-300 text-blue-600 accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    />
+                    {form.isNewArrival && (
+                      <Check className="pointer-events-none absolute h-3.5 w-3.5 text-white" strokeWidth={3} />
+                    )}
                   </span>
                   <span>
                     <span className="flex items-center text-sm font-semibold text-gray-800">

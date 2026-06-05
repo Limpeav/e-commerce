@@ -247,6 +247,7 @@ const OrderDetails = () => {
             Paid: "bg-green-100 text-green-800 border-green-300",
             Failed: "bg-red-100 text-red-800 border-red-300",
             Refunded: "bg-orange-100 text-orange-800 border-orange-300",
+            Cancelled: "bg-orange-50 text-orange-800 border-orange-200",
         };
         return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
     };
@@ -318,6 +319,11 @@ const OrderDetails = () => {
 
         return normalizedStatus;
     };
+
+    const getDisplayPaymentStatus = (currentOrder) =>
+        normalizeOrderStatus(currentOrder?.orderStatus) === "Cancelled"
+            ? "Cancelled"
+            : currentOrder?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
 
@@ -576,9 +582,9 @@ const OrderDetails = () => {
                         </div>
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                             <div
-                                className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(order.paymentStatus)}`}
+                                className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
                             >
-                                <span className="text-sm font-bold">Payment: {order.paymentStatus}</span>
+                                <span className="text-sm font-bold">Payment: {getDisplayPaymentStatus(order)}</span>
                             </div>
                             <div
                                 className={`rounded-lg border px-4 py-2 ${getStatusColor(order.orderStatus)}`}
@@ -749,9 +755,9 @@ const OrderDetails = () => {
                                     <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
                                         <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
                                         <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(order.paymentStatus)}`}
+                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
                                         >
-                                            {order.paymentStatus}
+                                            {getDisplayPaymentStatus(order)}
                                         </span>
                                     </div>
                                     {order.isPaid && (
@@ -899,9 +905,9 @@ const OrderDetails = () => {
                                     <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
                                         <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
                                         <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(order.paymentStatus)}`}
+                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
                                         >
-                                            {order.paymentStatus}
+                                            {getDisplayPaymentStatus(order)}
                                         </span>
                                     </div>
                                     {order.isPaid && (
