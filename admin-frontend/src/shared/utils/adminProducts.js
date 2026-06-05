@@ -1,6 +1,10 @@
-import { normalizeProductCategory } from "../constants/productCategories";
+import {
+  isRemovedProductCategory,
+  normalizeProductCategory,
+} from "../constants/productCategories";
 
 export const LOW_STOCK_THRESHOLD = 2;
+export const BEST_SELLER_SOLD_THRESHOLD = 5;
 
 export const getNumericDiscount = (product) => {
   const price = Number(product?.price);
@@ -19,12 +23,19 @@ export const isPromotionalProduct = (product) =>
 export const getProductSoldCount = (product) =>
   Number(product?.sold || product?.totalSold || 0);
 
+export const isBestSellerProduct = (product) =>
+  getProductSoldCount(product) > BEST_SELLER_SOLD_THRESHOLD;
+
 export const isLowStockProduct = (product) =>
   Number(product?.stock) <= LOW_STOCK_THRESHOLD;
 
 export const getProductCategories = (products = []) => [
   "all",
-  ...new Set(products.map((product) => normalizeProductCategory(product.category)).filter(Boolean)),
+  ...new Set(
+    products
+      .map((product) => normalizeProductCategory(product.category))
+      .filter((category) => category && !isRemovedProductCategory(category))
+  ),
 ];
 
 export const filterAdminProducts = (
@@ -64,5 +75,5 @@ export const getProductStats = (products = [], categories = []) => ({
   lowStockCount: products.filter(isLowStockProduct).length,
   promotionCount: products.filter(isPromotionalProduct).length,
   newArrivalCount: products.filter((product) => product.isNewArrival).length,
-  bestSellerCount: products.filter((product) => getProductSoldCount(product) > 0).length,
+  bestSellerCount: products.filter(isBestSellerProduct).length,
 });

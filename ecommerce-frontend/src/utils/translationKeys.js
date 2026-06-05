@@ -3,7 +3,6 @@ import { normalizeProductCategory } from "../constants/productCategories";
 const CATEGORY_TRANSLATION_KEYS = {
   All: "categories.all",
   Milk: "categories.milk",
-  Toy: "categories.toy",
   Clothing: "categories.clothing",
   Shoes: "categories.shoes",
   "Feeding & Nursing": "categories.feedingNursing",
@@ -11,7 +10,6 @@ const CATEGORY_TRANSLATION_KEYS = {
   Furniture: "categories.furniture",
   "Travel & Gear": "categories.travelGear",
   "Bath & Skin": "categories.bathSkin",
-  "Play & Learn": "categories.playLearn",
 };
 
 export const getCategoryTranslationKey = (category = "") => {

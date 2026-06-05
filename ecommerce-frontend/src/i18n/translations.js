@@ -575,7 +575,6 @@ export const translations = {
     categories: {
       all: "All",
       milk: "Milk",
-      toy: "Toy",
       clothing: "Clothing",
       shoes: "Shoes",
       feedingNursing: "Feeding & Nursing",
@@ -583,7 +582,6 @@ export const translations = {
       furniture: "Furniture",
       travelGear: "Travel & Gear",
       bathSkin: "Bath & Skin",
-      playLearn: "Play & Learn",
     },
   },
   kh: {
@@ -1162,7 +1160,6 @@ export const translations = {
     categories: {
       all: "ទាំងអស់",
       milk: "ទឹកដោះគោ",
-      toy: "ប្រដាប់ក្មេងលេង",
       clothing: "សម្លៀកបំពាក់",
       shoes: "ស្បែកជើង",
       feedingNursing: "ការបំបៅនិងថែទាំ",
@@ -1170,7 +1167,6 @@ export const translations = {
       furniture: "គ្រឿងសង្ហារឹម",
       travelGear: "សម្ភារៈធ្វើដំណើរ",
       bathSkin: "ងូតទឹកនិងថែស្បែក",
-      playLearn: "លេងនិងរៀន",
     },
     "Welcome Back": "សូមស្វាគមន៍មកវិញ",
     "Sign in to continue shopping": "ចូលគណនីដើម្បីបន្តទិញទំនិញ",

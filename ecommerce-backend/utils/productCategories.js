@@ -1,6 +1,5 @@
 export const PRODUCT_CATEGORY_ALIASES = {
   Milk: ["Milk", "Formula"],
-  Toy: ["Toy", "Toys"],
   Clothing: ["Clothing", "Cloth", "Clothes"],
   Shoes: ["Shoes", "Shoe", "Footwear", "Sneakers", "Sandals", "Boots"],
   "Feeding & Nursing": ["Feeding & Nursing", "Feeding", "Nursing"],
@@ -8,8 +7,10 @@ export const PRODUCT_CATEGORY_ALIASES = {
   Furniture: ["Furniture", "Nursery & Decor", "Nursery", "Decor", "Decore"],
   "Travel & Gear": ["Travel & Gear", "Travel", "Gear"],
   "Bath & Skin": ["Bath & Skin", "Bath", "Skin"],
-  "Play & Learn": ["Play & Learn", "Play", "Learn"],
 };
+
+export const PRODUCT_CATEGORY_OPTIONS = Object.keys(PRODUCT_CATEGORY_ALIASES);
+export const REMOVED_PRODUCT_CATEGORIES = ["Toy", "Toys", "Play & Learn", "Play", "Learn"];
 
 const CATEGORY_NORMALIZATION_MAP = Object.entries(PRODUCT_CATEGORY_ALIASES).reduce(
   (result, [canonicalCategory, aliases]) => {
@@ -27,6 +28,21 @@ export const normalizeProductCategory = (category = "") => {
   if (!trimmedCategory) return "";
 
   return CATEGORY_NORMALIZATION_MAP[trimmedCategory.toLowerCase()] || trimmedCategory;
+};
+
+export const isRemovedProductCategory = (category = "") =>
+  REMOVED_PRODUCT_CATEGORIES.some(
+    (removedCategory) =>
+      removedCategory.toLowerCase() === String(category || "").trim().toLowerCase()
+  );
+
+export const isAllowedProductCategory = (category = "") => {
+  const normalizedCategory = normalizeProductCategory(category);
+  return (
+    Boolean(normalizedCategory) &&
+    PRODUCT_CATEGORY_OPTIONS.includes(normalizedCategory) &&
+    !isRemovedProductCategory(normalizedCategory)
+  );
 };
 
 export const getProductCategoryLookupValues = (category = "") => {

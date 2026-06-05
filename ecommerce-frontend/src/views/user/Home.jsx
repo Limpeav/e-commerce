@@ -18,6 +18,8 @@ import { useDarkMode } from "../../hooks";
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
 
+const BEST_SELLER_SOLD_THRESHOLD = 5;
+
 function ProductSection({
     section,
     isDark,
@@ -233,7 +235,7 @@ export default function Home() {
             .slice(0, 8);
 
         const bestSellers = [...normalizedProducts]
-            .filter((product) => Number(product.sold || product.totalSold || 0) > 0)
+            .filter((product) => Number(product.sold || product.totalSold || 0) > BEST_SELLER_SOLD_THRESHOLD)
             .sort((a, b) => {
                 const soldDelta = Number(b.sold || b.totalSold || 0) - Number(a.sold || a.totalSold || 0);
                 if (soldDelta !== 0) return soldDelta;

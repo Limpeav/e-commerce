@@ -31,9 +31,11 @@ const VIEW_CONFIG_KEYS = {
   },
 };
 
+const BEST_SELLER_SOLD_THRESHOLD = 5;
+
 const sortByBestSellers = (products) =>
   [...products]
-    .filter((product) => Number(product.sold || product.totalSold || 0) > 0)
+    .filter((product) => Number(product.sold || product.totalSold || 0) > BEST_SELLER_SOLD_THRESHOLD)
     .sort((a, b) => {
       const soldDelta =
         Number(b.sold || b.totalSold || 0) -

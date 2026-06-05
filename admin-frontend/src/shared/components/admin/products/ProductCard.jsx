@@ -3,6 +3,7 @@ import { normalizeProductCategory } from "../../../constants/productCategories";
 import {
   getNumericDiscount,
   getProductSoldCount,
+  isBestSellerProduct,
   isLowStockProduct,
 } from "../../../utils/adminProducts";
 
@@ -11,6 +12,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
   const discountPrice = getNumericDiscount(product);
   const sold = getProductSoldCount(product);
   const isLowStock = isLowStockProduct(product);
+  const isBestSeller = isBestSellerProduct(product);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 group hover:-translate-y-1">
@@ -25,7 +27,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
             Low Stock
           </span>
         )}
-        {sold > 0 && (
+        {isBestSeller && (
           <span className="absolute left-3 top-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
             Best Seller
           </span>
@@ -74,7 +76,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
             </p>
             <p className="text-sm text-gray-600">
               Sold:{" "}
-              <span className={`font-semibold ${sold > 0 ? "text-emerald-600" : "text-gray-500"}`}>
+              <span className={`font-semibold ${isBestSeller ? "text-emerald-600" : "text-gray-500"}`}>
                 {sold}
               </span>
             </p>

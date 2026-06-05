@@ -12,10 +12,12 @@ import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendStorePromotionEmail } from "../utils/sendEmail.js";
 import {
   getProductCategoryLookupValues,
+  isAllowedProductCategory,
   normalizeProductCategory,
 } from "../utils/productCategories.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
+const BEST_SELLER_SOLD_THRESHOLD = 5;
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
   descriptionkm: "descriptionKm",
@@ -261,7 +263,7 @@ const attachSalesMetrics = async (products) => {
       category: normalizeProductCategory(productData.category),
       sold,
       totalSold: sold,
-      isBestSeller: sold > 0,
+      isBestSeller: sold > BEST_SELLER_SOLD_THRESHOLD,
     };
   });
 
@@ -362,6 +364,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     return `Row ${rowNumber}: category is required`;
   }
 
+  if (!isAllowedProductCategory(category)) {
+    return `Row ${rowNumber}: category is no longer available`;
+  }
+
   if (!image) {
     return `Row ${rowNumber}: image is required and must be a URL`;
   }
@@ -407,12 +413,17 @@ export const createProduct = async (req, res) => {
       stock,
       isNewArrival,
     } = req.body;
+    const normalizedCategory = normalizeProductCategory(category);
+
+    if (!isAllowedProductCategory(normalizedCategory)) {
+      return res.status(400).json({ message: "Selected category is no longer available" });
+    }
 
     const productData = await applyAutoKhmerTranslation({
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
-      category: normalizeProductCategory(category),
+      category: normalizedCategory,
       description,
       stock,
       isNewArrival: parseBoolean(isNewArrival),
@@ -802,13 +813,18 @@ export const updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product)
       return res.status(404).json({ message: "Product not found" });
+    const normalizedCategory = normalizeProductCategory(req.body.category);
+
+    if (!isAllowedProductCategory(normalizedCategory)) {
+      return res.status(400).json({ message: "Selected category is no longer available" });
+    }
 
     const translatedProductData = await applyAutoKhmerTranslation(
       {
         title: req.body.title,
         price: req.body.price,
         discountPrice: parseOptionalNumber(req.body.discountPrice),
-        category: normalizeProductCategory(req.body.category),
+        category: normalizedCategory,
         description: req.body.description,
         stock: req.body.stock,
         isNewArrival: parseBoolean(req.body.isNewArrival),

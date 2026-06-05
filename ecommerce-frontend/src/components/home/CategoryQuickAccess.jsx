@@ -1,6 +1,5 @@
 import {
   Baby,
-  Gift,
   Milk,
   ShieldCheck,
   Shirt,
@@ -26,12 +25,6 @@ const CATEGORY_CARDS = [
     icon: Shirt,
     keywords: ["clothing", "shirt", "dress", "outfit"],
     tone: "from-yellow-soft/80 to-white",
-  },
-  {
-    label: "Toys",
-    icon: Gift,
-    keywords: ["toy", "play"],
-    tone: "from-mint-soft/90 to-white",
   },
   {
     label: "Baby Care",

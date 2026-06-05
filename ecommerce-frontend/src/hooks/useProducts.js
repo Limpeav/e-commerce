@@ -3,6 +3,7 @@ import { ProductController } from '../controllers/productController';
 import {
   PRODUCT_CATEGORY_ALIASES,
   PRODUCT_CATEGORY_OPTIONS_WITH_ALL,
+  isRemovedProductCategory,
   normalizeProductCategory,
 } from "../constants/productCategories";
 
@@ -70,7 +71,11 @@ export const useProductFilters = (products) => {
 
   const categories = useMemo(() => {
     const productCategories = [
-      ...new Set(products.map((p) => normalizeProductCategory(p.category)).filter(Boolean)),
+      ...new Set(
+        products
+          .map((p) => normalizeProductCategory(p.category))
+          .filter((category) => category && !isRemovedProductCategory(category))
+      ),
     ];
     const remainingCategories = productCategories.filter(
       (category) => !PRODUCT_CATEGORY_OPTIONS_WITH_ALL.includes(category)

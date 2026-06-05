@@ -475,7 +475,7 @@ export const sendStorePromotionEmail = async ({
                       <table cellpadding="0" cellspacing="0" align="center" style="margin:24px auto 0;">
                         <tr>
                           <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">New!</td>
-                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Toys</td>
+                          <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Essentials</td>
                           <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Best Sellers</td>
                           <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Sale</td>
                           <td style="padding:0 13px;font-size:11px;font-weight:800;color:#4b7d90;">Baby Deals</td>

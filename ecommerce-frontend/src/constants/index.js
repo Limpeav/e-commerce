@@ -24,7 +24,6 @@ export const PAYMENT_STATUS = {
 
 // Product Categories
 export const PRODUCT_CATEGORIES = {
-  TOY: 'Toy',
   CLOTHING: 'Clothing',
   SHOES: 'Shoes',
   MILK: 'Milk',
@@ -33,7 +32,6 @@ export const PRODUCT_CATEGORIES = {
   FURNITURE: 'Furniture',
   TRAVEL_AND_GEAR: 'Travel & Gear',
   BATH_AND_SKIN: 'Bath & Skin',
-  PLAY_AND_LEARN: 'Play & Learn',
   ALL: 'All'
 };
 
