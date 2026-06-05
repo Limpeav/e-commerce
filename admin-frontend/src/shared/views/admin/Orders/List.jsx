@@ -93,6 +93,13 @@ const AdminOrders = () => {
                                     shippedAt: payload.shippedAt,
                                     deliveredAt: payload.deliveredAt,
                                     receiptSent: payload.receiptSent,
+                                    orderItems: payload.orderItems,
+                                    shippingAddress: payload.shippingAddress,
+                                    paymentMethod: payload.paymentMethod,
+                                    taxPrice: payload.taxPrice,
+                                    shippingPrice: payload.shippingPrice,
+                                    totalPrice: payload.totalPrice,
+                                    deliveryProof: payload.deliveryProof,
                                     updatedAt: payload.updatedAt,
                                 }).filter(([, value]) => value !== undefined)
                             ),
@@ -372,6 +379,10 @@ const AdminOrders = () => {
     const getStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (isDelivery && normalizedStatus === "Shipped") {
+            return "Processing";
+        }
+
         if (!isDelivery && normalizedStatus === "Shipped") {
             return "Confirmed";
         }
@@ -381,6 +392,10 @@ const AdminOrders = () => {
 
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
+
+        if (isDelivery && normalizedStatus === "Shipped") {
+            return "bg-blue-100 text-blue-800";
+        }
 
         if (!isDelivery && normalizedStatus === "Shipped") {
             return "bg-green-100 text-green-800";
@@ -537,9 +552,6 @@ const AdminOrders = () => {
                             <p className="text-sm font-semibold text-blue-700">Delivery</p>
                             <h1 className="text-2xl font-black text-gray-950">Today&apos;s Runs</h1>
                         </div>
-                        <div className="rounded-full bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-800">
-                            {filteredOrders.length} stops
-                        </div>
                     </div>
 
                     <div className="mb-4 grid grid-cols-3 gap-2">
@@ -571,7 +583,7 @@ const AdminOrders = () => {
                                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option value="All">All status</option>
-                                    <option value="Shipped">Shipped</option>
+                                    <option value="Shipped">Processing</option>
                                     <option value="Delivered">Delivered</option>
                                 </select>
                             </div>
@@ -631,7 +643,7 @@ const AdminOrders = () => {
                                                                 className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${getStatusColor(order.orderStatus)}`}
                                                                 style={getStatusStyle(order.orderStatus)}
                                                             >
-                                                                {status}
+                                                                {getStatusLabel(status)}
                                                             </span>
                                                         </div>
 
@@ -791,7 +803,7 @@ const AdminOrders = () => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
-                            <option value="Shipped">{isDelivery ? "Shipped" : "Confirmed"}</option>
+                            <option value="Shipped">{isDelivery ? "Processing" : "Confirmed"}</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>

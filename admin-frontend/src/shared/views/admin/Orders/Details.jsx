@@ -70,15 +70,50 @@ const OrderDetails = () => {
     }, []);
 
     useEffect(() => {
-        const refreshCurrentOrder = (payload = {}) => {
-            if (!payload.orderId || payload.orderId === id) {
-                fetchOrderDetails({ silent: true });
+        const patchCurrentOrder = (payload = {}) => {
+            if (payload.orderId && payload.orderId !== id) {
+                return;
             }
+
+            if (!payload.orderId) {
+                fetchOrderDetails({ silent: true });
+                return;
+            }
+
+            setOrder((currentOrder) => {
+                if (!currentOrder) {
+                    return currentOrder;
+                }
+
+                return {
+                    ...currentOrder,
+                    ...Object.fromEntries(
+                        Object.entries({
+                            orderStatus: payload.orderStatus,
+                            paymentStatus: payload.paymentStatus,
+                            isPaid: payload.isPaid,
+                            isDelivered: payload.isDelivered,
+                            processedAt: payload.processedAt,
+                            shippedAt: payload.shippedAt,
+                            deliveredAt: payload.deliveredAt,
+                            receiptSent: payload.receiptSent,
+                            orderItems: payload.orderItems,
+                            shippingAddress: payload.shippingAddress,
+                            paymentMethod: payload.paymentMethod,
+                            taxPrice: payload.taxPrice,
+                            shippingPrice: payload.shippingPrice,
+                            totalPrice: payload.totalPrice,
+                            deliveryProof: payload.deliveryProof,
+                            updatedAt: payload.updatedAt,
+                        }).filter(([, value]) => value !== undefined)
+                    ),
+                };
+            });
         };
 
         const leaveOrderRoom = joinOrderRoom(id);
-        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", refreshCurrentOrder);
-        const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshCurrentOrder);
+        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", patchCurrentOrder);
+        const unsubscribeCreated = subscribeRealtimeEvent("order:created", patchCurrentOrder);
 
         return () => {
             leaveOrderRoom();
@@ -97,8 +132,12 @@ const OrderDetails = () => {
             return;
         }
 
-        await fetchOrderDetails();
-        window.dispatchEvent(new Event("admin-orders-updated"));
+        setOrder((currentOrder) => ({
+            ...currentOrder,
+            ...result.data,
+            user: result.data?.user || currentOrder?.user,
+            orderStatus: result.data?.orderStatus || newStatus,
+        }));
         setUpdating(false);
     };
 
@@ -183,6 +222,10 @@ const OrderDetails = () => {
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (isDelivery && normalizedStatus === "Shipped") {
+            return "bg-blue-100 text-blue-800 border-blue-300";
+        }
+
         if (!isDelivery && normalizedStatus === "Shipped") {
             return "bg-green-100 text-green-800 border-green-300";
         }
@@ -213,6 +256,10 @@ const OrderDetails = () => {
 
     const getOrderStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
+
+        if (isDelivery && normalizedStatus === "Shipped") {
+            return "Processing";
+        }
 
         if (!isDelivery && normalizedStatus === "Shipped") {
             return "Confirmed";

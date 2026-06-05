@@ -191,6 +191,36 @@ const dispatchOrderAlerts = ({
     });
 };
 
+const getOrderItemMergeKey = (item = {}) => [
+    String(item.product || ""),
+    String(item.size || "").trim().toUpperCase(),
+    Number(item.price || 0).toFixed(2),
+].join("::");
+
+const mergeOrderItems = (currentItems = [], incomingItems = []) => {
+    const mergedItems = currentItems.map((item) =>
+        typeof item.toObject === "function" ? item.toObject() : { ...item }
+    );
+    const itemIndexByKey = new Map(
+        mergedItems.map((item, index) => [getOrderItemMergeKey(item), index])
+    );
+
+    for (const incomingItem of incomingItems) {
+        const key = getOrderItemMergeKey(incomingItem);
+        const existingIndex = itemIndexByKey.get(key);
+
+        if (existingIndex !== undefined) {
+            mergedItems[existingIndex].quantity =
+                Number(mergedItems[existingIndex].quantity || 0) + Number(incomingItem.quantity || 0);
+        } else {
+            itemIndexByKey.set(key, mergedItems.length);
+            mergedItems.push({ ...incomingItem });
+        }
+    }
+
+    return mergedItems;
+};
+
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
@@ -213,6 +243,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 
         try {
             let createdOrder;
+            let mergedIntoExistingOrder = false;
 
             await session.withTransaction(async () => {
                 const productIds = orderItems.map((item) => item.product);
@@ -279,19 +310,50 @@ export const createOrder = asyncHandler(async (req, res) => {
                     }
                 }
 
-                const order = new Order({
-                    user: req.user._id,
-                    orderItems,
-                    shippingAddress,
-                    paymentMethod,
-                    taxPrice,
-                    shippingPrice,
-                    totalPrice,
-                    stockReduced: true,
-                    stockRestored: false,
-                });
+                const existingPendingOrder = paymentMethod === "Cash on Delivery"
+                    ? await Order.findOne({
+                        user: req.user._id,
+                        orderStatus: "Pending",
+                        paymentStatus: "Pending",
+                        paymentMethod,
+                        "receiptSent.sentAt": { $exists: false },
+                    })
+                        .sort({ createdAt: 1 })
+                        .session(session)
+                    : null;
 
-                [createdOrder] = await Order.create([order], { session });
+                if (existingPendingOrder) {
+                    existingPendingOrder.orderItems = mergeOrderItems(
+                        existingPendingOrder.orderItems,
+                        orderItems
+                    );
+                    existingPendingOrder.shippingAddress = shippingAddress;
+                    existingPendingOrder.taxPrice =
+                        Number(existingPendingOrder.taxPrice || 0) + Number(taxPrice || 0);
+                    existingPendingOrder.shippingPrice =
+                        Number(existingPendingOrder.shippingPrice || 0) + Number(shippingPrice || 0);
+                    existingPendingOrder.totalPrice =
+                        Number(existingPendingOrder.totalPrice || 0) + Number(totalPrice || 0);
+                    existingPendingOrder.stockReduced = true;
+                    existingPendingOrder.stockRestored = false;
+
+                    createdOrder = await existingPendingOrder.save({ session });
+                    mergedIntoExistingOrder = true;
+                } else {
+                    const order = new Order({
+                        user: req.user._id,
+                        orderItems,
+                        shippingAddress,
+                        paymentMethod,
+                        taxPrice,
+                        shippingPrice,
+                        totalPrice,
+                        stockReduced: true,
+                        stockRestored: false,
+                    });
+
+                    [createdOrder] = await Order.create([order], { session });
+                }
             });
 
             await createdOrder.populate("user", "name email");
@@ -303,8 +365,10 @@ export const createOrder = asyncHandler(async (req, res) => {
 
             const notification = new Notification({
                 type: "order",
-                title: "New Order Received",
-                message: `${createdOrder.user.name} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalPrice.toFixed(2)}`,
+                title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
+                message: mergedIntoExistingOrder
+                    ? `${createdOrder.user.name} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
+                    : `${createdOrder.user.name} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${Number(totalPrice || 0).toFixed(2)}`,
                 orderId: createdOrder._id,
                 userId: req.user._id,
                 link: `/admin/orders/${createdOrder._id}`,
@@ -312,17 +376,29 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
 
             await notification.save();
-            emitOrderCreated(createdOrder);
+            if (mergedIntoExistingOrder) {
+                emitOrderUpdated(createdOrder, {
+                    orderStatus: createdOrder.orderStatus,
+                    paymentStatus: createdOrder.paymentStatus,
+                    orderItems: createdOrder.orderItems,
+                    shippingAddress: createdOrder.shippingAddress,
+                    taxPrice: createdOrder.taxPrice,
+                    shippingPrice: createdOrder.shippingPrice,
+                    totalPrice: createdOrder.totalPrice,
+                });
+            } else {
+                emitOrderCreated(createdOrder);
+            }
             emitNotificationCreated(notification);
 
-            res.status(201).json(createdOrder);
+            res.status(mergedIntoExistingOrder ? 200 : 201).json(createdOrder);
 
             dispatchOrderAlerts({
                 createdOrder,
                 shippingAddress,
                 paymentMethod,
-                totalPrice,
-                orderItems,
+                totalPrice: createdOrder.totalPrice,
+                orderItems: createdOrder.orderItems,
                 googleMapsLink,
                 lowStockAlerts,
             });
