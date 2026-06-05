@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 
-const TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
+const TELEGRAM_REQUEST_TIMEOUT_MS = 15000;
 
 const buildTelegramPayload = ({ chatId, threadId, ...payload }) => ({
   chat_id: chatId,
@@ -378,6 +378,15 @@ export const sendOrderReceiptTelegramPhoto = async ({
     return { sent: true, type: "photo" };
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      if (error.code === "ECONNABORTED") {
+        return {
+          sent: true,
+          type: "photo",
+          confirmation: "timeout",
+          reason: "telegram-response-timeout",
+        };
+      }
+
       const status = error.response?.status;
       const description = error.response?.data?.description;
 

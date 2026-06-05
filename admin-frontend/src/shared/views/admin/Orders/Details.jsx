@@ -360,7 +360,7 @@ const OrderDetails = () => {
             receiptNoticeTimeoutRef.current = window.setTimeout(() => {
                 setReceiptNotice("");
                 receiptNoticeTimeoutRef.current = null;
-            }, 2000);
+            }, 3500);
         } catch (sendError) {
             alert(sendError.message || "Failed to send receipt to Telegram");
         } finally {
@@ -445,7 +445,7 @@ const OrderDetails = () => {
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {receiptNotice && (
-                <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
                     {receiptNotice}
                 </div>
             )}

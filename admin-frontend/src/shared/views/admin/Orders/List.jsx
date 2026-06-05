@@ -254,9 +254,37 @@ const AdminOrders = () => {
             const formData = new FormData();
             formData.append("receipt", receiptImage, `order-${order._id}-receipt.png`);
 
-            await adminService.sendOrderReceiptToTelegram(order._id, formData);
-            window.dispatchEvent(new Event("admin-orders-updated"));
-            await fetchOrders();
+            const response = await adminService.sendOrderReceiptToTelegram(order._id, formData);
+            const updatedOrder = response.data?.order;
+
+            if (updatedOrder) {
+                setOrders((currentOrders) =>
+                    currentOrders.map((currentOrder) =>
+                        currentOrder._id === updatedOrder._id
+                            ? {
+                                ...currentOrder,
+                                ...updatedOrder,
+                                user: updatedOrder.user || currentOrder.user,
+                            }
+                            : currentOrder
+                    )
+                );
+            } else {
+                setOrders((currentOrders) =>
+                    currentOrders.map((currentOrder) =>
+                        currentOrder._id === order._id
+                            ? {
+                                ...currentOrder,
+                                receiptSent: {
+                                    sentAt: new Date().toISOString(),
+                                    channel: "telegram",
+                                },
+                            }
+                            : currentOrder
+                    )
+                );
+            }
+
             setReceiptNotice("Receipt photo sent to Telegram. You can now confirm this order.");
             if (receiptNoticeTimeoutRef.current) {
                 window.clearTimeout(receiptNoticeTimeoutRef.current);
@@ -264,7 +292,7 @@ const AdminOrders = () => {
             receiptNoticeTimeoutRef.current = window.setTimeout(() => {
                 setReceiptNotice("");
                 receiptNoticeTimeoutRef.current = null;
-            }, 2000);
+            }, 3500);
         } catch (err) {
             alert(err.response?.data?.message || err.message || "Failed to send receipt to Telegram");
         } finally {
@@ -456,7 +484,7 @@ const AdminOrders = () => {
         return (
             <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:px-8 lg:pt-8">
                 {receiptNotice && (
-                    <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                    <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
                         {receiptNotice}
                     </div>
                 )}
@@ -630,7 +658,7 @@ const AdminOrders = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             {receiptNotice && (
-                <div className="fixed right-4 top-4 z-50 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
+                <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
                     {receiptNotice}
                 </div>
             )}

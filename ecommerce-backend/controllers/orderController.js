@@ -710,6 +710,14 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Order not found");
     }
 
+    if (order.receiptSent?.sentAt) {
+        return res.json({
+            message: "Receipt was already sent to Telegram",
+            telegram: { sent: true, type: "photo", alreadySent: true },
+            order,
+        });
+    }
+
     const receiptSent = {
         sentAt: new Date(),
         sentBy: req.user._id,
@@ -726,6 +734,8 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error("Order not found");
     }
+
+    await updatedOrder.populate("user", "name email");
 
     let result;
 
