@@ -214,7 +214,7 @@ const OrderDetail = () => {
                 type="button"
                 onClick={handleCancelOrder}
                 disabled={cancelling}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-bold text-red-700 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#b94747] bg-[#c94f4f] px-5 text-sm font-bold text-white shadow-sm transition-all hover:border-[#913838] hover:bg-[#a94040] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#c94f4f]/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {cancelling
                   ? t("orderDetail.cancelling")
