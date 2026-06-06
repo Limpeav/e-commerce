@@ -15,6 +15,7 @@ import {
 import upload from "../middleware/upload.js";
 import Product from '../models/Product.js';
 import { protect, admin, optionalAuth } from "../middleware/authMiddleware.js";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 const router = express.Router();
 const csvUpload = multer({
@@ -51,6 +52,7 @@ router.delete("/:id", protect, admin, async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });
+    emitDomainChanged("products", "deleted", { productId: deleted._id }, { users: true });
     res.json({ message: "Product deleted" });
   } catch (err) {
     console.error(err);

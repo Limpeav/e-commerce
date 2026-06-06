@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import { USER_ROLES } from "../constants/roles.js";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 const STAFF_LOGIN_ROLES = ["seller", "delivery", "admin"];
 
@@ -50,6 +51,7 @@ export const createStaffLogin = asyncHandler(async (req, res) => {
         role,
         isVerified: true,
     });
+    emitDomainChanged("users", "created", { userId: user._id, role: user.role });
 
     res.status(201).json({
         _id: user._id,
@@ -100,6 +102,10 @@ export const updateUserRole = asyncHandler(async (req, res) => {
 
         user.role = role || user.role;
         const updatedUser = await user.save();
+        emitDomainChanged("users", "updated", {
+            userId: updatedUser._id,
+            role: updatedUser.role,
+        });
 
         res.json({
             _id: updatedUser._id,
@@ -153,6 +159,13 @@ export const deleteUser = asyncHandler(async (req, res) => {
         }
 
         await user.deleteOne();
+        emitDomainChanged("users", "deleted", { userId: user._id });
+        if (productsToUpdate.length) {
+            emitDomainChanged("products", "reviews-removed", {
+                productIds: productsToUpdate.map((product) => product._id),
+            }, { users: true });
+            emitDomainChanged("reviews", "deleted", { userId: user._id });
+        }
         res.json({ message: "User and their reviews removed successfully" });
     } else {
         res.status(404);

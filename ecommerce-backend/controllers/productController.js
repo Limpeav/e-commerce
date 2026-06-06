@@ -15,6 +15,7 @@ import {
   isAllowedProductCategory,
   normalizeProductCategory,
 } from "../utils/productCategories.js";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -463,6 +464,7 @@ export const createProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     const saved = await product.save();
+    emitDomainChanged("products", "created", { productId: saved._id }, { users: true });
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -625,6 +627,12 @@ export const importProductsFromCsv = async (req, res) => {
       productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
     );
     const createdProducts = await Product.insertMany(translatedProducts);
+    emitDomainChanged(
+      "products",
+      "imported",
+      { count: createdProducts.length },
+      { users: true }
+    );
 
     return res.status(201).json({
       message: `Imported ${createdProducts.length} products successfully`,
@@ -712,6 +720,13 @@ export const upsertProductsFromCsv = async (req, res) => {
         createdCount += 1;
       }
     }
+
+    emitDomainChanged(
+      "products",
+      "upserted",
+      { createdCount, updatedCount },
+      { users: true }
+    );
 
     return res.status(200).json({
       message: `Applied ${productsToUpsert.length} products successfully`,
@@ -878,6 +893,7 @@ export const updateProduct = async (req, res) => {
 
     syncLowStockAlertFlag(product);
     await product.save();
+    emitDomainChanged("products", "updated", { productId: product._id }, { users: true });
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -928,6 +944,18 @@ export const createProductReview = async (req, res) => {
         product.reviews.length;
 
       await product.save();
+      emitDomainChanged(
+        "reviews",
+        alreadyReviewed ? "updated" : "created",
+        { productId: product._id, userId: req.user._id },
+        { roles: ["admin", "seller"] }
+      );
+      emitDomainChanged(
+        "products",
+        "reviewed",
+        { productId: product._id },
+        { users: true }
+      );
       res.status(alreadyReviewed ? 200 : 201).json({
         message: alreadyReviewed ? "Review updated" : "Review added",
         alreadyReviewed: Boolean(alreadyReviewed),

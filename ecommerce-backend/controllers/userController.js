@@ -6,6 +6,7 @@ import {
   sendPasswordResetCode,
   sendDeleteAccountOtp,
 } from "../utils/sendEmail.js";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -124,6 +125,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    emitDomainChanged("users", "created", { userId: user._id, role: user.role });
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -320,6 +322,10 @@ export const updateUserProfile = async (req, res) => {
     }
 
     const updatedUser = await user.save();
+    emitDomainChanged("users", "updated", {
+      userId: updatedUser._id,
+      role: updatedUser.role,
+    });
 
     res.json({
       _id: updatedUser._id,

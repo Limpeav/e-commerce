@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -31,6 +31,7 @@ import {
   getStoredAdminUser,
 } from "../../../utils/adminSession";
 import { normalizeProductCategory } from "../../../constants/productCategories";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const PERIODS = [
   { value: "7", label: "Last 7 days" },
@@ -248,8 +249,9 @@ const AdminDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadDashboard = async ({ refresh = false } = {}) => {
-    refresh ? setRefreshing(true) : setLoading(true);
+  const loadDashboard = useCallback(async ({ refresh = false, silent = false } = {}) => {
+    if (refresh) setRefreshing(true);
+    if (!refresh && !silent) setLoading(true);
     setError("");
 
     try {
@@ -267,11 +269,15 @@ const AdminDashboard = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+    return subscribeRealtimeDomains(
+      ["orders", "products", "reviews", "users"],
+      () => loadDashboard({ silent: true })
+    );
+  }, [loadDashboard]);
 
   const analytics = useMemo(() => {
     const now = new Date();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
@@ -12,6 +12,7 @@ import {
   getProductCategories,
   getProductStats,
 } from "../../../utils/adminProducts";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -26,9 +27,8 @@ const ProductList = () => {
   const [promotionEmailFailures, setPromotionEmailFailures] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
+  const fetchProducts = useCallback(async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       const result = await AdminProductController.getProducts();
 
       if (result.success) {
@@ -38,11 +38,16 @@ const ProductList = () => {
         setError(result.error);
       }
 
-      setLoading(false);
-    };
-
-    fetchProducts();
+      if (!silent) setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    return subscribeRealtimeDomains(
+      ["products", "reviews"],
+      () => fetchProducts({ silent: true })
+    );
+  }, [fetchProducts]);
 
   const categories = useMemo(() => getProductCategories(products), [products]);
   const stats = useMemo(() => getProductStats(products, categories), [products, categories]);

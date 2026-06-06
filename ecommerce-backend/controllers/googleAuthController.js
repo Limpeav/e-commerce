@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -60,6 +61,7 @@ export const googleAuth = async (req, res) => {
         googleId: sub,
         isVerified: true,
       });
+      emitDomainChanged("users", "created", { userId: user._id, role: user.role });
 
       res.status(201).json({
         _id: user._id,

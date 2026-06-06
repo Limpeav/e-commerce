@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { useLanguage } from "../../context/useLanguage";
@@ -23,6 +23,7 @@ import axios from "axios";
 import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
 import { cancelOrder } from "../../services/orderService";
+import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime";
 
 const API_URL = config.API_BASE_URL;
 
@@ -41,12 +42,6 @@ const OrderDetail = () => {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (id && user) {
-      fetchOrderDetails();
-    }
-  }, [id, user]);
-
   const getAuthToken = () => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -56,9 +51,9 @@ const OrderDetail = () => {
     return null;
   };
 
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError("");
       const token = getAuthToken();
       if (!token) {
@@ -77,9 +72,28 @@ const OrderDetail = () => {
         err.response?.data?.message || err.message || t("orderDetail.fetchFailed")
       );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [id, t]);
+
+  useEffect(() => {
+    if (!id || !user) return undefined;
+    fetchOrderDetails();
+    const leaveOrderRoom = joinOrderRoom(id);
+    const unsubscribe = subscribeRealtimeDomains(
+      ["orders"],
+      (payload) => {
+        if (!payload?.orderId || String(payload.orderId) === String(id)) {
+          fetchOrderDetails({ silent: true });
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      leaveOrderRoom();
+    };
+  }, [fetchOrderDetails, id, user]);
 
   const getStatusColor = (status) => {
     const colors = {

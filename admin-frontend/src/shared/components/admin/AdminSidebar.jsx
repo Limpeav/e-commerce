@@ -16,6 +16,7 @@ import {
   Truck,
   X,
 } from 'lucide-react'
+import { subscribeRealtimeDomains } from '../../services/realtime'
 
 const AdminSidebar = () => {
   const location = useLocation()
@@ -79,12 +80,12 @@ const AdminSidebar = () => {
     }
 
     loadOrderCount()
-    const interval = window.setInterval(loadOrderCount, 30000)
+    const unsubscribeRealtime = subscribeRealtimeDomains(['orders'], loadOrderCount)
     window.addEventListener('admin-orders-updated', loadOrderCount)
 
     return () => {
       isMounted = false
-      window.clearInterval(interval)
+      unsubscribeRealtime()
       window.removeEventListener('admin-orders-updated', loadOrderCount)
     }
   }, [getPendingOrderCount])

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { NotificationController } from "../controllers/notificationController.js";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../utils/adminSession.js";
+import { subscribeRealtimeEvent } from "../services/realtime.js";
 
 const NotificationPanel = () => {
     const navigate = useNavigate();
@@ -34,10 +35,8 @@ const NotificationPanel = () => {
 
     // Initial load
     useEffect(() => {
-        loadNotifications();
-        // Poll for new notifications every 30 seconds
-        const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
+        queueMicrotask(loadNotifications);
+        return subscribeRealtimeEvent("notification:created", loadNotifications);
     }, []);
 
     const handleMarkAsRead = async (notificationId) => {

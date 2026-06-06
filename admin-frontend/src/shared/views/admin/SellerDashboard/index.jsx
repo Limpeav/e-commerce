@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowRight,
@@ -16,6 +16,7 @@ import {
     getPortalPaymentQueuePath,
     getStoredAdminUser,
 } from "../../../utils/adminSession";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
@@ -33,39 +34,31 @@ const SellerDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadDashboard = async () => {
+    const loadDashboard = useCallback(async ({ silent = false } = {}) => {
             try {
-                setLoading(true);
+                if (!silent) setLoading(true);
                 setError("");
                 const [ordersResponse, cashResponse] = await Promise.all([
                     adminService.getOrders(),
                     adminService.getDailyCashReport(getTodayDate()),
                 ]);
 
-                if (isMounted) {
-                    setOrders(ordersResponse.data || []);
-                    setCashReport(cashResponse.data);
-                }
+                setOrders(ordersResponse.data || []);
+                setCashReport(cashResponse.data);
             } catch (err) {
-                if (isMounted) {
-                    setError(err.response?.data?.message || "Failed to load seller dashboard");
-                }
+                setError(err.response?.data?.message || "Failed to load seller dashboard");
             } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+                if (!silent) setLoading(false);
             }
-        };
-
-        loadDashboard();
-
-        return () => {
-            isMounted = false;
-        };
     }, []);
+
+    useEffect(() => {
+        loadDashboard();
+        return subscribeRealtimeDomains(
+            ["orders"],
+            () => loadDashboard({ silent: true })
+        );
+    }, [loadDashboard]);
 
     const pendingCashOrders = useMemo(() => {
         return orders

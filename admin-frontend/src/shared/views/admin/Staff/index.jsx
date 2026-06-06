@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const STAFF_LOGIN_ROLES = [
     { value: "seller", label: "Seller" },
@@ -87,8 +88,7 @@ const StaffManagement = () => {
             fetchUsers();
         });
 
-        const interval = setInterval(() => refresh(false), 30000);
-        return () => clearInterval(interval);
+        return subscribeRealtimeDomains(["users"], () => refresh(false));
     }, [fetchUsers, refresh]);
 
     const handleStaffFormChange = (event) => {

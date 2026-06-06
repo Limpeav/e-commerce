@@ -14,16 +14,9 @@ const resolveSocketBaseUrl = () => {
 
 export const getRealtimeSocket = () => {
   const token = getPreferredToken();
-  if (!token) {
-    if (socketInstance) {
-      socketInstance.disconnect();
-      socketInstance = null;
-      activeToken = null;
-    }
-    return null;
-  }
+  const connectionKey = token || "__guest__";
 
-  if (socketInstance && activeToken === token) {
+  if (socketInstance && activeToken === connectionKey) {
     return socketInstance;
   }
 
@@ -32,10 +25,10 @@ export const getRealtimeSocket = () => {
   }
 
   socketInstance = io(resolveSocketBaseUrl(), {
-    auth: { token },
+    auth: token ? { token } : {},
     transports: ["websocket", "polling"],
   });
-  activeToken = token;
+  activeToken = connectionKey;
   return socketInstance;
 };
 
@@ -49,6 +42,43 @@ export const subscribeRealtimeEvent = (eventName, handler) => {
 
   return () => {
     socket.off(eventName, handler);
+  };
+};
+
+export const subscribeRealtimeDomains = (domains, handler, { debounceMs = 150 } = {}) => {
+  const socket = getRealtimeSocket();
+  if (!socket || !Array.isArray(domains) || domains.length === 0) {
+    return () => {};
+  }
+
+  let timeoutId = null;
+  let hasConnected = socket.connected;
+  const scheduleRefresh = (payload) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => handler(payload), debounceMs);
+  };
+  const handleConnect = () => {
+    if (hasConnected) {
+      scheduleRefresh({ domain: "connection", action: "reconnected" });
+    }
+    hasConnected = true;
+  };
+  const handleVisibility = () => {
+    if (document.visibilityState === "visible") {
+      scheduleRefresh({ domain: "connection", action: "visible" });
+    }
+  };
+  const eventNames = domains.map((domain) => `${domain}:changed`);
+
+  eventNames.forEach((eventName) => socket.on(eventName, scheduleRefresh));
+  socket.on("connect", handleConnect);
+  document.addEventListener("visibilitychange", handleVisibility);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+    eventNames.forEach((eventName) => socket.off(eventName, scheduleRefresh));
+    socket.off("connect", handleConnect);
+    document.removeEventListener("visibilitychange", handleVisibility);
   };
 };
 

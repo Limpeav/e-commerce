@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { BannerController } from "../../controllers/bannerController";
+import { subscribeRealtimeDomains } from "../../services/realtime";
 
 export default function Hero() {
     const [isDark] = useDarkMode();
@@ -47,9 +48,11 @@ export default function Hero() {
         };
 
         loadBanners();
+        const unsubscribe = subscribeRealtimeDomains(["banners"], loadBanners);
 
         return () => {
             isMounted = false;
+            unsubscribe();
         };
     }, []);
 

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const roleMeta = {
     user: {
@@ -77,9 +78,7 @@ const UserManagement = () => {
             fetchStats();
         });
 
-        // Auto-refresh every 30 seconds so new registrations appear automatically
-        const interval = setInterval(() => refresh(false), 30000);
-        return () => clearInterval(interval);
+        return subscribeRealtimeDomains(["users", "reviews"], () => refresh(false));
     }, [fetchStats, fetchUsers, refresh]);
 
     const renderRoleBadge = (role = "user") => {

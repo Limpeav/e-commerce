@@ -3,7 +3,12 @@ import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
 import Notification from "../models/notificationModel.js";
-import { emitNotificationCreated, emitOrderCreated, emitOrderUpdated } from "../realtime/socket.js";
+import {
+    emitDomainChanged,
+    emitNotificationCreated,
+    emitOrderCreated,
+    emitOrderUpdated,
+} from "../realtime/socket.js";
 import {
     shouldSendLowStockAlert,
     syncLowStockAlertFlag,
@@ -18,6 +23,9 @@ import { validateProductSize } from "../utils/productOptions.js";
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
+
+const resolveOrderItemProductId = (item) =>
+    item?.product?._id?.toString?.() || item?.product?.toString?.() || null;
 
 const DELIVERY_ORDER_STATUSES = ["Delivered"];
 
@@ -383,6 +391,16 @@ export const createOrder = asyncHandler(async (req, res) => {
             } else {
                 emitOrderCreated(createdOrder);
             }
+            emitDomainChanged(
+                "products",
+                "inventory-updated",
+                {
+                    productIds: createdOrder.orderItems.map((item) =>
+                        resolveOrderItemProductId(item)
+                    ).filter(Boolean),
+                },
+                { users: true }
+            );
             emitNotificationCreated(notification);
 
             res.status(mergedIntoExistingOrder ? 200 : 201).json(createdOrder);
@@ -563,6 +581,18 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             deliveredAt: updatedOrder.deliveredAt,
             isDelivered: updatedOrder.isDelivered,
         });
+        if (updatedOrder.stockRestored) {
+            emitDomainChanged(
+                "products",
+                "inventory-restored",
+                {
+                    productIds: updatedOrder.orderItems.map((item) =>
+                        resolveOrderItemProductId(item)
+                    ).filter(Boolean),
+                },
+                { users: true }
+            );
+        }
 
         if (
             req.user?.role === "seller" &&
@@ -645,6 +675,16 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
             orderStatus: updatedOrder.orderStatus,
             stockRestored: updatedOrder.stockRestored,
         });
+        emitDomainChanged(
+            "products",
+            "inventory-restored",
+            {
+                productIds: updatedOrder.orderItems.map((item) =>
+                    resolveOrderItemProductId(item)
+                ).filter(Boolean),
+            },
+            { users: true }
+        );
     } finally {
         await session.endSession();
     }
@@ -898,7 +938,14 @@ export const deleteOrder = asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
+        const userId = order.user;
         await order.deleteOne();
+        emitDomainChanged(
+            "orders",
+            "deleted",
+            { orderId: order._id, userId },
+            { roles: ["admin", "seller", "delivery"], userId }
+        );
         res.json({ message: "Order removed" });
     } else {
         res.status(404);

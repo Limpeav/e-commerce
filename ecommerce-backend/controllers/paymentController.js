@@ -3,6 +3,7 @@ import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
+import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
 
 const getWebhookSignature = (headers = {}) =>
     headers["x-bakong-signature"]
@@ -214,6 +215,11 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
                 update_time: new Date().toISOString(),
             };
             await order.save();
+            emitOrderUpdated(order, {
+                paymentStatus: order.paymentStatus,
+                isPaid: order.isPaid,
+                paidAt: order.paidAt,
+            });
         }
     } else {
         payment.status = "Failed";
@@ -226,6 +232,12 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
     }
 
     await payment.save();
+    emitDomainChanged(
+        "payments",
+        payment.status === "Completed" ? "completed" : "failed",
+        { paymentId: payment._id, orderId: payment.order },
+        { roles: ["admin", "seller"], userId: payment.user }
+    );
 
     res.json({ success: true, payment });
 });
@@ -301,6 +313,12 @@ export const cancelPayment = asyncHandler(async (req, res) => {
 
     payment.status = "Cancelled";
     await payment.save();
+    emitDomainChanged(
+        "payments",
+        "cancelled",
+        { paymentId: payment._id, orderId: payment.order },
+        { roles: ["admin", "seller"], userId: payment.user }
+    );
 
     res.json({ message: "Payment cancelled successfully", payment });
 });
@@ -342,9 +360,20 @@ export const confirmPayment = asyncHandler(async (req, res) => {
         order.paidAt = new Date();
         order.paymentStatus = "Paid";
         await order.save();
+        emitOrderUpdated(order, {
+            paymentStatus: order.paymentStatus,
+            isPaid: order.isPaid,
+            paidAt: order.paidAt,
+        });
     }
 
     await payment.save();
+    emitDomainChanged(
+        "payments",
+        "confirmed",
+        { paymentId: payment._id, orderId: payment.order },
+        { roles: ["admin", "seller"], userId: payment.user }
+    );
 
     res.json({ message: "Payment confirmed successfully", payment });
 });

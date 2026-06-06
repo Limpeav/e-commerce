@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProductController } from '../controllers/productController';
 import {
   PRODUCT_CATEGORY_ALIASES,
@@ -6,6 +6,7 @@ import {
   isRemovedProductCategory,
   normalizeProductCategory,
 } from "../constants/productCategories";
+import { subscribeRealtimeDomains } from "../services/realtime";
 
 export const useProducts = (language = "en") => {
   const [products, setProducts] = useState([]);
@@ -13,10 +14,9 @@ export const useProducts = (language = "en") => {
   const [error, setError] = useState("");
   const [translatingMissingKhmer, setTranslatingMissingKhmer] = useState(false);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
+  const fetchProducts = useCallback(async ({ silent = false } = {}) => {
       try {
-        setLoading(true);
+        if (!silent) setLoading(true);
         const result = await ProductController.getProducts();
         if (result.success) {
           setProducts(result.data || []);
@@ -27,12 +27,17 @@ export const useProducts = (language = "en") => {
         setError("An error occurred while fetching products");
         console.error("Error fetching products:", err);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
-    };
-
-    fetchProducts();
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    return subscribeRealtimeDomains(
+      ["products", "reviews"],
+      () => fetchProducts({ silent: true })
+    );
+  }, [fetchProducts]);
 
   useEffect(() => {
     const hasMissingKhmerProducts =

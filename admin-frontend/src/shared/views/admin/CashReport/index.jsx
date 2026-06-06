@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     BarChart3,
@@ -12,6 +12,7 @@ import {
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const getTodayDate = () => {
     const today = new Date();
@@ -84,39 +85,31 @@ const CashReport = () => {
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadReport = async () => {
+    const loadReport = useCallback(async ({ silent = false } = {}) => {
             try {
-                setLoading(true);
+                if (!silent) setLoading(true);
                 setError("");
                 const response = await adminService.getDailyCashReport(
                     selectedDate,
                     getReportPeriod(activeTab, viewMode)
                 );
 
-                if (isMounted) {
-                    setReport(response.data);
-                }
+                setReport(response.data);
             } catch (err) {
-                if (isMounted) {
-                    setError(err.response?.data?.message || "Failed to load cash report");
-                    setReport(null);
-                }
+                setError(err.response?.data?.message || "Failed to load cash report");
+                setReport(null);
             } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+                if (!silent) setLoading(false);
             }
-        };
-
-        loadReport();
-
-        return () => {
-            isMounted = false;
-        };
     }, [activeTab, selectedDate, viewMode]);
+
+    useEffect(() => {
+        loadReport();
+        return subscribeRealtimeDomains(
+            ["orders", "payments"],
+            () => loadReport({ silent: true })
+        );
+    }, [loadReport]);
 
     const filteredOrders = useMemo(() => {
         const orders = report?.orders || [];

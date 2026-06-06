@@ -1,6 +1,8 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
+import Order from "../models/orderModel.js";
 
 let ioInstance = null;
 
@@ -57,7 +59,8 @@ export const initializeSocket = (httpServer, corsOrigins) => {
         socket.handshake.headers?.authorization?.split(" ")[1];
 
       if (!rawToken) {
-        return next(new Error("Authentication token is required"));
+        socket.user = { _id: null, role: "guest", name: "Guest" };
+        return next();
       }
 
       const decoded = jwt.verify(rawToken, process.env.JWT_SECRET);
@@ -74,16 +77,34 @@ export const initializeSocket = (httpServer, corsOrigins) => {
   });
 
   ioInstance.on("connection", (socket) => {
-    const userId = socket.user._id.toString();
-    socket.join(`user:${userId}`);
+    const userId = socket.user._id?.toString() || null;
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
     socket.join(`role:${socket.user.role}`);
     socket.emit("realtime:connected", { userId, role: socket.user.role });
 
-    socket.on("join:order", (orderId) => {
+    socket.on("join:order", async (orderId) => {
       const normalizedOrderId = resolveUserId(orderId);
-      if (!normalizedOrderId) {
+      if (!normalizedOrderId || !mongoose.isValidObjectId(normalizedOrderId)) {
         return;
       }
+
+      const isPortalUser = ["admin", "seller", "delivery"].includes(socket.user.role);
+      if (!isPortalUser) {
+        const ownsOrder = await Order.exists({
+          _id: normalizedOrderId,
+          user: socket.user._id,
+        });
+        if (!ownsOrder) {
+          socket.emit("realtime:error", {
+            code: "ORDER_ROOM_FORBIDDEN",
+            message: "Not authorized to subscribe to this order",
+          });
+          return;
+        }
+      }
+
       socket.join(`order:${normalizedOrderId}`);
     });
 
@@ -140,6 +161,35 @@ export const emitToUsers = (eventName, payload) => {
   }
 
   ioInstance.to("role:user").emit(eventName, payload);
+  ioInstance.to("role:guest").emit(eventName, payload);
+};
+
+export const emitDomainChanged = (
+  domain,
+  action,
+  payload = {},
+  { roles = ["admin", "seller", "delivery"], users = false, userId = null } = {}
+) => {
+  if (!domain) {
+    return;
+  }
+
+  const eventPayload = {
+    domain,
+    action,
+    changedAt: new Date().toISOString(),
+    ...payload,
+  };
+
+  emitToRoles(roles, `${domain}:changed`, eventPayload);
+
+  if (users) {
+    emitToUsers(`${domain}:changed`, eventPayload);
+  }
+
+  if (userId) {
+    emitToUser(userId, `${domain}:changed`, eventPayload);
+  }
 };
 
 export const emitOrderCreated = (order) => {
@@ -163,6 +213,10 @@ export const emitOrderCreated = (order) => {
   };
 
   emitToRoles(["admin", "seller"], "order:created", payload);
+  emitDomainChanged("orders", "created", payload, {
+    roles: ["admin", "seller", "delivery"],
+    userId,
+  });
 
   if (userId) {
     emitToUser(userId, "order:created", payload);
@@ -193,6 +247,10 @@ export const emitOrderUpdated = (order, details = {}) => {
   }
 
   emitToRoles(["admin", "seller", "delivery"], "order:updated", payload);
+  emitDomainChanged("orders", "updated", payload, {
+    roles: ["admin", "seller", "delivery"],
+    userId,
+  });
 
   if (ioInstance && orderId) {
     ioInstance.to(`order:${orderId}`).emit("order:updated", payload);

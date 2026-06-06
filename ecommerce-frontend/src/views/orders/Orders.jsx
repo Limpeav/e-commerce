@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import {
@@ -20,6 +20,7 @@ import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import { cancelOrder } from "../../services/orderService";
+import { subscribeRealtimeDomains } from "../../services/realtime";
 
 const API_URL = config.API_BASE_URL;
 
@@ -33,12 +34,6 @@ const Orders = () => {
   const [cancellingOrderId, setCancellingOrderId] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
-
   const getAuthToken = () => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -48,9 +43,9 @@ const Orders = () => {
     return null;
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError("");
       const token = getAuthToken();
       if (!token) {
@@ -69,9 +64,18 @@ const Orders = () => {
         err.response?.data?.message || err.message || "Failed to fetch orders"
       );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    fetchOrders();
+    return subscribeRealtimeDomains(
+      ["orders"],
+      () => fetchOrders({ silent: true })
+    );
+  }, [fetchOrders, user]);
 
   const handleCancelOrder = async (orderId) => {
     if (cancellingOrderId) return;

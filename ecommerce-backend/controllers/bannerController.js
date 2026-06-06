@@ -1,4 +1,5 @@
 import Banner from "../models/Banner.js";
+import { emitDomainChanged } from "../realtime/socket.js";
 
 export const getActiveBanners = async (req, res) => {
   try {
@@ -45,6 +46,7 @@ export const createBanner = async (req, res) => {
     });
 
     const savedBanner = await banner.save();
+    emitDomainChanged("banners", "created", { bannerId: savedBanner._id }, { users: true });
     res.status(201).json(savedBanner);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -79,6 +81,7 @@ export const updateBanner = async (req, res) => {
     }
 
     const updatedBanner = await banner.save();
+    emitDomainChanged("banners", "updated", { bannerId: updatedBanner._id }, { users: true });
     res.json(updatedBanner);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -93,6 +96,7 @@ export const deleteBanner = async (req, res) => {
     }
 
     await Banner.findByIdAndDelete(req.params.id);
+    emitDomainChanged("banners", "deleted", { bannerId: req.params.id }, { users: true });
     res.json({ message: "Banner deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });

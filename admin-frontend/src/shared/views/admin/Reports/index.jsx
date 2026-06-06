@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import api from "../../../services/api";
 import Loading from "../../../components/common/Loading";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const Reports = () => {
     const navigate = useNavigate();
@@ -19,13 +20,9 @@ const Reports = () => {
     const [orders, setOrders] = useState([]);
     const [products, setProducts] = useState([]);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async ({ silent = false } = {}) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const [dashboardRes, ordersRes, productsRes] = await Promise.all([
                 api.get("/admin/dashboard"),
                 api.get("/orders"),
@@ -35,12 +32,20 @@ const Reports = () => {
             setStats(dashboardRes.data);
             setOrders(ordersRes.data);
             setProducts(productsRes.data);
-            setLoading(false);
+            if (!silent) setLoading(false);
         } catch (err) {
             console.error("Failed to fetch data", err);
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+        return subscribeRealtimeDomains(
+            ["orders", "products", "reviews", "users"],
+            () => fetchData({ silent: true })
+        );
+    }, [fetchData]);
 
     const calculateMonthlyRevenue = () => {
         const monthlyData = {};

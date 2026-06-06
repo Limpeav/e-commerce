@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Send, Star } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { getOrderById } from "../../services/orderService";
 import { ProductController } from "../../controllers/productController";
 import { useAuth } from "../../context/useAuth";
@@ -54,6 +55,7 @@ export default function ReviewOrder() {
   const [showThankYou, setShowThankYou] = useState(false);
   const redirectTimeoutRef = useRef(null);
   const focusedProductId = searchParams.get("product");
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -276,20 +278,129 @@ export default function ReviewOrder() {
   }
 
   if (showThankYou) {
+    const celebrationDots = [
+      { x: -112, y: -72, color: "#E6BAA3", delay: 0.05 },
+      { x: -82, y: 76, color: "#7A967E", delay: 0.12 },
+      { x: 102, y: -78, color: "#E2B95F", delay: 0.18 },
+      { x: 118, y: 48, color: "#8EA7B8", delay: 0.24 },
+      { x: -132, y: 10, color: "#B38A9B", delay: 0.3 },
+      { x: 72, y: 94, color: "#E6BAA3", delay: 0.36 },
+    ];
+
     return (
-      <main className={`flex min-h-screen items-center justify-center px-4 py-20 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
-        <section className={`w-full max-w-xl rounded-3xl border p-8 text-center shadow-xl sm:p-10 ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-700">
-            <CheckCircle className="h-9 w-9" />
+      <main
+        className={`relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-4 py-16 sm:px-6 sm:py-20 ${
+          isDark ? "bg-slate-950" : "bg-bg-base"
+        }`}
+      >
+        <motion.div
+          aria-hidden="true"
+          className={`absolute -left-24 top-[12%] h-64 w-64 rounded-full blur-3xl ${
+            isDark ? "bg-emerald-500/10" : "bg-primary/10"
+          }`}
+          animate={reduceMotion ? undefined : { scale: [1, 1.15, 1], opacity: [0.55, 0.9, 0.55] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          aria-hidden="true"
+          className={`absolute -right-24 bottom-[8%] h-72 w-72 rounded-full blur-3xl ${
+            isDark ? "bg-amber-400/10" : "bg-secondary/20"
+          }`}
+          animate={reduceMotion ? undefined : { scale: [1.1, 0.95, 1.1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <motion.section
+          initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className={`relative w-full max-w-xl overflow-hidden rounded-[1.75rem] border px-5 py-8 text-center shadow-2xl sm:rounded-[2.25rem] sm:px-10 sm:py-11 ${
+            isDark
+              ? "border-slate-800 bg-slate-900/95 shadow-black/30"
+              : "border-stone-100 bg-white/95 shadow-stone-300/40"
+          }`}
+        >
+          <div className="relative mx-auto mb-6 h-24 w-24 sm:h-28 sm:w-28">
+            {!reduceMotion &&
+              celebrationDots.map((dot, index) => (
+                <motion.span
+                  key={index}
+                  aria-hidden="true"
+                  className="absolute left-1/2 top-1/2 h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3"
+                  style={{ backgroundColor: dot.color }}
+                  initial={{ x: -5, y: -5, scale: 0, opacity: 0 }}
+                  animate={{
+                    x: dot.x,
+                    y: dot.y,
+                    scale: [0, 1.15, 0.8],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{ duration: 1.15, delay: dot.delay, ease: "easeOut" }}
+                />
+              ))}
+
+            <motion.div
+              initial={reduceMotion ? false : { scale: 0, rotate: -18 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 240, damping: 17, delay: 0.12 }}
+              className="absolute inset-2 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-[0_14px_35px_rgba(5,150,105,0.22)] ring-8 ring-emerald-50 sm:inset-3"
+            >
+              <motion.div
+                animate={reduceMotion ? undefined : { scale: [1, 1.08, 1] }}
+                transition={{ duration: 1.4, repeat: Infinity, repeatDelay: 0.8 }}
+              >
+                <CheckCircle className="h-11 w-11 sm:h-13 sm:w-13" strokeWidth={2.4} />
+              </motion.div>
+            </motion.div>
           </div>
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-primary">Review submitted</p>
-          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-4xl">
+
+          <motion.p
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-primary sm:text-xs sm:tracking-[0.24em]"
+          >
+            Review submitted
+          </motion.p>
+          <motion.h1
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+            className="font-display text-3xl font-black leading-tight tracking-tight text-text-main sm:text-4xl"
+          >
             Thank you for your review
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-sm font-bold leading-relaxed text-text-muted sm:text-base">
-            Your feedback helps other customers choose with confidence. Redirecting you to home...
-          </p>
-        </section>
+          </motion.h1>
+          <motion.p
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.39 }}
+            className="mx-auto mt-4 max-w-md text-sm font-bold leading-6 text-text-muted sm:text-base sm:leading-7"
+          >
+            Your feedback helps other customers choose with confidence.
+          </motion.p>
+
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className={`mx-auto mt-7 max-w-sm rounded-2xl p-4 ${
+              isDark ? "bg-slate-800" : "bg-stone-50"
+            }`}
+          >
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-text-muted">
+              <span>Returning to home</span>
+              <span>3 seconds</span>
+            </div>
+            <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-slate-700" : "bg-stone-200"}`}>
+              <motion.div
+                className="h-full origin-left rounded-full bg-primary"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: reduceMotion ? 0 : 3, ease: "linear" }}
+              />
+            </div>
+          </motion.div>
+        </motion.section>
       </main>
     );
   }

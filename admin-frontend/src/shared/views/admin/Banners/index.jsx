@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const emptyForm = {
   title: "",
@@ -22,21 +23,25 @@ export default function AdminBanners() {
     [banners]
   );
 
-  const loadBanners = async () => {
+  const loadBanners = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await adminService.getBanners();
       setBanners(response.data || []);
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to load banners");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadBanners();
-  }, []);
+    return subscribeRealtimeDomains(
+      ["banners"],
+      () => loadBanners({ silent: true })
+    );
+  }, [loadBanners]);
 
   const handleImageChange = (event) => {
     const file = event.target.files?.[0] || null;
