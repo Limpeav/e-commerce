@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Package, Truck, MapPin, CheckCircle, Search, Clock, Send, AlertCircle } from "lucide-react";
+import { Package, MapPin, CheckCircle, Search, Clock, Send, AlertCircle } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import { trackOrder } from "../../services/orderService";
 import { useLanguage } from "../../context/useLanguage";
@@ -7,22 +7,20 @@ import { useLanguage } from "../../context/useLanguage";
 const statusIcons = {
   orderPlaced: Package,
   orderProcessed: CheckCircle,
-  shipped: Truck,
   delivered: CheckCircle,
 };
 
 const statusColors = {
   orderPlaced: "text-blue-500",
   orderProcessed: "text-green-500",
-  shipped: "text-orange-500",
   delivered: "text-green-600",
 };
 
 const statusRank = {
   Pending: 0,
   Processing: 1,
-  Shipped: 2,
-  Delivered: 3,
+  Shipped: 1,
+  Delivered: 2,
   Cancelled: -1,
 };
 
@@ -82,7 +80,6 @@ export default function OrderTracking() {
 
     const rank = statusRank[trackingData.orderStatus] ?? 0;
     const processedAt = trackingData.processedAt;
-    const shippedAt = trackingData.shippedAt || processedAt;
     const deliveredAt = trackingData.deliveredAt;
 
     return [
@@ -97,12 +94,6 @@ export default function OrderTracking() {
         statusKey: "orderProcessed",
         location: t("orderTracking.locations.sellerConfirmation"),
         complete: rank >= statusRank.Processing || Boolean(processedAt),
-      },
-      {
-        date: shippedAt,
-        statusKey: "shipped",
-        location: t("orderTracking.locations.readyForDelivery"),
-        complete: rank >= statusRank.Shipped || Boolean(shippedAt),
       },
       {
         date: deliveredAt,
@@ -144,7 +135,10 @@ export default function OrderTracking() {
     }
   };
 
-  const currentStatus = trackingData?.orderStatus || "Pending";
+  const currentStatus =
+    trackingData?.orderStatus === "Shipped"
+      ? "Processing"
+      : trackingData?.orderStatus || "Pending";
   const delivered = currentStatus === "Delivered";
   const estimatedDelivery = delivered
     ? trackingData?.deliveredAt

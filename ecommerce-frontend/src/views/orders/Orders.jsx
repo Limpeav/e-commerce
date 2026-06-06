@@ -17,6 +17,7 @@ import {
 import axios from "axios";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import { cancelOrder } from "../../services/orderService";
 
@@ -24,6 +25,7 @@ const API_URL = config.API_BASE_URL;
 
 const Orders = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isDark] = useDarkMode();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -74,7 +76,7 @@ const Orders = () => {
   const handleCancelOrder = async (orderId) => {
     if (cancellingOrderId) return;
 
-    if (!window.confirm("Cancel this order? You can only cancel before the seller confirms it.")) {
+    if (!window.confirm(t("orderDetail.cancelConfirm"))) {
       return;
     }
 
@@ -85,7 +87,7 @@ const Orders = () => {
       await fetchOrders();
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "Failed to cancel order"
+        err.response?.data?.message || err.message || t("orderDetail.cancelFailed")
       );
     } finally {
       setCancellingOrderId("");
@@ -100,9 +102,6 @@ const Orders = () => {
       Processing: isDark
         ? "bg-indigo-500/12 text-indigo-200 border-indigo-500/20"
         : "bg-blue-50 text-blue-700 border-blue-200",
-      Shipped: isDark
-        ? "bg-blue-500/12 text-blue-200 border-blue-500/20"
-        : "bg-sky-50 text-sky-700 border-sky-200",
       Delivered: isDark
         ? "bg-emerald-500/12 text-emerald-200 border-emerald-500/20"
         : "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -142,6 +141,13 @@ const Orders = () => {
       default:
         return <Truck className="w-3.5 h-3.5" />;
     }
+  };
+
+  const getStatusLabel = (status) => {
+    const displayStatus = status === "Shipped" ? "Processing" : status || "Pending";
+    return t(`orderDetail.status.${displayStatus.toLowerCase()}`, {
+      defaultValue: displayStatus,
+    });
   };
 
   const formatCurrency = (amount) => {
@@ -270,8 +276,8 @@ const Orders = () => {
                                 order.orderStatus
                               )}`}
                             >
-                              {getStatusIcon(order.orderStatus)}
-                              {order.orderStatus}
+                              {getStatusIcon(order.orderStatus === "Shipped" ? "Processing" : order.orderStatus)}
+                              {getStatusLabel(order.orderStatus)}
                             </span>
                           </div>
                           <div className={`flex flex-wrap items-center gap-4 text-xs font-medium ${subtleTextClassName}`}>
@@ -377,7 +383,9 @@ const Orders = () => {
                               }`}
                             >
                               <XCircle className="w-4 h-4" />
-                              {cancellingOrderId === order._id ? "Cancelling..." : "Cancel Order"}
+                              {cancellingOrderId === order._id
+                                ? t("orderDetail.cancelling")
+                                : t("orderDetail.cancelOrder")}
                             </button>
                           )}
                           <button

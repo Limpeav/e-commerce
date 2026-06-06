@@ -106,8 +106,8 @@ export default function OrderSuccess() {
             type="button"
             className={`min-h-12 w-full rounded-xl px-3 py-3 text-xs font-bold leading-tight shadow-xl shadow-primary/10 transition-all hover:-translate-y-1 active:scale-95 sm:px-6 sm:py-4 sm:text-sm ${
               isDark
-                ? "bg-primary text-slate-950 hover:bg-primary-light"
-                : "bg-text-main text-white hover:bg-primary"
+                ? "bg-green-600 text-white hover:bg-green-500"
+                : "bg-green-600 text-white hover:bg-green-700"
             }`}
           >
             {t("checkout.viewOrderDetails")}

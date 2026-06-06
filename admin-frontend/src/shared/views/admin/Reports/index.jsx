@@ -83,13 +83,15 @@ const Reports = () => {
         const breakdown = {
             Pending: 0,
             Processing: 0,
-            Shipped: 0,
             Delivered: 0,
             Cancelled: 0,
         };
 
         orders.forEach((order) => {
-            breakdown[order.orderStatus]++;
+            const status = order.orderStatus === "Shipped" ? "Processing" : order.orderStatus;
+            if (Object.hasOwn(breakdown, status)) {
+                breakdown[status]++;
+            }
         });
 
         return breakdown;
@@ -278,7 +280,6 @@ const Reports = () => {
                                 const colors = {
                                     Pending: "bg-yellow-500",
                                     Processing: "bg-blue-500",
-                                    Shipped: "bg-purple-500",
                                     Delivered: "bg-green-500",
                                     Cancelled: "bg-red-500",
                                 };

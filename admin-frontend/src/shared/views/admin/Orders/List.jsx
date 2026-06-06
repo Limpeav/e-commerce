@@ -20,7 +20,7 @@ import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import { subscribeRealtimeEvent } from "../../../services/realtime";
 
-const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
+const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
 const DELIVERY_ORDERS_VIEW_STATE_KEY = "adminDeliveryOrdersViewState";
 
@@ -301,7 +301,7 @@ const AdminOrders = () => {
 
         setConfirmingOrderId(orderId);
         try {
-            const response = await adminService.updateOrderStatus(orderId, "Shipped");
+            const response = await adminService.updateOrderStatus(orderId, "Processing");
             const updatedOrder = response.data;
 
             setOrders((currentOrders) =>
@@ -311,7 +311,7 @@ const AdminOrders = () => {
                             ...order,
                             ...updatedOrder,
                             user: updatedOrder?.user || order.user,
-                            orderStatus: updatedOrder?.orderStatus || "Shipped",
+                            orderStatus: updatedOrder?.orderStatus || "Processing",
                         }
                         : order
                 )
@@ -417,7 +417,8 @@ const AdminOrders = () => {
 
         if (normalized === "pending") return "Pending";
         if (normalized === "processing") return "Processing";
-        if (normalized === "shipped") return "Shipped";
+        // Legacy orders used "Shipped" for the active delivery stage.
+        if (normalized === "shipped") return "Processing";
         if (normalized === "delivered") return "Delivered";
 
         return trimmedStatus;
@@ -426,32 +427,15 @@ const AdminOrders = () => {
     const getStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
-        if (isDelivery && normalizedStatus === "Shipped") {
-            return "Processing";
-        }
-
-        if (!isDelivery && normalizedStatus === "Shipped") {
-            return "Confirmed";
-        }
-
         return normalizedStatus;
     };
 
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
-        if (isDelivery && normalizedStatus === "Shipped") {
-            return "bg-blue-100 text-blue-800";
-        }
-
-        if (!isDelivery && normalizedStatus === "Shipped") {
-            return "bg-green-100 text-green-800";
-        }
-
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800",
             Processing: "bg-blue-100 text-blue-800",
-            Shipped: "bg-purple-100 text-purple-800",
             Delivered: "bg-green-100 text-green-800",
             Cancelled: "",
         };
@@ -547,7 +531,7 @@ const AdminOrders = () => {
         {
             label: "Active",
             value: deliveryOrders.filter((order) =>
-                normalizeOrderStatus(order.orderStatus) === "Shipped"
+                normalizeOrderStatus(order.orderStatus) === "Processing"
             ).length,
             className: "bg-blue-50 text-blue-800",
         },
@@ -636,7 +620,7 @@ const AdminOrders = () => {
                                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option value="All">All status</option>
-                                    <option value="Shipped">Processing</option>
+                                    <option value="Processing">Processing</option>
                                     <option value="Delivered">Delivered</option>
                                 </select>
                             </div>
@@ -856,7 +840,6 @@ const AdminOrders = () => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
-                            <option value="Shipped">{isDelivery ? "Processing" : "Confirmed"}</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>

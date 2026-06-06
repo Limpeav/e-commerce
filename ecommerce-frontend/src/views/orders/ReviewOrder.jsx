@@ -49,7 +49,7 @@ export default function ReviewOrder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [forms, setForms] = useState({});
-  const [submittingByProduct, setSubmittingByProduct] = useState({});
+  const [submittingAll, setSubmittingAll] = useState(false);
   const [submittedByProduct, setSubmittedByProduct] = useState({});
   const [showThankYou, setShowThankYou] = useState(false);
   const redirectTimeoutRef = useRef(null);
@@ -153,53 +153,74 @@ export default function ReviewOrder() {
     }));
   };
 
-  const submitReview = async (item) => {
-    const productId = String(getProductId(item));
-    const form = forms[productId] || {};
+  const submitAllReviews = async () => {
+    const missingRatings = reviewItems
+      .map((item) => String(getProductId(item)))
+      .filter((productId) => !forms[productId]?.rating);
 
-    if (!form.rating) {
-      window.alert("Please select a star rating before submitting your review.");
-      setForms((current) => ({
-        ...current,
-        [productId]: {
-          ...current[productId],
-          error: "Please choose a rating.",
-        },
-      }));
+    if (missingRatings.length) {
+      setForms((current) => {
+        const next = { ...current };
+        reviewItems.forEach((item) => {
+          const productId = String(getProductId(item));
+          next[productId] = {
+            ...next[productId],
+            error: missingRatings.includes(productId) ? "Please choose a rating." : "",
+          };
+        });
+        return next;
+      });
+      window.alert("Please select a star rating for every product before submitting.");
       return;
     }
 
-    setSubmittingByProduct((current) => ({ ...current, [productId]: true }));
-    setForms((current) => ({
-      ...current,
-      [productId]: {
-        ...current[productId],
-        error: "",
-      },
-    }));
+    setSubmittingAll(true);
+    setForms((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([productId, form]) => [
+          productId,
+          { ...form, error: "" },
+        ])
+      )
+    );
 
-    const result = await ProductController.submitReview(productId, user, {
-      rating: Number(form.rating),
-      comment: form.comment || "",
+    const results = await Promise.all(
+      reviewItems.map(async (item) => {
+        const productId = String(getProductId(item));
+        const form = forms[productId];
+        const result = await ProductController.submitReview(productId, user, {
+          rating: Number(form.rating),
+          comment: form.comment || "",
+        });
+        return { productId, result };
+      })
+    );
+    const failedResults = results.filter(({ result }) => !result.success);
+
+    if (failedResults.length) {
+      setForms((current) => {
+        const next = { ...current };
+        failedResults.forEach(({ productId, result }) => {
+          next[productId] = {
+            ...next[productId],
+            error: result.error || "Failed to submit review.",
+          };
+        });
+        return next;
+      });
+      setSubmittingAll(false);
+      return;
+    }
+
+    setSubmittedByProduct((current) => {
+      const next = { ...current };
+      results.forEach(({ productId, result }) => {
+        next[productId] =
+          result.data?.updated || result.data?.alreadyReviewed ? "updated" : "submitted";
+      });
+      return next;
     });
-
-    if (!result.success) {
-      setForms((current) => ({
-        ...current,
-        [productId]: {
-          ...current[productId],
-          error: result.error || "Failed to submit review.",
-        },
-      }));
-      setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
-      return;
-    }
-
-    setSubmittedByProduct((current) => ({
-      ...current,
-      [productId]: result.data?.updated || result.data?.alreadyReviewed ? "updated" : "submitted",
-    }));
-    setSubmittingByProduct((current) => ({ ...current, [productId]: false }));
+    setSubmittingAll(false);
     setShowThankYou(true);
 
     if (redirectTimeoutRef.current) {
@@ -289,7 +310,6 @@ export default function ReviewOrder() {
             const productId = String(getProductId(item));
             const form = forms[productId] || {};
             const submitted = submittedByProduct[productId];
-            const isSubmitting = submittingByProduct[productId];
             const hasExistingReview = submitted === "existing" || submitted === "updated";
             const statusLabel = submitted === "submitted"
               ? "Submitted"
@@ -391,15 +411,6 @@ export default function ReviewOrder() {
                         <p className="text-sm font-bold text-red-600">{form.error}</p>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => submitReview(item)}
-                        disabled={isSubmitting}
-                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                      >
-                        <Send className="h-4 w-4" />
-                        {isSubmitting ? "Submitting..." : hasExistingReview || submitted === "submitted" ? "Update review" : "Submit review"}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -407,6 +418,32 @@ export default function ReviewOrder() {
             );
           })}
         </div>
+
+        {reviewItems.length > 0 && (
+          <div className={`sticky bottom-4 mt-6 rounded-2xl border p-4 shadow-xl backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-5 ${
+            isDark
+              ? "border-slate-700 bg-slate-900/95"
+              : "border-stone-200 bg-white/95"
+          }`}>
+            <div className="mb-3 sm:mb-0">
+              <p className="font-display text-lg font-black text-text-main">
+                Ready to submit all reviews?
+              </p>
+              <p className="mt-1 text-xs font-bold text-text-muted">
+                Add a rating for all {reviewItems.length} product{reviewItems.length === 1 ? "" : "s"} before submitting.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={submitAllReviews}
+              disabled={submittingAll}
+              className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              <Send className="h-4 w-4" />
+              {submittingAll ? "Submitting all..." : "Submit all reviews"}
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

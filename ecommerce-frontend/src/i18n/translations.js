@@ -299,6 +299,11 @@ export const translations = {
       tax: "Tax",
       total: "Total",
       undefined: "Undefined",
+      cancelOrder: "Cancel Order",
+      cancelling: "Cancelling...",
+      cancelConfirm: "Cancel this order? You can only cancel before the seller confirms it.",
+      cancelFailed: "Failed to cancel order",
+      cancelledNotice: "This order has been cancelled.",
       status: {
         pending: "Pending",
         processing: "Processing",
@@ -881,6 +886,11 @@ export const translations = {
       tax: "ពន្ធ",
       total: "សរុប",
       undefined: "មិនបានកំណត់",
+      cancelOrder: "បោះបង់ការបញ្ជាទិញ",
+      cancelling: "កំពុងបោះបង់...",
+      cancelConfirm: "តើអ្នកចង់បោះបង់ការបញ្ជាទិញនេះមែនទេ? អ្នកអាចបោះបង់បានតែមុនពេលអ្នកលក់បញ្ជាក់ការបញ្ជាទិញ។",
+      cancelFailed: "មិនអាចបោះបង់ការបញ្ជាទិញបានទេ",
+      cancelledNotice: "ការបញ្ជាទិញនេះត្រូវបានបោះបង់។",
       status: {
         pending: "កំពុងរង់ចាំ",
         processing: "កំពុងដំណើរការ",

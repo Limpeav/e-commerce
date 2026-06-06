@@ -295,10 +295,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     orderStatus: "Pending",
   });
   const processingOrdersCount = await Order.countDocuments({
-    orderStatus: "Processing",
-  });
-  const shippedOrdersCount = await Order.countDocuments({
-    orderStatus: "Shipped",
+    orderStatus: { $in: ["Processing", "Shipped"] },
   });
   const deliveredOrdersCount = await Order.countDocuments({
     orderStatus: "Delivered",
@@ -386,7 +383,6 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     revenue: totalRevenue,
     pendingOrders: pendingOrdersCount,
     processingOrders: processingOrdersCount,
-    shippedOrders: shippedOrdersCount,
     deliveredOrders: deliveredOrdersCount,
     cancelledOrders: cancelledOrdersCount,
     paidOrders: paidOrdersCount,

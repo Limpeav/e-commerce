@@ -265,7 +265,8 @@ const OrderDetails = () => {
 
         if (normalized === "pending") return "Pending";
         if (normalized === "processing") return "Processing";
-        if (normalized === "shipped") return "Shipped";
+        // Legacy orders used "Shipped" for the active delivery stage.
+        if (normalized === "shipped") return "Processing";
         if (normalized === "delivered") return "Delivered";
 
         return trimmedStatus;
@@ -274,18 +275,9 @@ const OrderDetails = () => {
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
-        if (isDelivery && normalizedStatus === "Shipped") {
-            return "bg-blue-100 text-blue-800 border-blue-300";
-        }
-
-        if (!isDelivery && normalizedStatus === "Shipped") {
-            return "bg-green-100 text-green-800 border-green-300";
-        }
-
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
             Processing: "bg-blue-100 text-blue-800 border-blue-300",
-            Shipped: "bg-purple-100 text-purple-800 border-purple-300",
             Delivered: "bg-green-100 text-green-800 border-green-300",
             Cancelled: "",
         };
@@ -308,14 +300,6 @@ const OrderDetails = () => {
 
     const getOrderStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
-
-        if (isDelivery && normalizedStatus === "Shipped") {
-            return "Processing";
-        }
-
-        if (!isDelivery && normalizedStatus === "Shipped") {
-            return "Confirmed";
-        }
 
         return normalizedStatus;
     };
@@ -388,17 +372,16 @@ const OrderDetails = () => {
     const fullAddress = formatAddress(order.shippingAddress);
     const displayOrderId = order._id.slice(-8);
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
-    const currentProgressStatus =
-        !isDelivery && currentOrderStatus === "Shipped" ? "Confirmed" : currentOrderStatus;
+    const currentProgressStatus = currentOrderStatus;
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
     const orderProgressStatuses = isDelivery
         ? ["Delivered"]
-        : ["Pending", "Confirmed", "Delivered"];
+        : ["Pending", "Processing", "Delivered"];
     const availableOrderActionStatuses = isDelivery
         ? [{ label: "Delivered", value: "Delivered" }]
         : [
             { label: "Pending", value: "Pending" },
-            { label: "Confirmed", value: "Shipped" },
+            { label: "Processing", value: "Processing" },
             { label: "Delivered", value: "Delivered" },
         ];
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid"];

@@ -1,404 +1,1287 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { adminService } from '../../../services/adminService'
-import Loading from '../../../components/common/Loading'
-import { getPortalOrderDetailsPath, getPortalOrdersPath, getStoredAdminUser } from '../../../utils/adminSession'
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  CreditCard,
+  DollarSign,
+  Download,
+  MessageSquareText,
+  Package,
+  RefreshCw,
+  ShoppingBag,
+  ShoppingCart,
+  Sparkles,
+  Star,
+  ThumbsUp,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { adminService } from "../../../services/adminService";
+import Loading from "../../../components/common/Loading";
+import {
+  getPortalOrderDetailsPath,
+  getStoredAdminUser,
+} from "../../../utils/adminSession";
+import { normalizeProductCategory } from "../../../constants/productCategories";
+
+const PERIODS = [
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "90", label: "Last 90 days" },
+  { value: "all", label: "All time" },
+];
+
+const CATEGORY_COLORS = ["#7A967E", "#E6BAA3", "#C7A76C", "#8EA7B8", "#B38A9B"];
+
+const money = (value, compact = false) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: compact ? "compact" : "standard",
+    maximumFractionDigits: compact ? 1 : 2,
+  }).format(Number(value) || 0);
+
+const number = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
+
+const startOfDay = (date) => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const getOrderDate = (order) => {
+  const date = new Date(order?.createdAt || 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getCustomerKey = (order) => {
+  if (typeof order?.user === "string") return order.user;
+  return order?.user?._id || order?.user?.email || order?.shippingAddress?.phone || null;
+};
+
+const getProductId = (item) =>
+  typeof item?.product === "string" ? item.product : item?.product?._id;
+
+const formatDayLabel = (date, dayCount) =>
+  date.toLocaleDateString("en-US", {
+    month: "short",
+    day: dayCount <= 14 ? "numeric" : undefined,
+  });
+
+const changeFrom = (current, previous) => {
+  if (!previous) return current ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+};
+
+const ChangeBadge = ({ value }) => {
+  const positive = value >= 0;
+  const Icon = positive ? ArrowUpRight : ArrowDownRight;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${
+        positive
+          ? "bg-[#edf5ee] text-[#527258]"
+          : "bg-[#fff0eb] text-[#a45f4d]"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {Math.abs(value).toFixed(1)}%
+    </span>
+  );
+};
+
+const MetricCard = ({ title, value, change, note, icon: Icon, tone = "sage" }) => {
+  const tones = {
+    sage: "bg-[#edf4ee] text-[#66806b]",
+    peach: "bg-[#fbefea] text-[#b17b62]",
+    gold: "bg-[#f7f1e5] text-[#9a7a3c]",
+    blue: "bg-[#ebf1f4] text-[#668698]",
+  };
+
+  return (
+    <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-[var(--color-text-muted)]">{title}</p>
+          <p className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-main)]">
+            {value}
+          </p>
+        </div>
+        <div className={`rounded-xl p-2.5 ${tones[tone]}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        {change === null ? null : <ChangeBadge value={change} />}
+        <span className="text-xs font-semibold text-[var(--color-text-muted)]">{note}</span>
+      </div>
+    </article>
+  );
+};
+
+const RevenueChart = ({ data }) => {
+  const width = 720;
+  const height = 245;
+  const padding = { top: 20, right: 18, bottom: 34, left: 52 };
+  const maxValue = Math.max(...data.map((item) => item.revenue), 1);
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+  const points = data.map((item, index) => ({
+    ...item,
+    x:
+      padding.left +
+      (data.length === 1 ? innerWidth / 2 : (index / (data.length - 1)) * innerWidth),
+    y: padding.top + innerHeight - (item.revenue / maxValue) * innerHeight,
+  }));
+  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const area = points.length
+    ? `${padding.left},${padding.top + innerHeight} ${line} ${
+        padding.left + innerWidth
+      },${padding.top + innerHeight}`
+    : "";
+  const gridValues = [0, 0.25, 0.5, 0.75, 1];
+  const labelStep = Math.max(1, Math.ceil(data.length / 7));
+
+  if (!data.length) {
+    return (
+      <div className="flex h-[245px] items-center justify-center text-sm font-semibold text-[var(--color-text-muted)]">
+        No sales in this period
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-[245px] min-w-[640px] w-full"
+        role="img"
+        aria-label="Revenue trend chart"
+      >
+        <defs>
+          <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7A967E" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#7A967E" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {gridValues.map((ratio) => {
+          const y = padding.top + innerHeight - ratio * innerHeight;
+          return (
+            <g key={ratio}>
+              <line
+                x1={padding.left}
+                x2={padding.left + innerWidth}
+                y1={y}
+                y2={y}
+                stroke="#EAE3DB"
+                strokeDasharray="4 5"
+              />
+              <text
+                x={padding.left - 9}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="#8A8F89"
+              >
+                {money(maxValue * ratio, true)}
+              </text>
+            </g>
+          );
+        })}
+        <polygon points={area} fill="url(#revenueArea)" />
+        <polyline
+          points={line}
+          fill="none"
+          stroke="#6F8C74"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((point, index) => (
+          <g key={point.key}>
+            <circle cx={point.x} cy={point.y} r="4" fill="#fff" stroke="#6F8C74" strokeWidth="2.5">
+              <title>
+                {point.label}: {money(point.revenue)}
+              </title>
+            </circle>
+            {index % labelStep === 0 || index === points.length - 1 ? (
+              <text
+                x={point.x}
+                y={height - 9}
+                textAnchor="middle"
+                fontSize="11"
+                fill="#727871"
+              >
+                {point.label}
+              </text>
+            ) : null}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+};
+
+const EmptyState = ({ children }) => (
+  <div className="flex min-h-44 items-center justify-center rounded-xl bg-[var(--color-surface-soft)]/60 px-6 text-center text-sm font-semibold text-[var(--color-text-muted)]">
+    {children}
+  </div>
+);
 
 const AdminDashboard = () => {
-  const navigate = useNavigate()
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const adminUser = getStoredAdminUser()
-  const isDelivery = adminUser?.role === 'delivery'
-  const ordersPath = getPortalOrdersPath(adminUser)
+  const navigate = useNavigate();
+  const adminUser = getStoredAdminUser();
+  const [period, setPeriod] = useState("30");
+  const [stats, setStats] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadDashboard = async ({ refresh = false } = {}) => {
+    refresh ? setRefreshing(true) : setLoading(true);
+    setError("");
+
+    try {
+      const [statsResponse, ordersResponse, productsResponse] = await Promise.all([
+        adminService.getDashboardStats(),
+        adminService.getOrders(),
+        adminService.getProducts(),
+      ]);
+      setStats(statsResponse.data);
+      setOrders(Array.isArray(ordersResponse.data) ? ordersResponse.data : []);
+      setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : []);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    if (isDelivery) {
-      navigate(ordersPath, { replace: true })
-    }
-  }, [isDelivery, navigate, ordersPath])
+    loadDashboard();
+  }, []);
 
-  useEffect(() => {
-    if (isDelivery) {
-      return
-    }
+  const analytics = useMemo(() => {
+    const now = new Date();
+    const days = period === "all" ? null : Number(period);
+    const currentStart = days
+      ? startOfDay(new Date(now.getTime() - (days - 1) * 86400000))
+      : null;
+    const previousStart = days
+      ? startOfDay(new Date(currentStart.getTime() - days * 86400000))
+      : null;
 
-    const fetchStats = async () => {
-      try {
-        const response = await adminService.getDashboardStats()
-        setStats(response.data)
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch dashboard stats')
-      } finally {
-        setLoading(false)
+    const isCurrent = (order) => {
+      const date = getOrderDate(order);
+      return date && (!currentStart || date >= currentStart);
+    };
+    const isPrevious = (order) => {
+      const date = getOrderDate(order);
+      return date && previousStart && date >= previousStart && date < currentStart;
+    };
+    const isPaid = (order) =>
+      order.paymentStatus === "Paid" && order.orderStatus !== "Cancelled";
+
+    const currentOrders = orders.filter(isCurrent);
+    const previousOrders = orders.filter(isPrevious);
+    const paidOrders = currentOrders.filter(isPaid);
+    const previousPaidOrders = previousOrders.filter(isPaid);
+    const revenue = paidOrders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
+    const previousRevenue = previousPaidOrders.reduce(
+      (sum, order) => sum + Number(order.totalPrice || 0),
+      0
+    );
+    const units = paidOrders.reduce(
+      (sum, order) =>
+        sum +
+        (order.orderItems || []).reduce(
+          (itemSum, item) => itemSum + Number(item.quantity || 0),
+          0
+        ),
+      0
+    );
+    const previousUnits = previousPaidOrders.reduce(
+      (sum, order) =>
+        sum +
+        (order.orderItems || []).reduce(
+          (itemSum, item) => itemSum + Number(item.quantity || 0),
+          0
+        ),
+      0
+    );
+    const aov = paidOrders.length ? revenue / paidOrders.length : 0;
+    const previousAov = previousPaidOrders.length
+      ? previousRevenue / previousPaidOrders.length
+      : 0;
+
+    const dailyMap = new Map();
+    if (days) {
+      for (let index = 0; index < days; index += 1) {
+        const date = new Date(currentStart.getTime() + index * 86400000);
+        const key = date.toISOString().slice(0, 10);
+        dailyMap.set(key, {
+          key,
+          label: formatDayLabel(date, days),
+          revenue: 0,
+          orders: 0,
+        });
       }
+      paidOrders.forEach((order) => {
+        const date = getOrderDate(order);
+        if (!date) return;
+        const entry = dailyMap.get(date.toISOString().slice(0, 10));
+        if (entry) {
+          entry.revenue += Number(order.totalPrice || 0);
+          entry.orders += 1;
+        }
+      });
+    } else {
+      const datedOrders = paidOrders
+        .map((order) => ({ order, date: getOrderDate(order) }))
+        .filter((entry) => entry.date)
+        .sort((a, b) => a.date - b.date);
+      const firstDate = datedOrders[0]?.date || now;
+      const cursor = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+      const finalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      while (cursor <= finalMonth) {
+        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+        dailyMap.set(key, {
+          key,
+          label: cursor.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+          revenue: 0,
+          orders: 0,
+        });
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+      datedOrders.forEach(({ order, date }) => {
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const entry = dailyMap.get(key);
+        if (entry) {
+          entry.revenue += Number(order.totalPrice || 0);
+          entry.orders += 1;
+        }
+      });
     }
 
-    fetchStats()
-  }, [isDelivery])
+    const productMap = new Map(products.map((product) => [String(product._id), product]));
+    const productSales = new Map();
+    const categorySales = new Map();
+    paidOrders.forEach((order) => {
+      (order.orderItems || []).forEach((item) => {
+        const product = productMap.get(String(getProductId(item)));
+        const category = normalizeProductCategory(product?.category || "Uncategorized");
+        const itemRevenue = Number(item.price || 0) * Number(item.quantity || 0);
+        const itemQuantity = Number(item.quantity || 0);
+        const productKey = String(getProductId(item) || item.name);
+        const existingProduct = productSales.get(productKey) || {
+          id: getProductId(item),
+          name: item.name || product?.title || "Product",
+          image: item.image || product?.image,
+          quantity: 0,
+          revenue: 0,
+        };
+        existingProduct.quantity += itemQuantity;
+        existingProduct.revenue += itemRevenue;
+        productSales.set(productKey, existingProduct);
+        categorySales.set(category, (categorySales.get(category) || 0) + itemRevenue);
+      });
+    });
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0)
-  }
+    const topProducts = [...productSales.values()]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+    const categories = [...categorySales.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+    const maxCategory = Math.max(...categories.map((category) => category.value), 1);
 
-  const getInitials = (name) => {
-    if (!name) return '?'
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+    const customerCounts = new Map();
+    currentOrders.forEach((order) => {
+      const key = getCustomerKey(order);
+      if (key) customerCounts.set(key, (customerCounts.get(key) || 0) + 1);
+    });
+    const repeatCustomers = [...customerCounts.values()].filter((count) => count > 1).length;
+    const repeatRate = customerCounts.size
+      ? (repeatCustomers / customerCounts.size) * 100
+      : 0;
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'Pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Processing': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Shipped': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'Delivered': 'bg-green-100 text-green-800 border-green-200',
-      'Cancelled': 'bg-red-100 text-red-800 border-red-200',
-      'Paid': 'bg-green-100 text-green-800 border-green-200',
-      'Failed': 'bg-red-100 text-red-800 border-red-200',
-      'Refunded': 'bg-orange-100 text-orange-800 border-orange-200'
-    }
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'
-  }
+    const lowStock = products
+      .filter((product) => Number(product.stock || 0) <= 5)
+      .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+    const outOfStock = lowStock.filter((product) => Number(product.stock || 0) <= 0);
+    const inventoryUnits = products.reduce(
+      (sum, product) => sum + Number(product.stock || 0),
+      0
+    );
+    const inventoryValue = products.reduce(
+      (sum, product) =>
+        sum + Number(product.stock || 0) * Number(product.discountPrice || product.price || 0),
+      0
+    );
 
+    const statusData = ["Pending", "Processing", "Delivered", "Cancelled"].map(
+      (status) => ({
+        status,
+        count: currentOrders.filter((order) =>
+          status === "Processing"
+            ? ["Processing", "Shipped"].includes(order.orderStatus)
+            : order.orderStatus === status
+        ).length,
+      })
+    );
+    const maxStatus = Math.max(...statusData.map((item) => item.count), 1);
+    const paidRate = currentOrders.length ? (paidOrders.length / currentOrders.length) * 100 : 0;
+    const productReviewStats = products.map((product) => {
+      const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+      const reviewCount = reviews.length;
+      const averageRating = reviewCount
+        ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount
+        : Number(product.rating || 0);
+      const lowRatingCount = reviews.filter((review) => Number(review.rating || 0) <= 2).length;
 
+      return {
+        id: product._id,
+        title: product.title || "Product",
+        image: product.image,
+        category: normalizeProductCategory(product.category || "Uncategorized"),
+        reviewCount,
+        averageRating,
+        lowRatingCount,
+      };
+    });
+    const allReviews = products.flatMap((product) =>
+      (Array.isArray(product.reviews) ? product.reviews : []).map((review) => ({
+        ...review,
+        productId: product._id,
+      }))
+    );
+    const totalReviews = allReviews.length;
+    const averageRating = totalReviews
+      ? allReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviews
+      : 0;
+    const positiveReviews = allReviews.filter((review) => Number(review.rating || 0) >= 4).length;
+    const lowReviews = allReviews.filter((review) => Number(review.rating || 0) <= 2).length;
+    const positiveReviewRate = totalReviews ? (positiveReviews / totalReviews) * 100 : 0;
+    const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
+      const count = allReviews.filter((review) => Number(review.rating || 0) === rating).length;
+      return {
+        rating,
+        count,
+        percentage: totalReviews ? (count / totalReviews) * 100 : 0,
+      };
+    });
+    const categoryReviewMap = new Map();
+    productReviewStats.forEach((product) => {
+      if (!product.reviewCount) return;
+      const current = categoryReviewMap.get(product.category) || { total: 0, count: 0 };
+      current.total += product.averageRating * product.reviewCount;
+      current.count += product.reviewCount;
+      categoryReviewMap.set(product.category, current);
+    });
+    const categoryRatings = [...categoryReviewMap.entries()]
+      .map(([name, values]) => ({
+        name,
+        reviewCount: values.count,
+        averageRating: values.total / values.count,
+      }))
+      .sort((a, b) => b.averageRating - a.averageRating);
+    const reviewAttention = productReviewStats
+      .filter(
+        (product) =>
+          product.reviewCount > 0 &&
+          (product.averageRating < 3.5 || product.lowRatingCount > 0)
+      )
+      .sort(
+        (a, b) =>
+          b.lowRatingCount - a.lowRatingCount ||
+          a.averageRating - b.averageRating
+      )
+      .slice(0, 6);
 
-  if (loading) {
-    return <Loading message="Loading dashboard..." />
-  }
+    return {
+      currentOrders,
+      paidOrders,
+      revenue,
+      units,
+      aov,
+      paidRate,
+      repeatRate,
+      dailyRevenue: [...dailyMap.values()],
+      topProducts,
+      categories: categories.map((category) => ({
+        ...category,
+        percentage: (category.value / maxCategory) * 100,
+      })),
+      lowStock,
+      outOfStock,
+      inventoryUnits,
+      inventoryValue,
+      reviewHealth: {
+        totalReviews,
+        averageRating,
+        positiveReviewRate,
+        lowReviews,
+        unratedProducts: productReviewStats.filter((product) => product.reviewCount === 0).length,
+        ratingDistribution,
+        categoryRatings,
+        attention: reviewAttention,
+      },
+      statusData: statusData.map((item) => ({
+        ...item,
+        percentage: (item.count / maxStatus) * 100,
+      })),
+      changes: {
+        revenue: changeFrom(revenue, previousRevenue),
+        orders: changeFrom(currentOrders.length, previousOrders.length),
+        aov: changeFrom(aov, previousAov),
+        units: changeFrom(units, previousUnits),
+      },
+    };
+  }, [orders, products, period]);
+
+  const exportSummary = () => {
+    const rows = [
+      ["Metric", "Value"],
+      ["Period", PERIODS.find((item) => item.value === period)?.label],
+      ["Revenue", analytics.revenue.toFixed(2)],
+      ["Orders", analytics.currentOrders.length],
+      ["Average order value", analytics.aov.toFixed(2)],
+      ["Units sold", analytics.units],
+      ["Paid order rate", `${analytics.paidRate.toFixed(1)}%`],
+      ["Repeat customer rate", `${analytics.repeatRate.toFixed(1)}%`],
+      ["Low stock products", analytics.lowStock.length],
+      ["Average product rating", analytics.reviewHealth.averageRating.toFixed(1)],
+      ["Total product reviews", analytics.reviewHealth.totalReviews],
+      ["Positive review rate", `${analytics.reviewHealth.positiveReviewRate.toFixed(1)}%`],
+      ["Low-rating reviews", analytics.reviewHealth.lowReviews],
+      ["Products without reviews", analytics.reviewHealth.unratedProducts],
+    ];
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `business-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) return <Loading message="Preparing business insights..." />;
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600 text-center">
-          <h2 className="text-2xl font-bold mb-4">Error</h2>
-          <p>{error}</p>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-base)] p-6">
+        <div className="max-w-md rounded-2xl border border-[#efc7bb] bg-white p-8 text-center shadow-sm">
+          <AlertTriangle className="mx-auto h-9 w-9 text-[#b56f5c]" />
+          <h1 className="mt-4 text-2xl font-bold">Dashboard unavailable</h1>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">{error}</p>
+          <button
+            type="button"
+            onClick={() => loadDashboard()}
+            className="mt-6 rounded-xl bg-[var(--color-primary)] px-5 py-3 font-bold text-white"
+          >
+            Try again
+          </button>
         </div>
       </div>
-    )
+    );
   }
 
-  if (isDelivery) {
-    const recentDeliveryOrders = (stats?.recentActivity || []).filter(
-      (activity) => activity.type === 'order'
-    )
-    const deliveryCards = [
-      { label: 'Ready To Prepare', value: stats?.pendingOrders || 0, color: 'text-yellow-700', bg: 'bg-yellow-50' },
-      { label: 'In Progress', value: stats?.processingOrders || 0, color: 'text-blue-700', bg: 'bg-blue-50' },
-      { label: 'Out For Delivery', value: stats?.shippedOrders || 0, color: 'text-indigo-700', bg: 'bg-indigo-50' },
-      { label: 'Cash To Collect', value: stats?.cashToCollect || 0, color: 'text-green-700', bg: 'bg-green-50' },
-    ]
+  const attentionItems = [
+    analytics.outOfStock.length
+      ? {
+          title: `${analytics.outOfStock.length} product${
+            analytics.outOfStock.length === 1 ? "" : "s"
+          } out of stock`,
+          detail: "Restock now to avoid missed sales.",
+          icon: AlertTriangle,
+          tone: "bg-[#fff0eb] text-[#a45f4d]",
+          action: () => navigate("/admin/products"),
+        }
+      : null,
+    (stats?.pendingOrders || 0) > 0
+      ? {
+          title: `${stats.pendingOrders} order${stats.pendingOrders === 1 ? "" : "s"} awaiting action`,
+          detail: "Review and move pending orders forward.",
+          icon: Clock3,
+          tone: "bg-[#f7f1e5] text-[#927338]",
+          action: () => navigate("/admin/orders"),
+        }
+      : null,
+    (stats?.cashToCollect || 0) > 0
+      ? {
+          title: `${stats.cashToCollect} cash payment${
+            stats.cashToCollect === 1 ? "" : "s"
+          } to collect`,
+          detail: "Track open cash-on-delivery orders.",
+          icon: CreditCard,
+          tone: "bg-[#ebf1f4] text-[#5f7f91]",
+          action: () => navigate("/admin/cash-report"),
+        }
+      : null,
+  ].filter(Boolean);
 
-    return (
-      <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  return (
+    <div className="min-h-screen bg-[var(--color-bg-base)] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-[1500px]">
+        <header className="mb-7 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--color-primary-dark)]">
+              <Sparkles className="h-4 w-4" />
+              Business overview
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-main)] sm:text-4xl">
+              Good day, {stats?.admin || adminUser?.name || "Admin"}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-[var(--color-text-muted)] sm:text-base">
+              Monitor sales, customers, orders, and inventory health from one place.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="relative">
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+              <select
+                value={period}
+                onChange={(event) => setPeriod(event.target.value)}
+                className="h-11 rounded-xl border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+              >
+                {PERIODS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => loadDashboard({ refresh: true })}
+              disabled={refreshing}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={exportSummary}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--color-text-main)] px-4 text-sm font-bold text-white transition hover:opacity-90"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
+        </header>
+
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            title="Net revenue"
+            value={money(analytics.revenue)}
+            change={period === "all" ? null : analytics.changes.revenue}
+            note={period === "all" ? "paid orders" : "vs previous period"}
+            icon={DollarSign}
+            tone="sage"
+          />
+          <MetricCard
+            title="Orders"
+            value={number(analytics.currentOrders.length)}
+            change={period === "all" ? null : analytics.changes.orders}
+            note={`${analytics.paidRate.toFixed(0)}% paid`}
+            icon={ShoppingCart}
+            tone="peach"
+          />
+          <MetricCard
+            title="Average order value"
+            value={money(analytics.aov)}
+            change={period === "all" ? null : analytics.changes.aov}
+            note="per paid order"
+            icon={TrendingUp}
+            tone="gold"
+          />
+          <MetricCard
+            title="Units sold"
+            value={number(analytics.units)}
+            change={period === "all" ? null : analytics.changes.units}
+            note={`${analytics.repeatRate.toFixed(0)}% repeat buyers`}
+            icon={ShoppingBag}
+            tone="blue"
+          />
+        </section>
+
+        <section className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[var(--color-text-main)]">Revenue trend</h2>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                  Revenue from successfully paid orders
+                </p>
+              </div>
+              <div className="rounded-xl bg-[#edf4ee] px-4 py-2 text-right">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#66806b]">
+                  Period total
+                </p>
+                <p className="text-lg font-black text-[#4f6954]">{money(analytics.revenue)}</p>
+              </div>
+            </div>
+            <RevenueChart data={analytics.dailyRevenue} />
+          </article>
+
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+            <div className="mb-5">
+              <h2 className="text-xl font-bold text-[var(--color-text-main)]">Needs attention</h2>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                Priority tasks that can affect sales
+              </p>
+            </div>
+            {attentionItems.length ? (
+              <div className="space-y-3">
+                {attentionItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      type="button"
+                      key={item.title}
+                      onClick={item.action}
+                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] p-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <span className={`rounded-lg p-2 ${item.tone}`}>
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black text-[var(--color-text-main)]">
+                          {item.title}
+                        </span>
+                        <span className="mt-0.5 block text-xs font-medium text-[var(--color-text-muted)]">
+                          {item.detail}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex min-h-52 flex-col items-center justify-center text-center">
+                <span className="rounded-full bg-[#edf5ee] p-3 text-[#66806b]">
+                  <CheckCircle2 className="h-7 w-7" />
+                </span>
+                <p className="mt-3 font-black text-[var(--color-text-main)]">Everything looks healthy</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">No urgent actions right now.</p>
+              </div>
+            )}
+          </article>
+        </section>
+
+        <section className="mb-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Sales by category</h2>
+            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+              Categories driving paid revenue
+            </p>
+            {analytics.categories.length ? (
+              <div className="mt-6 space-y-4">
+                {analytics.categories.map((category, index) => (
+                  <div key={category.name}>
+                    <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
+                      <span className="truncate font-bold text-[var(--color-text-main)]">
+                        {category.name}
+                      </span>
+                      <span className="shrink-0 font-black">{money(category.value)}</span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${category.percentage}%`,
+                          backgroundColor: CATEGORY_COLORS[index],
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5">
+                <EmptyState>Category sales will appear after paid orders.</EmptyState>
+              </div>
+            )}
+          </article>
+
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Order progress</h2>
+            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+              Fulfillment status for the selected period
+            </p>
+            <div className="mt-6 space-y-4">
+              {analytics.statusData.map((item, index) => (
+                <div key={item.status} className="grid grid-cols-[86px_1fr_34px] items-center gap-3">
+                  <span className="text-sm font-bold text-[var(--color-text-muted)]">{item.status}</span>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${item.percentage}%`,
+                        backgroundColor: CATEGORY_COLORS[index],
+                      }}
+                    />
+                  </div>
+                  <span className="text-right text-sm font-black text-[var(--color-text-main)]">
+                    {item.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/orders")}
+              className="mt-6 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
+            >
+              Manage all orders <ArrowRight className="h-4 w-4" />
+            </button>
+          </article>
+
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6 lg:col-span-2 xl:col-span-1">
+            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Inventory health</h2>
+            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+              Current stock exposure and value
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#edf4ee] p-4">
+                <Package className="h-5 w-5 text-[#66806b]" />
+                <p className="mt-3 text-2xl font-black text-[#4f6954]">{number(analytics.inventoryUnits)}</p>
+                <p className="mt-1 text-xs font-bold text-[#66806b]">Units in stock</p>
+              </div>
+              <div className="rounded-xl bg-[#f7f1e5] p-4">
+                <CircleDollarSign className="h-5 w-5 text-[#96773e]" />
+                <p className="mt-3 text-2xl font-black text-[#735c31]">{money(analytics.inventoryValue, true)}</p>
+                <p className="mt-1 text-xs font-bold text-[#96773e]">Retail value</p>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--color-border)] p-4">
+              <div>
+                <p className="text-sm font-black text-[var(--color-text-main)]">Low stock products</p>
+                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">5 units or fewer</p>
+              </div>
+              <span className={`text-2xl font-black ${analytics.lowStock.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
+                {analytics.lowStock.length}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/products")}
+              className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
+            >
+              Review inventory <ArrowRight className="h-4 w-4" />
+            </button>
+          </article>
+        </section>
+
+        <section className="mb-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <article className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
+              <div>
+                <h2 className="text-xl font-bold text-[var(--color-text-main)]">Top products</h2>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                  Ranked by paid revenue
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/admin/products/best-sellers")}
+                className="text-sm font-black text-[var(--color-primary-dark)]"
+              >
+                View all
+              </button>
+            </div>
+            {analytics.topProducts.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] text-left">
+                  <thead className="bg-[var(--color-surface-soft)]/65 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    <tr>
+                      <th className="px-6 py-3 font-black">Product</th>
+                      <th className="px-4 py-3 text-right font-black">Units</th>
+                      <th className="px-6 py-3 text-right font-black">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border)]">
+                    {analytics.topProducts.map((product, index) => (
+                      <tr key={`${product.id || product.name}-${index}`} className="hover:bg-[var(--color-surface-soft)]/35">
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-soft)]">
+                              {product.image ? (
+                                <img src={product.image} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <Package className="h-5 w-5 text-[var(--color-text-muted)]" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-[var(--color-text-main)]">
+                                {product.name}
+                              </p>
+                              <p className="mt-0.5 text-xs font-medium text-[var(--color-text-muted)]">
+                                #{index + 1} seller
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-sm font-bold">
+                          {number(product.quantity)}
+                        </td>
+                        <td className="px-6 py-3.5 text-right text-sm font-black">
+                          {money(product.revenue)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-6">
+                <EmptyState>Top-selling products will appear after paid orders.</EmptyState>
+              </div>
+            )}
+          </article>
+
+          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Customer signals</h2>
+            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+              Indicators of loyalty and payment quality
+            </p>
+            <div className="mt-6 space-y-5">
+              <div>
+                <div className="mb-2 flex justify-between text-sm">
+                  <span className="flex items-center gap-2 font-bold text-[var(--color-text-main)]">
+                    <Users className="h-4 w-4 text-[var(--color-primary)]" />
+                    Repeat customer rate
+                  </span>
+                  <span className="font-black">{analytics.repeatRate.toFixed(1)}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--color-primary)]"
+                    style={{ width: `${Math.min(analytics.repeatRate, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="mb-2 flex justify-between text-sm">
+                  <span className="flex items-center gap-2 font-bold text-[var(--color-text-main)]">
+                    <CreditCard className="h-4 w-4 text-[#b17b62]" />
+                    Paid order rate
+                  </span>
+                  <span className="font-black">{analytics.paidRate.toFixed(1)}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                  <div
+                    className="h-full rounded-full bg-[#E6BAA3]"
+                    style={{ width: `${Math.min(analytics.paidRate, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="rounded-xl border border-[var(--color-border)] p-4">
+                  <p className="text-xs font-bold text-[var(--color-text-muted)]">Registered users</p>
+                  <p className="mt-2 text-2xl font-black text-[var(--color-text-main)]">
+                    {number(stats?.users)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[var(--color-border)] p-4">
+                  <p className="text-xs font-bold text-[var(--color-text-muted)]">Catalog size</p>
+                  <p className="mt-2 text-2xl font-black text-[var(--color-text-main)]">
+                    {number(stats?.products)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className="mb-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-black text-gray-950 sm:text-3xl">Delivery Hub</h1>
-              <p className="mt-1 text-sm font-medium text-gray-500">
-                View customer orders, open delivery locations, print summaries, and update delivery progress.
+              <div className="flex items-center gap-2">
+                <Star className="h-5 w-5 fill-[#e2b95f] text-[#e2b95f]" />
+                <h2 className="text-2xl font-bold text-[var(--color-text-main)]">Review health</h2>
+              </div>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                Product satisfaction, rating quality, and items needing attention
               </p>
             </div>
             <button
               type="button"
-              onClick={() => navigate(ordersPath)}
-              className="inline-flex h-[52px] items-center justify-center rounded-xl bg-blue-600 px-4 text-base font-black text-white hover:bg-blue-700"
+              onClick={() => navigate("/admin/products")}
+              className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
             >
-              Open Deliveries
+              View products <ArrowRight className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {deliveryCards.map((card) => (
-              <div key={card.label} className={`${card.bg} rounded-2xl border border-gray-100 p-4 shadow-sm sm:p-5`}>
-                <p className="text-xs font-black uppercase text-gray-600 sm:text-sm">{card.label}</p>
-                <p className={`mt-2 truncate text-2xl font-black sm:text-3xl ${card.color}`}>{card.value}</p>
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">Average rating</p>
+                <Star className="h-5 w-5 fill-[#e2b95f] text-[#e2b95f]" />
               </div>
-            ))}
+              <p className="mt-3 text-3xl font-black">
+                {analytics.reviewHealth.averageRating.toFixed(1)}
+                <span className="text-base text-[var(--color-text-muted)]"> / 5</span>
+              </p>
+            </article>
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">Total reviews</p>
+                <MessageSquareText className="h-5 w-5 text-[#668698]" />
+              </div>
+              <p className="mt-3 text-3xl font-black">{number(analytics.reviewHealth.totalReviews)}</p>
+            </article>
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">Positive reviews</p>
+                <ThumbsUp className="h-5 w-5 text-[#66806b]" />
+              </div>
+              <p className="mt-3 text-3xl font-black">
+                {analytics.reviewHealth.positiveReviewRate.toFixed(0)}%
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">4 and 5 stars</p>
+            </article>
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">Needs attention</p>
+                <AlertTriangle className="h-5 w-5 text-[#ad6856]" />
+              </div>
+              <p className="mt-3 text-3xl font-black text-[#ad6856]">
+                {number(analytics.reviewHealth.lowReviews)}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                1–2 star reviews
+              </p>
+            </article>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-lg font-black text-gray-950">Latest Orders</h2>
-            </div>
-            {recentDeliveryOrders.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {recentDeliveryOrders.map((activity) => (
-                    <button
-                      key={activity.id}
-                      type="button"
-                      onClick={() => navigate(getPortalOrderDetailsPath(activity.id, adminUser))}
-                      className="flex w-full flex-col gap-3 px-5 py-4 text-left hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-black text-gray-950">
-                          #{activity.id.slice(-8)} · {activity.userName || 'Customer'}
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-gray-500">
-                          {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · {formatCurrency(activity.amount || 0)}
-                        </p>
+          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating distribution</h3>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                Share of reviews by star rating
+              </p>
+              {analytics.reviewHealth.totalReviews ? (
+                <div className="mt-6 space-y-4">
+                  {analytics.reviewHealth.ratingDistribution.map((item) => (
+                    <div key={item.rating} className="grid grid-cols-[54px_1fr_48px] items-center gap-3">
+                      <span className="flex items-center gap-1 text-sm font-black">
+                        {item.rating}
+                        <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
+                      </span>
+                      <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                        <div
+                          className="h-full rounded-full bg-[#e2b95f]"
+                          style={{ width: `${item.percentage}%` }}
+                        />
                       </div>
-                      <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(activity.orderStatus)}`}>
-                          {activity.orderStatus || 'Pending'}
-                        </span>
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(activity.paymentStatus)}`}>
-                          {activity.paymentStatus || 'Pending'}
-                        </span>
-                      </div>
-                    </button>
+                      <span className="text-right text-sm font-black">{item.count}</span>
+                    </div>
                   ))}
+                </div>
+              ) : (
+                <div className="mt-5">
+                  <EmptyState>Rating distribution will appear after customers submit reviews.</EmptyState>
+                </div>
+              )}
+            </article>
+
+            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating by category</h3>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                Weighted average across reviewed products
+              </p>
+              {analytics.reviewHealth.categoryRatings.length ? (
+                <div className="mt-6 space-y-4">
+                  {analytics.reviewHealth.categoryRatings.slice(0, 6).map((category) => (
+                    <div key={category.name}>
+                      <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                        <span className="truncate font-bold">{category.name}</span>
+                        <span className="flex shrink-0 items-center gap-1 font-black">
+                          {category.averageRating.toFixed(1)}
+                          <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
+                          <span className="ml-1 text-xs text-[var(--color-text-muted)]">
+                            ({category.reviewCount})
+                          </span>
+                        </span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-primary)]"
+                          style={{ width: `${(category.averageRating / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5">
+                  <EmptyState>Category ratings will appear after customers submit reviews.</EmptyState>
+                </div>
+              )}
+            </article>
+          </div>
+
+          <article className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--color-text-main)]">Products needing attention</h3>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                  Products below 3.5 stars or receiving low ratings
+                </p>
+              </div>
+              <span className="rounded-full bg-[#f7f1e5] px-3 py-1.5 text-xs font-black text-[#8a6d35]">
+                {analytics.reviewHealth.unratedProducts} products have no reviews
+              </span>
+            </div>
+            {analytics.reviewHealth.attention.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] text-left">
+                  <thead className="bg-[var(--color-surface-soft)]/65 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    <tr>
+                      <th className="px-6 py-3 font-black">Product</th>
+                      <th className="px-4 py-3 text-right font-black">Rating</th>
+                      <th className="px-4 py-3 text-right font-black">Reviews</th>
+                      <th className="px-4 py-3 text-right font-black">Low ratings</th>
+                      <th className="px-6 py-3 text-right font-black">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border)]">
+                    {analytics.reviewHealth.attention.map((product) => (
+                      <tr key={product.id} className="hover:bg-[var(--color-surface-soft)]/35">
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-soft)]">
+                              {product.image ? (
+                                <img src={product.image} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <Package className="h-5 w-5 text-[var(--color-text-muted)]" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black">{product.title}</p>
+                              <p className="mt-0.5 text-xs font-medium text-[var(--color-text-muted)]">
+                                {product.category}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-sm font-black">
+                          {product.averageRating.toFixed(1)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-sm font-bold">
+                          {product.reviewCount}
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-sm font-black text-[#ad6856]">
+                          {product.lowRatingCount}
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                            className="text-sm font-black text-[var(--color-primary-dark)]"
+                          >
+                            Review product
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <div className="px-5 py-12 text-center text-gray-500">No delivery activity yet</div>
+              <div className="p-6">
+                <EmptyState>No reviewed products currently need attention.</EmptyState>
+              </div>
             )}
-          </div>
-        </div>
-      </div>
-    )
-  }
+          </article>
+        </section>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold text-gray-950">Admin Dashboard</h1>
-        </div>
-
-        {stats && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Sales</h3>
-                <p className="text-3xl font-bold text-blue-600">{formatCurrency(stats.revenue || 0)}</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Orders</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.orders || 0}</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Users</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.users || 0}</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Products</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.products || 0}</p>
-              </div>
+        <section className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
+            <div>
+              <h2 className="text-xl font-bold text-[var(--color-text-main)]">Recent activity</h2>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                Latest orders and customer registrations
+              </p>
             </div>
-
-            {/* Payment Status Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-[#f0fdf4] p-6 rounded-2xl shadow-lg border-2 border-[#bbf7d0]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#15803d] mb-1">Paid Orders</h3>
-                    <p className="text-3xl font-bold text-[#15803d]">{stats.paidOrders || 0}</p>
-                    <p className="text-xs text-[#16a34a] mt-1">
-                      {stats.orders > 0 ? Math.round(((stats.paidOrders || 0) / stats.orders) * 100) : 0}% of total orders
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 rounded-full bg-[#bbf7d0] flex items-center justify-center">
-                    <svg className="w-8 h-8 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#fef2f2] p-6 rounded-2xl shadow-lg border-2 border-[#fecaca]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#b91c1c] mb-1">Unpaid Orders</h3>
-                    <p className="text-3xl font-bold text-[#b91c1c]">{stats.unpaidOrders || 0}</p>
-                    <p className="text-xs text-[#dc2626] mt-1">
-                      {stats.orders > 0 ? Math.round(((stats.unpaidOrders || 0) / stats.orders) * 100) : 0}% of total orders
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 rounded-full bg-[#fecaca] flex items-center justify-center">
-                    <svg className="w-8 h-8 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/orders")}
+              className="text-sm font-black text-[var(--color-primary-dark)]"
+            >
+              View orders
+            </button>
           </div>
-          {stats?.recentActivity && stats.recentActivity.length > 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-              {stats.recentActivity.map((activity, index) => (
-                <div
-                  key={activity.id || `activity-${index}`}
-                  className={`p-5 border-b ${index !== stats.recentActivity.length - 1 ? 'border-gray-100' : ''} hover:bg-gray-50 transition-all duration-150 cursor-pointer ${activity.type === 'order' ? 'hover:shadow-md' : ''}`}
-                  onClick={() => {
-                    if (activity.type === 'order') {
-                      navigate(getPortalOrderDetailsPath(activity.id, adminUser))
-                    } else if (activity.type === 'user') {
-                      navigate(`/admin/users`)
+          {stats?.recentActivity?.length ? (
+            <div className="divide-y divide-[var(--color-border)]">
+              {stats.recentActivity.map((activity, index) => {
+                const isOrder = activity.type === "order";
+                return (
+                  <button
+                    type="button"
+                    key={activity.id || index}
+                    onClick={() =>
+                      isOrder
+                        ? navigate(getPortalOrderDetailsPath(activity.id, adminUser))
+                        : navigate("/admin/users")
                     }
-                  }}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Icon & Avatar */}
-                    <div className="flex-shrink-0">
-                      {activity.type === 'order' ? (
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activity.paymentStatus === 'Paid'
-                            ? 'bg-green-100 ring-2 ring-green-300'
-                            : activity.paymentStatus === 'Failed' || activity.paymentStatus === 'Refunded'
-                              ? 'bg-red-100 ring-2 ring-red-300'
-                              : 'bg-yellow-100 ring-2 ring-yellow-300'
-                          }`}>
-                          {activity.paymentStatus === 'Paid' ? (
-                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          ) : (
-                            <svg className={`w-6 h-6 ${activity.paymentStatus === 'Failed' || activity.paymentStatus === 'Refunded'
-                                ? 'text-red-600'
-                                : 'text-yellow-600'
-                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                          )}
-                        </div>
-                      ) : activity.type === 'user' ? (
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-sm">
-                            {getInitials(activity.userName)}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-gray-900">{activity.action || 'Unknown action'}</p>
-                            {activity.type === 'order' && (
-                              <span className="text-xs text-gray-500 font-mono">#{activity.description?.replace('Order #', '') || activity.id?.slice(-6)}</span>
-                            )}
-                          </div>
-
-                          {activity.type === 'order' ? (
-                            <div className="space-y-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">{activity.userName}</span>
-                                <span className="text-gray-400 mx-1">•</span>
-                                <span>{activity.itemsCount || 0} item{activity.itemsCount !== 1 ? 's' : ''}</span>
-                                <span className="text-gray-400 mx-1">•</span>
-                                <span className="font-semibold text-gray-900">{formatCurrency(activity.amount || 0)}</span>
-                              </p>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusColor(activity.orderStatus)}`}>
-                                  {activity.orderStatus || 'Pending'}
-                                </span>
-                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border flex items-center gap-1.5 ${getStatusColor(activity.paymentStatus)}`}>
-                                  {activity.paymentStatus === 'Paid' ? (
-                                    <>
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                      Paid
-                                    </>
-                                  ) : activity.paymentStatus === 'Failed' ? (
-                                    <>
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                      Failed
-                                    </>
-                                  ) : activity.paymentStatus === 'Refunded' ? (
-                                    <>
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                      Refunded
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                      </svg>
-                                      {activity.paymentStatus || 'Pending'}
-                                    </>
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          ) : activity.type === 'user' ? (
-                            <div>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">{activity.userName}</span>
-                                {activity.userEmail && (
-                                  <>
-                                    <span className="text-gray-400 mx-1">•</span>
-                                    <span className="text-gray-500">{activity.userEmail}</span>
-                                  </>
-                                )}
-                              </p>
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-600">{activity.description || activity.userEmail}</p>
-                          )}
-
-                          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {activity.time || 'Unknown time'}
-                          </p>
-                        </div>
-
-                        {/* Type Badge */}
-                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full flex-shrink-0 ${activity.type === 'user' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                          activity.type === 'product' ? 'bg-green-100 text-green-700 border border-green-200' :
-                            activity.type === 'order' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                              'bg-gray-100 text-gray-700 border border-gray-200'
-                          }`}>
-                          {activity.type || 'unknown'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-[var(--color-surface-soft)]/45 sm:px-6"
+                  >
+                    <span
+                      className={`rounded-xl p-2.5 ${
+                        isOrder
+                          ? "bg-[#edf4ee] text-[#66806b]"
+                          : "bg-[#ebf1f4] text-[#668698]"
+                      }`}
+                    >
+                      {isOrder ? <ShoppingBag className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-black text-[var(--color-text-main)]">
+                        {activity.action}
+                      </span>
+                      <span className="mt-1 block truncate text-xs font-medium text-[var(--color-text-muted)]">
+                        {activity.userName || "Customer"}
+                        {isOrder ? ` · ${money(activity.amount)} · ${activity.orderStatus}` : ` · ${activity.userEmail || ""}`}
+                      </span>
+                    </span>
+                    <span className="hidden shrink-0 text-xs font-bold text-[var(--color-text-muted)] sm:block">
+                      {activity.time}
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                  </button>
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-2xl shadow-lg text-center border border-gray-100">
-              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No recent activity</h3>
-              <p className="text-gray-500">Activity will appear here once users start interacting with your store</p>
+            <div className="p-6">
+              <EmptyState>New store activity will appear here.</EmptyState>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;

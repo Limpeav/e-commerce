@@ -85,7 +85,6 @@ const OrderDetail = () => {
     const colors = {
       Pending: "bg-stone-50 text-stone-500 border-stone-100",
       Processing: "bg-primary/5 text-primary border-primary/10",
-      Shipped: "bg-blue-50 text-blue-600 border-blue-100",
       Delivered: "bg-green-50 text-green-600 border-green-100",
       Cancelled: "bg-[#342331] text-[#ffc7cf] border-[#7b2942]",
     };
@@ -109,10 +108,12 @@ const OrderDetail = () => {
   const normalizeTranslationKey = (value = "") =>
     String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
 
-  const translateStatus = (status, fallback = "Pending") =>
-    t(`orderDetail.status.${normalizeTranslationKey(status || fallback)}`, {
-      defaultValue: status || fallback,
+  const translateStatus = (status, fallback = "Pending") => {
+    const displayStatus = status === "Shipped" ? "Processing" : status;
+    return t(`orderDetail.status.${normalizeTranslationKey(displayStatus || fallback)}`, {
+      defaultValue: displayStatus || fallback,
     });
+  };
 
   const translatePaymentMethod = (method) =>
     t(`orderDetail.paymentMethods.${normalizeTranslationKey(method || "undefined")}`, {
@@ -133,7 +134,7 @@ const OrderDetail = () => {
   const handleCancelOrder = async () => {
     if (!canCancelOrder || cancelling) return;
 
-    if (!window.confirm("Cancel this order? You can only cancel before the seller confirms it.")) {
+    if (!window.confirm(t("orderDetail.cancelConfirm"))) {
       return;
     }
 
@@ -145,7 +146,7 @@ const OrderDetail = () => {
       await fetchOrderDetails();
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "Failed to cancel order"
+        err.response?.data?.message || err.message || t("orderDetail.cancelFailed")
       );
     } finally {
       setCancelling(false);
@@ -202,10 +203,10 @@ const OrderDetail = () => {
           <div className="flex flex-col items-start gap-3 md:items-end">
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold ${getStatusColor(
-                order.orderStatus
+                order.orderStatus === "Shipped" ? "Processing" : order.orderStatus
               )}`}
             >
-              {getStatusIcon(order.orderStatus)}
+              {getStatusIcon(order.orderStatus === "Shipped" ? "Processing" : order.orderStatus)}
               {translateStatus(order.orderStatus)}
             </div>
             {canCancelOrder && (
@@ -215,12 +216,14 @@ const OrderDetail = () => {
                 disabled={cancelling}
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-bold text-red-700 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {cancelling ? "Cancelling..." : "Cancel Order"}
+                {cancelling
+                  ? t("orderDetail.cancelling")
+                  : t("orderDetail.cancelOrder")}
               </button>
             )}
             {currentOrderStatus === "Cancelled" && (
               <p className="max-w-[220px] text-right text-xs font-semibold text-red-600">
-                This order has been cancelled.
+                {t("orderDetail.cancelledNotice")}
               </p>
             )}
           </div>

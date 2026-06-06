@@ -26,14 +26,8 @@ const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
         order.processedAt = order.processedAt || now;
     }
 
-    if (nextStatus === "Shipped") {
-        order.processedAt = order.processedAt || now;
-        order.shippedAt = order.shippedAt || now;
-    }
-
     if (nextStatus === "Delivered") {
         order.processedAt = order.processedAt || now;
-        order.shippedAt = order.shippedAt || now;
         order.isDelivered = true;
         order.deliveredAt = order.deliveredAt || now;
     }
@@ -517,10 +511,15 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
             const nextStatus = req.body.orderStatus || order.orderStatus;
 
+            if (nextStatus === "Shipped") {
+                res.status(400);
+                throw new Error("Shipped is no longer an available order status");
+            }
+
             if (req.user?.role === "seller") {
                 if (
                     order.orderStatus !== "Pending" ||
-                    !["Processing", "Shipped"].includes(nextStatus)
+                    nextStatus !== "Processing"
                 ) {
                     res.status(403);
                     throw new Error("Cashier accounts can only confirm pending orders");
@@ -568,7 +567,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         if (
             req.user?.role === "seller" &&
             previousStatus === "Pending" &&
-            ["Processing", "Shipped"].includes(updatedOrder?.orderStatus)
+            updatedOrder?.orderStatus === "Processing"
         ) {
             try {
                 const notification = await Notification.create({
