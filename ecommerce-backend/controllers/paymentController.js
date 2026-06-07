@@ -34,6 +34,38 @@ const verifyWebhookSignature = (req) => {
     }
 };
 
+const getOrderId = (orderRef) => orderRef?._id || orderRef;
+
+const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
+    const order = typeof orderRef?.save === "function"
+        ? orderRef
+        : await Order.findById(orderRef);
+
+    if (!order) {
+        return null;
+    }
+
+    order.isPaid = true;
+    order.paidAt = new Date();
+    order.paymentStatus = "Paid";
+
+    if (Object.keys(paymentResult).length > 0) {
+        order.paymentResult = {
+            ...order.paymentResult,
+            ...paymentResult,
+        };
+    }
+
+    await order.save();
+    emitOrderUpdated(order, {
+        paymentStatus: order.paymentStatus,
+        isPaid: order.isPaid,
+        paidAt: order.paidAt,
+    });
+
+    return order;
+};
+
 // @desc    Generate BAKONG KHQR code for payment
 // @route   POST /api/payments/bakong/generate
 // @access  Private
@@ -59,7 +91,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
 
     if (payment) {
         // Return existing payment if still valid
-        if (payment.khqrData.expiresAt > new Date()) {
+        if (payment.khqrData?.expiresAt > new Date()) {
             return res.json(payment);
         }
     }
@@ -144,28 +176,8 @@ function generateKHQRString(data) {
 
     // KHQR format follows EMVCo specification
     // This is a simplified example - use official BAKONG SDK in production
-    const khqr = {
-        payloadFormatIndicator: "01",
-        pointOfInitiationMethod: "12", // Dynamic QR
-        merchantAccountInformation: {
-            globallyUniqueIdentifier: acquiringBank,
-            merchantId: merchantId,
-        },
-        merchantCategoryCode: "0000",
-        transactionCurrency: currency === "KHR" ? "116" : "840", // 116=KHR, 840=USD
-        transactionAmount: amount.toString(),
-        countryCode: "KH",
-        merchantName: merchantName,
-        merchantCity: "Phnom Penh",
-        additionalData: {
-            referenceNumber: transactionId,
-        },
-    };
-
     // Construct KHQR string (simplified)
-    const khqrString = `00020101021230${merchantId}0${acquiringBank}52040000${currency === "KHR" ? "5303116" : "5303840"}54${amount.toString().length.toString().padStart(2, "0")}${amount}5802KH59${merchantName.length.toString().padStart(2, "0")}${merchantName}6011Phnom Penh62${transactionId.length.toString().padStart(2, "0")}${transactionId}6304`;
-
-    return khqrString;
+    return `00020101021230${merchantId}0${acquiringBank}52040000${currency === "KHR" ? "5303116" : "5303840"}54${amount.toString().length.toString().padStart(2, "0")}${amount}5802KH59${merchantName.length.toString().padStart(2, "0")}${merchantName}6011Phnom Penh62${transactionId.length.toString().padStart(2, "0")}${transactionId}6304`;
 }
 
 // @desc    Verify BAKONG payment (webhook/callback)
@@ -203,24 +215,11 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
             responseMessage: "Payment successful",
         };
 
-        // Update order payment status
-        const order = await Order.findById(payment.order);
-        if (order) {
-            order.isPaid = true;
-            order.paidAt = new Date();
-            order.paymentStatus = "Paid";
-            order.paymentResult = {
-                id: transactionId,
-                status: "Completed",
-                update_time: new Date().toISOString(),
-            };
-            await order.save();
-            emitOrderUpdated(order, {
-                paymentStatus: order.paymentStatus,
-                isPaid: order.isPaid,
-                paidAt: order.paidAt,
-            });
-        }
+        await markOrderAsPaid(payment.order, {
+            id: transactionId,
+            status: "Completed",
+            update_time: new Date().toISOString(),
+        });
     } else {
         payment.status = "Failed";
         payment.failedAt = new Date();
@@ -235,7 +234,7 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
     emitDomainChanged(
         "payments",
         payment.status === "Completed" ? "completed" : "failed",
-        { paymentId: payment._id, orderId: payment.order },
+        { paymentId: payment._id, orderId: getOrderId(payment.order) },
         { roles: ["admin", "seller"], userId: payment.user }
     );
 
@@ -260,7 +259,7 @@ export const getPaymentStatus = asyncHandler(async (req, res) => {
     }
 
     // Check if payment has expired
-    if (payment.status === "Pending" && payment.khqrData.expiresAt < new Date()) {
+    if (payment.status === "Pending" && payment.khqrData?.expiresAt < new Date()) {
         payment.status = "Expired";
         await payment.save();
     }
@@ -272,7 +271,10 @@ export const getPaymentStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/payments/order/:orderId
 // @access  Private
 export const getPaymentByOrderId = asyncHandler(async (req, res) => {
-    const payment = await Payment.findOne({ order: req.params.orderId }).populate("order");
+    const payment = await Payment.findOne({ order: req.params.orderId })
+        .populate("order")
+        .sort({ createdAt: -1 })
+        .lean();
 
     if (!payment) {
         res.status(404);
@@ -330,7 +332,8 @@ export const getAllPayments = asyncHandler(async (req, res) => {
     const payments = await Payment.find({})
         .populate("user", "name email")
         .populate("order")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
     res.json(payments);
 });
@@ -353,25 +356,13 @@ export const confirmPayment = asyncHandler(async (req, res) => {
         responseMessage: "Payment confirmed by admin",
     };
 
-    // Update order
-    const order = await Order.findById(payment.order);
-    if (order) {
-        order.isPaid = true;
-        order.paidAt = new Date();
-        order.paymentStatus = "Paid";
-        await order.save();
-        emitOrderUpdated(order, {
-            paymentStatus: order.paymentStatus,
-            isPaid: order.isPaid,
-            paidAt: order.paidAt,
-        });
-    }
+    await markOrderAsPaid(payment.order);
 
     await payment.save();
     emitDomainChanged(
         "payments",
         "confirmed",
-        { paymentId: payment._id, orderId: payment.order },
+        { paymentId: payment._id, orderId: getOrderId(payment.order) },
         { roles: ["admin", "seller"], userId: payment.user }
     );
 

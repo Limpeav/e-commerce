@@ -436,7 +436,8 @@ export const createOrder = asyncHandler(async (req, res) => {
 export const getAllOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find({})
         .populate("user", "name email")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
     res.json(orders);
 });
 
@@ -484,7 +485,8 @@ export const trackOrder = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(query)
         .populate("user", "name email")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
     const order = orders.find((candidate) => {
         const fullId = candidate._id.toString();
@@ -926,9 +928,9 @@ export const updateOrderToPaid = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 export const getUserOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find({ user: req.user._id }).sort({
-        createdAt: -1,
-    });
+    const orders = await Order.find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .lean();
     res.json(orders);
 });
 

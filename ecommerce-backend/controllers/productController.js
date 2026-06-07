@@ -533,7 +533,9 @@ export const getProducts = async (req, res) => {
   try {
     const isAdmin = req.user?.role === "admin";
     const filters = isAdmin ? {} : { stock: { $gt: 0 } };
-    const products = await Product.find(filters).sort({ createdAt: -1, _id: -1 });
+    const products = await Product.find(filters)
+      .sort({ createdAt: -1, _id: -1 })
+      .lean();
     res.json(await attachSalesMetrics(products));
   } catch (err) {
     res.status(500).json({ message: err.message });

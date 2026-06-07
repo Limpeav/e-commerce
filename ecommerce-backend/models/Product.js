@@ -88,6 +88,11 @@ const productSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+productSchema.index({ stock: 1, createdAt: -1, _id: -1 });
+productSchema.index({ category: 1, stock: 1, createdAt: -1 });
+productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
+productSchema.index({ totalSold: -1, rating: -1 });
+
 const Product = mongoose.model("Product", productSchema);
 
 export default Product;

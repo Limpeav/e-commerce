@@ -70,11 +70,11 @@ const paymentSchema = new mongoose.Schema(
     }
 );
 
-// Index for faster queries
-paymentSchema.index({ order: 1 });
-paymentSchema.index({ user: 1 });
-paymentSchema.index({ status: 1 });
-paymentSchema.index({ "khqrData.transactionId": 1 });
+// Indexes match the payment controller's most common lookup patterns.
+paymentSchema.index({ order: 1, status: 1 });
+paymentSchema.index({ user: 1, createdAt: -1 });
+paymentSchema.index({ status: 1, createdAt: -1 });
+paymentSchema.index({ "khqrData.transactionId": 1 }, { unique: true, sparse: true });
 
 const Payment = mongoose.model("Payment", paymentSchema);
 
