@@ -14,7 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 
 // UI Components
 import { AlertMessage } from "../../components";
@@ -304,7 +304,7 @@ const Profile = () => {
   if (!user) {
     return (
       <div className={`min-h-screen flex items-center justify-center font-sans transition-colors ${isDark ? "bg-slate-950" : "bg-stone-50"}`}>
-        <motion.div 
+        <Motion.div
           initial={{ scale: 0.9, opacity: 0 }} 
           animate={{ scale: 1, opacity: 1 }} 
           className={`text-center p-12 rounded-[2rem] shadow-xl border max-w-md w-full transition-colors ${
@@ -319,7 +319,7 @@ const Profile = () => {
           <Link to="/login" className="w-full rounded-xl bg-primary py-4 font-bold text-white flex items-center justify-center gap-2 transition-all shadow-lg hover:bg-primary-dark hover:shadow-primary/30">
             {t("profile.signInNow")} <ChevronRight className="w-5 h-5" />
           </Link>
-        </motion.div>
+        </Motion.div>
       </div>
     );
   }
@@ -339,14 +339,14 @@ const Profile = () => {
         
         <AnimatePresence>
           {success && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
+            <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
               <AlertMessage type="success" message={success} title={t("profile.success")} onClose={() => setSuccess("")} />
-            </motion.div>
+            </Motion.div>
           )}
           {error && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
+            <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="mb-6">
               <AlertMessage type="error" message={error} title={t("profile.error")} onClose={() => setError("")} />
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
 
@@ -356,13 +356,13 @@ const Profile = () => {
           
           {/* Sidebar Area */}
           <div className="hidden lg:block">
-            <motion.div
+            <Motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               className="sticky top-24"
             >
               <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-            </motion.div>
+            </Motion.div>
           </div>
 
           {/* Main Profile Area */}
@@ -370,7 +370,7 @@ const Profile = () => {
             {/* Content Area */}
             <AnimatePresence mode="wait">
               {activeTab === "edit" && (
-                <motion.div
+                <Motion.div
                   key="edit"
                   variants={containerVariants}
                   initial="hidden"
@@ -387,7 +387,7 @@ const Profile = () => {
                       <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-95"
+                        className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-95 sm:px-6"
                       >
                         <Settings className="h-4 w-4" />
                         {t("profile.editProfile")}
@@ -495,11 +495,11 @@ const Profile = () => {
                       </div>
                     </form>
                   )}
-                </motion.div>
+                </Motion.div>
               )}
 
               {activeTab === "security" && (
-                <motion.div
+                <Motion.div
                   key="security"
                   variants={containerVariants}
                   initial="hidden"
@@ -669,7 +669,7 @@ const Profile = () => {
                       </div>
                     </form>
                   )}
-                </motion.div>
+                </Motion.div>
               )}
 
             </AnimatePresence>
