@@ -32,6 +32,7 @@ import {
   getMyOrders,
 } from "../../services/orderService";
 import { subscribeRealtimeDomains } from "../../services/realtime";
+import logo from "../../assets/logo.png";
 
 const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
   <label
@@ -189,10 +190,10 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/customer" className="flex items-center gap-3 group">
               <Motion.div
-                whileHover={{ rotate: 12 }}
-                className="bg-primary-light/20 p-2.5 rounded-2xl transition-all duration-300"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="bg-white p-1 rounded-2xl transition-all duration-300 shadow-md border border-stone-100 flex items-center justify-center w-12 h-12"
               >
-                <Baby className="w-7 h-7 text-primary" />
+                <img src={logo} alt="Cherish Baby Store Logo" className="w-10 h-10 object-contain rounded-xl" />
               </Motion.div>
               <h1 className="text-2xl font-bold text-text-main tracking-tight font-display leading-none">
                 Cherish Baby Store
@@ -367,8 +368,8 @@ export default function Navbar() {
               <Menu className="w-6 h-6" />
             </button>
             <Link to="/customer" className="flex items-center gap-2">
-              <div className="rounded-xl bg-primary/10 p-1.5">
-                <Baby className="w-5 h-5 text-primary" />
+              <div className="rounded-xl bg-white p-1 border border-stone-100 shadow-sm flex items-center justify-center w-9 h-9">
+                <img src={logo} alt="Cherish Baby Store Logo" className="w-7 h-7 object-contain rounded-lg" />
               </div>
               <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">Cherish Baby Store</h1>
             </Link>

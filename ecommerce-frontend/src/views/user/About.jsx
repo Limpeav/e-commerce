@@ -45,6 +45,7 @@ export default function About() {
         { name: "Hour Limpeav", role: t("about.team.ceoFounder") },
         { name: "Houn Sopheak", role: t("about.team.headOfOperations") },
         { name: "Poeng Lyheng", role: t("about.team.techLead") },
+        { name: "Srors Muyyi", role: t("about.team.marketingDirector") },
     ];
 
     const milestones = [
@@ -186,7 +187,7 @@ export default function About() {
                         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.leadership")}</span>
                         <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.teamTitle")}</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         {team.map((member) => (
                             <div key={member.name} className="group rounded-2xl border bg-bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8" style={{ borderColor: "var(--color-border)" }}>
                                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border bg-primary/10 sm:h-24 sm:w-24" style={{ borderColor: "var(--color-border)" }}>

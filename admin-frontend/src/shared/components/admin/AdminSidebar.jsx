@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { subscribeRealtimeDomains } from '../../services/realtime'
+import logo from '../../assets/logo.png'
 
 const AdminSidebar = () => {
   const location = useLocation()
@@ -172,8 +173,8 @@ const AdminSidebar = () => {
           {/* Logo */}
           <div className="flex items-center justify-center h-16 border-b border-[var(--color-border)] bg-[var(--color-surface-soft)]">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-card)] flex items-center justify-center border border-[var(--color-border)]">
-                <LayoutDashboard className="w-5 h-5 text-[var(--color-primary)]" />
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-[var(--color-border)] p-0.5 shadow-sm">
+                <img src={logo} alt="Cherish Baby Logo" className="w-full h-full object-contain rounded-md" />
               </div>
               <h1 className="text-xl font-bold text-[var(--color-text-main)]">
                 {adminUser?.role === 'admin'
