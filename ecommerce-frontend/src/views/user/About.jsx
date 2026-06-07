@@ -42,10 +42,9 @@ export default function About() {
     ];
 
     const team = [
-        { name: "Sophea Chea", role: t("about.team.ceoFounder") },
-        { name: "Vannak Som", role: t("about.team.headOfOperations") },
-        { name: "Borey Khiev", role: t("about.team.techLead") },
-        { name: "Ratanak Meas", role: t("about.team.marketingDirector") },
+        { name: "Hour Limpeav", role: t("about.team.ceoFounder") },
+        { name: "Houn Sopheak", role: t("about.team.headOfOperations") },
+        { name: "Poeng Lyheng", role: t("about.team.techLead") },
     ];
 
     const milestones = [
@@ -169,7 +168,7 @@ export default function About() {
                     </div>
                     <div className="rounded-2xl border bg-bg-card p-6 sm:p-8 md:p-10" style={{ borderColor: "var(--color-border)" }}>
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                            {milestones.map((m, i) => (
+                            {milestones.map((m) => (
                                 <div key={m.year} className="relative pl-6 border-l-2 border-primary/20">
                                     <div className="absolute left-[-5px] top-0 h-2 w-2 rounded-full bg-primary" />
                                     <p className="text-2xl font-bold text-primary sm:text-3xl">{m.year}</p>
@@ -187,7 +186,7 @@ export default function About() {
                         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{t("about.leadership")}</span>
                         <h2 className="mt-3 text-2xl font-bold tracking-tight text-text-main sm:text-3xl md:text-4xl">{t("about.teamTitle")}</h2>
                     </div>
-                    <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                         {team.map((member) => (
                             <div key={member.name} className="group rounded-2xl border bg-bg-card p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/8" style={{ borderColor: "var(--color-border)" }}>
                                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border bg-primary/10 sm:h-24 sm:w-24" style={{ borderColor: "var(--color-border)" }}>

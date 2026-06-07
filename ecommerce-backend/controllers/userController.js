@@ -7,27 +7,11 @@ import {
   sendDeleteAccountOtp,
 } from "../utils/sendEmail.js";
 import { emitDomainChanged } from "../realtime/socket.js";
+import { normalizeCambodiaMobilePhone } from "../utils/cambodiaPhone.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET);
-};
-
-const normalizeCambodiaPhone = (phone = "") => {
-  const digits = String(phone).replace(/\D/g, "");
-  let localDigits = digits;
-
-  if (localDigits.startsWith("855")) {
-    localDigits = localDigits.slice(3);
-  }
-
-  localDigits = localDigits.replace(/^0+/, "");
-
-  if (!/^\d{8,9}$/.test(localDigits)) {
-    return null;
-  }
-
-  return `+855${localDigits}`;
 };
 
 const normalizeEmail = (email = "") => String(email).trim().toLowerCase();
@@ -47,7 +31,7 @@ export const registerUser = async (req, res) => {
   try {
     const { name, password } = req.body;
     const email = normalizeEmail(req.body.email);
-    const normalizedPhone = req.body.phone ? normalizeCambodiaPhone(req.body.phone) : "";
+    const normalizedPhone = req.body.phone ? normalizeCambodiaMobilePhone(req.body.phone) : "";
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
@@ -289,7 +273,7 @@ export const updateUserProfile = async (req, res) => {
       user.email = req.body.email;
     }
     if (req.body.phone) {
-      const normalizedPhone = normalizeCambodiaPhone(req.body.phone);
+      const normalizedPhone = normalizeCambodiaMobilePhone(req.body.phone);
 
       if (!normalizedPhone) {
         return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
@@ -609,13 +593,21 @@ export const resetPassword = async (req, res) => {
 export const startPhoneVerification = async (req, res) => {
   try {
     const { phone } = req.body;
+    const normalizedPhone = normalizeCambodiaMobilePhone(phone);
 
     if (!phone) {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
+    if (!normalizedPhone) {
+      return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
+    }
+
     // Check if phone is already taken by ANOTHER user
-    const existingUser = await User.findOne({ phone: phone, _id: { $ne: req.user._id } });
+    const existingUser = await User.findOne({
+      phone: normalizedPhone,
+      _id: { $ne: req.user._id },
+    });
     if (existingUser) {
       return res.status(400).json({ message: "Phone number already in use by another account" });
     }
@@ -635,7 +627,7 @@ export const startPhoneVerification = async (req, res) => {
       .digest("hex");
 
     // Update user with temp phone and code
-    user.tempPhone = phone;
+    user.tempPhone = normalizedPhone;
     user.phoneVerificationCode = hashedCode;
     user.phoneVerificationExpire = Date.now() + 10 * 60 * 1000; // 10 mins
 
@@ -647,7 +639,7 @@ export const startPhoneVerification = async (req, res) => {
 
     if (process.env.NODE_ENV !== "production") {
       responsePayload.devVerificationCode = verificationCode;
-      console.log(`Phone verification code for ${phone}: ${verificationCode}`);
+      console.log(`Phone verification code for ${normalizedPhone}: ${verificationCode}`);
     }
 
     res.json(responsePayload);

@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/useAuth";
+import { useLanguage } from "../../../context/useLanguage";
 import { useToast } from "../../../context/ToastContext";
 import { updateUserProfile } from "../../../services/authApi";
+import {
+    isValidCambodiaMobilePhone,
+    normalizeCambodiaMobilePhone,
+    toCambodiaLocalPhoneDigits,
+} from "../../../utils/cambodiaPhone";
 import {
     Phone,
     AlertCircle,
@@ -15,25 +21,9 @@ import {
 
 const CAMBODIA_DIAL_CODE = "+855";
 
-const toLocalPhoneDigits = (phone = "") => {
-    const digits = String(phone).replace(/\D/g, "");
-
-    if (digits.startsWith("855")) {
-        return digits.slice(3);
-    }
-
-    return digits.replace(/^0/, "");
-};
-
-const toCambodiaPhone = (phone = "") => {
-    const localDigits = toLocalPhoneDigits(phone);
-    return localDigits ? `${CAMBODIA_DIAL_CODE}${localDigits}` : "";
-};
-
-const isValidCambodiaPhone = (phone = "") => /^\d{8,9}$/.test(toLocalPhoneDigits(phone));
-
 const CompleteProfile = () => {
     const { user, login, logout } = useAuth();
+    const { t } = useLanguage();
     const { success } = useToast();
     const navigate = useNavigate();
 
@@ -56,9 +46,13 @@ const CompleteProfile = () => {
         e.preventDefault();
         setError("");
 
-        // Basic validation
-        if (!isValidCambodiaPhone(phone)) {
-            setError("Please enter a valid Cambodia phone number");
+        if (!phone) {
+            setError(t("completeProfile.phoneRequired"));
+            return;
+        }
+
+        if (!isValidCambodiaMobilePhone(phone)) {
+            setError(t("completeProfile.invalidPhone"));
             return;
         }
 
@@ -67,21 +61,24 @@ const CompleteProfile = () => {
         try {
             if (!user?.token) throw new Error("Authentication error. Please login again.");
             const { data } = await updateUserProfile(user.token, {
-                phone: toCambodiaPhone(phone),
+                phone: normalizeCambodiaMobilePhone(phone),
             });
             const updatedUser = { ...user, phone: data.phone };
             login(updatedUser);
 
-            success("Profile Completed", "Phone number saved successfully.");
+            success(t("completeProfile.successTitle"), t("completeProfile.savedSuccess"));
             setCompleted(true);
 
             setTimeout(() => {
                 navigate("/customer");
             }, 1500);
         } catch (err) {
-            setError(
-                err.response?.data?.message || "Failed to save phone number."
-            );
+            const responseMessage = err.response?.data?.message;
+            setError(responseMessage === "Phone number already in use"
+                ? t("completeProfile.phoneInUse")
+                : responseMessage === "Please enter a valid Cambodia phone number"
+                    ? t("completeProfile.invalidPhone")
+                    : t("completeProfile.saveFailed"));
         } finally {
             setLoading(false);
         }
@@ -105,10 +102,10 @@ const CompleteProfile = () => {
                         <Smartphone className="w-8 h-8 text-primary" />
                     </div>
                     <h1 className="text-3xl font-black text-text-main mb-2 font-display">
-                        Complete Profile
+                        {t("completeProfile.title")}
                     </h1>
                     <p className="text-text-muted font-medium">
-                        Add your phone number to continue
+                        {t("completeProfile.subtitle")}
                     </p>
                 </div>
 
@@ -124,16 +121,16 @@ const CompleteProfile = () => {
 
                     {/* Enter Phone Form */}
                     {!completed && (
-                        <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                        <form onSubmit={handlePhoneSubmit} noValidate className="space-y-6">
                             <div className="bg-primary/5 rounded-2xl p-4 text-center dark:bg-primary/10 dark:border dark:border-primary/20">
                                 <p className="text-sm text-text-muted font-medium">
-                                    Please add your phone number before continuing.
+                                    {t("completeProfile.prompt")}
                                 </p>
                             </div>
 
                             <div className="group">
                                 <label className="block text-xs font-black text-primary uppercase tracking-widest mb-3 ml-1">
-                                    Phone Number
+                                    {t("completeProfile.phoneNumber")}
                                 </label>
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40">
@@ -146,9 +143,14 @@ const CompleteProfile = () => {
                                         type="tel"
                                         placeholder="16568335"
                                         value={phone}
-                                        onChange={(e) => setPhone(toLocalPhoneDigits(e.target.value))}
-                                        required
+                                        onChange={(e) => {
+                                            setPhone(toCambodiaLocalPhoneDigits(e.target.value));
+                                            setError("");
+                                        }}
+                                        inputMode="numeric"
+                                        maxLength={9}
                                         autoFocus
+                                        aria-invalid={Boolean(error)}
                                         className="w-full pl-28 pr-4 py-4 border-2 border-stone-100 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold bg-stone-50/50 focus:bg-white"
                                     />
                                 </div>
@@ -156,17 +158,17 @@ const CompleteProfile = () => {
 
                             <button
                                 type="submit"
-                                disabled={loading || !phone}
+                                disabled={loading}
                                 className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <>
                                         <Loader className="w-4 h-4 animate-spin" />
-                                        Saving...
+                                        {t("completeProfile.saving")}
                                     </>
                                 ) : (
                                     <>
-                                        Save Phone Number
+                                        {t("completeProfile.savePhone")}
                                         <ArrowRight className="w-4 h-4" />
                                     </>
                                 )}
@@ -178,7 +180,7 @@ const CompleteProfile = () => {
                                 className="w-full py-3 text-xs font-bold text-stone-400 hover:text-red-500 transition-colors flex items-center justify-center gap-2"
                             >
                                 <LogOut className="w-3 h-3" />
-                                Logout and Try Later
+                                {t("completeProfile.logout")}
                             </button>
                         </form>
                     )}
@@ -189,8 +191,8 @@ const CompleteProfile = () => {
                             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce dark:bg-green-950/30">
                                 <CheckCircle className="w-10 h-10 text-green-500" />
                             </div>
-                            <h3 className="text-xl font-black text-green-800 mb-2 dark:text-green-400">Success!</h3>
-                            <p className="text-green-600 mb-6 dark:text-green-500">Redirecting you to home page...</p>
+                            <h3 className="text-xl font-black text-green-800 mb-2 dark:text-green-400">{t("completeProfile.success")}</h3>
+                            <p className="text-green-600 mb-6 dark:text-green-500">{t("completeProfile.redirecting")}</p>
                             <Loader className="w-6 h-6 text-primary animate-spin mx-auto" />
                         </div>
                     )}
