@@ -2,6 +2,8 @@ import axios from "axios";
 import { API_BASE_URL, getUserToken, withAuthHeaders } from "./http";
 import { ORDER_REQUEST_TIMEOUT_MS } from "../utils/checkout";
 
+export const CUSTOMER_ORDER_CREATED_EVENT = "customer:order-created";
+
 export const createOrder = async (orderData) => {
   const token = getUserToken();
   if (!token) {
@@ -18,9 +20,29 @@ export const createOrder = async (orderData) => {
   return response.data;
 };
 
+export const notifyCustomerOrderCreated = (order) => {
+  window.dispatchEvent(
+    new CustomEvent(CUSTOMER_ORDER_CREATED_EVENT, {
+      detail: { order },
+    })
+  );
+};
+
 export const getOrderById = async (orderId) => {
   const token = getUserToken();
   const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`, {
+    headers: withAuthHeaders(token),
+  });
+  return response.data;
+};
+
+export const getMyOrders = async () => {
+  const token = getUserToken();
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await axios.get(`${API_BASE_URL}/orders/myorders`, {
     headers: withAuthHeaders(token),
   });
   return response.data;

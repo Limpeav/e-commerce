@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useToast } from "./ToastContext";
 import { CartController } from "../controllers/index.js";
 import { useAuth } from "./useAuth";
@@ -10,6 +10,7 @@ import { useDarkMode } from "../hooks";
 import { useLanguage } from "./useLanguage";
 import { getEffectiveCartProductPrice, getValidCartItems } from "../utils/checkout";
 import { getCartItemKey } from "../utils/productOptions";
+import { withGlobalLoading } from "../services/loadingIndicator";
 
 const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/admin") ||
@@ -63,7 +64,10 @@ export const CartProvider = ({ children }) => {
 
     try {
       const productLabel = product?.title || product?.name || "This product";
-      const result = await CartController.addToCart(product, quantity, options);
+      const result = await withGlobalLoading(
+        () => CartController.addToCart(product, quantity, options),
+        "cart-add"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -99,7 +103,10 @@ export const CartProvider = ({ children }) => {
     );
 
     try {
-      const result = await CartController.updateQuantity(productId, newQuantity, options);
+      const result = await withGlobalLoading(
+        () => CartController.updateQuantity(productId, newQuantity, options),
+        "cart-update"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -117,7 +124,10 @@ export const CartProvider = ({ children }) => {
     if (!canUseCustomerCart) return;
 
     try {
-      const result = await CartController.removeFromCart(productId, options);
+      const result = await withGlobalLoading(
+        () => CartController.removeFromCart(productId, options),
+        "cart-remove"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -135,7 +145,10 @@ export const CartProvider = ({ children }) => {
     if (!canUseCustomerCart) return;
 
     try {
-      const result = await CartController.clearCart();
+      const result = await withGlobalLoading(
+        () => CartController.clearCart(),
+        "cart-clear"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -214,7 +227,7 @@ const CartPreviewDrawer = ({
 
   return (
     <div className="fixed inset-0 z-[160]">
-      <motion.button
+      <Motion.button
         type="button"
         className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={onClose}
@@ -225,7 +238,7 @@ const CartPreviewDrawer = ({
         transition={{ duration: 0.2 }}
       />
 
-      <motion.aside
+      <Motion.aside
         className={`absolute inset-x-0 bottom-0 flex max-h-[88dvh] w-full flex-col rounded-t-[2rem] border-t shadow-2xl transition-colors duration-300 sm:inset-x-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:max-w-[28rem] sm:rounded-none sm:border-l sm:border-t-0 ${
           isDark
             ? "border-slate-800 bg-slate-950 text-slate-50"
@@ -290,7 +303,7 @@ const CartPreviewDrawer = ({
               </p>
             </div>
           ) : (
-            <motion.div
+            <Motion.div
               className="space-y-4 sm:space-y-5"
               variants={{
                 open: {
@@ -314,7 +327,7 @@ const CartPreviewDrawer = ({
                 const productId = item.product._id;
 
                 return (
-                  <motion.article
+                  <Motion.article
                     key={getCartItemKey(item)}
                     className="grid grid-cols-[76px_1fr_auto] gap-3 sm:grid-cols-[96px_1fr_auto] sm:gap-4"
                     variants={{
@@ -397,15 +410,15 @@ const CartPreviewDrawer = ({
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
-                  </motion.article>
+                  </Motion.article>
                 );
               })}
-            </motion.div>
+            </Motion.div>
           )}
         </div>
 
         {validCartItems.length > 0 && (
-          <motion.footer
+          <Motion.footer
             className={`shrink-0 border-t px-4 py-4 sm:px-5 sm:py-5 ${
               isDark ? "border-slate-800" : "border-stone-200"
             }`}
@@ -436,9 +449,9 @@ const CartPreviewDrawer = ({
             >
               {t("cart.checkout")}
             </Link>
-          </motion.footer>
+          </Motion.footer>
         )}
-      </motion.aside>
+      </Motion.aside>
     </div>
   );
 };

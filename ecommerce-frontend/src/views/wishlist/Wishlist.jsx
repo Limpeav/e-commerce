@@ -134,11 +134,11 @@ export default function Wishlist() {
               <div className="px-1 sm:px-2 flex-1 flex flex-col">
                 <div className="mb-3 sm:mb-4 flex-1">
                   <Link to={`/products/${product._id}`}>
-                    <h3 className="font-bold text-text-main text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 sm:line-clamp-1 hover:text-primary transition-colors tracking-tight">
+                    <h3 data-no-static-translation className="font-bold text-text-main text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 sm:line-clamp-1 hover:text-primary transition-colors tracking-tight">
                       {localizedProduct.title}
                     </h3>
                   </Link>
-                  <p className="hidden sm:block text-text-muted text-xs font-medium leading-relaxed line-clamp-2">
+                  <p data-no-static-translation className="hidden sm:block text-text-muted text-xs font-medium leading-relaxed line-clamp-2">
                     {localizedProduct.description}
                   </p>
                 </div>

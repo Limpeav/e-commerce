@@ -20,6 +20,7 @@ const getEnglishOriginal = (value, reverseDictionary) => {
 };
 
 const translateTextNode = (node, dictionary, reverseDictionary, language) => {
+  if (node.parentElement?.closest("[data-no-static-translation]")) return;
   if (hasDigit(node.nodeValue)) return;
 
   if (!textNodeOriginals.has(node)) {
@@ -53,6 +54,8 @@ const translateTextNode = (node, dictionary, reverseDictionary, language) => {
 };
 
 const translateAttributes = (element, dictionary, reverseDictionary, language) => {
+  if (element.closest("[data-no-static-translation]")) return;
+
   ATTRIBUTE_NAMES.forEach((name) => {
     const currentValue = element.getAttribute(name);
     if (!currentValue) return;

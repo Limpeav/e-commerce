@@ -29,6 +29,7 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
   const [shippingAddress, setShippingAddress] = useState({
     fullName: user?.name || "",
+    street: "",
     address: "",
     city: "",
     phone: toLocalPhoneDigits(user?.phone || ""),
@@ -125,6 +126,7 @@ const Checkout = () => {
     return {
       lat: result?.geometry?.location?.lat?.() ?? fallbackLocation.lat,
       lng: result?.geometry?.location?.lng?.() ?? fallbackLocation.lng,
+      street: addressLine,
       address,
       city: city || province || locality || district || getCityProvinceFromText(formattedAddress),
       formattedAddress,
@@ -171,6 +173,7 @@ const Checkout = () => {
       ...currentAddress,
       latitude: location.lat,
       longitude: location.lng,
+      street: location.street || currentAddress.street,
       address: readableAddress || currentAddress.address,
       city:
         cityProvince ||

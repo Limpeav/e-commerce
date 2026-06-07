@@ -1,7 +1,12 @@
 import { Loader, Lock, Package } from "lucide-react";
 import { getEffectiveCartProductPrice } from "../../../utils/checkout";
+import { useLanguage } from "../../../context/useLanguage";
+import { getLocalizedProductText } from "../../../utils/productLocalization";
 
-const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
+const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => {
+  const { language } = useLanguage();
+
+  return (
   <div className="lg:col-span-1">
     <div className={`rounded-[2.5rem] border p-8 md:p-10 sticky top-32 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
       <h2 className="text-xl font-bold text-text-main mb-8 flex items-center gap-4 font-display">
@@ -12,7 +17,10 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       </h2>
 
       <div className="space-y-4 mb-8 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-        {cartItems.map((item) => (
+        {cartItems.map((item) => {
+          const localizedProduct = getLocalizedProductText(item.product, language);
+
+          return (
           <div
             key={`${item.product._id}:${item.size || "standard"}`}
             className={`flex items-center gap-4 p-3 rounded-2xl border group ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
@@ -20,13 +28,13 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 p-1.5 border ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
               <img
                 src={item.product.image}
-                alt={item.product.title || item.product.name}
+                alt={localizedProduct.title}
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-text-main text-sm truncate">
-                {item.product.title || item.product.name}
+              <p data-no-static-translation className="font-bold text-text-main text-sm truncate">
+                {localizedProduct.title}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>
@@ -45,7 +53,8 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
               </p>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className={`space-y-3 mb-8 border-t pt-6 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
@@ -102,6 +111,7 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       </p>
     </div>
   </div>
-);
+  );
+};
 
 export default OrderSummaryPanel;

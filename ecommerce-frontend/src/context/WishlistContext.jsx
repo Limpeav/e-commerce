@@ -6,6 +6,7 @@ import { useAuth } from "./useAuth";
 import { WishlistContext } from "./wishlist-context";
 import { useLanguage } from "./useLanguage";
 import { getLocalizedProductText } from "../utils/productLocalization";
+import { withGlobalLoading } from "../services/loadingIndicator";
 
 const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/admin") ||
@@ -52,7 +53,10 @@ export const WishlistProvider = ({ children }) => {
 
     try {
       const productLabel = getLocalizedProductText(product, language).title || t("wishlistAlerts.thisProduct");
-      const result = await WishlistController.addToWishlist(product);
+      const result = await withGlobalLoading(
+        () => WishlistController.addToWishlist(product),
+        "wishlist-add"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -73,7 +77,10 @@ export const WishlistProvider = ({ children }) => {
     if (!canUseCustomerWishlist) return;
 
     try {
-      const result = await WishlistController.removeFromWishlist(productId);
+      const result = await withGlobalLoading(
+        () => WishlistController.removeFromWishlist(productId),
+        "wishlist-remove"
+      );
       if (!result.success) {
         throw new Error(result.error);
       }

@@ -21,12 +21,17 @@ import {
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { supportedLanguages } from "../../i18n/translations";
 import { useToast } from "../../context/ToastContext";
+import {
+  CUSTOMER_ORDER_CREATED_EVENT,
+  getMyOrders,
+} from "../../services/orderService";
+import { subscribeRealtimeDomains } from "../../services/realtime";
 
 const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
   <label
@@ -61,8 +66,59 @@ export default function Navbar() {
   const [isDark, , themeMode, setThemeMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const accountDropdownRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
+
+  const refreshActiveOrderAlert = useCallback(async () => {
+    try {
+      const orders = await getMyOrders();
+      setHasActiveOrder(
+        Array.isArray(orders)
+          && orders.some((order) => {
+            const status = String(order?.orderStatus || "").trim();
+            return status !== "Delivered" && status !== "Cancelled";
+          })
+      );
+    } catch {
+      setHasActiveOrder(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    Promise.resolve().then(refreshActiveOrderAlert);
+    const handleOrderCreated = () => setHasActiveOrder(true);
+    const unsubscribeRealtime = subscribeRealtimeDomains(
+      ["orders"],
+      refreshActiveOrderAlert
+    );
+
+    window.addEventListener(CUSTOMER_ORDER_CREATED_EVENT, handleOrderCreated);
+
+    return () => {
+      unsubscribeRealtime();
+      window.removeEventListener(
+        CUSTOMER_ORDER_CREATED_EVENT,
+        handleOrderCreated
+      );
+    };
+  }, [refreshActiveOrderAlert, user]);
+
+  useEffect(() => {
+    if (!showDropdown) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (!accountDropdownRef.current?.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsideClick);
+    return () => document.removeEventListener("pointerdown", handleOutsideClick);
+  }, [showDropdown]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -114,6 +170,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
+    setHasActiveOrder(false);
     info(t("auth.logoutTitle"), t("auth.logoutMessage"));
     setShowDropdown(false);
     setShowMobileMenu(false);
@@ -224,7 +281,7 @@ export default function Navbar() {
                 </button>
                 <LanguageSelect language={language} setLanguage={setLanguage} t={t} />
                 {user ? (
-                  <div className="relative">
+                  <div ref={accountDropdownRef} className="relative">
                     <button
                       onClick={() => setShowDropdown(!showDropdown)}
                       className="flex items-center gap-2 rounded-2xl p-1 transition-colors hover:bg-primary/10"
@@ -242,9 +299,7 @@ export default function Navbar() {
 
                     <AnimatePresence>
                       {showDropdown && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
-                          <Motion.div
+                        <Motion.div
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -260,7 +315,16 @@ export default function Navbar() {
                                 <User className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.profile")}</span>
                               </Link>
                               <Link to="/customer/orders" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
-                                <Package className="w-4 h-4" /><span className="text-sm font-semibold">{t("nav.myOrders")}</span>
+                                <Package className="w-4 h-4" />
+                                <span className="text-sm font-semibold">{t("nav.myOrders")}</span>
+                                {hasActiveOrder && (
+                                  <span
+                                    className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-sm"
+                                    aria-label="1 active order"
+                                  >
+                                    1
+                                  </span>
+                                )}
                               </Link>
                               <div className="mx-4 my-2 h-px" style={{ backgroundColor: "var(--color-border)" }}></div>
                               <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-text-muted transition-colors hover:bg-secondary/15 hover:text-secondary">
@@ -268,7 +332,6 @@ export default function Navbar() {
                               </button>
                             </div>
                           </Motion.div>
-                        </>
                       )}
                     </AnimatePresence>
                   </div>
@@ -448,7 +511,7 @@ export default function Navbar() {
                     <p className="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("nav.account")}</p>
                     {[
                       { to: "/customer/profile", icon: User, label: t("nav.profile") },
-                      { to: "/customer/orders", icon: Package, label: t("nav.myOrders") },
+                      { to: "/customer/orders", icon: Package, label: t("nav.myOrders"), showPendingAlert: true },
                       { to: "/customer/settings", icon: Settings, label: t("nav.settings") },
                     ].map((item) => (
                       <Link
@@ -462,6 +525,14 @@ export default function Navbar() {
                       >
                         <item.icon className="h-5 w-5 shrink-0" />
                         <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
+                        {item.showPendingAlert && hasActiveOrder && (
+                          <span
+                            className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-sm"
+                            aria-label="1 active order"
+                          >
+                            1
+                          </span>
+                        )}
                       </Link>
                     ))}
                   </>

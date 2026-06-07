@@ -159,6 +159,7 @@ const dispatchOrderAlerts = ({
                     0
                 ),
                 shippingAddress: [
+                    shippingAddress.street,
                     shippingAddress.address,
                     shippingAddress.city,
                     shippingAddress.postalCode,

@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { ProductController } from "../controllers/productController";
+import {
+  subscribeRealtimeDomains,
+  subscribeRealtimeEvent,
+} from "../services/realtime";
 
 export const useProductDetail = (id, user, language = "en") => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProduct = useCallback(async () => {
+  const fetchProduct = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const result = await ProductController.getProductDetail(id, user);
 
@@ -21,7 +25,7 @@ export const useProductDetail = (id, user, language = "en") => {
       setError(err.message || "Failed to fetch product");
       console.error("Failed to fetch product", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [id, user]);
 
@@ -30,6 +34,29 @@ export const useProductDetail = (id, user, language = "en") => {
       fetchProduct();
     }
   }, [id, fetchProduct]);
+
+  useEffect(() => {
+    if (!id) return undefined;
+
+    const refreshProduct = (payload) => {
+      if (!payload?.productId || String(payload.productId) === String(id)) {
+        fetchProduct({ silent: true });
+      }
+    };
+    const unsubscribeProducts = subscribeRealtimeDomains(
+      ["products"],
+      refreshProduct
+    );
+    const unsubscribeLanguage = subscribeRealtimeEvent(
+      "language:changed",
+      () => fetchProduct({ silent: true })
+    );
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeLanguage();
+    };
+  }, [fetchProduct, id]);
 
   useEffect(() => {
     const translateMissingKhmerText = async () => {

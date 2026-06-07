@@ -45,6 +45,17 @@ export const subscribeRealtimeEvent = (eventName, handler) => {
   };
 };
 
+export const publishLanguageChange = (language) => {
+  const socket = getRealtimeSocket();
+  const normalizedLanguage = language === "km" ? "kh" : language;
+
+  if (!socket || !["en", "kh"].includes(normalizedLanguage)) {
+    return;
+  }
+
+  socket.emit("language:change", normalizedLanguage);
+};
+
 export const subscribeRealtimeDomains = (domains, handler, { debounceMs = 150 } = {}) => {
   const socket = getRealtimeSocket();
   if (!socket || !Array.isArray(domains) || domains.length === 0) {

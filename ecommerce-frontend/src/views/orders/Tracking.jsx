@@ -145,6 +145,7 @@ export default function OrderTracking() {
     : addDays(trackingData?.processedAt || trackingData?.createdAt, 5);
   const displayOrderId = trackingData?._id ? trackingData._id.slice(-8).toUpperCase() : "";
   const destination = [
+    trackingData?.shippingAddress?.street,
     trackingData?.shippingAddress?.address,
     trackingData?.shippingAddress?.city,
     trackingData?.shippingAddress?.postalCode,

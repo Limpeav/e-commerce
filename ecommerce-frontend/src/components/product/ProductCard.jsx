@@ -136,13 +136,13 @@ const ProductCard = ({
 
         {/* Title */}
         <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
-          <h3 className={`font-bold text-sm leading-snug line-clamp-1 min-h-[1.125rem] sm:min-h-[1.375rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
+          <h3 data-no-static-translation className={`font-bold text-sm leading-snug line-clamp-1 min-h-[1.125rem] sm:min-h-[1.375rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {localizedProduct.title}
           </h3>
         </Link>
 
         {/* Description Snippet (Optional - keeps card informative) */}
-        <p className={`text-[11px] font-medium line-clamp-2 sm:line-clamp-3 sm:text-xs ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
+        <p data-no-static-translation className={`text-[11px] font-medium line-clamp-2 sm:line-clamp-3 sm:text-xs ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
           {localizedProduct.description || t('product.premiumQuality')}
         </p>
 

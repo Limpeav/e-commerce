@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import i18n from "../i18n";
 import { translations } from "../i18n/translations";
 import { LanguageContext } from "./language-context";
+import {
+  publishLanguageChange,
+  subscribeRealtimeEvent,
+} from "../services/realtime";
 
 const STORAGE_KEY = "language";
 const DEFAULT_LANGUAGE = "en";
@@ -42,11 +46,23 @@ export const LanguageProvider = ({ children }) => {
     window.localStorage.setItem(STORAGE_KEY, language);
   }, [language]);
 
+  useEffect(
+    () =>
+      subscribeRealtimeEvent("language:changed", (payload) => {
+        const nextLanguage = normalizeLanguage(payload?.language);
+        if (translations[nextLanguage]) {
+          setLanguageState(nextLanguage);
+        }
+      }),
+    []
+  );
+
   const setLanguage = useCallback((nextLanguage) => {
     const normalizedLanguage = normalizeLanguage(nextLanguage);
 
     if (translations[normalizedLanguage]) {
       setLanguageState(normalizedLanguage);
+      publishLanguageChange(normalizedLanguage);
     }
   }, []);
 

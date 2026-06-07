@@ -1,7 +1,7 @@
 import { Building, CheckCircle, MapPin, Phone, User } from "lucide-react";
 import GoogleMapPicker from "../../GoogleMapPicker";
 import CheckoutError from "./CheckoutError";
-import { CAMBODIA_DIAL_CODE, displayValue } from "../../../utils/checkout";
+import { CAMBODIA_DIAL_CODE } from "../../../utils/checkout";
 import { useLanguage } from "../../../context/useLanguage";
 
 const ShippingAddressSection = ({
@@ -13,7 +13,7 @@ const ShippingAddressSection = ({
   errorRef,
 }) => {
   const { t } = useLanguage();
-  const mapAddress = [shippingAddress.address, shippingAddress.city]
+  const mapAddress = [shippingAddress.street, shippingAddress.address, shippingAddress.city]
     .filter(Boolean)
     .join(", ");
 
@@ -82,22 +82,63 @@ const ShippingAddressSection = ({
 
       <div className="group">
         <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
-          {t("checkout.address")}
+          {t("checkout.street")} <span className="normal-case font-medium">({t("checkout.optional")})</span>
         </label>
-        <div className={`relative flex items-center w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
+        <div className="relative">
           <Building className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
-          <span>{displayValue(shippingAddress.address, t("checkout.selectLocationOnMap"))}</span>
+          <input
+            type="text"
+            name="street"
+            value={shippingAddress.street}
+            onChange={onInputChange}
+            placeholder={t("checkout.streetPlaceholder")}
+            className={`w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${
+              isDark
+                ? "bg-slate-800 border-slate-700 placeholder:text-slate-500"
+                : "bg-stone-50 border-stone-200 placeholder:text-stone-400"
+            }`}
+          />
+        </div>
+      </div>
+
+      <div className="group">
+        <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
+          {t("checkout.address")} <span className="normal-case font-medium">({t("checkout.optional")})</span>
+        </label>
+        <div className="relative">
+          <Building className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-500" : "text-stone-400"}`} />
+          <input
+            type="text"
+            name="address"
+            value={shippingAddress.address}
+            onChange={onInputChange}
+            placeholder={t("checkout.addressPlaceholder")}
+            className={`w-full pl-12 pr-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${
+              isDark
+                ? "bg-slate-800 border-slate-700 placeholder:text-slate-500"
+                : "bg-stone-50 border-stone-200 placeholder:text-stone-400"
+            }`}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">
-            {t("checkout.cityProvince")}
+            {t("checkout.cityProvince")} <span className="normal-case font-medium">({t("checkout.optional")})</span>
           </label>
-          <div className={`flex items-center w-full px-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-200"}`}>
-            <span>{displayValue(shippingAddress.city, t("checkout.cityProvincePlaceholder"))}</span>
-          </div>
+          <input
+            type="text"
+            name="city"
+            value={shippingAddress.city}
+            onChange={onInputChange}
+            placeholder={t("checkout.cityProvincePlaceholder")}
+            className={`w-full px-6 py-3.5 border rounded-xl font-medium text-text-main min-h-[54px] ${
+              isDark
+                ? "bg-slate-800 border-slate-700 placeholder:text-slate-500"
+                : "bg-stone-50 border-stone-200 placeholder:text-stone-400"
+            }`}
+          />
         </div>
 
         <div>

@@ -84,6 +84,23 @@ export const initializeSocket = (httpServer, corsOrigins) => {
     socket.join(`role:${socket.user.role}`);
     socket.emit("realtime:connected", { userId, role: socket.user.role });
 
+    socket.on("language:change", (requestedLanguage) => {
+      const language = requestedLanguage === "km" ? "kh" : requestedLanguage;
+      if (!["en", "kh"].includes(language)) {
+        return;
+      }
+
+      const payload = {
+        language,
+        changedAt: new Date().toISOString(),
+      };
+
+      socket.emit("language:changed", payload);
+      if (userId) {
+        socket.to(`user:${userId}`).emit("language:changed", payload);
+      }
+    });
+
     socket.on("join:order", async (orderId) => {
       const normalizedOrderId = resolveUserId(orderId);
       if (!normalizedOrderId || !mongoose.isValidObjectId(normalizedOrderId)) {

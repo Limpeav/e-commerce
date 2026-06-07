@@ -1,4 +1,7 @@
-import { createOrder } from "../services/orderService";
+import {
+  createOrder,
+  notifyCustomerOrderCreated,
+} from "../services/orderService";
 import {
   buildOrderPayload,
   getCheckoutErrorMessage,
@@ -21,6 +24,7 @@ export class CheckoutController {
       });
       const order = await createOrder(payload);
       localStorage.setItem("latestOrderId", order._id);
+      notifyCustomerOrderCreated(order);
       return { success: true, data: order };
     } catch (error) {
       return { success: false, error: getCheckoutErrorMessage(error) };

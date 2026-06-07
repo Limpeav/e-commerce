@@ -115,6 +115,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       lng:
         result?.geometry?.location?.lng?.() ??
         fallbackLocation.lng,
+      street: addressLine,
       address: fallbackAddress,
       city:
         cityProvince ||

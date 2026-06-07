@@ -20,6 +20,7 @@ import Loading from "../components/common/Loading";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
 import StaticTextTranslator from "../components/common/StaticTextTranslator";
+import GlobalLoadingIndicator from "../components/common/GlobalLoadingIndicator";
 import SEO from "../components/seo/SEO";
 import { organizationSchema, websiteSchema } from "../config/seo";
 import {
@@ -119,10 +120,6 @@ export default function AppView() {
     !phoneExemptPaths.includes(location.pathname) &&
     !isAdminRoute;
 
-  if (needsPhone) {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
   const currentRouteMeta = useMemo(() => {
     const path = location.pathname
     const customerPath = path.replace(/^\/customer/, "")
@@ -133,6 +130,10 @@ export default function AppView() {
     ]
     return candidates.find(Boolean) || routeMeta["*"]
   }, [location.pathname])
+
+  if (needsPhone) {
+    return <Navigate to="/complete-profile" replace />;
+  }
 
   const renderRouteElement = (route, isProtected) => {
     const Component = LazyComponents[route.component];
@@ -176,6 +177,7 @@ export default function AppView() {
   return (
     <ErrorBoundary>
       <ScrollToTop />
+      <GlobalLoadingIndicator />
       {!isPortalRoute && (
         <>
           <SEO

@@ -573,6 +573,15 @@ export const translateMissingProductsToKhmer = async (req, res) => {
       translatedProducts.push(product);
     }
 
+    if (translatedCount > 0) {
+      emitDomainChanged(
+        "products",
+        "translated",
+        { translatedCount },
+        { users: true }
+      );
+    }
+
     res.json(await attachSalesMetrics(translatedProducts));
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -844,6 +853,12 @@ export const translateProductToKhmer = async (req, res) => {
     product.titleKm = translatedProductData.titleKm;
     product.descriptionKm = translatedProductData.descriptionKm;
     await product.save();
+    emitDomainChanged(
+      "products",
+      "translated",
+      { productId: product._id },
+      { users: true }
+    );
 
     const productData = product.toObject();
     res.json(await attachSalesMetrics(productData));

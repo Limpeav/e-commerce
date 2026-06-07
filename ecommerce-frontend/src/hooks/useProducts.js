@@ -6,7 +6,10 @@ import {
   isRemovedProductCategory,
   normalizeProductCategory,
 } from "../constants/productCategories";
-import { subscribeRealtimeDomains } from "../services/realtime";
+import {
+  subscribeRealtimeDomains,
+  subscribeRealtimeEvent,
+} from "../services/realtime";
 
 export const useProducts = (language = "en") => {
   const [products, setProducts] = useState([]);
@@ -33,10 +36,19 @@ export const useProducts = (language = "en") => {
 
   useEffect(() => {
     fetchProducts();
-    return subscribeRealtimeDomains(
+    const unsubscribeProducts = subscribeRealtimeDomains(
       ["products", "reviews"],
       () => fetchProducts({ silent: true })
     );
+    const unsubscribeLanguage = subscribeRealtimeEvent(
+      "language:changed",
+      () => fetchProducts({ silent: true })
+    );
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeLanguage();
+    };
   }, [fetchProducts]);
 
   useEffect(() => {

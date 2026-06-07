@@ -4,6 +4,8 @@ import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useFlyToCart } from "../../context/FlyToCartContext";
 import { useDarkMode } from "../../hooks";
 import { isClothingProduct } from "../../utils/productOptions";
+import { useLanguage } from "../../context/useLanguage";
+import { getLocalizedProductText } from "../../utils/productLocalization";
 
 const formatPrice = (price) => `$${Number(price || 0).toFixed(2)}`;
 
@@ -24,6 +26,8 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
   const imageRef = useRef(null);
   const { flyToCart } = useFlyToCart();
   const [isDark] = useDarkMode();
+  const { language } = useLanguage();
+  const localizedProduct = getLocalizedProductText(product, language);
   const needsSize = isClothingProduct(product);
   const navigate = useNavigate();
 
@@ -61,7 +65,7 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
         <Link to={`/products/${product._id}`} className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl p-1 md:h-16 md:w-16 ${isDark ? "bg-slate-800" : "bg-blue-soft/35"}`}>
           <img
             src={product.image || product.images?.[0] || "https://via.placeholder.com/160?text=No+Image"}
-            alt={product.name || product.title}
+            alt={localizedProduct.title}
             className="h-full w-full object-contain"
             ref={imageRef}
             onError={(event) => {
@@ -76,8 +80,8 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
           </span>
 
           <Link to={`/products/${product._id}`} className="mt-1 block">
-            <h3 className="line-clamp-1 text-sm font-semibold text-text-main hover:text-primary">
-              {product.name || product.title}
+            <h3 data-no-static-translation className="line-clamp-1 text-sm font-semibold text-text-main hover:text-primary">
+              {localizedProduct.title}
             </h3>
           </Link>
 

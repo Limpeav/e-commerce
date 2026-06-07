@@ -30,7 +30,7 @@ const CartItem = ({
       {/* Product Details */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <div className="flex justify-between items-start mb-1 sm:mb-2">
-          <Link to={`/products/${item.product._id}`} className="font-bold text-sm sm:text-xl text-text-main hover:text-primary line-clamp-1 transition-colors tracking-tight">
+          <Link data-no-static-translation to={`/products/${item.product._id}`} className="font-bold text-sm sm:text-xl text-text-main hover:text-primary line-clamp-1 transition-colors tracking-tight">
             {localizedProduct.title}
           </Link>
           <p className="font-bold text-sm sm:text-xl text-text-main ml-2 sm:ml-4 tracking-tight whitespace-nowrap">
@@ -51,7 +51,7 @@ const CartItem = ({
         </div>
 
         {/* Product Description */}
-        <p className={`text-[10px] sm:text-xs line-clamp-3 mb-3 sm:mb-4 ${isDark ? "text-slate-500" : "text-stone-400"}`}>
+        <p data-no-static-translation className={`text-[10px] sm:text-xs line-clamp-3 mb-3 sm:mb-4 ${isDark ? "text-slate-500" : "text-stone-400"}`}>
           {localizedProduct.description}
         </p>
 

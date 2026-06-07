@@ -486,12 +486,13 @@ const AdminOrders = () => {
     };
 
     const formatDeliveryAddress = (shippingAddress = {}) =>
-        [shippingAddress.address, shippingAddress.city]
+        [shippingAddress.street, shippingAddress.address, shippingAddress.city]
             .filter(Boolean)
             .join(", ") || "Address not set";
 
     const formatFullAddress = (shippingAddress = {}) =>
         [
+            shippingAddress.street,
             shippingAddress.address,
             shippingAddress.city,
             shippingAddress.postalCode,

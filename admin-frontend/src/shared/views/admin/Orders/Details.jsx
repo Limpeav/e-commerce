@@ -318,6 +318,7 @@ const OrderDetails = () => {
 
     const formatAddress = (shippingAddress = {}) =>
         [
+            shippingAddress.street,
             shippingAddress.address,
             shippingAddress.city,
             shippingAddress.postalCode,
@@ -693,8 +694,9 @@ const OrderDetails = () => {
                                 <div className="grid gap-4 text-[var(--color-text-muted)] md:grid-cols-[minmax(0,1fr)_auto]">
                                     <div className="space-y-1 leading-7">
                                         <p className="font-bold text-[var(--color-text-main)]">{order.shippingAddress.fullName}</p>
-                                        <p>{order.shippingAddress.address}</p>
-                                        <p>{order.shippingAddress.city}</p>
+                                        {order.shippingAddress.street && <p>{order.shippingAddress.street}</p>}
+                                        {order.shippingAddress.address && <p>{order.shippingAddress.address}</p>}
+                                        {order.shippingAddress.city && <p>{order.shippingAddress.city}</p>}
                                         {order.shippingAddress.postalCode && (
                                             <p>{order.shippingAddress.postalCode}</p>
                                         )}

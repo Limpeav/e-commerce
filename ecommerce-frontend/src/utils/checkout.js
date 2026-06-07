@@ -57,8 +57,6 @@ export const calculateCheckoutTotals = (cartItems = []) => {
 export const validateCheckout = (shippingAddress, cartItems = [], t) => {
   if (
     !shippingAddress.fullName ||
-    !shippingAddress.address ||
-    !shippingAddress.city ||
     !shippingAddress.phone
   ) {
     return getCheckoutValidationMessage("incompleteShipping", t);

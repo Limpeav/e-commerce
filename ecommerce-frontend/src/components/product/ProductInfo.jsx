@@ -53,7 +53,7 @@ const ProductInfo = ({
 
       {/* Product Title & Rating */}
       <div className="space-y-2.5">
-        <h1 className={`text-2xl sm:text-[2.2rem] lg:text-[2.8rem] font-black leading-[1.05] font-display tracking-tight ${isDark ? "text-slate-50" : "text-stone-900"}`}>
+        <h1 data-no-static-translation className={`text-2xl sm:text-[2.2rem] lg:text-[2.8rem] font-black leading-[1.05] font-display tracking-tight ${isDark ? "text-slate-50" : "text-stone-900"}`}>
           {localizedProduct.title}
         </h1>
 
@@ -105,7 +105,7 @@ const ProductInfo = ({
       {/* Description */}
       <div className={`prose prose-stone max-w-none rounded-[1.2rem] border p-4 shadow-sm ${isDark ? "bg-slate-900 border-slate-800" : "bg-stone-50/50 border-stone-100"}`}>
         <h3 className={`mb-2 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Product Description</h3>
-        <p className={`text-sm leading-relaxed font-medium sm:text-[15px] ${isDark ? "text-slate-300" : "text-stone-600"}`}>
+        <p data-no-static-translation className={`text-sm leading-relaxed font-medium sm:text-[15px] ${isDark ? "text-slate-300" : "text-stone-600"}`}>
           {localizedProduct.description}
         </p>
       </div>

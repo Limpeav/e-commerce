@@ -292,18 +292,16 @@ const OrderDetail = () => {
               <p className="font-medium text-text-main">
                 {order.shippingAddress.fullName}
               </p>
-              <p className="text-sm text-text-muted">
-                {order.shippingAddress.address}
-              </p>
-              <p className="text-sm text-text-muted">
-                {order.shippingAddress.city}
-                {order.shippingAddress.postalCode
-                  ? `, ${order.shippingAddress.postalCode}`
-                  : ""}
-              </p>
-              <p className="text-sm text-text-muted">
-                {order.shippingAddress.country}
-              </p>
+              {[
+                order.shippingAddress.street,
+                order.shippingAddress.address,
+                [order.shippingAddress.city, order.shippingAddress.postalCode]
+                  .filter(Boolean)
+                  .join(", "),
+                order.shippingAddress.country,
+              ].filter(Boolean).map((line) => (
+                <p key={line} className="text-sm text-text-muted">{line}</p>
+              ))}
               {order.shippingAddress.phone && (
                 <p className="text-sm text-text-muted flex items-center gap-2 mt-2">
                   <Phone className="w-4 h-4" />

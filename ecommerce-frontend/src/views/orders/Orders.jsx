@@ -21,6 +21,7 @@ import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import { cancelOrder } from "../../services/orderService";
 import { subscribeRealtimeDomains } from "../../services/realtime";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 
 const API_URL = config.API_BASE_URL;
 
@@ -33,6 +34,7 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState("");
   const [error, setError] = useState("");
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const getAuthToken = () => {
     const storedUser = localStorage.getItem("user");
@@ -76,6 +78,30 @@ const Orders = () => {
       () => fetchOrders({ silent: true })
     );
   }, [fetchOrders, user]);
+
+  useEffect(() => {
+    let animationFrame = 0;
+
+    const handleScroll = () => {
+      if (animationFrame) return;
+
+      animationFrame = window.requestAnimationFrame(() => {
+        setIsHeaderCollapsed((currentValue) =>
+          currentValue ? window.scrollY > 4 : window.scrollY >= 10
+        );
+        animationFrame = 0;
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, []);
 
   const handleCancelOrder = async (orderId) => {
     if (cancellingOrderId) return;
@@ -201,39 +227,83 @@ const Orders = () => {
         <div className="flex flex-col gap-8">
           {/* Main Content */}
           <div className="w-full">
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-30 mb-8 -mx-4 px-4 pt-16 md:-mx-8 md:px-8">
-              <div className={`absolute inset-0 backdrop-blur-xl ${isDark ? "bg-bg-base/70" : "bg-bg-base/70"}`} />
-              <div className={`relative rounded-[2rem] border p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 ${isDark ? "bg-slate-900/90 border-slate-800 text-slate-100" : "bg-white border-stone-100 text-text-main shadow-sm"}`}>
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all hover:border-primary hover:text-primary active:scale-90 ${isDark ? "border-slate-700 text-slate-400" : "border-stone-200 text-stone-500"}`}
-                    style={{ borderColor: "var(--color-border)" }}
+            {/* Full header at the top, compact back button after scrolling */}
+            <Motion.div
+              layout
+              transition={{ layout: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } }}
+              className={`sticky top-14 z-30 -mx-4 px-4 sm:top-16 md:-mx-8 md:px-8 lg:top-20 ${
+                isHeaderCollapsed ? "mb-3 py-3 pointer-events-none" : "mb-8 pt-4"
+              }`}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isHeaderCollapsed ? (
+                  <Motion.div
+                    key="compact-order-header"
+                    initial={{ opacity: 0, y: -12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    className={`pointer-events-auto relative -mx-4 flex min-h-16 items-center border-y px-4 shadow-lg backdrop-blur-xl md:-mx-8 md:px-8 ${
+                      isDark
+                        ? "border-slate-800 bg-slate-950/92"
+                        : "border-stone-200 bg-bg-base/92"
+                    }`}
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <ShoppingBag className="w-4 h-4" />
+                    <button
+                      type="button"
+                      onClick={() => navigate(-1)}
+                      className={`relative flex h-11 w-11 items-center justify-center rounded-xl border shadow-lg backdrop-blur-xl transition-all hover:border-primary hover:text-primary active:scale-90 ${
+                        isDark
+                          ? "border-slate-700 bg-slate-900/95 text-slate-300"
+                          : "border-stone-200 bg-white/95 text-stone-600"
+                      }`}
+                      aria-label="Go back"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </button>
+                  </Motion.div>
+                ) : (
+                  <Motion.div
+                    key="full-order-header"
+                    initial={{ opacity: 0, y: -16, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -30, scale: 0.94, filter: "blur(6px)" }}
+                    transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                    className={`relative origin-top rounded-[2rem] border p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 ${isDark ? "bg-slate-900/90 border-slate-800 text-slate-100" : "bg-white border-stone-100 text-text-main shadow-sm"}`}
+                  >
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all hover:border-primary hover:text-primary active:scale-90 ${isDark ? "border-slate-700 text-slate-400" : "border-stone-200 text-stone-500"}`}
+                        style={{ borderColor: "var(--color-border)" }}
+                        aria-label="Go back"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </button>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <ShoppingBag className="w-4 h-4" />
+                          </div>
+                          <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
+                        </div>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                          Order History
+                        </h1>
+                        <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
+                          View details of your past orders
+                        </p>
                       </div>
-                      <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                      Order History
-                    </h1>
-                    <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
-                      View details of your past orders
-                    </p>
-                  </div>
-                </div>
-                <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
-                  <Package className="w-4 h-4 text-primary" />
-                  <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
-                </div>
-              </div>
-            </div>
+                    <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
+                      <Package className="w-4 h-4 text-primary" />
+                      <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
+                    </div>
+                  </Motion.div>
+                )}
+              </AnimatePresence>
+            </Motion.div>
 
             {error && (
               <div className={`mb-6 rounded-2xl border p-4 text-sm font-semibold ${isDark ? "border-rose-500/20 bg-rose-500/10 text-rose-200" : "border-rose-100 bg-rose-50 text-rose-700"}`}>
@@ -370,7 +440,11 @@ const Orders = () => {
                             <div className={`text-xs font-medium flex items-center gap-2 ${subtleTextClassName}`}>
                               <MapPin className="w-3.5 h-3.5 text-primary" />
                               <span className={isDark ? "text-slate-100 font-bold" : "text-text-main font-bold"}>Shipping to:</span>{" "}
-                              {order.shippingAddress.address}, {order.shippingAddress.city}
+                              {[
+                                order.shippingAddress.street,
+                                order.shippingAddress.address,
+                                order.shippingAddress.city,
+                              ].filter(Boolean).join(", ") || "Map location selected"}
                             </div>
                           )}
                         </div>
