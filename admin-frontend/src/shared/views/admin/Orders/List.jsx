@@ -18,7 +18,10 @@ import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
-import { subscribeRealtimeEvent } from "../../../services/realtime";
+import {
+    subscribeRealtimeDomains,
+    subscribeRealtimeEvent,
+} from "../../../services/realtime";
 
 const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
@@ -156,12 +159,17 @@ const AdminOrders = () => {
 
         const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshOrders);
         const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", patchOrderFromRealtime);
+        const unsubscribeOrderChanges = subscribeRealtimeDomains(
+            ["orders"],
+            refreshOrders
+        );
 
         window.addEventListener("admin-orders-updated", refreshOrders);
 
         return () => {
             unsubscribeCreated();
             unsubscribeUpdated();
+            unsubscribeOrderChanges();
             window.removeEventListener("admin-orders-updated", refreshOrders);
         };
     }, [fetchOrders]);
