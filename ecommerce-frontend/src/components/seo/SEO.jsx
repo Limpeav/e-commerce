@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async"
 
 const SITE_NAME = "Cherish Baby Store"
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://cherishbabykhstore.store"
-const DEFAULT_OG_IMAGE = "/og-image.png"
+const DEFAULT_OG_IMAGE = "/logo.png"
 const TWITTER_HANDLE = "@cherishbabystore"
 
 export default function SEO({

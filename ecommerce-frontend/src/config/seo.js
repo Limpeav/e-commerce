@@ -128,7 +128,7 @@ export const organizationSchema = {
   "@type": "Organization",
   name: "Cherish Baby Store",
   url: "https://cherishbabykhstore.store",
-  logo: "https://cherishbabykhstore.store/og-image.png",
+  logo: "https://cherishbabykhstore.store/logo.png",
   contactPoint: {
     "@type": "ContactPoint",
     telephone: "+1-555-000-1234",
