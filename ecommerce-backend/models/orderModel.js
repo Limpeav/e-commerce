@@ -111,6 +111,9 @@ const orderSchema = new mongoose.Schema(
             },
             channel: { type: String },
         },
+        sellerTelegramAlert: {
+            sentAt: { type: Date },
+        },
         reviewRequestEmail: {
             sentAt: { type: Date },
             messageId: { type: String },

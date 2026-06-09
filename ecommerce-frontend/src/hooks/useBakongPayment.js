@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { PaymentController } from "../controllers/paymentController";
+import { useCart } from "../context/useCart";
 
 export const useBakongPayment = (orderId, navigate) => {
+  const { refreshCart } = useCart();
   const [order, setOrder] = useState(null);
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,14 +12,15 @@ export const useBakongPayment = (orderId, navigate) => {
   const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
 
   const fetchOrderAndGenerateQR = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, currency = "USD") => {
       isRefresh ? setRefreshing(true) : setLoading(true);
       setError(null);
       setPaymentStatus("pending");
 
-      const result = await PaymentController.prepareBakongPayment(orderId);
+      const result = await PaymentController.prepareBakongPayment(orderId, currency);
 
       if (!result.success) {
         setError(result.error);
@@ -28,6 +31,7 @@ export const useBakongPayment = (orderId, navigate) => {
 
       setOrder(result.data.order);
       setPayment(result.data.payment);
+      setSelectedCurrency(result.data.payment.currency || currency);
       setLoading(false);
       setRefreshing(false);
     },
@@ -83,15 +87,31 @@ export const useBakongPayment = (orderId, navigate) => {
     return () => window.clearInterval(interval);
   }, [payment?.khqrData?.expiresAt]);
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = async () => {
     setCancelling(true);
 
     if (payment?._id && paymentStatus === "pending") {
-      await PaymentController.cancel(payment._id);
+      const result = await PaymentController.cancel(payment._id);
+
+      if (!result.success) {
+        setError(result.error);
+        setCancelling(false);
+        return;
+      }
     }
 
-    navigate(`/customer/orders/${orderId}`);
-  }, [navigate, orderId, payment?._id, paymentStatus]);
+    await refreshCart();
+    navigate("/customer/checkout", { replace: true });
+  };
+
+  const handleCurrencyChange = async (currency) => {
+    if (currency === selectedCurrency || refreshing) {
+      return;
+    }
+
+    setSelectedCurrency(currency);
+    await fetchOrderAndGenerateQR(true, currency);
+  };
 
   return {
     order,
@@ -102,7 +122,9 @@ export const useBakongPayment = (orderId, navigate) => {
     error,
     timeLeft,
     paymentStatus,
+    selectedCurrency,
     fetchOrderAndGenerateQR,
+    handleCurrencyChange,
     handleCancel,
   };
 };

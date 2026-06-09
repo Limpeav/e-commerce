@@ -7,11 +7,11 @@ import { getOrderById } from "../services/orderService.js";
 import { PaymentModel } from "../models/paymentModel.js";
 
 export class PaymentController {
-  static async prepareBakongPayment(orderId) {
+  static async prepareBakongPayment(orderId, currency = "USD") {
     try {
       const [order, payment] = await Promise.all([
         getOrderById(orderId),
-        generateBakongQR(orderId),
+        generateBakongQR(orderId, currency),
       ]);
 
       return {
@@ -46,13 +46,19 @@ export class PaymentController {
 
   static async cancel(paymentId) {
     try {
-      const payment = await cancelPayment(paymentId);
+      const result = await cancelPayment(paymentId);
       return {
         success: true,
-        data: PaymentModel.fromAPI(payment),
+        data: {
+          ...result,
+          payment: PaymentModel.fromAPI(result.payment),
+        },
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
     }
   }
 

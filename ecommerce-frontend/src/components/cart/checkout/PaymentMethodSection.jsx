@@ -1,8 +1,12 @@
 import { CreditCard } from "lucide-react";
+import { useLanguage } from "../../../context/useLanguage";
 
 const PAYMENT_METHODS = ["BAKONG_KHQR", "Cash on Delivery"];
 
-const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) => (
+const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) => {
+  const { t } = useLanguage();
+
+  return (
   <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
     <h2 className="text-xl font-bold text-text-main mb-8 flex items-center gap-4 font-display">
       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-primary border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
@@ -39,7 +43,18 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
         </label>
       ))}
     </div>
+
+    {paymentMethod === "BAKONG_KHQR" && (
+      <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-medium ${
+        isDark
+          ? "border-green-500/30 bg-green-500/10 text-green-300"
+          : "border-green-200 bg-green-50 text-green-800"
+      }`}>
+        {t("checkout.bakongQrNotice")}
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 export default PaymentMethodSection;

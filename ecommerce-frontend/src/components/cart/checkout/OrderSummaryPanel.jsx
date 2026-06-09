@@ -3,8 +3,8 @@ import { getEffectiveCartProductPrice } from "../../../utils/checkout";
 import { useLanguage } from "../../../context/useLanguage";
 import { getLocalizedProductText } from "../../../utils/productLocalization";
 
-const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => {
-  const { language } = useLanguage();
+const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }) => {
+  const { language, t } = useLanguage();
 
   return (
   <div className="lg:col-span-1">
@@ -95,12 +95,16 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => {
         {loading ? (
           <>
             <Loader className="w-5 h-5 animate-spin" />
-            Processing...
+            {paymentMethod === "BAKONG_KHQR"
+              ? t("checkout.generatingQr")
+              : t("checkout.processing")}
           </>
         ) : (
           <>
             <Lock className="w-4 h-4" />
-            Place Order
+            {paymentMethod === "BAKONG_KHQR"
+              ? t("checkout.placeOrderGenerateQr")
+              : t("checkout.placeOrder")}
           </>
         )}
       </button>

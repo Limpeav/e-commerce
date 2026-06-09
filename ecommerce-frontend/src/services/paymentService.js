@@ -5,11 +5,11 @@ import { getUserToken } from "./http.js";
 const API_URL = config.API_BASE_URL;
 
 // Generate BAKONG KHQR code
-export const generateBakongQR = async (orderId) => {
+export const generateBakongQR = async (orderId, currency = "USD") => {
     const token = getUserToken();
     const response = await axios.post(
         `${API_URL}/payments/bakong/generate`,
-        { orderId },
+        { orderId, currency },
         {
             headers: {
                 Authorization: `Bearer ${token}`,

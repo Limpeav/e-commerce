@@ -1,9 +1,18 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
+import Cart from "../models/cartModel.js";
+import Product from "../models/Product.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
+import khqrPackage from "bakong-khqr";
 import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
+import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
+import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
+
+const { BakongKHQR, IndividualInfo, khqrData } = khqrPackage;
+const KHQR_EXPIRY_MS = 5 * 60 * 1000;
 
 const getWebhookSignature = (headers = {}) =>
     headers["x-bakong-signature"]
@@ -36,6 +45,132 @@ const verifyWebhookSignature = (req) => {
 
 const getOrderId = (orderRef) => orderRef?._id || orderRef;
 
+const dispatchPaidOrderTelegramAlert = (orderId) => {
+    setImmediate(async () => {
+        let claimedOrderId;
+        let claimedSentAt;
+
+        try {
+            const sentAt = new Date();
+            const order = await Order.findOneAndUpdate(
+                {
+                    _id: orderId,
+                    paymentMethod: "BAKONG_KHQR",
+                    paymentStatus: "Paid",
+                    "sellerTelegramAlert.sentAt": { $exists: false },
+                },
+                { $set: { "sellerTelegramAlert.sentAt": sentAt } },
+                { new: true }
+            ).populate("user", "name");
+
+            if (!order) {
+                return;
+            }
+
+            claimedOrderId = order._id;
+            claimedSentAt = sentAt;
+            const shippingAddress = order.shippingAddress || {};
+            const googleMapsLink =
+                shippingAddress.latitude && shippingAddress.longitude
+                    ? `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`
+                    : "";
+            const result = await sendOrderTelegramAlert({
+                orderId: order._id.toString().slice(-8).toUpperCase(),
+                customerName: order.user?.name || shippingAddress.fullName,
+                customerPhone: shippingAddress.phone,
+                totalPrice: order.totalPrice,
+                paymentMethod: order.paymentMethod,
+                paymentStatus: "Paid",
+                itemCount: order.orderItems.reduce(
+                    (total, item) => total + Number(item.quantity || 0),
+                    0
+                ),
+                shippingAddress: [
+                    shippingAddress.street,
+                    shippingAddress.address,
+                    shippingAddress.city,
+                    shippingAddress.postalCode,
+                    shippingAddress.country,
+                ]
+                    .filter(Boolean)
+                    .join(", "),
+                googleMapsLink,
+            });
+
+            if (!result.sent) {
+                await Order.updateOne(
+                    { _id: order._id, "sellerTelegramAlert.sentAt": sentAt },
+                    { $unset: { sellerTelegramAlert: "" } }
+                );
+            }
+        } catch (error) {
+            if (claimedOrderId && claimedSentAt) {
+                await Order.updateOne(
+                    {
+                        _id: claimedOrderId,
+                        "sellerTelegramAlert.sentAt": claimedSentAt,
+                    },
+                    { $unset: { sellerTelegramAlert: "" } }
+                ).catch((rollbackError) => {
+                    console.error(
+                        "Paid order Telegram alert rollback failed:",
+                        rollbackError.message
+                    );
+                });
+            }
+            console.error("Paid order Telegram alert failed:", error.message);
+        }
+    });
+};
+
+const restoreCancelledOrder = async (order, session) => {
+    if (order.stockReduced && !order.stockRestored) {
+        for (const item of order.orderItems) {
+            const product = await Product.findById(item.product).session(session);
+
+            if (product) {
+                product.stock += Number(item.quantity || 0);
+                product.totalSold = Math.max(
+                    0,
+                    Number(product.totalSold || 0) - Number(item.quantity || 0)
+                );
+                syncLowStockAlertFlag(product);
+                await product.save({ session });
+            }
+        }
+
+        order.stockRestored = true;
+    }
+
+    let cart = await Cart.findOne({ user: order.user }).session(session);
+
+    if (!cart) {
+        cart = new Cart({ user: order.user, items: [] });
+    }
+
+    for (const item of order.orderItems) {
+        const productId = item.product?._id || item.product;
+        const size = String(item.size || "").trim().toUpperCase();
+        const existingItem = cart.items.find(
+            (cartItem) =>
+                cartItem.product.toString() === productId.toString()
+                && String(cartItem.size || "").trim().toUpperCase() === size
+        );
+
+        if (existingItem) {
+            existingItem.quantity += Number(item.quantity || 0);
+        } else {
+            cart.items.push({
+                product: productId,
+                quantity: Number(item.quantity || 0),
+                size,
+            });
+        }
+    }
+
+    await cart.save({ session });
+};
+
 const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
     const order = typeof orderRef?.save === "function"
         ? orderRef
@@ -62,6 +197,7 @@ const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
         isPaid: order.isPaid,
         paidAt: order.paidAt,
     });
+    dispatchPaidOrderTelegramAlert(order._id);
 
     return order;
 };
@@ -71,6 +207,12 @@ const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
 // @access  Private
 export const generateBakongQR = asyncHandler(async (req, res) => {
     const { orderId } = req.body;
+    const requestedCurrency = String(req.body.currency || "USD").toUpperCase();
+
+    if (!["USD", "KHR"].includes(requestedCurrency)) {
+        res.status(400);
+        throw new Error("Payment currency must be USD or KHR");
+    }
 
     // Find the order
     const order = await Order.findById(orderId);
@@ -91,7 +233,19 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
 
     if (payment) {
         // Return existing payment if still valid
-        if (payment.khqrData?.expiresAt > new Date()) {
+        const existingQr = payment.khqrData?.qrString;
+        const expectedNotePrefix = `KHQR amount: ${payment.amount} ${requestedCurrency}`;
+        const remainingTime = payment.khqrData?.expiresAt
+            ? new Date(payment.khqrData.expiresAt).getTime() - Date.now()
+            : 0;
+        if (
+            payment.currency === requestedCurrency
+            && payment.metadata?.notes?.startsWith(expectedNotePrefix)
+            && remainingTime > 0
+            && remainingTime <= KHQR_EXPIRY_MS
+            && existingQr
+            && BakongKHQR.verify(existingQr).isValid
+        ) {
             return res.json(payment);
         }
     }
@@ -99,36 +253,72 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     // Generate unique transaction ID
     const transactionId = `TXN${Date.now()}${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    // BAKONG KHQR Configuration (from environment variables)
-    const merchantId = process.env.BAKONG_MERCHANT_ID || "MERCHANT001";
-    const merchantName = process.env.BAKONG_MERCHANT_NAME || "E-Commerce Store";
-    const acquiringBank = process.env.BAKONG_ACQUIRING_BANK || "bakong";
+    const accountId = process.env.BAKONG_ACCOUNT_ID?.trim();
+    const merchantName = (
+        process.env.BAKONG_ACCOUNT_USERNAME
+        || process.env.BAKONG_MERCHANT_NAME
+        || "Cherish Baby Store"
+    ).trim();
+    const merchantCity = (process.env.BAKONG_MERCHANT_CITY || "Phnom Penh").trim();
+    const mobileNumber = (process.env.BAKONG_PHONE_NUMBER || "").replace(/\D/g, "");
 
-    // Convert USD to KHR if needed (1 USD = ~4100 KHR, adjust based on current rate)
+    if (!accountId || !accountId.includes("@")) {
+        res.status(500);
+        throw new Error("BAKONG_ACCOUNT_ID is missing or invalid");
+    }
+
     const exchangeRate = parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
     const amountInKHR = Math.round(order.totalPrice * exchangeRate);
+    const paymentAmount =
+        requestedCurrency === "KHR"
+            ? amountInKHR
+            : Number(Number(order.totalPrice).toFixed(2));
+    const khqrCurrency =
+        requestedCurrency === "KHR"
+            ? khqrData.currency.khr
+            : khqrData.currency.usd;
+    const expiresAt = new Date(Date.now() + KHQR_EXPIRY_MS);
 
-    // Generate KHQR String (simplified format)
-    // In production, you would use the official BAKONG KHQR SDK
-    const khqrString = generateKHQRString({
-        merchantId,
+    const individualInfo = new IndividualInfo(
+        accountId,
         merchantName,
-        acquiringBank,
-        amount: amountInKHR,
-        currency: "KHR",
-        transactionId,
-    });
+        merchantCity,
+        {
+            currency: khqrCurrency,
+            amount: paymentAmount,
+            billNumber: order._id.toString(),
+            mobileNumber: mobileNumber || undefined,
+            storeLabel: "Cherish Baby Store",
+            terminalLabel: "WEB",
+            expirationTimestamp: expiresAt.getTime(),
+        }
+    );
+    const khqrResponse = new BakongKHQR().generateIndividual(individualInfo);
+    const khqrString = khqrResponse?.data?.qr;
 
-    // Generate QR Code as base64 image
+    if (
+        khqrResponse?.status?.code !== 0
+        || !khqrString
+        || !BakongKHQR.verify(khqrString).isValid
+    ) {
+        res.status(500);
+        throw new Error(
+            khqrResponse?.status?.message || "Failed to generate a valid Bakong KHQR code"
+        );
+    }
+
     const qrCodeBase64 = await QRCode.toDataURL(khqrString, {
-        errorCorrectionLevel: "H",
+        errorCorrectionLevel: "M",
         type: "image/png",
-        width: 300,
+        width: 360,
         margin: 2,
+        color: {
+            dark: "#000000",
+            light: "#ffffff",
+        },
     });
 
-    // Set expiration (30 minutes from now)
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const merchantId = accountId;
 
     // Create or update payment record
     if (payment) {
@@ -140,15 +330,20 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             transactionId,
             expiresAt,
         };
-        payment.amount = order.totalPrice;
+        payment.amount = paymentAmount;
+        payment.currency = requestedCurrency;
+        payment.metadata.ipAddress = req.ip;
+        payment.metadata.userAgent = req.get("user-agent");
+        payment.metadata.notes =
+            `KHQR amount: ${paymentAmount} ${requestedCurrency}; rate: ${exchangeRate}`;
         await payment.save();
     } else {
         payment = new Payment({
             order: orderId,
             user: req.user._id,
             paymentMethod: "BAKONG_KHQR",
-            amount: order.totalPrice,
-            currency: "USD",
+            amount: paymentAmount,
+            currency: requestedCurrency,
             khqrData: {
                 merchantId,
                 merchantName,
@@ -161,6 +356,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             metadata: {
                 ipAddress: req.ip,
                 userAgent: req.get("user-agent"),
+                notes: `KHQR amount: ${paymentAmount} ${requestedCurrency}; rate: ${exchangeRate}`,
             },
         });
         await payment.save();
@@ -168,17 +364,6 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
 
     res.status(201).json(payment);
 });
-
-// Helper function to generate KHQR string
-// This is a simplified version. In production, use the official BAKONG KHQR library
-function generateKHQRString(data) {
-    const { merchantId, merchantName, acquiringBank, amount, currency, transactionId } = data;
-
-    // KHQR format follows EMVCo specification
-    // This is a simplified example - use official BAKONG SDK in production
-    // Construct KHQR string (simplified)
-    return `00020101021230${merchantId}0${acquiringBank}52040000${currency === "KHR" ? "5303116" : "5303840"}54${amount.toString().length.toString().padStart(2, "0")}${amount}5802KH59${merchantName.length.toString().padStart(2, "0")}${merchantName}6011Phnom Penh62${transactionId.length.toString().padStart(2, "0")}${transactionId}6304`;
-}
 
 // @desc    Verify BAKONG payment (webhook/callback)
 // @route   POST /api/payments/bakong/verify
@@ -294,27 +479,70 @@ export const getPaymentByOrderId = asyncHandler(async (req, res) => {
 // @route   PUT /api/payments/:paymentId/cancel
 // @access  Private
 export const cancelPayment = asyncHandler(async (req, res) => {
-    const payment = await Payment.findById(req.params.paymentId);
+    const session = await mongoose.startSession();
+    let payment;
+    let order;
 
-    if (!payment) {
-        res.status(404);
-        throw new Error("Payment not found");
+    try {
+        await session.withTransaction(async () => {
+            payment = await Payment.findById(req.params.paymentId).session(session);
+
+            if (!payment) {
+                res.status(404);
+                throw new Error("Payment not found");
+            }
+
+            if (payment.user.toString() !== req.user._id.toString()) {
+                res.status(401);
+                throw new Error("Not authorized to cancel this payment");
+            }
+
+            if (payment.status !== "Pending") {
+                res.status(400);
+                throw new Error("Can only cancel pending payments");
+            }
+
+            order = await Order.findById(payment.order).session(session);
+
+            if (!order) {
+                res.status(404);
+                throw new Error("Order not found");
+            }
+
+            if (order.orderStatus !== "Pending" || order.isPaid) {
+                res.status(400);
+                throw new Error("This order can no longer be cancelled");
+            }
+
+            payment.status = "Cancelled";
+            order.orderStatus = "Cancelled";
+            order.paymentStatus = "Failed";
+            order.paymentResult.status = "Cancelled";
+            order.paymentResult.update_time = new Date().toISOString();
+
+            await restoreCancelledOrder(order, session);
+            await order.save({ session });
+            await payment.save({ session });
+        });
+    } finally {
+        await session.endSession();
     }
 
-    // Verify payment belongs to user
-    if (payment.user.toString() !== req.user._id.toString()) {
-        res.status(401);
-        throw new Error("Not authorized to cancel this payment");
-    }
-
-    // Can only cancel pending payments
-    if (payment.status !== "Pending") {
-        res.status(400);
-        throw new Error("Can only cancel pending payments");
-    }
-
-    payment.status = "Cancelled";
-    await payment.save();
+    emitOrderUpdated(order, {
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        stockRestored: order.stockRestored,
+    });
+    emitDomainChanged(
+        "products",
+        "inventory-restored",
+        {
+            productIds: order.orderItems
+                .map((item) => item.product?._id || item.product)
+                .filter(Boolean),
+        },
+        { users: true }
+    );
     emitDomainChanged(
         "payments",
         "cancelled",
@@ -322,7 +550,7 @@ export const cancelPayment = asyncHandler(async (req, res) => {
         { roles: ["admin", "seller"], userId: payment.user }
     );
 
-    res.json({ message: "Payment cancelled successfully", payment });
+    res.json({ message: "Payment cancelled successfully", payment, order });
 });
 
 // @desc    Get all payments (Admin)

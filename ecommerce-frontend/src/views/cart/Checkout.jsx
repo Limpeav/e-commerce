@@ -27,6 +27,7 @@ const Checkout = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
+  const checkoutCompletedRef = useRef(false);
   const [shippingAddress, setShippingAddress] = useState({
     fullName: user?.name || "",
     street: "",
@@ -45,7 +46,11 @@ const Checkout = () => {
   );
 
   useEffect(() => {
-    if (validCartItems.length === 0 && !orderPlaced) {
+    if (
+      validCartItems.length === 0
+      && !orderPlaced
+      && !checkoutCompletedRef.current
+    ) {
       navigate("/customer/cart");
     }
   }, [validCartItems.length, navigate, orderPlaced]);
@@ -231,6 +236,7 @@ const Checkout = () => {
     }
 
     const nextOrderId = result.data._id;
+    checkoutCompletedRef.current = true;
     setOrderId(nextOrderId);
 
     if (paymentMethod === "BAKONG_KHQR") {
@@ -308,6 +314,7 @@ const Checkout = () => {
               cartItems={validCartItems}
               totals={totals}
               loading={loading}
+              paymentMethod={paymentMethod}
             />
           </div>
         </form>

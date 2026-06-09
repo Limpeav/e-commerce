@@ -147,30 +147,32 @@ const dispatchOrderAlerts = ({
     lowStockAlerts,
 }) => {
     setImmediate(async () => {
-        try {
-            await sendOrderTelegramAlert({
-                orderId: createdOrder._id.toString().slice(-8).toUpperCase(),
-                customerName: createdOrder.user?.name || shippingAddress.fullName,
-                customerPhone: shippingAddress.phone,
-                totalPrice,
-                paymentMethod,
-                itemCount: orderItems.reduce(
-                    (totalItems, item) => totalItems + Number(item.quantity || 0),
-                    0
-                ),
-                shippingAddress: [
-                    shippingAddress.street,
-                    shippingAddress.address,
-                    shippingAddress.city,
-                    shippingAddress.postalCode,
-                    shippingAddress.country,
-                ]
-                    .filter(Boolean)
-                    .join(", "),
-                googleMapsLink,
-            });
-        } catch (telegramError) {
-            console.error("Telegram order alert failed:", telegramError.message);
+        if (paymentMethod !== "BAKONG_KHQR") {
+            try {
+                await sendOrderTelegramAlert({
+                    orderId: createdOrder._id.toString().slice(-8).toUpperCase(),
+                    customerName: createdOrder.user?.name || shippingAddress.fullName,
+                    customerPhone: shippingAddress.phone,
+                    totalPrice,
+                    paymentMethod,
+                    itemCount: orderItems.reduce(
+                        (totalItems, item) => totalItems + Number(item.quantity || 0),
+                        0
+                    ),
+                    shippingAddress: [
+                        shippingAddress.street,
+                        shippingAddress.address,
+                        shippingAddress.city,
+                        shippingAddress.postalCode,
+                        shippingAddress.country,
+                    ]
+                        .filter(Boolean)
+                        .join(", "),
+                    googleMapsLink,
+                });
+            } catch (telegramError) {
+                console.error("Telegram order alert failed:", telegramError.message);
+            }
         }
 
         for (const alert of lowStockAlerts) {

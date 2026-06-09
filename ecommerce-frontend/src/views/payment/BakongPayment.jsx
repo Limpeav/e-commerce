@@ -1,6 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 
+const KHQR_EXPIRY_SECONDS = 5 * 60;
+
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const CheckCircleIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
@@ -77,7 +79,9 @@ export default function BakongPayment() {
     error,
     timeLeft,
     paymentStatus,
+    selectedCurrency,
     fetchOrderAndGenerateQR,
+    handleCurrencyChange,
     handleCancel,
   } = useBakongPayment(orderId, navigate);
 
@@ -85,8 +89,8 @@ export default function BakongPayment() {
   const getTimerColour = () => {
     if (!timeLeft) return "text-primary";
     const [m] = timeLeft.split(":").map(Number);
-    if (m < 5) return "text-red-500";
-    if (m < 10) return "text-amber-500";
+    if (m < 2) return "text-red-500";
+    if (m < 4) return "text-amber-500";
     return "text-primary";
   };
 
@@ -117,7 +121,7 @@ export default function BakongPayment() {
           <p className="text-text-muted mb-8 text-sm leading-relaxed">{error}</p>
           <div className="flex gap-3">
             <button
-              onClick={() => fetchOrderAndGenerateQR()}
+              onClick={() => fetchOrderAndGenerateQR(false, selectedCurrency)}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
             >
               Try Again
@@ -168,7 +172,7 @@ export default function BakongPayment() {
           <p className="text-text-muted text-sm mb-8">Something went wrong. Please try again or choose a different payment method.</p>
           <div className="flex gap-3">
             <button
-              onClick={() => fetchOrderAndGenerateQR(true)}
+              onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
             >
               Try Again
@@ -194,10 +198,10 @@ export default function BakongPayment() {
             <ClockIcon />
           </div>
           <h2 className="text-2xl font-bold text-text-main mb-2">QR Code Expired</h2>
-          <p className="text-text-muted text-sm mb-8">Your QR code has expired after 30 minutes. Generate a new one to complete your payment.</p>
+          <p className="text-text-muted text-sm mb-8">Your QR code has expired after 5 minutes. Generate a new one to complete your payment.</p>
           <div className="flex gap-3">
             <button
-              onClick={() => fetchOrderAndGenerateQR(true)}
+              onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
               disabled={refreshing}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
             >
@@ -221,7 +225,16 @@ export default function BakongPayment() {
 
   // ── Main Payment Page ─────────────────────────────────────────────────────
   const exchangeRate = 4100;
+  const amountUSD = order ? Number(order.totalPrice).toFixed(2) : "—";
   const amountKHR = order ? Math.round(order.totalPrice * exchangeRate).toLocaleString() : "—";
+  const primaryAmount =
+    payment?.currency === "KHR"
+      ? `៛${Number(payment.amount).toLocaleString()}`
+      : `$${Number(payment?.amount || 0).toFixed(2)}`;
+  const convertedAmount =
+    payment?.currency === "KHR"
+      ? `≈ $${amountUSD} USD`
+      : `≈ ៛${amountKHR} KHR`;
 
   return (
     <div className="min-h-screen bg-bg-base py-10 pt-24 px-4 font-sans">
@@ -230,10 +243,11 @@ export default function BakongPayment() {
         {/* Back button */}
         <button
           onClick={handleCancel}
+          disabled={cancelling}
           className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm mb-8 transition-all bg-white px-5 py-2.5 rounded-full shadow-sm border border-stone-100 hover:shadow-md w-fit"
         >
           <ArrowLeftIcon />
-          Back to Order
+          Back to Checkout
         </button>
 
         {/* Header */}
@@ -259,6 +273,33 @@ export default function BakongPayment() {
           <Step num="3" label="Confirm" active={false} done={false} />
         </div>
 
+        <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-2 shadow-sm">
+          <p className="px-3 pt-2 pb-3 text-xs font-bold uppercase tracking-widest text-text-muted">
+            Choose payment currency
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: "USD", label: "US Dollar", symbol: "$" },
+              { value: "KHR", label: "Khmer Riel", symbol: "៛" },
+            ].map((currency) => (
+              <button
+                key={currency.value}
+                type="button"
+                onClick={() => handleCurrencyChange(currency.value)}
+                disabled={refreshing || cancelling}
+                className={`rounded-xl border px-4 py-3 text-left transition-all disabled:opacity-60 ${
+                  selectedCurrency === currency.value
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-stone-100 bg-stone-50 text-text-muted hover:border-primary/30"
+                }`}
+              >
+                <span className="mr-2 text-lg font-black">{currency.symbol}</span>
+                <span className="text-sm font-bold">{currency.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Main card */}
         {payment && (
           <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 overflow-hidden animate-scale-in">
@@ -266,21 +307,21 @@ export default function BakongPayment() {
             {/* Timer bar */}
             <div className="px-8 pt-8 pb-0">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">QR Expires In</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Expires In 5 Minutes</span>
                 <span className={`text-2xl font-black tabular-nums ${getTimerColour()}`}>{timeLeft ?? "—"}</span>
               </div>
               {/* Progress bar */}
               {timeLeft && timeLeft !== "00:00" && (() => {
                 const [m, s] = timeLeft.split(":").map(Number);
                 const secondsLeft = m * 60 + s;
-                const pct = Math.max(0, Math.min(100, (secondsLeft / 1800) * 100));
+                const pct = Math.max(0, Math.min(100, (secondsLeft / KHQR_EXPIRY_SECONDS) * 100));
                 return (
                   <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${pct}%`,
-                        background: m < 5 ? "#EF4444" : m < 10 ? "#F59E0B" : "#4F46E5",
+                        background: m < 2 ? "#EF4444" : m < 4 ? "#F59E0B" : "#4F46E5",
                       }}
                     />
                   </div>
@@ -310,8 +351,8 @@ export default function BakongPayment() {
             {/* Amount */}
             <div className="mx-8 mb-6 bg-primary/5 rounded-2xl p-5 text-center border border-primary/10">
               <p className="text-xs font-bold uppercase tracking-widest text-primary/60 mb-0.5">Amount Due</p>
-              <p className="text-4xl font-black text-primary tracking-tight">${payment.amount.toFixed(2)}</p>
-              <p className="text-xs text-text-muted mt-0.5 font-medium">≈ {amountKHR} KHR</p>
+              <p className="text-4xl font-black text-primary tracking-tight">{primaryAmount}</p>
+              <p className="text-xs text-text-muted mt-0.5 font-medium">{convertedAmount}</p>
             </div>
 
             {/* How to pay */}
@@ -362,7 +403,7 @@ export default function BakongPayment() {
             {/* Actions */}
             <div className="px-8 pb-8 flex gap-3">
               <button
-                onClick={() => fetchOrderAndGenerateQR(true)}
+                onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
                 disabled={refreshing}
                 className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
               >

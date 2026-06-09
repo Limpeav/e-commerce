@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
@@ -34,26 +34,36 @@ export const CartProvider = ({ children }) => {
   const { success, error: toastError, info } = useToast();
   const { t } = useLanguage();
 
+  const refreshCart = useCallback(async () => {
+    if (!canUseCustomerCart) {
+      setCart([]);
+      return [];
+    }
+
+    try {
+      const result = await CartController.getCart();
+      const nextCart = result.success ? result.data || [] : [];
+      setCart(nextCart);
+      return nextCart;
+    } catch (error) {
+      console.error("Error loading cart:", error);
+      setCart([]);
+      return [];
+    }
+  }, [canUseCustomerCart]);
+
   // Load cart from backend when user logs in
   useEffect(() => {
     const loadCart = async () => {
-      if (canUseCustomerCart) {
-        try {
-          const result = await CartController.getCart();
-          setCart(result.success ? result.data || [] : []);
-        } catch (error) {
-          console.error("Error loading cart:", error);
-          setCart([]);
-        }
-      } else {
-        // User logged out, clear cart
-        setCart([]);
+      try {
+        await refreshCart();
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadCart();
-  }, [canUseCustomerCart]);
+  }, [refreshCart]);
 
   // Add to cart
   const addToCart = async (product, quantity = 1, options = {}) => {
@@ -169,6 +179,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         clearCart,
+        refreshCart,
         openCartDrawer: () => setCartDrawerOpen(true),
         closeCartDrawer: () => setCartDrawerOpen(false),
       }}

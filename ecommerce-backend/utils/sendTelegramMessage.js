@@ -188,6 +188,7 @@ export const buildOrderTelegramMessage = ({
   customerPhone,
   totalPrice,
   paymentMethod,
+  paymentStatus,
   itemCount,
   shippingAddress,
   googleMapsLink,
@@ -196,6 +197,7 @@ export const buildOrderTelegramMessage = ({
   const safeCustomerName = customerName ? escapeHtml(customerName) : "Unknown";
   const safeCustomerPhone = customerPhone ? escapeHtml(customerPhone) : "N/A";
   const safePaymentMethod = paymentMethod ? escapeHtml(paymentMethod) : "N/A";
+  const safePaymentStatus = paymentStatus ? escapeHtml(paymentStatus) : null;
   const safeAddress = shippingAddress ? escapeHtml(shippingAddress) : "N/A";
   const safeMapsLink = googleMapsLink ? escapeHtml(googleMapsLink) : null;
 
@@ -208,6 +210,7 @@ export const buildOrderTelegramMessage = ({
     `<b>Items</b>: ${itemCount}`,
     `<b>Total</b>: $${Number(totalPrice || 0).toFixed(2)}`,
     `<b>Payment</b>: ${safePaymentMethod}`,
+    ...(safePaymentStatus ? [`<b>Payment Status</b>: ${safePaymentStatus}`] : []),
     `<b>Address</b>: ${safeAddress}`,
   ];
 
@@ -268,6 +271,7 @@ export const sendOrderTelegramAlert = async ({
   customerPhone,
   totalPrice,
   paymentMethod,
+  paymentStatus,
   itemCount,
   shippingAddress,
   googleMapsLink,
@@ -284,6 +288,7 @@ export const sendOrderTelegramAlert = async ({
     customerPhone,
     totalPrice,
     paymentMethod,
+    paymentStatus,
     itemCount,
     shippingAddress,
     googleMapsLink,
