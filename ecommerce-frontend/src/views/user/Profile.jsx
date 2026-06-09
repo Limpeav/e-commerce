@@ -202,20 +202,20 @@ const Profile = () => {
     try {
       const email = securityEmail.trim();
       if (!email) {
-        throw new Error("Please enter your email address.");
+        throw new Error(t("profile.enterEmailRequired"));
       }
 
       if (user?.email && email.toLowerCase() !== user.email.toLowerCase()) {
-        throw new Error("Please enter the email address for this account.");
+        throw new Error(t("profile.accountEmailRequired"));
       }
 
       await forgotPassword({ email });
       setSecurityStep("code");
       setResendCooldown(60);
-      setSuccess("Verification code sent to your email.");
+      setSuccess(t("profile.verificationCodeSent"));
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to send verification code.");
+      setError(err.response?.data?.message || err.message || t("profile.sendVerificationFailed"));
     } finally {
       setLoading(false);
     }
@@ -230,7 +230,7 @@ const Profile = () => {
     try {
       const code = securityCode.trim();
       if (code.length !== 6) {
-        throw new Error("Please enter the 6-digit verification code.");
+        throw new Error(t("profile.enterSixDigitCode"));
       }
 
       const { data } = await verifyResetCode({
@@ -239,10 +239,10 @@ const Profile = () => {
       });
       setSecurityResetToken(data.resetToken);
       setSecurityStep("password");
-      setSuccess("Code verified. Enter your new password.");
+      setSuccess(t("profile.codeVerified"));
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to verify code.");
+      setError(err.response?.data?.message || err.message || t("profile.verifyCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -258,10 +258,10 @@ const Profile = () => {
       await resendResetCode({ email: securityEmail.trim() });
       setSecurityCode("");
       setResendCooldown(60);
-      setSuccess("A new verification code was sent.");
+      setSuccess(t("profile.newVerificationCodeSent"));
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend verification code.");
+      setError(err.response?.data?.message || t("profile.resendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -275,7 +275,7 @@ const Profile = () => {
 
     try {
       if (!securityResetToken) {
-        throw new Error("Please verify your email code first.");
+        throw new Error(t("profile.verifyEmailFirst"));
       }
 
       if (formData.newPassword !== formData.confirmPassword) {
@@ -292,10 +292,10 @@ const Profile = () => {
       });
 
       resetSecurityForm();
-      setSuccess("Password updated successfully.");
+      setSuccess(t("profile.passwordUpdated"));
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to update password.");
+      setError(err.response?.data?.message || err.message || t("profile.passwordUpdateFailed"));
     } finally {
       setLoading(false);
     }
@@ -518,9 +518,9 @@ const Profile = () => {
 
                   <div className="mb-8 grid grid-cols-3 gap-2">
                     {[
-                      ["email", "Email"],
-                      ["code", "Verify"],
-                      ["password", "Password"],
+                      ["email", t("profile.emailStep")],
+                      ["code", t("profile.verifyStep")],
+                      ["password", t("profile.passwordStep")],
                     ].map(([stepKey, label], index) => {
                       const steps = ["email", "code", "password"];
                       const isActive = securityStep === stepKey;
@@ -546,7 +546,7 @@ const Profile = () => {
                   {securityStep === "email" && (
                     <form onSubmit={handleSendSecurityCode} className="space-y-6">
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Email Address</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.emailAddress")}</label>
                         <div className="relative">
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Mail className="h-5 w-5" />
@@ -562,7 +562,7 @@ const Profile = () => {
                             className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
                               isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
                             }`}
-                            placeholder="Enter your account email"
+                            placeholder={t("profile.enterAccountEmail")}
                           />
                         </div>
                       </div>
@@ -570,7 +570,7 @@ const Profile = () => {
                       <div className="pt-4 flex justify-center">
                         <button type="submit" disabled={loading || !securityEmail.trim()} className="text-white w-full md:w-auto py-4 md:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
                           {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Mail className="w-5 h-5" />}
-                          {loading ? "Sending Code..." : "Send Verification Code"}
+                          {loading ? t("profile.sendingCode") : t("profile.sendVerificationCode")}
                         </button>
                       </div>
                     </form>
@@ -579,7 +579,7 @@ const Profile = () => {
                   {securityStep === "code" && (
                     <form onSubmit={handleVerifySecurityCode} className="space-y-6">
                       <div className="group">
-                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>Verification Code</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.verificationCode")}</label>
                         <div className="relative">
                           <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
                             <Shield className="h-5 w-5" />
@@ -601,19 +601,21 @@ const Profile = () => {
                           />
                         </div>
                         <p className={`mt-3 text-sm font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>
-                          We sent a 6-digit code to {securityEmail}.
+                          {t("profile.codeSentTo", { email: securityEmail })}
                         </p>
                       </div>
 
                       <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-center">
                         <button type="submit" disabled={loading || securityCode.length !== 6} className="text-white w-full sm:w-auto py-4 sm:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
                           {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
-                          {loading ? "Verifying..." : "Verify Code"}
+                          {loading ? t("profile.verifying") : t("profile.verifyCode")}
                         </button>
                         <button type="button" onClick={handleResendSecurityCode} disabled={loading || resendCooldown > 0} className={`w-full rounded-xl border py-4 font-bold transition-all active:scale-95 disabled:cursor-not-allowed sm:w-auto sm:px-8 ${
                           isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800 disabled:text-slate-600" : "border-stone-200 text-stone-700 hover:bg-stone-50 disabled:text-stone-400"
                         }`}>
-                          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                          {resendCooldown > 0
+                            ? t("profile.resendIn", { seconds: resendCooldown })
+                            : t("profile.resendCode")}
                         </button>
                       </div>
                     </form>
@@ -664,7 +666,7 @@ const Profile = () => {
                         <button type="button" onClick={resetSecurityForm} className={`w-full rounded-xl border py-4 font-bold transition-all active:scale-95 sm:w-auto sm:px-8 ${
                           isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-stone-200 text-stone-700 hover:bg-stone-50"
                         }`}>
-                          Start Over
+                          {t("profile.startOver")}
                         </button>
                       </div>
                     </form>

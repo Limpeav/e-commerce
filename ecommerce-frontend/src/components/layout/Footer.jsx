@@ -2,11 +2,6 @@ import { Link } from "react-router-dom";
 import {
   Mail,
   Phone,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Shield,
 } from "lucide-react";
 import { useLanguage } from "../../context/useLanguage";
 import logo from "../../assets/logo.png";
@@ -114,28 +109,10 @@ export default function Footer() {
         className="border-t bg-bg-card/50 px-4 py-6 backdrop-blur-sm sm:px-6 sm:py-8"
         style={{ borderColor: "var(--color-border)" }}
       >
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
+        <div className="mx-auto flex max-w-7xl justify-center">
           <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted/50">
             &copy; {currentYear} Cherish Baby Store Inc. {t("footer.rightsReserved")}
           </p>
-
-          <div className="flex items-center gap-3">
-            {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
-              <a
-                key={i}
-                href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border bg-bg-card transition-all hover:border-primary hover:bg-primary active:scale-90 sm:h-10 sm:w-10 sm:rounded-xl"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                <Icon className="h-3.5 w-3.5 text-text-muted transition-all group-hover:scale-110 group-hover:text-white sm:h-4 sm:w-4" />
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 rounded-lg border bg-bg-card px-3 py-1.5 opacity-60" style={{ borderColor: "var(--color-border)" }}>
-            <Shield className="h-3 w-3 text-text-muted" strokeWidth={3} />
-            <span className="text-[10px] font-bold tracking-widest text-text-muted">{t("footer.secured")}</span>
-          </div>
         </div>
       </div>
     </footer>

@@ -1,4 +1,4 @@
-import bannerImage from "../assets/banner.jpg";
+import bannerImage from "../assets/banner-promotion.jpg";
 
 export class BannerModel {
   constructor(data = {}) {

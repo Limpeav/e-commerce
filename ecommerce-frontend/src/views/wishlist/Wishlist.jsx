@@ -1,7 +1,8 @@
 import { useWishlist } from "../../context/useWishlist";
 import { useCart } from "../../context/useCart";
+import { useAuth } from "../../context/useAuth";
 import { Link } from "react-router-dom";
-import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 import { useDarkMode } from "../../hooks";
 import { isClothingProduct } from "../../utils/productOptions";
 import { useLanguage } from "../../context/useLanguage";
@@ -10,12 +11,79 @@ import { getLocalizedProductText } from "../../utils/productLocalization";
 export default function Wishlist() {
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
 
   const handleAddToCart = (product) => {
     addToCart(product);
   };
+
+  if (!user) {
+    const returnToWishlist = { from: "/customer/wishlist" };
+
+    return (
+      <div className="min-h-[calc(100vh-5rem)] bg-bg-base px-4 py-10 pt-28 font-sans transition-colors duration-300 sm:px-6 sm:py-16 sm:pt-32">
+        <div className="relative mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-5xl items-center justify-center">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[40rem] w-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
+
+          <div
+            className={`relative z-10 mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border bg-bg-card px-6 py-9 text-center shadow-2xl sm:rounded-[3rem] sm:px-12 sm:py-14 ${
+              isDark
+                ? "shadow-[0_34px_90px_-28px_rgba(12,16,12,0.68)]"
+                : "shadow-[0_34px_90px_-28px_rgba(122,150,126,0.18)]"
+            }`}
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+
+            <div
+              className="mx-auto mb-7 flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-primary/10 sm:h-28 sm:w-28 sm:rounded-[2.25rem]"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <Heart className="h-11 w-11 fill-primary/15 text-primary sm:h-13 sm:w-13" />
+            </div>
+
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-primary">
+              <ShieldCheck className="h-4 w-4" />
+              {t("wishlistGuest.privateList")}
+            </div>
+
+            <h1 className="mx-auto max-w-xl text-3xl font-black leading-tight tracking-tight text-text-main font-display sm:text-4xl md:text-5xl">
+              {t("wishlistGuest.title")}
+            </h1>
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-text-muted sm:text-base">
+              {t("wishlistGuest.description")}
+            </p>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <Link
+                to="/login"
+                state={returnToWishlist}
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-dark active:scale-95"
+              >
+                <LogIn className="h-5 w-5" />
+                {t("wishlistGuest.login")}
+              </Link>
+              <Link
+                to="/register"
+                state={returnToWishlist}
+                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl border bg-bg-card px-6 py-3.5 text-sm font-bold text-text-main transition hover:-translate-y-0.5 hover:border-primary hover:text-primary active:scale-95"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                <UserPlus className="h-5 w-5" />
+                {t("wishlistGuest.register")}
+              </Link>
+            </div>
+
+            <p className="mt-5 text-xs font-medium text-text-muted">
+              {t("wishlistGuest.accountNote")}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Empty Wishlist State
   if (wishlist.length === 0) {

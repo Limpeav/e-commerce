@@ -4,7 +4,7 @@ import {
   resendRegistrationVerification,
 } from "../../../services/authApi";
 import { authService } from "../../../services/authService";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
@@ -35,7 +35,17 @@ const Register = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  const requestedRedirect = location.state?.from;
+  const safeRedirect =
+    typeof requestedRedirect === "string" &&
+    requestedRedirect.startsWith("/") &&
+    !requestedRedirect.startsWith("//") &&
+    !requestedRedirect.startsWith("/login") &&
+    !requestedRedirect.startsWith("/register")
+      ? requestedRedirect
+      : "/customer";
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -103,7 +113,7 @@ const Register = () => {
       });
       setSuccessMessage(data.message || "Email verified successfully. You can now log in.");
       setLoading(false);
-      navigate("/login");
+      navigate("/login", { state: { from: safeRedirect } });
     } catch (err) {
       setError(err.response?.data?.message || "Could not verify this code. Please try again.");
       setLoading(false);
@@ -179,7 +189,7 @@ const Register = () => {
       if (!storedUser.phone) {
         navigate("/complete-profile");
       } else {
-        navigate("/customer");
+        navigate(safeRedirect);
       }
     } catch (err) {
       setError(
