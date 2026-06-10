@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star } from 'lucide-react';
 import ReviewList from './ReviewList';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
@@ -10,12 +10,28 @@ const ReviewSection = ({ product }) => {
   const reviewCount = product.numReviews || 0;
 
   return (
-    <div id="reviews" className={`scroll-mt-24 grid lg:grid-cols-3 gap-10 lg:gap-16 border-t pt-12 sm:pt-20 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-      {/* Review Stats */}
-      <div className="lg:col-span-1 space-y-10">
-        <div className={`rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 border ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-50 shadow-2xl shadow-primary/5"}`}>
-          <h2 className="text-2xl sm:text-3xl font-black text-text-main mb-6 sm:mb-8 font-display tracking-tight">{t("product.customerReviews")}</h2>
-          <div className={`flex items-center gap-4 sm:gap-6 mb-8 sm:mb-10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border ${isDark ? "bg-amber-500/10 border-amber-500/15" : "bg-amber-50/50 border-amber-100/50"}`}>
+    <section
+      id="reviews"
+      className={`scroll-mt-24 border-t pt-12 sm:pt-20 ${isDark ? "border-slate-800" : "border-stone-100"}`}
+    >
+        <div className="mb-6 sm:mb-8">
+          <div>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-2xl font-black tracking-tight text-text-main sm:text-3xl">
+                {t("product.customerReviews")}
+              </h2>
+              {reviewCount > 0 && (
+                <span className="rounded-full bg-primary/10 px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-primary sm:text-[10px]">
+                  {t("product.verifiedReviews")}
+                </span>
+              )}
+            </div>
+
+            <div className={`flex items-center gap-4 rounded-[1.5rem] border p-4 sm:gap-6 sm:rounded-[2rem] sm:p-6 ${
+              isDark
+                ? "border-amber-500/15 bg-amber-500/10"
+                : "border-amber-100/50 bg-amber-50/50"
+            }`}>
             <div className="text-5xl sm:text-6xl font-black text-amber-600 font-display tracking-tight">{product.rating?.toFixed(1) || "0.0"}</div>
             <div>
               <div className="flex items-center gap-1 mb-2">
@@ -34,22 +50,11 @@ const ReviewSection = ({ product }) => {
               </p>
             </div>
           </div>
-
-          <div className={`border rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
-            <MessageSquare className={`w-8 h-8 mb-4 ${isDark ? "text-slate-500" : "text-primary"}`} />
-            <p className="text-text-main font-black uppercase tracking-widest text-xs mb-3 leading-relaxed">{t("product.verifiedCustomerFeedback")}</p>
-            <p className="text-sm font-bold leading-relaxed text-text-muted">
-              {t("product.deliveredReviewDisplay")}
-            </p>
           </div>
         </div>
-      </div>
 
-      {/* Review List */}
-      <div className="lg:col-span-2">
         <ReviewList reviews={product.reviews} />
-      </div>
-    </div>
+    </section>
   );
 };
 

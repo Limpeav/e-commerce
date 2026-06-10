@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Star, ShoppingCart, Lock, Baby } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Star, ShoppingCart, Lock, Baby } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 import { useLanguage } from '../../context/useLanguage';
@@ -57,26 +58,49 @@ const ProductInfo = ({
           {localizedProduct.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-3 pt-0">
-          <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 shadow-sm ${isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-100"}`}>
+        <Link
+          to={`/products/${product._id}/reviews`}
+          className={`group flex w-full items-center gap-3 rounded-2xl border p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-lg hover:shadow-primary/10 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-fit sm:min-w-[28rem] ${
+            isDark
+              ? "border-slate-700 bg-slate-900/80"
+              : "border-stone-200 bg-white"
+          }`}
+          aria-label={t("product.viewCustomerReviews")}
+        >
+          <div className={`flex shrink-0 items-center gap-1 rounded-xl border px-2.5 py-2 transition-colors group-hover:border-primary ${
+            isDark
+              ? "border-amber-500/20 bg-amber-500/10"
+              : "border-amber-100 bg-amber-50"
+          }`}>
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.floor(product.rating || 0)
+                  className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${i < Math.floor(product.rating || 0)
                     ? "fill-amber-400 text-amber-400"
                     : "text-amber-200 fill-amber-50"
                     }`}
                 />
               ))}
             </div>
-            <span className="ml-1 text-sm font-black text-amber-600 sm:text-base">{product.rating?.toFixed(1) || "0.0"}</span>
+            <span className="ml-1 text-sm font-black text-amber-600">
+              {product.rating?.toFixed(1) || "0.0"}
+            </span>
           </div>
-          <div className={`h-5 w-px hidden sm:block ${isDark ? "bg-slate-700" : "bg-stone-200"}`}></div>
-          <a href="#reviews" className={`text-sm font-bold hover:text-indigo-600 transition-colors underline underline-offset-4 flex items-center gap-2 ${isDark ? "text-slate-400 decoration-slate-700" : "text-text-muted decoration-stone-200"}`}>
-            <span>{t("product.reviewCount", { count: product.numReviews || 0 })}</span>
-          </a>
-        </div>
+
+          <div className="min-w-0 flex-1">
+            <span className="block text-sm font-black text-text-main transition-colors group-hover:text-primary">
+              {t("product.viewCustomerReviews")}
+            </span>
+            <span className="block text-xs font-bold text-text-muted">
+              {t("product.reviewCount", { count: product.numReviews || 0 })}
+            </span>
+          </div>
+
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-all group-hover:bg-primary group-hover:text-white">
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </Link>
       </div>
 
       <div className={`h-px w-full ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>

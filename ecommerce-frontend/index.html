@@ -7,6 +7,9 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta id="theme-color" name="theme-color" content="#FCF9F5" />
+  <meta id="apple-status-bar-style" name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Cherish Baby Store</title>
   <meta name="description" content="Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door." />
   <meta property="og:title" content="Cherish Baby Store" />
@@ -22,8 +25,13 @@
     (function () {
       const storedTheme = localStorage.getItem("theme");
       const isDark = storedTheme === "dark";
+      const themeColor = isDark ? "#1A1C1B" : "#FCF9F5";
       document.documentElement.classList.toggle("dark", isDark);
       document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+      document.querySelector("#theme-color")?.setAttribute("content", themeColor);
+      document
+        .querySelector("#apple-status-bar-style")
+        ?.setAttribute("content", isDark ? "black" : "default");
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">

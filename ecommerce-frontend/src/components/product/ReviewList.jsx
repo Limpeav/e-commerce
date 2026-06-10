@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Star } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
@@ -7,19 +7,18 @@ const ReviewList = ({ reviews }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
   const dateLocale = language === "kh" ? "km-KH" : undefined;
+  const sortedReviews = useMemo(
+    () => [...(reviews || [])].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    ),
+    [reviews]
+  );
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex items-center justify-between mb-2 sm:mb-4">
-        <h2 className="text-2xl sm:text-3xl font-black text-text-main font-display tracking-tight">{t("product.customerReviews")}</h2>
-        {reviews && reviews.length > 0 &&
-          <span className="text-[9px] sm:text-[10px] font-black text-primary bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase tracking-[0.2em]">{t("product.verifiedReviews")}</span>
-        }
-      </div>
-
-      {reviews && reviews.length > 0 ? (
+    <div>
+      {sortedReviews.length > 0 ? (
         <div className="grid gap-4 sm:gap-6">
-          {reviews.map((review) => {
+          {sortedReviews.map((review) => {
             const comment = String(review.comment || "").trim();
             const rating = Math.min(5, Math.max(1, Math.round(Number(review.rating) || 0)));
 
@@ -52,6 +51,7 @@ const ReviewList = ({ reviews }) => {
               </div>
             );
           })}
+
         </div>
       ) : (
         <div className={`rounded-[2.5rem] sm:rounded-[4rem] p-10 sm:p-20 text-center border-2 border-dashed ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-stone-100"}`}>

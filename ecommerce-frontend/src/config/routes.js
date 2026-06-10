@@ -3,6 +3,7 @@ export const userLazyComponents = {
   Home: () => import("../views/user/Home"),
   ProductCatalog: () => import("../views/product/ProductCatalog"),
   ProductDetail: () => import("../views/product/ProductDetail"),
+  ProductReviews: () => import("../views/product/ProductReviews"),
   Cart: () => import("../views/cart/Cart"),
   Wishlist: () => import("../views/wishlist/Wishlist"),
   Profile: () => import("../views/user/Profile"),
@@ -46,6 +47,8 @@ export const publicRoutes = [
   { path: "/customer/deals", component: "ProductCatalog" },
   { path: "/products/:id", component: "ProductDetail" },
   { path: "/customer/products/:id", component: "ProductDetail" },
+  { path: "/products/:id/reviews", component: "ProductReviews" },
+  { path: "/customer/products/:id/reviews", component: "ProductReviews" },
   { path: "/cart", component: "Cart" },
   { path: "/customer/cart", component: "Cart" },
 ];

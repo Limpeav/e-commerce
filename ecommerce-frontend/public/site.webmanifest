@@ -4,8 +4,8 @@
   "description": "Shop baby and kids products at Cherish Baby Store.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#5ec9f7",
+  "background_color": "#FCF9F5",
+  "theme_color": "#FCF9F5",
   "icons": [
     {
       "src": "/icon-192.png",

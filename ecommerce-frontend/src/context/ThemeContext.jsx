@@ -2,6 +2,10 @@ import { createContext, useCallback, useContext, useLayoutEffect, useState } fro
 
 const ThemeContext = createContext();
 const THEME_MODES = ["light", "dark"];
+const THEME_COLORS = {
+  light: "#FCF9F5",
+  dark: "#1A1C1B",
+};
 
 const getInitialThemeMode = () => {
   const stored = localStorage.getItem("theme");
@@ -15,6 +19,12 @@ const applyThemeMode = (mode) => {
   html.dataset.theme = mode;
   html.classList.toggle("dark", resolvedDark);
   html.style.colorScheme = resolvedDark ? "dark" : "light";
+  document
+    .querySelector("#theme-color")
+    ?.setAttribute("content", THEME_COLORS[mode]);
+  document
+    .querySelector("#apple-status-bar-style")
+    ?.setAttribute("content", resolvedDark ? "black" : "default");
 
   return resolvedDark;
 };

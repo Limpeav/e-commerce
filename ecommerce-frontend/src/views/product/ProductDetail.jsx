@@ -1,5 +1,5 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useCart } from "../../context/useCart";
 import { useAuth } from "../../context/useAuth";
 import { useWishlist } from "../../context/useWishlist";
@@ -9,7 +9,6 @@ import { useDarkMode } from "../../hooks";
 // Components
 import ProductImage from "../../components/product/ProductImage";
 import ProductInfo from "../../components/product/ProductInfo";
-import ReviewSection from "../../components/product/ReviewSection";
 import RelatedProducts from "../../components/product/RelatedProducts";
 import Loading from "../../components/common/Loading";
 import SEO from "../../components/seo/SEO";
@@ -21,7 +20,6 @@ import { useLanguage } from "../../context/useLanguage";
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -33,16 +31,6 @@ export default function ProductDetail() {
 
   // Custom hooks
   const { product, loading, error } = useProductDetail(id, user, language);
-
-  useEffect(() => {
-    if (loading || !product || location.hash !== "#reviews") {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      document.getElementById("reviews")?.scrollIntoView({ block: "start" });
-    });
-  }, [loading, product, location.hash]);
 
   const handleAddToCart = (options = {}) => {
     addToCart(product, quantity, options);
@@ -148,10 +136,6 @@ export default function ProductDetail() {
             user={user}
           />
         </div>
-
-        <ReviewSection
-          product={product}
-        />
 
         {/* Related Products Section */}
         <RelatedProducts currentProduct={product} />
