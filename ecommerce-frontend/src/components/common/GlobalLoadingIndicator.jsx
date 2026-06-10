@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "../Loader";
 import { useLanguage } from "../../context/useLanguage";
 import {
   finishGlobalLoading,
@@ -7,17 +6,55 @@ import {
   startGlobalLoading,
 } from "../../services/loadingIndicator";
 
-const SHOW_DELAY_MS = 250;
-const MIN_VISIBLE_MS = 300;
-const NAVIGATION_SETTLE_MS = 650;
+const SHOW_DELAY_MS = 120;
+const MIN_VISIBLE_MS = 250;
+const NAVIGATION_SETTLE_MS = 400;
 
+/**
+ * GlobalLoadingIndicator
+ *
+ * Shows a slim top progress bar (à la YouTube / GitHub) during API requests
+ * and navigations. Falls back to full-screen loader only when loading takes
+ * a long time (> 2s) — e.g. on a slow connection.
+ */
 const GlobalLoadingIndicator = () => {
   const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showFullScreen, setShowFullScreen] = useState(false);
   const activeRequestsRef = useRef(new Set());
   const showTimerRef = useRef(null);
   const hideTimerRef = useRef(null);
+  const fullScreenTimerRef = useRef(null);
+  const progressIntervalRef = useRef(null);
   const visibleSinceRef = useRef(0);
+
+  const startProgressBar = () => {
+    setProgress(0);
+    // Quickly get to ~70%, then slow down to simulate real loading
+    progressIntervalRef.current = window.setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 85) {
+          window.clearInterval(progressIntervalRef.current);
+          return prev;
+        }
+        // Fast at the start, slow as it approaches 85%
+        const increment = prev < 30 ? 8 : prev < 60 ? 4 : 1.2;
+        return Math.min(prev + increment, 85);
+      });
+    }, 80);
+  };
+
+  const finishProgressBar = (onComplete) => {
+    window.clearInterval(progressIntervalRef.current);
+    setProgress(100);
+    window.setTimeout(() => {
+      setVisible(false);
+      setProgress(0);
+      setShowFullScreen(false);
+      onComplete?.();
+    }, 280);
+  };
 
   useEffect(() => {
     const clearShowTimer = () => {
@@ -34,9 +71,11 @@ const GlobalLoadingIndicator = () => {
         : 0;
 
       window.clearTimeout(hideTimerRef.current);
+      window.clearTimeout(fullScreenTimerRef.current);
       hideTimerRef.current = window.setTimeout(() => {
-        setVisible(false);
-        visibleSinceRef.current = 0;
+        finishProgressBar(() => {
+          visibleSinceRef.current = 0;
+        });
       }, remainingTime);
     };
 
@@ -52,6 +91,15 @@ const GlobalLoadingIndicator = () => {
           if (activeRequestsRef.current.size > 0) {
             visibleSinceRef.current = performance.now();
             setVisible(true);
+            setShowFullScreen(false);
+            startProgressBar();
+
+            // Escalate to full-screen overlay after 2 seconds
+            fullScreenTimerRef.current = window.setTimeout(() => {
+              if (activeRequestsRef.current.size > 0) {
+                setShowFullScreen(true);
+              }
+            }, 2000);
           }
           showTimerRef.current = null;
         }, SHOW_DELAY_MS);
@@ -72,11 +120,14 @@ const GlobalLoadingIndicator = () => {
     return () => {
       clearShowTimer();
       window.clearTimeout(hideTimerRef.current);
+      window.clearTimeout(fullScreenTimerRef.current);
+      window.clearInterval(progressIntervalRef.current);
       window.removeEventListener(loadingIndicatorEvents.start, handleStart);
       window.removeEventListener(loadingIndicatorEvents.end, handleEnd);
     };
   }, []);
 
+  // Intercept browser history to show the bar during navigations
   useEffect(() => {
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
@@ -129,12 +180,36 @@ const GlobalLoadingIndicator = () => {
   if (!visible) return null;
 
   return (
-    <Loader
-      message={t("loading.pleaseWait")}
-      fullScreen
-      size="large"
-      className="!z-[1000]"
-    />
+    <>
+      {/* Slim top progress bar — always visible */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[9999] h-[3px] overflow-hidden"
+        role="progressbar"
+        aria-label="Loading"
+        aria-valuenow={Math.round(progress)}
+      >
+        <div
+          className="h-full bg-primary shadow-[0_0_10px_0px_var(--color-primary)] transition-all"
+          style={{
+            width: `${progress}%`,
+            transitionDuration: progress === 100 ? "200ms" : "80ms",
+            transitionTimingFunction: "ease-out",
+          }}
+        />
+      </div>
+
+      {/* Full-screen overlay — only shown for slow loads (> 2s) */}
+      {showFullScreen && (
+        <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-center backdrop-blur-md bg-white/80 dark:bg-slate-950/85 transition-all duration-300">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-12 w-12 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
+            <p className="text-sm font-semibold tracking-[0.18em] uppercase text-[var(--color-primary)]">
+              {t("loading.pleaseWait")}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

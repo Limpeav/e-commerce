@@ -16,9 +16,10 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ScrollToTop from "../components/common/ScrollToTop";
-import Loading from "../components/common/Loading";
+import PageSkeleton from "../components/common/PageSkeleton";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
+import BottomNav from "../components/layout/BottomNav";
 import StaticTextTranslator from "../components/common/StaticTextTranslator";
 import GlobalLoadingIndicator from "../components/common/GlobalLoadingIndicator";
 import SEO from "../components/seo/SEO";
@@ -205,7 +206,7 @@ export default function AppView() {
             isPortalRoute || isDark ? "bg-slate-950" : "bg-stone-50"
           }`}
         >
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<PageSkeleton />}>
             <AnimatePresence mode="wait">
               <Routes location={location} key={location.pathname}>
                 {publicRoutes.map((route) => renderRoute(route))}
@@ -217,6 +218,7 @@ export default function AppView() {
         </main>
 
         {shouldShowFooter && <Footer />}
+        {shouldShowNav && <BottomNav />}
       </div>
     </ErrorBoundary>
   );

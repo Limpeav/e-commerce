@@ -24,10 +24,11 @@ import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
 import { cancelOrder } from "../../services/orderService";
 import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime";
+import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 
-const getLocalizedOrderItemName = (item, language) =>
+  const getLocalizedOrderItemName = (item, language) =>
   language === "kh" && (item.titleKm || item.product?.titleKm)
     ? item.titleKm || item.product.titleKm
     : item.name;
@@ -37,6 +38,7 @@ const OrderDetail = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const [isDark] = useDarkMode();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -192,17 +194,23 @@ const OrderDetail = () => {
 
   // Simplified, easy-to-maintain layout to avoid JSX nesting issues
   return (
-    <div className="min-h-screen bg-bg-base py-12 pt-32 px-6 font-sans">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className={`min-h-screen pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 font-sans transition-colors duration-300 ${
+      isDark ? 'bg-slate-950' : 'bg-bg-base'
+    }`}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
         {/* Header */}
-        <div className="bg-white rounded-3xl border border-stone-100 p-8 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className={`rounded-3xl border p-8 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4 ${
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-100'
+        }`}>
           <div>
             <button
-              onClick={() => navigate("/customer")}
-              className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary mb-4"
+              onClick={() => navigate(-1)}
+              className={`inline-flex items-center gap-2 text-sm mb-4 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-primary' : 'text-text-muted hover:text-primary'
+              }`}
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{t("orderDetail.backToHome", { defaultValue: "Back to home" })}</span>
+              <span>{t("orderDetail.back", { defaultValue: "Back" })}</span>
             </button>
             <h1 className="text-3xl font-bold text-text-main">
               {t("orderDetail.orderNumber", {
@@ -244,7 +252,9 @@ const OrderDetail = () => {
         </div>
 
         {/* Items */}
-        <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-4">
+        <div className={`rounded-3xl border p-8 space-y-4 ${
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-100'
+        }`}>
           <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-primary" />
             {t("orderDetail.items")}
@@ -252,9 +262,13 @@ const OrderDetail = () => {
           {order.orderItems?.map((item, index) => (
             <div
               key={index}
-              className="flex items-center gap-4 py-4 border-t border-stone-100 first:border-t-0"
+              className={`flex items-center gap-4 py-4 border-t first:border-t-0 ${
+                isDark ? 'border-slate-800' : 'border-stone-100'
+              }`}
             >
-              <div className="w-16 h-16 bg-stone-50 rounded-xl flex items-center justify-center overflow-hidden">
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden ${
+                isDark ? 'bg-slate-800' : 'bg-stone-50'
+              }`}>
                 {item.image ? (
                   <img
                     src={item.image}
@@ -284,7 +298,9 @@ const OrderDetail = () => {
         {/* Shipping & Payment */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {order.shippingAddress && (
-            <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-3">
+            <div className={`rounded-3xl border p-8 space-y-3 ${
+              isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-100'
+            }`}>
               <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
                 {t("orderDetail.shipping")}
@@ -311,7 +327,9 @@ const OrderDetail = () => {
             </div>
           )}
 
-          <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-4">
+          <div className={`rounded-3xl border p-8 space-y-4 ${
+            isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-100'
+          }`}>
             <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-primary" />
               {t("orderDetail.payment")}
@@ -342,7 +360,9 @@ const OrderDetail = () => {
         </div>
 
         {/* Summary */}
-        <div className="bg-white rounded-3xl border border-stone-100 p-8 space-y-3">
+        <div className={`rounded-3xl border p-8 space-y-3 ${
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-100'
+        }`}>
           <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary" />
             {t("orderDetail.summary")}
@@ -374,7 +394,7 @@ const OrderDetail = () => {
                 </span>
               </div>
             )}
-            <div className="h-px bg-stone-100 my-2" />
+            <div className={`h-px my-2 ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`} />
             <div className="flex justify-between text-base">
               <span className="font-semibold text-text-main">{t("orderDetail.total")}</span>
               <span className="font-bold text-text-main">
@@ -386,7 +406,9 @@ const OrderDetail = () => {
 
         {/* Delivery badge */}
         {order.isDelivered && (
-          <div className="bg-green-50 border border-green-100 rounded-3xl p-4 flex items-center gap-3 text-sm text-green-800">
+          <div className={`rounded-3xl p-4 flex items-center gap-3 text-sm ${
+            isDark ? 'bg-green-900/30 border border-green-800/40 text-green-300' : 'bg-green-50 border border-green-100 text-green-800'
+          }`}>
             <CheckCircle className="w-5 h-5" />
             <div>
               <p className="font-semibold">{t("orderDetail.status.delivered")}</p>
