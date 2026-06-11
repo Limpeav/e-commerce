@@ -23,6 +23,7 @@ export const useProducts = (language = "en") => {
         const result = await ProductController.getProducts();
         if (result.success) {
           setProducts(result.data || []);
+          setError("");
         } else {
           setError(result.error || "Failed to fetch products");
         }
@@ -79,7 +80,13 @@ export const useProducts = (language = "en") => {
     return () => window.clearTimeout(timeout);
   }, [language, products, translatingMissingKhmer]);
 
-  return { products, loading, error, setProducts };
+  return {
+    products,
+    loading,
+    error,
+    setProducts,
+    refetch: fetchProducts,
+  };
 };
 
 export const useProductFilters = (products) => {

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
 import { adminService } from '../../services/adminService'
 import {
@@ -22,6 +23,7 @@ import logo from '../../assets/logo.png'
 const AdminSidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
   const [orderCount, setOrderCount] = React.useState(0)
 
@@ -165,7 +167,11 @@ const AdminSidebar = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className={`
         fixed inset-y-0 left-0 z-40 w-64 border-r border-[var(--color-border)] bg-[var(--color-bg-card)] transform transition-transform duration-300 ease-in-out shadow-xl
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -224,13 +230,20 @@ const AdminSidebar = () => {
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
+                    relative isolate flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
                     ${isActive
-                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      ? 'text-white'
                       : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)] hover:translate-x-1'
                     }
                   `}
                 >
+                  {isActive && (
+                    <motion.span
+                      layoutId="admin-sidebar-active"
+                      className="absolute inset-0 -z-10 rounded-xl bg-[var(--color-primary)] shadow-md"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
+                    />
+                  )}
                   <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
                     {(item.name === 'Orders' || item.name === 'Deliveries') && item.badge > 0 && (
@@ -266,7 +279,7 @@ const AdminSidebar = () => {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {isDelivery && !isOrderDetail && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
@@ -300,12 +313,18 @@ const AdminSidebar = () => {
       )}
 
       {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

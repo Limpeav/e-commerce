@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useLanguage } from "../../context/useLanguage";
 import {
   finishGlobalLoading,
   loadingIndicatorEvents,
@@ -14,18 +13,14 @@ const NAVIGATION_SETTLE_MS = 400;
  * GlobalLoadingIndicator
  *
  * Shows a slim top progress bar (à la YouTube / GitHub) during API requests
- * and navigations. Falls back to full-screen loader only when loading takes
- * a long time (> 2s) — e.g. on a slow connection.
+ * and navigations without blocking interaction with the current page.
  */
 const GlobalLoadingIndicator = () => {
-  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showFullScreen, setShowFullScreen] = useState(false);
   const activeRequestsRef = useRef(new Set());
   const showTimerRef = useRef(null);
   const hideTimerRef = useRef(null);
-  const fullScreenTimerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const completionTimerRef = useRef(null);
   const visibleSinceRef = useRef(0);
@@ -57,7 +52,6 @@ const GlobalLoadingIndicator = () => {
 
       setVisible(false);
       setProgress(0);
-      setShowFullScreen(false);
       completionTimerRef.current = null;
       onComplete?.();
     }, 280);
@@ -78,7 +72,6 @@ const GlobalLoadingIndicator = () => {
         : 0;
 
       window.clearTimeout(hideTimerRef.current);
-      window.clearTimeout(fullScreenTimerRef.current);
       hideTimerRef.current = window.setTimeout(() => {
         finishProgressBar(() => {
           visibleSinceRef.current = 0;
@@ -97,14 +90,7 @@ const GlobalLoadingIndicator = () => {
       completionTimerRef.current = null;
 
       if (wasIdle && visibleSinceRef.current) {
-        setShowFullScreen(false);
         startProgressBar();
-        window.clearTimeout(fullScreenTimerRef.current);
-        fullScreenTimerRef.current = window.setTimeout(() => {
-          if (activeRequestsRef.current.size > 0) {
-            setShowFullScreen(true);
-          }
-        }, 2000);
         return;
       }
 
@@ -113,15 +99,7 @@ const GlobalLoadingIndicator = () => {
           if (activeRequestsRef.current.size > 0) {
             visibleSinceRef.current = performance.now();
             setVisible(true);
-            setShowFullScreen(false);
             startProgressBar();
-
-            // Escalate to full-screen overlay after 2 seconds
-            fullScreenTimerRef.current = window.setTimeout(() => {
-              if (activeRequestsRef.current.size > 0) {
-                setShowFullScreen(true);
-              }
-            }, 2000);
           }
           showTimerRef.current = null;
         }, SHOW_DELAY_MS);
@@ -142,7 +120,6 @@ const GlobalLoadingIndicator = () => {
     return () => {
       clearShowTimer();
       window.clearTimeout(hideTimerRef.current);
-      window.clearTimeout(fullScreenTimerRef.current);
       window.clearTimeout(completionTimerRef.current);
       window.clearInterval(progressIntervalRef.current);
       window.removeEventListener(loadingIndicatorEvents.start, handleStart);
@@ -221,17 +198,6 @@ const GlobalLoadingIndicator = () => {
         />
       </div>
 
-      {/* Full-screen overlay — only shown for slow loads (> 2s) */}
-      {showFullScreen && (
-        <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-center backdrop-blur-md bg-white/80 dark:bg-slate-950/85 transition-all duration-300">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-12 w-12 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
-            <p className="text-sm font-semibold tracking-[0.18em] uppercase text-[var(--color-primary)]">
-              {t("loading.pleaseWait")}
-            </p>
-          </div>
-        </div>
-      )}
     </>
   );
 };

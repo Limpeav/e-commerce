@@ -39,7 +39,8 @@ const EditProduct = () => {
   const { t } = useLanguage();
   const returnTo =
     typeof location.state?.returnTo === "string" &&
-    location.state.returnTo.startsWith("/admin/products")
+    (location.state.returnTo === "/admin" ||
+      location.state.returnTo.startsWith("/admin/products"))
       ? location.state.returnTo
       : "/admin/products";
 
@@ -238,7 +239,7 @@ const EditProduct = () => {
           <div className="flex items-center space-x-4">
             <button
               className="p-3 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(returnTo)}
             >
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
             </button>
@@ -657,7 +658,7 @@ const EditProduct = () => {
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(returnTo)}
                 className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold hover:border-gray-400"
               >
                 Cancel

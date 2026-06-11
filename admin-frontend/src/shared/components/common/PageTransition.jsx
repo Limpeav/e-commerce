@@ -1,14 +1,19 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const PageTransition = ({ children }) => {
+    const reduceMotion = useReducedMotion();
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full h-full"
+            initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.998 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={
+                reduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
+            }
+            className="admin-page-transition w-full h-full"
         >
             {children}
         </motion.div>

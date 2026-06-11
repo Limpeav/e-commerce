@@ -4,7 +4,13 @@ import { useNavigate } from "react-router-dom";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
 import Loading from "../../../components/common/Loading";
+import { normalizeProductCategory } from "../../../constants/productCategories";
 import { AdminProductController } from "../../../controllers/adminProductController";
+import {
+  getAvailableStock,
+  getNumericDiscount,
+  getProductSoldCount,
+} from "../../../utils/adminProducts";
 
 const accentStyles = {
   emerald: {
@@ -18,6 +24,12 @@ const accentStyles = {
     hover: "hover:border-purple-200 hover:text-purple-700",
     count: "border-purple-100 bg-purple-50 text-purple-700",
     ring: "focus:ring-purple-500",
+  },
+  orange: {
+    badge: "border-orange-200 bg-orange-50 text-[#b45309]",
+    hover: "hover:border-orange-200 hover:text-[#b45309]",
+    count: "border-orange-200 bg-orange-50 text-[#b45309]",
+    ring: "focus:ring-orange-500",
   },
   red: {
     badge: "border-[#fecdd3] bg-[#fff1f2] text-[#be123c]",
@@ -36,6 +48,7 @@ const ProductSubsetPage = ({
   filterProduct,
   getSubsetProducts,
   icon: Icon,
+  layout = "grid",
   loadingMessage,
   searchPlaceholder,
   sortProducts,
@@ -176,6 +189,71 @@ const ProductSubsetPage = ({
             hasActiveFilters={emptyHasActiveFilters ?? Boolean(searchTerm)}
             onAddProduct={() => navigate("/admin/products/add")}
           />
+        ) : layout === "list" ? (
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left">
+                <thead className="border-b border-gray-200 bg-gray-50">
+                  <tr className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Price</th>
+                    <th className="px-6 py-4">Sold</th>
+                    <th className="px-6 py-4">Available</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {subsetProducts.map((product) => {
+                    const price = Number(product.price) || 0;
+                    const discountPrice = getNumericDiscount(product);
+
+                    return (
+                      <tr
+                        key={product._id}
+                        className="transition-colors hover:bg-orange-50/50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={product.image}
+                              alt={product.title}
+                              className="h-14 w-14 rounded-xl border border-gray-200 object-cover"
+                            />
+                            <div>
+                              <p className="max-w-xs font-semibold text-gray-900">
+                                {product.title}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {normalizeProductCategory(product.category)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-semibold text-gray-900">
+                            ${(discountPrice ?? price).toFixed(2)}
+                          </p>
+                          {discountPrice !== null && (
+                            <p className="text-xs text-gray-400 line-through">
+                              ${price.toFixed(2)}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex min-w-12 justify-center rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-[#b45309]">
+                            {getProductSoldCount(product)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-emerald-700">
+                          {getAvailableStock(product)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {subsetProducts.map((product) => (

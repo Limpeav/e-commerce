@@ -7,7 +7,7 @@ const ProductListHeader = ({
   promotionCount = 0,
   sendingPromotionEmails = false,
 }) => (
-  <div className="bg-white shadow-lg border-b border-gray-200">
+  <div className="admin-reveal bg-white shadow-lg border-b border-gray-200">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex items-center justify-between gap-4">
         <div>

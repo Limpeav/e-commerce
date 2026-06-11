@@ -171,7 +171,7 @@ export default function Home() {
     const productsRef = useRef(null);
 
     // Custom hooks
-    const { products, loading, error } = useProducts(language);
+    const { products, loading, error, refetch } = useProducts(language);
     const {
         searchQuery,
         setSearchQuery,
@@ -199,7 +199,7 @@ export default function Home() {
     };
 
     const handleRetry = () => {
-        window.location.reload();
+        refetch();
     };
 
     const handleClearFilters = () => {

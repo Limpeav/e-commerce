@@ -134,6 +134,10 @@ export const getProductStats = (products = [], categories = []) => ({
   categoryCount: Math.max(categories.length - 1, 0),
   productIssueCount: products.filter(isProductIssue).length,
   soldOutCount: products.filter(isOutOfStockProduct).length,
+  totalSoldCount: products.reduce(
+    (total, product) => total + getProductSoldCount(product),
+    0
+  ),
   promotionCount: products.filter(isPromotionalProduct).length,
   newArrivalCount: products.filter((product) => product.isNewArrival).length,
   bestSellerCount: getBestSellerProductsByCategory(products).length,

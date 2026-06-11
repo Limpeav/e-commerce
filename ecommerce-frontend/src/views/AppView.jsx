@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useMemo } from "react";
-import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   additionalRoutes,
@@ -19,7 +18,6 @@ import ScrollToTop from "../components/common/ScrollToTop";
 import PageSkeleton from "../components/common/PageSkeleton";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import PageTransition from "../components/common/PageTransition";
-import BottomNav from "../components/layout/BottomNav";
 import StaticTextTranslator from "../components/common/StaticTextTranslator";
 import GlobalLoadingIndicator from "../components/common/GlobalLoadingIndicator";
 import SEO from "../components/seo/SEO";
@@ -207,18 +205,15 @@ export default function AppView() {
           }`}
         >
           <Suspense fallback={<PageSkeleton />}>
-            <AnimatePresence mode="wait">
-              <Routes location={location} key={location.pathname}>
-                {publicRoutes.map((route) => renderRoute(route))}
-                {protectedRoutes.map((route) => renderRoute(route, true, false))}
-                {additionalRoutes.map((route) => renderRoute(route))}
-              </Routes>
-            </AnimatePresence>
+            <Routes>
+              {publicRoutes.map((route) => renderRoute(route))}
+              {protectedRoutes.map((route) => renderRoute(route, true, false))}
+              {additionalRoutes.map((route) => renderRoute(route))}
+            </Routes>
           </Suspense>
         </main>
 
         {shouldShowFooter && <Footer />}
-        {shouldShowNav && <BottomNav />}
       </div>
     </ErrorBoundary>
   );

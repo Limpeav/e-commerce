@@ -170,7 +170,7 @@ const ProductList = () => {
         sendingPromotionEmails={sendingPromotionEmails}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="admin-stagger-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {promotionEmailStatus && (
           <div
             className={`mb-6 rounded-xl border px-5 py-4 text-sm font-semibold ${
@@ -197,15 +197,8 @@ const ProductList = () => {
 
         <ProductStatsGrid
           stats={stats}
-          inventoryState={inventoryState}
-          onOpenProductIssues={() =>
-            updateFilterParam(
-              "inventory",
-              inventoryState === "issues" ? "" : "issues",
-              "all"
-            )
-          }
           onOpenPromotions={() => navigate("/admin/products/promotions")}
+          onOpenSold={() => navigate("/admin/products/sold")}
           onOpenBestSellers={() => navigate("/admin/products/best-sellers")}
           onOpenNewArrivals={() => navigate("/admin/products/new-arrivals")}
         />
@@ -246,7 +239,7 @@ const ProductList = () => {
             onAddProduct={goToAddProduct}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="admin-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product._id}

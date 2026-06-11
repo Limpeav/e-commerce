@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { adminLazyComponents, adminRoutes } from "@shared/config/routes";
 import AdminSidebar from "@shared/components/admin/AdminSidebar";
 import ErrorBoundary from "@shared/components/common/ErrorBoundary";
@@ -23,6 +22,8 @@ const publicPortalRoutes = [
   { path: "/delivery/login", component: "StaffLogin" },
 ];
 
+const publicPortalPaths = new Set(publicPortalRoutes.map((route) => route.path));
+
 const isPortalPath = (pathname) =>
   pathname.startsWith("/admin") ||
   pathname.startsWith("/seller") ||
@@ -42,6 +43,9 @@ const getPortalTitle = (pathname) => {
 
 export default function AdminApp() {
   const location = useLocation();
+  const isPublicRoute = publicPortalPaths.has(location.pathname);
+  const isDeliveryRoute = location.pathname.startsWith("/delivery");
+  const showSidebar = !isPublicRoute && !isDeliveryRoute;
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
@@ -59,7 +63,7 @@ export default function AdminApp() {
 
   if (!isPortalPath(location.pathname)) {
     window.location.assign(buildPortalUrl(portalConfig.customerUrl, location));
-    return <Loading />;
+    return <Loading fullScreen />;
   }
 
   const renderRouteElement = (route, isAdmin = false) => {
@@ -73,18 +77,11 @@ export default function AdminApp() {
       );
     }
 
-    const isDeliveryRoute = route.path.startsWith("/delivery");
-
     return (
       <AdminRoute allowedRoles={route.allowedRoles}>
-        <div className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
-          {!isDeliveryRoute && <AdminSidebar />}
-          <div className={isDeliveryRoute ? "" : "lg:ml-64"}>
-            <PageTransition>
-              <Component />
-            </PageTransition>
-          </div>
-        </div>
+        <PageTransition>
+          <Component />
+        </PageTransition>
       </AdminRoute>
     );
   };
@@ -101,15 +98,16 @@ export default function AdminApp() {
     <ErrorBoundary>
       <ScrollToTop />
       <main className="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)]">
-        <Suspense fallback={<Loading />}>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
+        {showSidebar && <AdminSidebar />}
+        <div className={showSidebar ? "lg:ml-64" : ""}>
+          <Suspense fallback={<Loading fullScreen={isPublicRoute} />}>
+            <Routes>
               {publicPortalRoutes.map((route) => renderRoute(route))}
               {adminRoutes.map((route) => renderRoute(route, true))}
               <Route path="*" element={<Navigate to="/admin/login" replace />} />
             </Routes>
-          </AnimatePresence>
-        </Suspense>
+          </Suspense>
+        </div>
       </main>
     </ErrorBoundary>
   );

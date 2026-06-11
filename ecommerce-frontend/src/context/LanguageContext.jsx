@@ -31,7 +31,7 @@ const getInitialLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language] = useState(getInitialLanguage);
+  const [language, setCurrentLanguage] = useState(getInitialLanguage);
 
   useEffect(() => {
     const effectiveLanguage = getEffectiveLanguage(language);
@@ -49,8 +49,7 @@ export const LanguageProvider = ({ children }) => {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, normalizedLanguage);
-    window.location.reload();
+    setCurrentLanguage(normalizedLanguage);
   }, [language]);
 
   const t = useCallback(

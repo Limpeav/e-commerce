@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -27,7 +27,7 @@ import {
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 import {
-  getPortalOrderDetailsPath,
+  getStoredAdminToken,
   getStoredAdminUser,
 } from "../../../utils/adminSession";
 import { normalizeProductCategory } from "../../../constants/productCategories";
@@ -38,6 +38,12 @@ import {
   isProductIssue,
   LOW_STOCK_THRESHOLD,
 } from "../../../utils/adminProducts";
+import {
+  completeDashboardScrollRestore,
+  getDashboardScrollKey,
+  readDashboardScrollPosition,
+  saveDashboardScrollPosition,
+} from "../../../utils/dashboardScroll";
 
 const PERIODS = [
   { value: "7", label: "Last 7 days" },
@@ -47,6 +53,7 @@ const PERIODS = [
 ];
 
 const CATEGORY_COLORS = ["#7A967E", "#E6BAA3", "#C7A76C", "#8EA7B8", "#B38A9B"];
+let dashboardCache = null;
 
 const money = (value, compact = false) =>
   new Intl.NumberFormat("en-US", {
@@ -247,13 +254,32 @@ const EmptyState = ({ children }) => (
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const adminUser = getStoredAdminUser();
-  const [period, setPeriod] = useState("30");
-  const [stats, setStats] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const adminToken = getStoredAdminToken();
+  const cachedDashboard =
+    dashboardCache?.token === adminToken ? dashboardCache : null;
+  const dashboardScrollKey = getDashboardScrollKey(adminUser);
+  const restoredScrollRef = useRef(false);
+  const [period, setPeriod] = useState(() => cachedDashboard?.period || "30");
+  const periodRef = useRef(period);
+  const [stats, setStats] = useState(() => cachedDashboard?.stats || null);
+  const [orders, setOrders] = useState(() => cachedDashboard?.orders || []);
+  const [products, setProducts] = useState(() => cachedDashboard?.products || []);
+  const [loading, setLoading] = useState(() => !cachedDashboard);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+
+  const navigateFromDashboard = useCallback(
+    (to, options) => {
+      saveDashboardScrollPosition(
+        sessionStorage,
+        dashboardScrollKey,
+        window.scrollY,
+        { markForRestore: true }
+      );
+      navigate(to, options);
+    },
+    [dashboardScrollKey, navigate]
+  );
 
   const loadDashboard = useCallback(async ({ refresh = false, silent = false } = {}) => {
     if (refresh) setRefreshing(true);
@@ -266,24 +292,89 @@ const AdminDashboard = () => {
         adminService.getOrders(),
         adminService.getProducts(),
       ]);
-      setStats(statsResponse.data);
-      setOrders(Array.isArray(ordersResponse.data) ? ordersResponse.data : []);
-      setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : []);
+      const nextStats = statsResponse.data;
+      const nextOrders = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+      const nextProducts = Array.isArray(productsResponse.data) ? productsResponse.data : [];
+
+      dashboardCache = {
+        token: adminToken,
+        period: periodRef.current,
+        stats: nextStats,
+        orders: nextOrders,
+        products: nextProducts,
+      };
+      setStats(nextStats);
+      setOrders(nextOrders);
+      setProducts(nextProducts);
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Failed to load dashboard data");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [adminToken]);
 
   useEffect(() => {
-    loadDashboard();
+    loadDashboard({ silent: Boolean(cachedDashboard) });
     return subscribeRealtimeDomains(
       ["orders", "products", "reviews", "users"],
       () => loadDashboard({ silent: true })
     );
   }, [loadDashboard]);
+
+  useEffect(() => {
+    periodRef.current = period;
+    if (dashboardCache) {
+      dashboardCache.period = period;
+    }
+  }, [period]);
+
+  useEffect(() => {
+    if (loading || restoredScrollRef.current) return;
+
+    const savedPosition = readDashboardScrollPosition(
+      sessionStorage,
+      dashboardScrollKey
+    );
+    let firstFrameId;
+    let secondFrameId;
+    let saveFrameId;
+
+    const saveScrollPosition = () => {
+      window.cancelAnimationFrame(saveFrameId);
+      saveFrameId = window.requestAnimationFrame(() => {
+        saveDashboardScrollPosition(
+          sessionStorage,
+          dashboardScrollKey,
+          window.scrollY
+        );
+      });
+    };
+
+    const startTrackingScroll = () => {
+      restoredScrollRef.current = true;
+      completeDashboardScrollRestore(sessionStorage);
+      window.addEventListener("scroll", saveScrollPosition, { passive: true });
+    };
+
+    if (savedPosition > 0) {
+      firstFrameId = window.requestAnimationFrame(() => {
+        secondFrameId = window.requestAnimationFrame(() => {
+          window.scrollTo({ top: savedPosition, behavior: "auto" });
+          startTrackingScroll();
+        });
+      });
+    } else {
+      startTrackingScroll();
+    }
+
+    return () => {
+      window.cancelAnimationFrame(firstFrameId);
+      window.cancelAnimationFrame(secondFrameId);
+      window.cancelAnimationFrame(saveFrameId);
+      window.removeEventListener("scroll", saveScrollPosition);
+    };
+  }, [dashboardScrollKey, loading]);
 
   const analytics = useMemo(() => {
     const now = new Date();
@@ -513,19 +604,6 @@ const AdminDashboard = () => {
         averageRating: values.total / values.count,
       }))
       .sort((a, b) => b.averageRating - a.averageRating);
-    const reviewAttention = productReviewStats
-      .filter(
-        (product) =>
-          product.reviewCount > 0 &&
-          (product.averageRating < 3.5 || product.lowRatingCount > 0)
-      )
-      .sort(
-        (a, b) =>
-          b.lowRatingCount - a.lowRatingCount ||
-          a.averageRating - b.averageRating
-      )
-      .slice(0, 6);
-
     return {
       currentOrders,
       paidOrders,
@@ -552,7 +630,6 @@ const AdminDashboard = () => {
         unratedProducts: productReviewStats.filter((product) => product.reviewCount === 0).length,
         ratingDistribution,
         categoryRatings,
-        attention: reviewAttention,
       },
       statusData: statusData.map((item) => ({
         ...item,
@@ -625,7 +702,7 @@ const AdminDashboard = () => {
           detail: "Restock now to avoid missed sales.",
           icon: AlertTriangle,
           tone: "bg-[#fff0eb] text-[#a45f4d]",
-          action: () => navigate("/admin/products?inventory=sold-out"),
+          action: () => navigateFromDashboard("/admin/products?inventory=sold-out"),
         }
       : null,
     (stats?.pendingOrders || 0) > 0
@@ -634,7 +711,7 @@ const AdminDashboard = () => {
           detail: "Review and move pending orders forward.",
           icon: Clock3,
           tone: "bg-[#f7f1e5] text-[#927338]",
-          action: () => navigate("/admin/orders?status=Pending"),
+          action: () => navigateFromDashboard("/admin/orders?status=Pending"),
         }
       : null,
     (stats?.cashToCollect || 0) > 0
@@ -645,14 +722,14 @@ const AdminDashboard = () => {
           detail: "Track open cash-on-delivery orders.",
           icon: CreditCard,
           tone: "bg-[#ebf1f4] text-[#5f7f91]",
-          action: () => navigate("/admin/cash-report"),
+          action: () => navigateFromDashboard("/admin/cash-report"),
         }
       : null,
   ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-base)] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <div className="mx-auto max-w-[1500px]">
+      <div className="admin-stagger-container mx-auto max-w-[1500px]">
         <header className="mb-7 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--color-primary-dark)]">
@@ -862,7 +939,7 @@ const AdminDashboard = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/admin/orders")}
+              onClick={() => navigateFromDashboard("/admin/orders")}
               className="mt-6 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
             >
               Manage all orders <ArrowRight className="h-4 w-4" />
@@ -910,7 +987,7 @@ const AdminDashboard = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/admin/products?inventory=issues")}
+              onClick={() => navigateFromDashboard("/admin/products?inventory=issues")}
               className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
             >
               Review inventory <ArrowRight className="h-4 w-4" />
@@ -929,7 +1006,7 @@ const AdminDashboard = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/admin/products/best-sellers")}
+                onClick={() => navigateFromDashboard("/admin/products/best-sellers")}
                 className="text-sm font-black text-[var(--color-primary-dark)]"
               >
                 View all
@@ -1052,7 +1129,7 @@ const AdminDashboard = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/admin/products")}
+              onClick={() => navigateFromDashboard("/admin/products")}
               className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
             >
               View products <ArrowRight className="h-4 w-4" />
@@ -1072,7 +1149,7 @@ const AdminDashboard = () => {
             </article>
             <button
               type="button"
-              onClick={() => navigate("/admin/reviews")}
+              onClick={() => navigateFromDashboard("/admin/reviews")}
               className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
@@ -1083,7 +1160,7 @@ const AdminDashboard = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/admin/reviews/positive")}
+              onClick={() => navigateFromDashboard("/admin/reviews/positive")}
               className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
@@ -1097,7 +1174,7 @@ const AdminDashboard = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/admin/reviews/negative")}
+              onClick={() => navigateFromDashboard("/admin/reviews/negative")}
               className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
@@ -1180,143 +1257,6 @@ const AdminDashboard = () => {
             </article>
           </div>
 
-          <article className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
-              <div>
-                <h3 className="text-xl font-bold text-[var(--color-text-main)]">Products needing attention</h3>
-                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                  Products below 3.5 stars or receiving low ratings
-                </p>
-              </div>
-              <span className="rounded-full bg-[#f7f1e5] px-3 py-1.5 text-xs font-black text-[#8a6d35]">
-                {analytics.reviewHealth.unratedProducts} products have no reviews
-              </span>
-            </div>
-            {analytics.reviewHealth.attention.length ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px] text-left">
-                  <thead className="bg-[var(--color-surface-soft)]/65 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                    <tr>
-                      <th className="px-6 py-3 font-black">Product</th>
-                      <th className="px-4 py-3 text-right font-black">Rating</th>
-                      <th className="px-4 py-3 text-right font-black">Reviews</th>
-                      <th className="px-4 py-3 text-right font-black">Low ratings</th>
-                      <th className="px-6 py-3 text-right font-black">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]">
-                    {analytics.reviewHealth.attention.map((product) => (
-                      <tr key={product.id} className="hover:bg-[var(--color-surface-soft)]/35">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-soft)]">
-                              {product.image ? (
-                                <img src={product.image} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <Package className="h-5 w-5 text-[var(--color-text-muted)]" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black">{product.title}</p>
-                              <p className="mt-0.5 text-xs font-medium text-[var(--color-text-muted)]">
-                                {product.category}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-right text-sm font-black">
-                          {product.averageRating.toFixed(1)}
-                        </td>
-                        <td className="px-4 py-3.5 text-right text-sm font-bold">
-                          {product.reviewCount}
-                        </td>
-                        <td className="px-4 py-3.5 text-right text-sm font-black text-[#ad6856]">
-                          {product.lowRatingCount}
-                        </td>
-                        <td className="px-6 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/admin/products/edit/${product.id}`)}
-                            className="text-sm font-black text-[var(--color-primary-dark)]"
-                          >
-                            Review product
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-6">
-                <EmptyState>No reviewed products currently need attention.</EmptyState>
-              </div>
-            )}
-          </article>
-        </section>
-
-        <section className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
-            <div>
-              <h2 className="text-xl font-bold text-[var(--color-text-main)]">Recent activity</h2>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Latest orders and customer registrations
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/admin/orders")}
-              className="text-sm font-black text-[var(--color-primary-dark)]"
-            >
-              View orders
-            </button>
-          </div>
-          {stats?.recentActivity?.length ? (
-            <div className="divide-y divide-[var(--color-border)]">
-              {stats.recentActivity.map((activity, index) => {
-                const isOrder = activity.type === "order";
-                return (
-                  <button
-                    type="button"
-                    key={activity.id || index}
-                    onClick={() =>
-                      isOrder
-                        ? navigate(getPortalOrderDetailsPath(activity.id, adminUser))
-                        : navigate("/admin/users")
-                    }
-                    className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-[var(--color-surface-soft)]/45 sm:px-6"
-                  >
-                    <span
-                      className={`rounded-xl p-2.5 ${
-                        isOrder
-                          ? "bg-[#edf4ee] text-[#66806b]"
-                          : "bg-[#ebf1f4] text-[#668698]"
-                      }`}
-                    >
-                      {isOrder ? <ShoppingBag className="h-5 w-5" /> : <Users className="h-5 w-5" />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black text-[var(--color-text-main)]">
-                        {activity.action}
-                      </span>
-                      <span className="mt-1 block truncate text-xs font-medium text-[var(--color-text-muted)]">
-                        {activity.userName || "Customer"}
-                        {isOrder ? ` · ${money(activity.amount)} · ${activity.orderStatus}` : ` · ${activity.userEmail || ""}`}
-                      </span>
-                    </span>
-                    <span className="hidden shrink-0 text-xs font-bold text-[var(--color-text-muted)] sm:block">
-                      {activity.time}
-                    </span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-6">
-              <EmptyState>New store activity will appear here.</EmptyState>
-            </div>
-          )}
         </section>
       </div>
     </div>

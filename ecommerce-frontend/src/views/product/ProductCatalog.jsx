@@ -79,7 +79,7 @@ export default function ProductCatalog() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const { products, loading, error } = useProducts(language);
+  const { products, loading, error, refetch } = useProducts(language);
   const {
     searchQuery,
     setSearchQuery,
@@ -119,7 +119,7 @@ export default function ProductCatalog() {
   };
 
   const handleRetry = () => {
-    window.location.reload();
+    refetch();
   };
 
   const handleClearFilters = () => {

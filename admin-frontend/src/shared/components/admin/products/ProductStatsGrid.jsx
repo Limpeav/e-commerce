@@ -1,4 +1,4 @@
-import { Package, Percent, Sparkles, TrendingUp } from "lucide-react";
+import { Package, Percent, ShoppingBag, Sparkles, TrendingUp } from "lucide-react";
 import { createElement } from "react";
 
 const ProductStatCard = ({
@@ -31,9 +31,8 @@ const ProductStatCard = ({
 
 const ProductStatsGrid = ({
   stats,
-  inventoryState,
-  onOpenProductIssues,
   onOpenPromotions,
+  onOpenSold,
   onOpenBestSellers,
   onOpenNewArrivals,
 }) => (
@@ -62,30 +61,16 @@ const ProductStatsGrid = ({
         </div>
       </div>
     </button>
-    <button
-      type="button"
-      onClick={onOpenProductIssues}
-      className={`text-left rounded-2xl p-6 border shadow-lg transition-all duration-300 hover:shadow-xl ${
-        inventoryState === "issues"
-          ? "bg-orange-50 border-orange-200 ring-2 ring-orange-200"
-          : "bg-white border-gray-100"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">Product Issues</p>
-          <p className="text-3xl font-bold text-[#b45309] mt-1">{stats.productIssueCount}</p>
-          <p className="text-xs text-[#c2410c] mt-2">
-            {inventoryState === "issues"
-              ? "Showing products needing stock"
-              : "Click to review inventory issues"}
-          </p>
-        </div>
-        <div className="bg-orange-100 p-3 rounded-xl">
-          <Package className="w-8 h-8 text-[#b45309]" />
-        </div>
-      </div>
-    </button>
+    <ProductStatCard
+      as="button"
+      icon={ShoppingBag}
+      label="Sold"
+      value={stats.totalSoldCount}
+      caption="Open sold products page"
+      iconClassName="bg-orange-100 p-3 rounded-xl text-[#b45309]"
+      onClick={onOpenSold}
+      valueClassName="text-[#b45309]"
+    />
     <ProductStatCard
       as="button"
       icon={TrendingUp}

@@ -40,6 +40,12 @@ const OrderDetails = () => {
     const isSeller = adminUser?.role === "seller";
     const ordersPath = getPortalOrdersPath(adminUser);
     const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
+    const returnTo =
+        typeof location.state?.returnTo === "string" &&
+        (location.state.returnTo === "/admin" ||
+            location.state.returnTo.startsWith(ordersPath))
+            ? location.state.returnTo
+            : ordersPath;
 
     const cacheDeliveryOrder = useCallback((updatedOrder) => {
         if (!isDelivery || !updatedOrder?._id) {
@@ -165,7 +171,7 @@ const OrderDetails = () => {
             return;
         }
 
-        navigate(ordersPath);
+        navigate(returnTo);
     };
 
     const handleStatusUpdate = async (newStatus) => {
