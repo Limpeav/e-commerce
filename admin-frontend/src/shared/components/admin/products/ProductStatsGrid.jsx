@@ -31,13 +31,13 @@ const ProductStatCard = ({
 
 const ProductStatsGrid = ({
   stats,
-  showLowStockOnly,
-  onToggleLowStock,
+  inventoryState,
+  onOpenProductIssues,
   onOpenPromotions,
   onOpenBestSellers,
   onOpenNewArrivals,
 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
+  <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 xl:grid-cols-5">
     <ProductStatCard
       icon={Package}
       label="Total Products"
@@ -64,19 +64,21 @@ const ProductStatsGrid = ({
     </button>
     <button
       type="button"
-      onClick={onToggleLowStock}
+      onClick={onOpenProductIssues}
       className={`text-left rounded-2xl p-6 border shadow-lg transition-all duration-300 hover:shadow-xl ${
-        showLowStockOnly
+        inventoryState === "issues"
           ? "bg-orange-50 border-orange-200 ring-2 ring-orange-200"
           : "bg-white border-gray-100"
       }`}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">Low Stock Alert</p>
-          <p className="text-3xl font-bold text-[#b45309] mt-1">{stats.lowStockCount}</p>
+          <p className="text-sm font-medium text-gray-600">Product Issues</p>
+          <p className="text-3xl font-bold text-[#b45309] mt-1">{stats.productIssueCount}</p>
           <p className="text-xs text-[#c2410c] mt-2">
-            {showLowStockOnly ? "Showing low stock products" : "Click to show low stock products"}
+            {inventoryState === "issues"
+              ? "Showing products needing stock"
+              : "Click to review inventory issues"}
           </p>
         </div>
         <div className="bg-orange-100 p-3 rounded-xl">

@@ -28,7 +28,7 @@ import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
 
-  const getLocalizedOrderItemName = (item, language) =>
+const getLocalizedOrderItemName = (item, language) =>
   language === "kh" && (item.titleKm || item.product?.titleKm)
     ? item.titleKm || item.product.titleKm
     : item.name;
@@ -204,7 +204,7 @@ const OrderDetail = () => {
         }`}>
           <div>
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/customer/orders")}
               className={`inline-flex items-center gap-2 text-sm mb-4 transition-colors ${
                 isDark ? 'text-slate-400 hover:text-primary' : 'text-text-muted hover:text-primary'
               }`}

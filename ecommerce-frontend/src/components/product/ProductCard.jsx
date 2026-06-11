@@ -1,12 +1,16 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingBag, Star, ArrowRight, Calendar } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
 import { isClothingProduct } from '../../utils/productOptions';
 import { getLocalizedProductText } from '../../utils/productLocalization';
+import {
+  formatExpiryDate,
+  productSupportsExpiry,
+} from '../../utils/productExpiry';
 
 const ProductCard = ({
   product,
@@ -145,6 +149,14 @@ const ProductCard = ({
         <p data-no-static-translation className={`text-[11px] font-medium line-clamp-2 sm:line-clamp-3 sm:text-xs ${isDark ? 'text-slate-400' : 'text-stone-400'}`}>
           {localizedProduct.description || t('product.premiumQuality')}
         </p>
+
+        {/* Expiry Date - shown for Milk and Bath & Skin */}
+        {productSupportsExpiry(product.category) && product.expiryDate && (
+          <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+            <Calendar className="w-3 h-3" />
+            <span>Expires: {formatExpiryDate(product.expiryDate)}</span>
+          </div>
+        )}
 
         {/* Divider */}
         <div className={`w-full h-px my-1 ${isDark ? 'bg-slate-700' : 'bg-stone-100'}`} />

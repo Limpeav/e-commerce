@@ -32,6 +32,12 @@ import {
 } from "../../../utils/adminSession";
 import { normalizeProductCategory } from "../../../constants/productCategories";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
+import {
+  getAvailableStock,
+  isOutOfStockProduct,
+  isProductIssue,
+  LOW_STOCK_THRESHOLD,
+} from "../../../utils/adminProducts";
 
 const PERIODS = [
   { value: "7", label: "Last 7 days" },
@@ -425,17 +431,19 @@ const AdminDashboard = () => {
       ? (repeatCustomers / customerCounts.size) * 100
       : 0;
 
-    const lowStock = products
-      .filter((product) => Number(product.stock || 0) <= 5)
-      .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
-    const outOfStock = lowStock.filter((product) => Number(product.stock || 0) <= 0);
+    const productIssues = products
+      .filter(isProductIssue)
+      .sort((a, b) => getAvailableStock(a) - getAvailableStock(b));
+    const outOfStock = products.filter(isOutOfStockProduct);
     const inventoryUnits = products.reduce(
-      (sum, product) => sum + Number(product.stock || 0),
+      (sum, product) => sum + getAvailableStock(product),
       0
     );
     const inventoryValue = products.reduce(
       (sum, product) =>
-        sum + Number(product.stock || 0) * Number(product.discountPrice || product.price || 0),
+        sum +
+        getAvailableStock(product) *
+          Number(product.discountPrice || product.price || 0),
       0
     );
 
@@ -532,7 +540,7 @@ const AdminDashboard = () => {
         ...category,
         percentage: (category.value / maxCategory) * 100,
       })),
-      lowStock,
+      productIssues,
       outOfStock,
       inventoryUnits,
       inventoryValue,
@@ -569,7 +577,7 @@ const AdminDashboard = () => {
       ["Units sold", analytics.units],
       ["Paid order rate", `${analytics.paidRate.toFixed(1)}%`],
       ["Repeat customer rate", `${analytics.repeatRate.toFixed(1)}%`],
-      ["Low stock products", analytics.lowStock.length],
+      ["Product issues", analytics.productIssues.length],
       ["Average product rating", analytics.reviewHealth.averageRating.toFixed(1)],
       ["Total product reviews", analytics.reviewHealth.totalReviews],
       ["Positive review rate", `${analytics.reviewHealth.positiveReviewRate.toFixed(1)}%`],
@@ -617,7 +625,7 @@ const AdminDashboard = () => {
           detail: "Restock now to avoid missed sales.",
           icon: AlertTriangle,
           tone: "bg-[#fff0eb] text-[#a45f4d]",
-          action: () => navigate("/admin/products"),
+          action: () => navigate("/admin/products?inventory=sold-out"),
         }
       : null,
     (stats?.pendingOrders || 0) > 0
@@ -626,7 +634,7 @@ const AdminDashboard = () => {
           detail: "Review and move pending orders forward.",
           icon: Clock3,
           tone: "bg-[#f7f1e5] text-[#927338]",
-          action: () => navigate("/admin/orders"),
+          action: () => navigate("/admin/orders?status=Pending"),
         }
       : null,
     (stats?.cashToCollect || 0) > 0
@@ -880,16 +888,29 @@ const AdminDashboard = () => {
             </div>
             <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--color-border)] p-4">
               <div>
-                <p className="text-sm font-black text-[var(--color-text-main)]">Low stock products</p>
-                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">5 units or fewer</p>
+                <p className="text-sm font-black text-[var(--color-text-main)]">Product issues</p>
+                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">
+                  1 to {LOW_STOCK_THRESHOLD} units remaining
+                </p>
               </div>
-              <span className={`text-2xl font-black ${analytics.lowStock.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
-                {analytics.lowStock.length}
+              <span className={`text-2xl font-black ${analytics.productIssues.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
+                {analytics.productIssues.length}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--color-border)] p-4">
+              <div>
+                <p className="text-sm font-black text-[var(--color-text-main)]">Sold out</p>
+                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">
+                  No stock remaining
+                </p>
+              </div>
+              <span className={`text-2xl font-black ${analytics.outOfStock.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
+                {analytics.outOfStock.length}
               </span>
             </div>
             <button
               type="button"
-              onClick={() => navigate("/admin/products")}
+              onClick={() => navigate("/admin/products?inventory=issues")}
               className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
             >
               Review inventory <ArrowRight className="h-4 w-4" />
@@ -1049,14 +1070,22 @@ const AdminDashboard = () => {
                 <span className="text-base text-[var(--color-text-muted)]"> / 5</span>
               </p>
             </article>
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+            <button
+              type="button"
+              onClick={() => navigate("/admin/reviews")}
+              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-[var(--color-text-muted)]">Total reviews</p>
                 <MessageSquareText className="h-5 w-5 text-[#668698]" />
               </div>
               <p className="mt-3 text-3xl font-black">{number(analytics.reviewHealth.totalReviews)}</p>
-            </article>
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/reviews/positive")}
+              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-[var(--color-text-muted)]">Positive reviews</p>
                 <ThumbsUp className="h-5 w-5 text-[#66806b]" />
@@ -1065,8 +1094,12 @@ const AdminDashboard = () => {
                 {analytics.reviewHealth.positiveReviewRate.toFixed(0)}%
               </p>
               <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">4 and 5 stars</p>
-            </article>
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/reviews/negative")}
+              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-[var(--color-text-muted)]">Needs attention</p>
                 <AlertTriangle className="h-5 w-5 text-[#ad6856]" />
@@ -1077,7 +1110,7 @@ const AdminDashboard = () => {
               <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
                 1–2 star reviews
               </p>
-            </article>
+            </button>
           </div>
 
           <div className="mb-6 grid gap-6 lg:grid-cols-2">

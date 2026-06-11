@@ -11,14 +11,18 @@ const API_URL = config.API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // Add admin token to requests
 api.interceptors.request.use(
   (config) => {
+    if (
+      typeof FormData !== "undefined" &&
+      config.data instanceof FormData
+    ) {
+      config.headers.setContentType(undefined);
+    }
+
     const adminToken = getStoredAdminToken();
     if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
@@ -73,11 +77,7 @@ export const adminService = {
   saveCsvBuilderDraft: ({ rows, fileName }) =>
     api.put("/admin/csv-builder-draft", { rows, fileName }),
   uploadProductImage: (fileData) => {
-    return api.post("/admin/uploads/product-image", fileData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.post("/admin/uploads/product-image", fileData);
   },
 
   // Users
@@ -92,32 +92,16 @@ export const adminService = {
   getProducts: () => api.get("/products"),
   getProductById: (id) => api.get(`/products/${id}`),
   createProduct: (productData) => {
-    return api.post("/products", productData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.post("/products", productData);
   },
   importProductsCsv: (fileData) => {
-    return api.post("/products/import-csv", fileData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.post("/products/import-csv", fileData);
   },
   upsertProductsCsv: (fileData) => {
-    return api.post("/products/upsert-csv", fileData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.post("/products/upsert-csv", fileData);
   },
   updateProduct: (id, productData) => {
-    return api.put(`/products/${id}`, productData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.put(`/products/${id}`, productData);
   },
   sendStorePromotionEmails: () => api.post("/products/promotions/email"),
   deleteProduct: (id) => api.delete(`/products/${id}`),
@@ -125,18 +109,10 @@ export const adminService = {
   // Banner methods
   getBanners: () => api.get("/banners/admin/all"),
   createBanner: (bannerData) => {
-    return api.post("/banners", bannerData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.post("/banners", bannerData);
   },
   updateBanner: (id, bannerData) => {
-    return api.put(`/banners/${id}`, bannerData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return api.put(`/banners/${id}`, bannerData);
   },
   deleteBanner: (id) => api.delete(`/banners/${id}`),
 
@@ -146,17 +122,9 @@ export const adminService = {
   updateOrderStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { orderStatus: status }),
   updatePaymentStatus: (orderId, paymentStatus) => api.put(`/orders/${orderId}/payment-status`, { paymentStatus }),
   uploadDeliveryProof: (orderId, fileData) =>
-    api.put(`/orders/${orderId}/delivery-proof`, fileData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }),
+    api.put(`/orders/${orderId}/delivery-proof`, fileData),
   sendOrderReceiptToTelegram: (orderId, fileData) =>
-    api.post(`/orders/${orderId}/receipt-telegram`, fileData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }),
+    api.post(`/orders/${orderId}/receipt-telegram`, fileData),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
   // Analytics

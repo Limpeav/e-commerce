@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { adminService } from "../../../services/adminService";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   PRODUCT_CATEGORY_OPTIONS,
   normalizeProductCategory,
 } from "../../../constants/productCategories";
 import AlertMessage from "../../../components/ui/AlertMessage";
 import { useLanguage } from "../../../context/useLanguage";
+import {
+  buildProductRequestData,
+  getExpiryDateInputValue,
+  productSupportsExpiry,
+} from "../../../utils/productExpiry";
 import {
   ArrowLeft,
   Upload,
@@ -18,7 +23,9 @@ import {
   Check,
   Sparkles,
   Save,
+  Trash2,
   X,
+  CalendarDays,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 
@@ -28,7 +35,13 @@ const parseBooleanValue = (value) =>
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
+  const returnTo =
+    typeof location.state?.returnTo === "string" &&
+    location.state.returnTo.startsWith("/admin/products")
+      ? location.state.returnTo
+      : "/admin/products";
 
   const [form, setForm] = useState({
     title: "",
@@ -39,6 +52,9 @@ const EditProduct = () => {
     image: null,
     stock: "",
     isNewArrival: false,
+    hasProductIssue: false,
+    issueQuantity: "",
+    expiryDate: "",
     currentImage: "",
   });
 
@@ -47,6 +63,33 @@ const EditProduct = () => {
   const [fetching, setFetching] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const issueQuantityInputRef = useRef(null);
+  const availableStock = Math.max(
+    0,
+    Number(form.stock || 0) -
+      (form.hasProductIssue ? Number(form.issueQuantity || 0) : 0)
+  );
+
+  const handleMarkProductIssue = () => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => ({
+      ...currentForm,
+      hasProductIssue: true,
+      issueQuantity: currentForm.issueQuantity || "1",
+    }));
+    window.requestAnimationFrame(() => issueQuantityInputRef.current?.focus());
+  };
+
+  const handleRemoveProductIssue = () => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => ({
+      ...currentForm,
+      hasProductIssue: false,
+      issueQuantity: "0",
+    }));
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -54,6 +97,7 @@ const EditProduct = () => {
         setFetching(true);
         const res = await adminService.getProductById(id);
         const data = res.data;
+        const hasProductIssue = parseBooleanValue(data.hasProductIssue);
 
         setForm({
           title: data.title || "",
@@ -63,6 +107,9 @@ const EditProduct = () => {
           description: data.description || "",
           stock: data.stock || "",
           isNewArrival: parseBooleanValue(data.isNewArrival),
+          hasProductIssue,
+          issueQuantity: data.issueQuantity || (hasProductIssue ? "1" : ""),
+          expiryDate: getExpiryDateInputValue(data.expiryDate),
           image: null,
           currentImage: data.image || "",
         });
@@ -85,18 +132,34 @@ const EditProduct = () => {
     setErrorMessage("");
 
     if (type === "checkbox") {
-      setForm({ ...form, [name]: checked });
+      setForm((currentForm) => ({ ...currentForm, [name]: checked }));
+      return;
+    }
+
+    if (name === "category") {
+      setForm((currentForm) => ({
+        ...currentForm,
+        category: value,
+        expiryDate: productSupportsExpiry(value)
+          ? currentForm.expiryDate
+          : "",
+      }));
       return;
     }
 
     // For number fields, ensure we only store numeric values or empty string
-    if (name === 'price' || name === 'discountPrice' || name === 'stock') {
+    if (
+      name === "price" ||
+      name === "discountPrice" ||
+      name === "stock" ||
+      name === "issueQuantity"
+    ) {
       // Allow empty string or valid number (including decimals)
       if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setForm({ ...form, [name]: value });
+        setForm((currentForm) => ({ ...currentForm, [name]: value }));
       }
     } else {
-      setForm({ ...form, [name]: value });
+      setForm((currentForm) => ({ ...currentForm, [name]: value }));
     }
   };
 
@@ -128,23 +191,11 @@ const EditProduct = () => {
     setSuccessMessage("");
     setErrorMessage("");
 
-    const formData = new FormData();
-    formData.append("title", form.title);
-    formData.append("price", form.price);
-    if (form.discountPrice) {
-      formData.append("discountPrice", form.discountPrice);
-    }
-    formData.append("category", normalizeProductCategory(form.category));
-    formData.append("description", form.description);
-    formData.append("stock", form.stock);
-    formData.append("isNewArrival", form.isNewArrival ? "true" : "false");
-
-    if (form.image) {
-      formData.append("image", form.image);
-    }
-
     try {
-      const response = await adminService.updateProduct(id, formData);
+      const response = await adminService.updateProduct(
+        id,
+        buildProductRequestData(form, { includeImage: Boolean(form.image) })
+      );
       const updatedProduct = response.data?.product || response.data || {};
       const updatedImage = updatedProduct.image || imagePreview || form.currentImage;
 
@@ -152,11 +203,21 @@ const EditProduct = () => {
         ...currentForm,
         image: null,
         currentImage: updatedImage,
-        isNewArrival: parseBooleanValue(updatedProduct.isNewArrival ?? currentForm.isNewArrival),
+        expiryDate: getExpiryDateInputValue(updatedProduct.expiryDate),
+        isNewArrival: parseBooleanValue(
+          updatedProduct.isNewArrival ?? currentForm.isNewArrival
+        ),
+        hasProductIssue: parseBooleanValue(
+          updatedProduct.hasProductIssue ?? currentForm.hasProductIssue
+        ),
+        issueQuantity:
+          updatedProduct.issueQuantity ?? currentForm.issueQuantity,
       }));
       setImagePreview(updatedImage || imagePreview);
-      setSuccessMessage(t("product.updatedSuccess"));
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setSuccessMessage(
+        t("product.updatedSuccess") || "Product updated successfully!"
+      );
+      navigate(returnTo, { replace: true });
     } catch (err) {
       setErrorMessage(err.response?.data?.message || err.message || t("product.updateFailed"));
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -177,7 +238,7 @@ const EditProduct = () => {
           <div className="flex items-center space-x-4">
             <button
               className="p-3 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
-              onClick={() => navigate("/admin/products")}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
             </button>
@@ -365,21 +426,129 @@ const EditProduct = () => {
                 )}
               </div>
 
-              {/* Stock */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Stock Quantity
+              {/* Available Stock */}
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="product-stock-quantity"
+                  className="mb-3 block text-sm font-semibold text-gray-700"
+                >
+                  Total Stock Quantity
                 </label>
                 <div className="relative">
-                  <Boxes className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Boxes className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                   <input
+                    id="product-stock-quantity"
                     name="stock"
                     type="number"
-                    placeholder="0"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="Enter available stock"
                     value={form.stock}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                    required
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+              </div>
+
+              {/* Inventory / Product Issues */}
+              <div className="md:col-span-2">
+                <div
+                  className={`rounded-xl border p-5 ${
+                    form.hasProductIssue
+                      ? "border-orange-200 bg-orange-50/70"
+                      : "border-gray-200 bg-gray-50"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">
+                          Product Issue
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-gray-600">
+                          {form.hasProductIssue
+                            ? "Issue is active. Set the affected quantity below."
+                            : "No issue is currently recorded for this product."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {form.hasProductIssue ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveProductIssue}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-red-700 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-red-200 sm:w-auto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove Issue
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleMarkProductIssue}
+                        className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-700"
+                      >
+                        Mark Product Issue
+                      </button>
+                    )}
+                  </div>
+
+                  {form.hasProductIssue && (
+                    <div className="mt-5 border-t border-orange-200 pt-5">
+                    <label
+                      htmlFor="product-issue-quantity"
+                      className="mb-3 block text-sm font-semibold text-gray-700"
+                    >
+                      Product Issue Quantity
+                    </label>
+                    <div className="relative">
+                      <Boxes className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <input
+                        ref={issueQuantityInputRef}
+                        id="product-issue-quantity"
+                        name="issueQuantity"
+                        type="number"
+                        min="1"
+                        max={Number(form.stock || 0)}
+                        step="1"
+                        inputMode="numeric"
+                        placeholder="Enter affected quantity"
+                        value={form.issueQuantity}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-xl border border-blue-200 bg-white py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                      <p className="mt-2 text-xs font-medium text-gray-500">
+                        Enter how many units cannot be sold.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-5 grid grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-gray-200 bg-white p-3 text-center">
+                      <p className="text-xs font-semibold text-gray-500">Total</p>
+                      <p className="mt-1 text-lg font-bold text-gray-900">
+                        {Number(form.stock || 0)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-orange-200 bg-white p-3 text-center">
+                      <p className="text-xs font-semibold text-orange-600">Issues</p>
+                      <p className="mt-1 text-lg font-bold text-orange-700">
+                        {form.hasProductIssue
+                          ? Number(form.issueQuantity || 0)
+                          : 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-green-200 bg-white p-3 text-center">
+                      <p className="text-xs font-semibold text-green-600">Available</p>
+                      <p className="mt-1 text-lg font-bold text-green-700">
+                        {availableStock}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -434,6 +603,35 @@ const EditProduct = () => {
                 </div>
               </div>
 
+              {/* Expiry Date - shown for Milk and Bath & Skin */}
+              {productSupportsExpiry(form.category) && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Expiry Date
+                  </label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input
+                      name="expiryDate"
+                      type="date"
+                      value={form.expiryDate}
+                      onChange={handleChange}
+                      className={`w-full pl-12 ${form.expiryDate ? 'pr-10' : 'pr-4'} py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 cursor-pointer`}
+                    />
+                    {form.expiryDate && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, expiryDate: "" }))}
+                        className="absolute right-8 top-1/2 -translate-y-1/2 z-10 p-1 rounded-lg bg-gray-50 hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Clear expiry date"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -459,7 +657,7 @@ const EditProduct = () => {
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => navigate("/admin/products")}
+                onClick={() => navigate(-1)}
                 className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold hover:border-gray-400"
               >
                 Cancel

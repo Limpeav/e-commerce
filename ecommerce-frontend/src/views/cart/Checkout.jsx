@@ -279,7 +279,7 @@ const Checkout = () => {
         <div className="mb-12">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/customer/cart")}
             className={`flex items-center gap-2 font-bold text-sm mb-8 transition-all px-5 py-2.5 rounded-full w-fit border ${isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-primary hover:bg-slate-800" : "bg-white border-stone-100 text-text-muted hover:text-primary hover:shadow-md"} `}
           >
             <ArrowLeft className="w-4 h-4" />

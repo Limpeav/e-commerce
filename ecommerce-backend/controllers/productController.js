@@ -16,13 +16,20 @@ import {
   normalizeProductCategory,
 } from "../utils/productCategories.js";
 import { emitDomainChanged } from "../realtime/socket.js";
+import {
+  parseProductExpiryDate,
+} from "../utils/productExpiry.js";
+import { getAvailableStock } from "../utils/productInventory.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
   discountprice: "discountPrice",
   descriptionkm: "descriptionKm",
   isnewarrival: "isNewArrival",
+  hasproductissue: "hasProductIssue",
+  issuequantity: "issueQuantity",
   titlekm: "titleKm",
+  expirydate: "expiryDate",
 };
 
 const parseOptionalNumber = (value) => {
@@ -203,20 +210,22 @@ const applyAutoKhmerTranslation = async (productData, existingProduct = {}) => {
     !existingProduct.description ||
     productData.description !== existingProduct.description;
 
-  const translatedTitle =
-    productData.titleKm || (!titleChanged && existingProduct.titleKm)
-      ? productData.titleKm || existingProduct.titleKm || ""
-      : await translateToKhmer(productData.title);
+  const titleKm =
+    productData.titleKm ||
+    (!titleChanged
+      ? existingProduct.titleKm || ""
+      : await translateToKhmer(productData.title));
 
-  const translatedDescription =
-    productData.descriptionKm || (!descriptionChanged && existingProduct.descriptionKm)
-      ? productData.descriptionKm || existingProduct.descriptionKm || ""
-      : await translateToKhmer(productData.description);
+  const descriptionKm =
+    productData.descriptionKm ||
+    (!descriptionChanged
+      ? existingProduct.descriptionKm || ""
+      : await translateToKhmer(productData.description));
 
   return {
     ...productData,
-    titleKm: translatedTitle || existingProduct.titleKm || "",
-    descriptionKm: translatedDescription || existingProduct.descriptionKm || "",
+    titleKm,
+    descriptionKm,
   };
 };
 
@@ -261,6 +270,7 @@ const attachSalesMetrics = async (products) => {
     return {
       ...productData,
       category: normalizeProductCategory(productData.category),
+      availableStock: getAvailableStock(productData),
       sold,
       totalSold: sold,
       isBestSeller: false,
@@ -381,6 +391,11 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     : null;
   const stock = data.stock?.trim() ? Number.parseInt(data.stock, 10) : 0;
   const isNewArrival = parseBoolean(data.isNewArrival);
+  const hasProductIssue = parseBoolean(data.hasProductIssue);
+  const issueQuantity = data.issueQuantity?.trim()
+    ? Number.parseInt(data.issueQuantity, 10)
+    : 0;
+  const parsedExpiryDate = parseProductExpiryDate(data.expiryDate, category);
 
   if (!title) {
     return `Row ${rowNumber}: title is required`;
@@ -396,6 +411,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
 
   if (!isAllowedProductCategory(category)) {
     return `Row ${rowNumber}: category is no longer available`;
+  }
+
+  if (parsedExpiryDate.error) {
+    return `Row ${rowNumber}: ${parsedExpiryDate.error}`;
   }
 
   if (!image) {
@@ -418,6 +437,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     return `Row ${rowNumber}: stock must be a valid non-negative integer`;
   }
 
+  if (!Number.isInteger(issueQuantity) || issueQuantity < 0) {
+    return `Row ${rowNumber}: issueQuantity must be a valid non-negative integer`;
+  }
+
   return {
     title,
     titleKm,
@@ -429,6 +452,9 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     stock,
     image,
     isNewArrival,
+    hasProductIssue,
+    issueQuantity: hasProductIssue ? issueQuantity : 0,
+    expiryDate: parsedExpiryDate.value,
   };
 };
 
@@ -442,11 +468,23 @@ export const createProduct = async (req, res) => {
       description,
       stock,
       isNewArrival,
+      hasProductIssue,
+      issueQuantity,
+      expiryDate,
     } = req.body;
     const normalizedCategory = normalizeProductCategory(category);
+    const parsedExpiryDate = parseProductExpiryDate(expiryDate, normalizedCategory);
 
     if (!isAllowedProductCategory(normalizedCategory)) {
       return res.status(400).json({ message: "Selected category is no longer available" });
+    }
+
+    if (parsedExpiryDate.error) {
+      return res.status(400).json({ message: parsedExpiryDate.error });
+    }
+
+    if (!req.file?.path) {
+      return res.status(400).json({ message: "Product image is required" });
     }
 
     const productData = await applyAutoKhmerTranslation({
@@ -457,6 +495,11 @@ export const createProduct = async (req, res) => {
       description,
       stock,
       isNewArrival: parseBoolean(isNewArrival),
+      hasProductIssue: parseBoolean(hasProductIssue),
+      issueQuantity: parseBoolean(hasProductIssue)
+        ? Math.max(0, Number.parseInt(issueQuantity, 10) || 0)
+        : 0,
+      expiryDate: parsedExpiryDate.value,
       image: req.file?.path || "",
     });
 
@@ -533,10 +576,21 @@ export const getProducts = async (req, res) => {
   try {
     const isAdmin = req.user?.role === "admin";
     const filters = isAdmin ? {} : { stock: { $gt: 0 } };
-    const products = await Product.find(filters)
+    let products = await Product.find(filters)
       .sort({ createdAt: -1, _id: -1 })
       .lean();
-    res.json(await attachSalesMetrics(products));
+    products = products.map((p) => ({ ...p, expiryDate: p.expiryDate || null }));
+    const productsWithMetrics = await attachSalesMetrics(products);
+    res.json(
+      isAdmin
+        ? productsWithMetrics
+        : productsWithMetrics
+            .filter((product) => product.availableStock > 0)
+            .map((product) => ({
+              ...product,
+              stock: product.availableStock,
+            }))
+    );
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -720,7 +774,12 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.description = translatedProductData.description;
         existingProduct.descriptionKm = translatedProductData.descriptionKm;
         existingProduct.stock = translatedProductData.stock;
+        existingProduct.isNewArrival = translatedProductData.isNewArrival;
+        existingProduct.hasProductIssue = translatedProductData.hasProductIssue;
+        existingProduct.issueQuantity = translatedProductData.issueQuantity;
         existingProduct.image = translatedProductData.image;
+        existingProduct.expiryDate = translatedProductData.expiryDate || null;
+        existingProduct.markModified("expiryDate");
         syncLowStockAlertFlag(existingProduct);
         await existingProduct.save();
         updatedCount += 1;
@@ -757,7 +816,7 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
 
     const isAdmin = req.user?.role === "admin";
-    if (!isAdmin && Number(product.stock || 0) <= 0) {
+    if (!isAdmin && getAvailableStock(product) <= 0) {
       return res.status(404).json({ message: "Product not found" });
     }
 
@@ -830,7 +889,15 @@ export const getProductById = async (req, res) => {
     const productData = product.toObject();
     productData.alreadyReviewed = alreadyReviewed;
 
-    res.json(await attachSalesMetrics(productData));
+    const productWithMetrics = await attachSalesMetrics(productData);
+    res.json(
+      isAdmin
+        ? productWithMetrics
+        : {
+            ...productWithMetrics,
+            stock: productWithMetrics.availableStock,
+          }
+    );
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -874,10 +941,46 @@ export const updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product)
       return res.status(404).json({ message: "Product not found" });
+
     const normalizedCategory = normalizeProductCategory(req.body.category);
+    const parsedExpiryDate = parseProductExpiryDate(
+      req.body.expiryDate,
+      normalizedCategory
+    );
 
     if (!isAllowedProductCategory(normalizedCategory)) {
       return res.status(400).json({ message: "Selected category is no longer available" });
+    }
+
+    if (parsedExpiryDate.error) {
+      return res.status(400).json({ message: parsedExpiryDate.error });
+    }
+
+    const hasProductIssue = parseBoolean(req.body.hasProductIssue);
+    const requestedIssueQuantity = hasProductIssue
+      ? Number.parseInt(req.body.issueQuantity, 10)
+      : 0;
+    const submittedStock = Number.parseInt(req.body.stock, 10);
+
+    if (
+      !Number.isInteger(requestedIssueQuantity) ||
+      requestedIssueQuantity < (hasProductIssue ? 1 : 0)
+    ) {
+      return res.status(400).json({
+        message: "Enter at least 1 for the product issue quantity",
+      });
+    }
+
+    if (!Number.isInteger(submittedStock) || submittedStock < 0) {
+      return res.status(400).json({
+        message: "Stock must be a non-negative whole number",
+      });
+    }
+
+    if (requestedIssueQuantity > submittedStock) {
+      return res.status(400).json({
+        message: "Product issue quantity cannot be greater than total stock",
+      });
     }
 
     const translatedProductData = await applyAutoKhmerTranslation(
@@ -887,8 +990,11 @@ export const updateProduct = async (req, res) => {
         discountPrice: parseOptionalNumber(req.body.discountPrice),
         category: normalizedCategory,
         description: req.body.description,
-        stock: req.body.stock,
+        stock: submittedStock,
         isNewArrival: parseBoolean(req.body.isNewArrival),
+        hasProductIssue,
+        issueQuantity: requestedIssueQuantity,
+        expiryDate: parsedExpiryDate.value,
       },
       product
     );
@@ -902,6 +1008,9 @@ export const updateProduct = async (req, res) => {
     product.descriptionKm = translatedProductData.descriptionKm;
     product.stock = translatedProductData.stock;
     product.isNewArrival = translatedProductData.isNewArrival;
+    product.hasProductIssue = translatedProductData.hasProductIssue;
+    product.issueQuantity = translatedProductData.issueQuantity;
+    product.expiryDate = translatedProductData.expiryDate;
 
     // 🔥 update image ONLY if new one uploaded
     if (req.file) {

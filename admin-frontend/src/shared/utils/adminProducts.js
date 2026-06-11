@@ -1,9 +1,14 @@
 import {
   isRemovedProductCategory,
   normalizeProductCategory,
-} from "../constants/productCategories";
+} from "../constants/productCategories.js";
 
 export const LOW_STOCK_THRESHOLD = 2;
+export const INVENTORY_STATE_OPTIONS = [
+  { value: "all", label: "All Inventory" },
+  { value: "issues", label: "Product Issues" },
+  { value: "sold-out", label: "Sold Out" },
+];
 
 export const getNumericDiscount = (product) => {
   const price = Number(product?.price);
@@ -21,6 +26,18 @@ export const isPromotionalProduct = (product) =>
 
 export const getProductSoldCount = (product) =>
   Number(product?.sold || product?.totalSold || 0);
+
+export const getAvailableStock = (product) => {
+  const providedAvailableStock = Number(product?.availableStock);
+  if (Number.isFinite(providedAvailableStock)) {
+    return Math.max(0, providedAvailableStock);
+  }
+
+  const issueQuantity = isProductIssue(product)
+    ? Number(product?.issueQuantity || 0)
+    : 0;
+  return Math.max(0, Number(product?.stock || 0) - issueQuantity);
+};
 
 export const isBestSellerProduct = (product) =>
   product?.isBestSeller === true;
@@ -58,7 +75,16 @@ export const getBestSellerProductsByCategory = (products = []) => {
 };
 
 export const isLowStockProduct = (product) =>
-  Number(product?.stock) <= LOW_STOCK_THRESHOLD;
+  getAvailableStock(product) <= LOW_STOCK_THRESHOLD;
+
+export const isOutOfStockProduct = (product) =>
+  getAvailableStock(product) <= 0;
+
+export const isProductIssue = (product) =>
+  product?.hasProductIssue === true ||
+  product?.hasProductIssue === "true" ||
+  product?.hasProductIssue === 1 ||
+  product?.hasProductIssue === "1";
 
 export const getProductCategories = (products = []) => [
   "all",
@@ -74,7 +100,7 @@ export const filterAdminProducts = (
   {
     searchTerm = "",
     categoryFilter = "all",
-    showLowStockOnly = false,
+    inventoryState = "all",
     showPromotionOnly = false,
   } = {}
 ) => {
@@ -93,17 +119,21 @@ export const filterAdminProducts = (
       categoryFilter === "all" ||
       category.toLowerCase() === categoryFilter.toLowerCase();
 
-    const matchesStock = !showLowStockOnly || isLowStockProduct(product);
+    const matchesInventoryState =
+      inventoryState === "all" ||
+      (inventoryState === "issues" && isProductIssue(product)) ||
+      (inventoryState === "sold-out" && isOutOfStockProduct(product));
     const matchesPromotion = !showPromotionOnly || isPromotionalProduct(product);
 
-    return matchesSearch && matchesCategory && matchesStock && matchesPromotion;
+    return matchesSearch && matchesCategory && matchesInventoryState && matchesPromotion;
   });
 };
 
 export const getProductStats = (products = [], categories = []) => ({
   totalProducts: products.length,
   categoryCount: Math.max(categories.length - 1, 0),
-  lowStockCount: products.filter(isLowStockProduct).length,
+  productIssueCount: products.filter(isProductIssue).length,
+  soldOutCount: products.filter(isOutOfStockProduct).length,
   promotionCount: products.filter(isPromotionalProduct).length,
   newArrivalCount: products.filter((product) => product.isNewArrival).length,
   bestSellerCount: getBestSellerProductsByCategory(products).length,

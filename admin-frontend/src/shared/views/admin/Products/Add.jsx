@@ -3,10 +3,13 @@ import { adminService } from "../../../services/adminService";
 import { useNavigate } from "react-router-dom";
 import {
   PRODUCT_CATEGORY_OPTIONS,
-  normalizeProductCategory,
 } from "../../../constants/productCategories";
 import AlertMessage from "../../../components/ui/AlertMessage";
 import { useLanguage } from "../../../context/useLanguage";
+import {
+  buildProductRequestData,
+  productSupportsExpiry,
+} from "../../../utils/productExpiry";
 import {
   ArrowLeft,
   Upload,
@@ -18,19 +21,9 @@ import {
   Check,
   FileSpreadsheet,
   Sparkles,
+  CalendarDays,
+  X,
 } from "lucide-react";
-
-const serializeProductFormValue = (key, value) => {
-  if (key === "category") {
-    return normalizeProductCategory(value);
-  }
-
-  if (key === "isNewArrival") {
-    return value ? "true" : "false";
-  }
-
-  return value;
-};
 
 const emptyProductForm = {
   title: "",
@@ -41,6 +34,7 @@ const emptyProductForm = {
   description: "",
   stock: "",
   isNewArrival: false,
+  expiryDate: "",
 };
 
 const AddProduct = () => {
@@ -59,7 +53,18 @@ const AddProduct = () => {
     setFormMessage(null);
 
     if (type === "checkbox") {
-      setForm({ ...form, [name]: checked });
+      setForm((currentForm) => ({ ...currentForm, [name]: checked }));
+      return;
+    }
+
+    if (name === "category") {
+      setForm((currentForm) => ({
+        ...currentForm,
+        category: value,
+        expiryDate: productSupportsExpiry(value)
+          ? currentForm.expiryDate
+          : "",
+      }));
       return;
     }
 
@@ -67,10 +72,10 @@ const AddProduct = () => {
     if (name === 'price' || name === 'discountPrice' || name === 'stock') {
       // Allow empty string or valid number (including decimals)
       if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setForm({ ...form, [name]: value });
+        setForm((currentForm) => ({ ...currentForm, [name]: value }));
       }
     } else {
-      setForm({ ...form, [name]: value });
+      setForm((currentForm) => ({ ...currentForm, [name]: value }));
     }
   };
 
@@ -93,13 +98,10 @@ const AddProduct = () => {
     setLoading(true);
     setFormMessage(null);
 
-    const formData = new FormData();
-    Object.keys(form).forEach((key) => {
-      formData.append(key, serializeProductFormValue(key, form[key]));
-    });
-
     try {
-      await adminService.createProduct(formData);
+      await adminService.createProduct(
+        buildProductRequestData(form, { includeImage: true })
+      );
       setForm(emptyProductForm);
       setImagePreview(null);
       setFormMessage({
@@ -158,7 +160,7 @@ const AddProduct = () => {
           <div className="flex items-center space-x-4">
             <button
               className="p-3 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
-              onClick={() => navigate("/admin/products")}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
             </button>
@@ -253,6 +255,7 @@ const AddProduct = () => {
                     value={form.title}
                     onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                    required
                   />
                 </div>
               </div>
@@ -320,9 +323,9 @@ const AddProduct = () => {
 
               {/* Stock */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Stock Quantity
-                </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Stock Quantity *
+                  </label>
                 <div className="relative">
                   <Boxes className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -332,6 +335,7 @@ const AddProduct = () => {
                     value={form.stock}
                     onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                    required
                   />
                 </div>
               </div>
@@ -387,11 +391,41 @@ const AddProduct = () => {
                 </div>
               </div>
 
+              {/* Expiry Date - shown for Milk and Bath & Skin */}
+              {productSupportsExpiry(form.category) && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Expiry Date
+                    <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input
+                      name="expiryDate"
+                      type="date"
+                      value={form.expiryDate}
+                      onChange={handleChange}
+                      className={`w-full pl-12 ${form.expiryDate ? 'pr-10' : 'pr-4'} py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 cursor-pointer`}
+                    />
+                    {form.expiryDate && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, expiryDate: "" }))}
+                        className="absolute right-8 top-1/2 -translate-y-1/2 z-10 p-1 rounded-lg bg-gray-50 hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Clear expiry date"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Description
-                </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Description *
+                  </label>
                 <div className="relative">
                   <FileText className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <textarea
@@ -401,6 +435,7 @@ const AddProduct = () => {
                     onChange={handleChange}
                     rows="4"
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                    required
                   />
                 </div>
               </div>
@@ -412,7 +447,7 @@ const AddProduct = () => {
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => navigate("/admin/products")}
+                onClick={() => navigate(-1)}
                 className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold hover:border-gray-400"
               >
                 Cancel

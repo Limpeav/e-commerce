@@ -18,7 +18,7 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
           <img
             src={product.image}
             alt={product.title}
-            className={`relative z-10 h-full w-full object-cover object-center transition-transform duration-700 hover:scale-[1.02] ${isDark ? "drop-shadow-[0_20px_36px_rgba(15,23,42,0.65)]" : "drop-shadow-[0_18px_30px_rgba(148,163,184,0.35)]"}`}
+            className={`relative z-10 block max-h-[260px] w-auto max-w-full object-contain object-center px-2 py-2 transition-transform duration-700 hover:scale-[1.02] sm:max-h-[340px] sm:px-3 sm:py-3 lg:max-h-[430px] ${isDark ? "drop-shadow-[0_20px_36px_rgba(15,23,42,0.65)]" : "drop-shadow-[0_18px_30px_rgba(148,163,184,0.35)]"}`}
           />
         </div>
 

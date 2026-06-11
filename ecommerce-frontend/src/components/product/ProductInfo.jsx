@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, ShoppingCart, Lock, Baby } from 'lucide-react';
+import { ArrowRight, Star, ShoppingCart, Lock, Baby, Calendar } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 import { useLanguage } from '../../context/useLanguage';
 import { getLocalizedProductText } from '../../utils/productLocalization';
+import {
+  formatExpiryDate,
+  productSupportsExpiry,
+} from '../../utils/productExpiry';
 import { useToast } from '../../context/ToastContext';
 
 const ProductInfo = ({
@@ -133,6 +137,21 @@ const ProductInfo = ({
           {localizedProduct.description}
         </p>
       </div>
+
+      {/* Expiry Date - shown for Milk and Bath & Skin */}
+      {productSupportsExpiry(product.category) && product.expiryDate && (
+        <div className={`flex items-center gap-2 rounded-[1.2rem] border p-3 shadow-sm ${isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+          <Calendar className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+          <div>
+            <span className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+              Expiry Date
+            </span>
+            <p className={`text-sm font-bold ${isDark ? 'text-amber-300' : 'text-amber-900'}`}>
+              {formatExpiryDate(product.expiryDate, { long: true })}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Quantity & Action */}
       <div className="space-y-3 pt-1 sm:pt-2">

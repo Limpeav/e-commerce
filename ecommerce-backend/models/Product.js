@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { normalizeProductCategory } from "../utils/productCategories.js";
+import { productSupportsExpiry } from "../utils/productExpiry.js";
 
 const reviewSchema = mongoose.Schema(
   {
@@ -69,6 +70,25 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    hasProductIssue: {
+      type: Boolean,
+      default: false,
+    },
+    issueQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    expiryDate: {
+      type: Date,
+      default: null,
+      validate: {
+        validator(value) {
+          return value === null || productSupportsExpiry(this.category);
+        },
+        message: "Expiry date is only supported for Milk and Bath & Skin products",
+      },
+    },
     lowStockAlertSent: {
       type: Boolean,
       default: false,
@@ -91,6 +111,7 @@ const productSchema = mongoose.Schema(
 productSchema.index({ stock: 1, createdAt: -1, _id: -1 });
 productSchema.index({ category: 1, stock: 1, createdAt: -1 });
 productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
+productSchema.index({ hasProductIssue: 1, createdAt: -1 });
 productSchema.index({ totalSold: -1, rating: -1 });
 
 const Product = mongoose.model("Product", productSchema);

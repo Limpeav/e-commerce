@@ -27,9 +27,13 @@ const GlobalLoadingIndicator = () => {
   const hideTimerRef = useRef(null);
   const fullScreenTimerRef = useRef(null);
   const progressIntervalRef = useRef(null);
+  const completionTimerRef = useRef(null);
   const visibleSinceRef = useRef(0);
 
   const startProgressBar = () => {
+    window.clearInterval(progressIntervalRef.current);
+    window.clearTimeout(completionTimerRef.current);
+    completionTimerRef.current = null;
     setProgress(0);
     // Quickly get to ~70%, then slow down to simulate real loading
     progressIntervalRef.current = window.setInterval(() => {
@@ -48,10 +52,13 @@ const GlobalLoadingIndicator = () => {
   const finishProgressBar = (onComplete) => {
     window.clearInterval(progressIntervalRef.current);
     setProgress(100);
-    window.setTimeout(() => {
+    completionTimerRef.current = window.setTimeout(() => {
+      if (activeRequestsRef.current.size > 0) return;
+
       setVisible(false);
       setProgress(0);
       setShowFullScreen(false);
+      completionTimerRef.current = null;
       onComplete?.();
     }, 280);
   };
@@ -83,8 +90,23 @@ const GlobalLoadingIndicator = () => {
       const id = event.detail?.id;
       if (!id) return;
 
+      const wasIdle = activeRequestsRef.current.size === 0;
       activeRequestsRef.current.add(id);
       window.clearTimeout(hideTimerRef.current);
+      window.clearTimeout(completionTimerRef.current);
+      completionTimerRef.current = null;
+
+      if (wasIdle && visibleSinceRef.current) {
+        setShowFullScreen(false);
+        startProgressBar();
+        window.clearTimeout(fullScreenTimerRef.current);
+        fullScreenTimerRef.current = window.setTimeout(() => {
+          if (activeRequestsRef.current.size > 0) {
+            setShowFullScreen(true);
+          }
+        }, 2000);
+        return;
+      }
 
       if (!visibleSinceRef.current && !showTimerRef.current) {
         showTimerRef.current = window.setTimeout(() => {
@@ -121,6 +143,7 @@ const GlobalLoadingIndicator = () => {
       clearShowTimer();
       window.clearTimeout(hideTimerRef.current);
       window.clearTimeout(fullScreenTimerRef.current);
+      window.clearTimeout(completionTimerRef.current);
       window.clearInterval(progressIntervalRef.current);
       window.removeEventListener(loadingIndicatorEvents.start, handleStart);
       window.removeEventListener(loadingIndicatorEvents.end, handleEnd);

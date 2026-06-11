@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     CalendarDays,
     ChevronDown,
@@ -47,6 +47,7 @@ const readCachedDeliveryViewState = () => {
 
 const AdminOrders = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
@@ -57,7 +58,8 @@ const AdminOrders = () => {
     const [loading, setLoading] = useState(!(isDelivery && initialDeliveryOrders.length > 0));
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
-    const [statusFilter, setStatusFilter] = useState(initialDeliveryViewState.statusFilter || "All");
+    const initialStatus = searchParams.get("status") || initialDeliveryViewState.statusFilter || "All";
+    const [statusFilter, setStatusFilter] = useState(initialStatus);
     const [expandedOrderDates, setExpandedOrderDates] = useState(
         initialDeliveryViewState.expandedOrderDates || {}
     );

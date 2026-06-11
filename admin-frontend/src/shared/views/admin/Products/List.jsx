@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
 import ProductFilters from "../../../components/admin/products/ProductFilters";
@@ -18,14 +18,41 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [sendingPromotionEmails, setSendingPromotionEmails] = useState(false);
   const [promotionEmailStatus, setPromotionEmailStatus] = useState("");
   const [promotionEmailStatusType, setPromotionEmailStatusType] = useState("success");
   const [promotionEmailFailures, setPromotionEmailFailures] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get("search") || "";
+  const categoryFilter = searchParams.get("category") || "all";
+  const legacyInventoryState = searchParams.get("outOfStock") === "true"
+    ? "sold-out"
+    : searchParams.get("lowStock") === "true"
+      ? "issues"
+      : "all";
+  const inventoryState = searchParams.get("inventory") || legacyInventoryState;
+
+  const updateFilterParam = useCallback(
+    (name, value, defaultValue = "") => {
+      setSearchParams(
+        (currentParams) => {
+          const nextParams = new URLSearchParams(currentParams);
+
+          if (!value || value === defaultValue) {
+            nextParams.delete(name);
+          } else {
+            nextParams.set(name, value);
+          }
+
+          return nextParams;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const fetchProducts = useCallback(async ({ silent = false } = {}) => {
       if (!silent) setLoading(true);
@@ -56,9 +83,9 @@ const ProductList = () => {
       filterAdminProducts(products, {
         searchTerm,
         categoryFilter,
-        showLowStockOnly,
+        inventoryState,
       }),
-    [products, searchTerm, categoryFilter, showLowStockOnly]
+    [products, searchTerm, categoryFilter, inventoryState]
   );
 
   const goToAddProduct = () => navigate("/admin/products/add");
@@ -170,8 +197,14 @@ const ProductList = () => {
 
         <ProductStatsGrid
           stats={stats}
-          showLowStockOnly={showLowStockOnly}
-          onToggleLowStock={() => setShowLowStockOnly((current) => !current)}
+          inventoryState={inventoryState}
+          onOpenProductIssues={() =>
+            updateFilterParam(
+              "inventory",
+              inventoryState === "issues" ? "" : "issues",
+              "all"
+            )
+          }
           onOpenPromotions={() => navigate("/admin/products/promotions")}
           onOpenBestSellers={() => navigate("/admin/products/best-sellers")}
           onOpenNewArrivals={() => navigate("/admin/products/new-arrivals")}
@@ -181,10 +214,26 @@ const ProductList = () => {
           categories={categories}
           searchTerm={searchTerm}
           categoryFilter={categoryFilter}
-          showLowStockOnly={showLowStockOnly}
-          onSearchChange={setSearchTerm}
-          onCategoryChange={setCategoryFilter}
-          onClearLowStock={() => setShowLowStockOnly(false)}
+          inventoryState={inventoryState}
+          onSearchChange={(value) => updateFilterParam("search", value)}
+          onCategoryChange={(value) =>
+            updateFilterParam("category", value, "all")
+          }
+          onInventoryStateChange={(value) => {
+            setSearchParams((currentParams) => {
+              const nextParams = new URLSearchParams(currentParams);
+              nextParams.delete("lowStock");
+              nextParams.delete("outOfStock");
+
+              if (value === "all") {
+                nextParams.delete("inventory");
+              } else {
+                nextParams.set("inventory", value);
+              }
+
+              return nextParams;
+            }, { replace: true });
+          }}
         />
 
         {filteredProducts.length === 0 ? (
@@ -192,7 +241,7 @@ const ProductList = () => {
             hasActiveFilters={
               Boolean(searchTerm) ||
               categoryFilter !== "all" ||
-              showLowStockOnly
+              inventoryState !== "all"
             }
             onAddProduct={goToAddProduct}
           />
@@ -202,7 +251,13 @@ const ProductList = () => {
               <ProductCard
                 key={product._id}
                 product={product}
-                onEdit={(id) => navigate(`/admin/products/edit/${id}`)}
+                onEdit={(id) =>
+                  navigate(`/admin/products/edit/${id}`, {
+                    state: {
+                      returnTo: `${location.pathname}${location.search}`,
+                    },
+                  })
+                }
                 onDelete={handleDelete}
               />
             ))}

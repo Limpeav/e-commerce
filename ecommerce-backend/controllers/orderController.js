@@ -20,6 +20,7 @@ import {
 } from "../utils/sendTelegramMessage.js";
 import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
 import { validateProductSize } from "../utils/productOptions.js";
+import { getAvailableStock } from "../utils/productInventory.js";
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
@@ -279,10 +280,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                     }
 
                     const requestedQuantity = requestedQuantityByProduct.get(String(item.product));
-                    if (product.stock < requestedQuantity) {
+                    const availableStock = getAvailableStock(product);
+                    if (availableStock < requestedQuantity) {
                         throw createHttpError(
                             409,
-                            `${product.title} only has ${product.stock} left, but ${requestedQuantity} were requested. Please update your cart and try again.`
+                            `${product.title} only has ${availableStock} left, but ${requestedQuantity} were requested. Please update your cart and try again.`
                         );
                     }
                 }
