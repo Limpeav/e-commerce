@@ -22,6 +22,7 @@
     - `MONGO_URI`: Your MongoDB connection string.
     - `JWT_SECRET`: A secret string (e.g., `mysecret123`).
     - `CLOUDINARY_...`: Your Cloudinary keys.
+    - `REMOVE_BG_API_KEY`: remove.bg API key for automatic product image background removal.
     - `GOOGLE_...`: Your Google OAuth keys.
     - `ALLOWED_ORIGINS`: Your deployed frontend origin.
       - Example: `https://baby-products-wtux.onrender.com`

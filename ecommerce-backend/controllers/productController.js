@@ -483,7 +483,9 @@ export const createProduct = async (req, res) => {
       return res.status(400).json({ message: parsedExpiryDate.error });
     }
 
-    if (!req.file?.path) {
+    const uploadedImageUrl = String(req.body.imageUrl || "").trim();
+
+    if (!req.file?.path && !uploadedImageUrl) {
       return res.status(400).json({ message: "Product image is required" });
     }
 
@@ -500,7 +502,7 @@ export const createProduct = async (req, res) => {
         ? Math.max(0, Number.parseInt(issueQuantity, 10) || 0)
         : 0,
       expiryDate: parsedExpiryDate.value,
-      image: req.file?.path || "",
+      image: req.file?.path || uploadedImageUrl,
     });
 
     const product = new Product(productData);
@@ -1015,6 +1017,8 @@ export const updateProduct = async (req, res) => {
     // 🔥 update image ONLY if new one uploaded
     if (req.file) {
       product.image = req.file.path;
+    } else if (String(req.body.imageUrl || "").trim()) {
+      product.image = String(req.body.imageUrl).trim();
     }
 
     syncLowStockAlertFlag(product);

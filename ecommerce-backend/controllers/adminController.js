@@ -4,6 +4,31 @@ import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
 import { normalizeProductCategory } from "../utils/productCategories.js";
+import cloudinary from "../config/cloudinary.js";
+import {
+  removeImageBackground,
+} from "../utils/backgroundRemoval.js";
+
+const uploadImageBuffer = (file, folder) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image",
+        format: file.mimetype === "image/png" ? "png" : undefined,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    uploadStream.end(file.buffer);
+  });
 
 const sanitizeDraftRow = (row = {}) => ({
   title: String(row.title || "").trim(),
@@ -425,15 +450,29 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/uploads/product-image
 // @access  Private/Admin
 export const uploadProductImage = asyncHandler(async (req, res) => {
-  if (!req.file?.path) {
+  if (!req.file?.buffer) {
     res.status(400);
     throw new Error("Image file is required");
   }
 
+  const shouldRemoveBackground =
+    req.body?.removeBackground === "true" ||
+    req.body?.removeBackground === true;
+  const imageFile = shouldRemoveBackground
+    ? await removeImageBackground(req.file)
+    : req.file;
+  const uploadedImage = await uploadImageBuffer(
+    imageFile,
+    "products/admin-uploads"
+  );
+
   res.status(201).json({
-    message: "Image uploaded successfully",
-    imageUrl: req.file.path,
+    message: shouldRemoveBackground
+      ? "Background removed and image uploaded successfully"
+      : "Image uploaded successfully",
+    imageUrl: uploadedImage.secure_url,
     originalName: req.file.originalname,
+    backgroundRemoved: shouldRemoveBackground,
   });
 });
 

@@ -43,6 +43,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     expiryDate: productSupportsExpiry(form.category)
       ? getExpiryDateInputValue(form.expiryDate)
       : "",
+    imageUrl: form.imageUrl || "",
   };
 
   if (!includeImage) {

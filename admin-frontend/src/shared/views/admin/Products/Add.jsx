@@ -31,6 +31,7 @@ const emptyProductForm = {
   discountPrice: "",
   category: "",
   image: null,
+  imageUrl: "",
   description: "",
   stock: "",
   isNewArrival: false,
@@ -44,6 +45,8 @@ const AddProduct = () => {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [backgroundRemoving, setBackgroundRemoving] = useState(false);
+  const [backgroundRemovalMessage, setBackgroundRemovalMessage] = useState(null);
   const [csvFile, setCsvFile] = useState(null);
   const [csvLoading, setCsvLoading] = useState(false);
   const [formMessage, setFormMessage] = useState(null);
@@ -79,22 +82,64 @@ const AddProduct = () => {
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    setFormMessage(null);
-    setForm({ ...form, image: file });
+    if (!file) return;
 
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+    setFormMessage(null);
+    setBackgroundRemovalMessage(null);
+    setForm((currentForm) => ({
+      ...currentForm,
+      image: file,
+      imageUrl: "",
+    }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    const uploadData = new FormData();
+    uploadData.append("image", file);
+    uploadData.append("removeBackground", "true");
+
+    try {
+      setBackgroundRemoving(true);
+      const response = await adminService.uploadProductImage(uploadData);
+      const processedImageUrl = response.data?.imageUrl;
+
+      if (!processedImageUrl) {
+        throw new Error("The processed image URL was not returned");
+      }
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        image: null,
+        imageUrl: processedImageUrl,
+      }));
+      setImagePreview(processedImageUrl);
+      setBackgroundRemovalMessage({
+        type: "success",
+        text: "AI removed the background automatically.",
+      });
+    } catch (error) {
+      setBackgroundRemovalMessage({
+        type: "warning",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "Background removal failed. The original image will be used.",
+      });
+    } finally {
+      setBackgroundRemoving(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (backgroundRemoving) return;
+
     setLoading(true);
     setFormMessage(null);
 
@@ -104,6 +149,7 @@ const AddProduct = () => {
       );
       setForm(emptyProductForm);
       setImagePreview(null);
+      setBackgroundRemovalMessage(null);
       setFormMessage({
         type: "success",
         title: t("product.addedTitle"),
@@ -210,7 +256,12 @@ const AddProduct = () => {
                     type="button"
                     onClick={() => {
                       setImagePreview(null);
-                      setForm({ ...form, image: null });
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        image: null,
+                        imageUrl: "",
+                      }));
+                      setBackgroundRemovalMessage(null);
                     }}
                     className="absolute top-3 right-3 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 shadow-lg hover:bg-red-700 hover:shadow-xl transform hover:-translate-y-0.5"
                   >
@@ -231,6 +282,23 @@ const AddProduct = () => {
                     className="hidden"
                   />
                 </label>
+              )}
+              {backgroundRemoving && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                  Removing image background with AI...
+                </div>
+              )}
+              {!backgroundRemoving && backgroundRemovalMessage && (
+                <div
+                  className={`mt-4 rounded-xl px-4 py-3 text-sm font-semibold ${
+                    backgroundRemovalMessage.type === "success"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-800"
+                  }`}
+                >
+                  {backgroundRemovalMessage.text}
+                </div>
               )}
             </div>
           </div>
@@ -454,13 +522,13 @@ const AddProduct = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || backgroundRemoving}
                 className="flex items-center space-x-3 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 font-semibold shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[var(--color-primary-light)]"
               >
-                {loading ? (
+                {loading || backgroundRemoving ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Adding...</span>
+                    <span>{backgroundRemoving ? "Processing image..." : "Adding..."}</span>
                   </>
                 ) : (
                   <>

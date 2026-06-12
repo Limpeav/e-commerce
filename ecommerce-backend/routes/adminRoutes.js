@@ -19,10 +19,10 @@ import {
 import { translateText } from "../controllers/translationController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
-import { createUpload } from "../middleware/upload.js";
+import { createMemoryImageUpload } from "../middleware/upload.js";
 
 const router = express.Router();
-const productImageUpload = createUpload("products/csv-builder");
+const productImageUpload = createMemoryImageUpload();
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
