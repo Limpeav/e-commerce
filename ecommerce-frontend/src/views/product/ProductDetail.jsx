@@ -9,6 +9,7 @@ import { useDarkMode } from "../../hooks";
 // Components
 import ProductImage from "../../components/product/ProductImage";
 import ProductInfo from "../../components/product/ProductInfo";
+import ProductPurchaseActions from "../../components/product/ProductPurchaseActions";
 import RelatedProducts from "../../components/product/RelatedProducts";
 import Loading from "../../components/common/Loading";
 import SEO from "../../components/seo/SEO";
@@ -16,6 +17,7 @@ import SEO from "../../components/seo/SEO";
 // Hooks
 import { useProductDetail } from "../../hooks/useProductDetail";
 import { useLanguage } from "../../context/useLanguage";
+import { normalizeProductCategory } from "../../constants/productCategories";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -91,6 +93,9 @@ export default function ProductDetail() {
       reviewCount: product.numReviews || 0,
     } : undefined,
   } : null
+  const normalizedCategory = normalizeProductCategory(product.category);
+  const showPurchaseActionsUnderImage =
+    normalizedCategory === "Milk" || normalizedCategory === "Bath & Skin";
 
   return (
     <>
@@ -120,11 +125,25 @@ export default function ProductDetail() {
 
         <div className="grid lg:grid-cols-2 items-start gap-4 sm:gap-6 md:gap-10 mb-8 sm:mb-12">
           {/* Product Image Section */}
-          <ProductImage
-            product={product}
-            onWishlist={handleWishlist}
-            isInWishlist={isInWishlist(product._id)}
-          />
+          <div className="min-w-0 space-y-3 sm:space-y-4">
+            <ProductImage
+              product={product}
+              onWishlist={handleWishlist}
+              isInWishlist={isInWishlist(product._id)}
+            />
+            {showPurchaseActionsUnderImage && (
+              <div className="w-full px-1 sm:px-2 lg:px-0">
+                <ProductPurchaseActions
+                  product={product}
+                  quantity={quantity}
+                  setQuantity={setQuantity}
+                  onAddToCart={handleAddToCart}
+                  onLoginRequired={() => navigate("/login")}
+                  user={user}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Product Details Section */}
           <ProductInfo
@@ -134,6 +153,7 @@ export default function ProductDetail() {
             onAddToCart={handleAddToCart}
             onLoginRequired={() => navigate("/login")}
             user={user}
+            showPurchaseActions={!showPurchaseActionsUnderImage}
           />
         </div>
 
