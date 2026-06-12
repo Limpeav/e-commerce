@@ -11,24 +11,40 @@ import {
   subscribeRealtimeEvent,
 } from "../services/realtime";
 
+let cachedProducts = [];
+let productsRequest = null;
+
+const loadProducts = async () => {
+  if (!productsRequest) {
+    productsRequest = ProductController.getProducts().finally(() => {
+      productsRequest = null;
+    });
+  }
+
+  return productsRequest;
+};
+
 export const useProducts = (language = "en") => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(() => cachedProducts);
+  const [loading, setLoading] = useState(() => cachedProducts.length === 0);
   const [error, setError] = useState("");
   const [translatingMissingKhmer, setTranslatingMissingKhmer] = useState(false);
 
   const fetchProducts = useCallback(async ({ silent = false } = {}) => {
       try {
         if (!silent) setLoading(true);
-        const result = await ProductController.getProducts();
+        const result = await loadProducts();
         if (result.success) {
-          setProducts(result.data || []);
+          cachedProducts = result.data || [];
+          setProducts(cachedProducts);
           setError("");
-        } else {
+        } else if (!silent || cachedProducts.length === 0) {
           setError(result.error || "Failed to fetch products");
         }
       } catch (err) {
-        setError("An error occurred while fetching products");
+        if (!silent || cachedProducts.length === 0) {
+          setError("An error occurred while fetching products");
+        }
         console.error("Error fetching products:", err);
       } finally {
         if (!silent) setLoading(false);
@@ -36,7 +52,7 @@ export const useProducts = (language = "en") => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts({ silent: cachedProducts.length > 0 });
     const unsubscribeProducts = subscribeRealtimeDomains(
       ["products", "reviews"],
       () => fetchProducts({ silent: true })
@@ -70,7 +86,8 @@ export const useProducts = (language = "en") => {
       try {
         const result = await ProductController.translateMissingProductsToKhmer();
         if (result.success) {
-          setProducts(result.data || []);
+          cachedProducts = result.data || [];
+          setProducts(cachedProducts);
         }
       } finally {
         setTranslatingMissingKhmer(false);

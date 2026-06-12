@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion as Motion } from "framer-motion";
+import { motion as Motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigationType } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -25,6 +26,7 @@ function ProductSection({
     t,
     gridContainerVariants,
     gridItemVariants,
+    animateProducts,
     onAddToCart,
     onWishlistToggle,
     isInWishlist,
@@ -139,7 +141,7 @@ function ProductSection({
                     ref={scrollRef}
                     onScroll={isHorizontal ? updateScrollState : undefined}
                     variants={gridContainerVariants}
-                    initial="hidden"
+                    initial={animateProducts ? "hidden" : false}
                     animate="show"
                     className={productsContainerClass}
                 >
@@ -167,8 +169,11 @@ export default function Home() {
     const { user } = useAuth();
     const { language, t } = useLanguage();
     const [isDark] = useDarkMode();
+    const navigationType = useNavigationType();
+    const prefersReducedMotion = useReducedMotion();
     
     const productsRef = useRef(null);
+    const animateProducts = navigationType !== "POP" && !prefersReducedMotion;
 
     // Custom hooks
     const { products, loading, error, refetch } = useProducts(language);
@@ -212,17 +217,17 @@ export default function Home() {
         show: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.08
+                staggerChildren: 0.025
             }
         }
     };
 
     const gridItemVariants = {
-        hidden: { opacity: 0, y: 24 },
+        hidden: { opacity: 0, y: 12 },
         show: {
             opacity: 1,
             y: 0,
-            transition: { type: "spring", stiffness: 110 }
+            transition: { duration: 0.18, ease: "easeOut" }
         }
     };
 
@@ -316,6 +321,7 @@ export default function Home() {
                                     t={t}
                                     gridContainerVariants={gridContainerVariants}
                                     gridItemVariants={gridItemVariants}
+                                    animateProducts={animateProducts}
                                     onAddToCart={handleAddToCart}
                                     onWishlistToggle={toggleWishlist}
                                     isInWishlist={isInWishlist}
