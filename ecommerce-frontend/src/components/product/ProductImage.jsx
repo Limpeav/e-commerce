@@ -6,31 +6,40 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
   return (
     <div className="relative font-sans">
-      <div className={`sticky top-22 overflow-hidden rounded-[1.75rem] p-3 sm:rounded-[2rem] sm:p-4 lg:p-5 transition-all duration-300 ${isDark ? "shadow-[0_24px_56px_-28px_rgba(12,16,12,0.9)]" : "shadow-[0_20px_48px_-26px_rgba(122,150,126,0.18)]"}`}>
-        <div className={`relative z-10 flex min-h-[260px] sm:min-h-[340px] lg:min-h-[430px] items-center justify-center overflow-hidden rounded-[1.35rem] sm:rounded-[1.6rem] transition-all duration-300 ${isDark ? "ring-1 ring-inset ring-white/6" : "ring-1 ring-inset ring-stone-200/80"}`}>
-          <img
-            src={product.image}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-110 object-cover object-center blur-2xl"
-          />
-          <div className={`absolute inset-0 ${isDark ? "bg-[linear-gradient(180deg,rgba(15,23,42,0.35),rgba(15,23,42,0.12))]" : "bg-[linear-gradient(180deg,rgba(248,250,252,0.35),rgba(255,255,255,0.18))]"}`}></div>
+      <div className={`sticky top-22 overflow-hidden rounded-[1.75rem] border p-2 transition-all duration-300 sm:rounded-[2rem] sm:p-3 lg:p-4 ${
+        isDark
+          ? "border-slate-800 bg-slate-900 shadow-[0_24px_56px_-28px_rgba(2,6,23,0.9)]"
+          : "border-stone-200/80 bg-white shadow-[0_20px_48px_-26px_rgba(120,113,108,0.22)]"
+      }`}>
+        <div className={`relative z-10 flex min-h-[280px] items-center justify-center overflow-hidden rounded-[1.4rem] px-5 py-7 transition-all duration-300 sm:min-h-[390px] sm:rounded-[1.7rem] sm:px-8 sm:py-10 lg:min-h-[520px] lg:px-10 lg:py-12 ${
+          isDark ? "bg-slate-800" : "bg-[#f1ebe5]"
+        }`}>
           <img
             src={product.image}
             alt={product.title}
-            className={`relative z-10 block max-h-[260px] w-auto max-w-full object-contain object-center px-2 py-2 transition-transform duration-700 hover:scale-[1.02] sm:max-h-[340px] sm:px-3 sm:py-3 lg:max-h-[430px] ${isDark ? "drop-shadow-[0_20px_36px_rgba(15,23,42,0.65)]" : "drop-shadow-[0_18px_30px_rgba(148,163,184,0.35)]"}`}
+            className={`relative z-10 block max-h-[235px] w-auto max-w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02] sm:max-h-[335px] lg:max-h-[450px] ${
+              isDark
+                ? "drop-shadow-[0_20px_32px_rgba(2,6,23,0.55)]"
+                : "drop-shadow-[0_18px_24px_rgba(120,113,108,0.18)]"
+            }`}
           />
         </div>
 
         {/* Wishlist Button Overlay */}
         <button
           onClick={onWishlist}
-          className={`absolute top-5 right-5 sm:top-6 sm:right-6 lg:top-8 lg:right-8 flex h-11 w-11 items-center justify-center rounded-[1.1rem] border-2 backdrop-blur-md transition-all hover:scale-110 active:scale-95 z-20 sm:h-12 sm:w-12 sm:rounded-[1.25rem] lg:h-14 lg:w-14 ${isInWishlist
+          className={`absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full border-[3px] transition-all hover:scale-105 active:scale-95 sm:right-7 sm:top-7 sm:h-14 sm:w-14 lg:right-9 lg:top-9 lg:h-16 lg:w-16 ${isInWishlist
             ? `${isDark ? '[background:linear-gradient(#0f172a,#0f172a)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]' : '[background:linear-gradient(white,white)_padding-box,linear-gradient(to_right,#4f46e5,#f43f5e)_border-box]'} border-transparent shadow-lg text-indigo-600`
-            : `${isDark ? 'bg-slate-900/80 border-slate-700 text-slate-400 hover:border-indigo-500 hover:text-indigo-400' : 'bg-white/80 border-stone-200 text-stone-400 hover:border-indigo-600 hover:text-indigo-600'} shadow-sm`
+            : `${isDark ? 'border-slate-600 bg-slate-900 text-slate-300 hover:border-primary hover:text-primary-light' : 'border-stone-300 bg-transparent text-[#6f7b71] hover:border-primary hover:text-primary'}`
             }`}
+          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart className="h-5 w-5 transition-all sm:h-5.5 sm:w-5.5" />
+          <Heart
+            className={`h-5 w-5 transition-all sm:h-6 sm:w-6 ${
+              isInWishlist ? "fill-current" : ""
+            }`}
+            strokeWidth={2.5}
+          />
         </button>
       </div>
     </div>
