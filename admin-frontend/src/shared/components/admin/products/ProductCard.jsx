@@ -40,7 +40,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           </span>
         )}
         {isBestSeller && (
-          <span className="absolute left-3 top-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+          <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/30">
             Best Seller
           </span>
         )}

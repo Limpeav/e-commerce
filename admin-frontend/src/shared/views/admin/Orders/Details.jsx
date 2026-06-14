@@ -536,6 +536,60 @@ const OrderDetails = () => {
         </section>
     );
 
+    const renderSellerConfirmationSection = () => {
+        if (!isSeller || currentOrderStatus !== "Pending") {
+            return null;
+        }
+
+        const receiptWasSent = Boolean(order.receiptSent?.sentAt);
+        const isWaitingForBakongPayment =
+            order.paymentMethod === "BAKONG_KHQR" && order.paymentStatus !== "Paid";
+
+        return (
+            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                <h2 className="mb-2 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                    <CheckCircle className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                    Confirm Order
+                </h2>
+                <p className="mb-4 text-sm font-medium text-[var(--color-text-muted)]">
+                    {isWaitingForBakongPayment
+                        ? "Waiting for the customer's BAKONG payment to be verified."
+                        : receiptWasSent
+                        ? "The receipt was sent. Confirm this order to hand it to delivery."
+                        : "Print and send the receipt before confirming this order."}
+                </p>
+                {isWaitingForBakongPayment ? (
+                    <button
+                        type="button"
+                        disabled
+                        className="inline-flex h-11 w-full cursor-not-allowed items-center justify-center rounded-lg bg-[var(--color-surface-soft)] px-4 font-bold text-[var(--color-text-muted)]"
+                    >
+                        Waiting for Payment
+                    </button>
+                ) : receiptWasSent ? (
+                    <button
+                        type="button"
+                        onClick={() => handleStatusUpdate("Processing")}
+                        disabled={updating}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-green-600 px-4 font-bold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {updating ? "Confirming..." : "Confirm Order"}
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={handleSendReceiptToTelegram}
+                        disabled={sendingReceipt}
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 font-bold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <Printer className="h-4 w-4" />
+                        {sendingReceipt ? "Sending..." : "Print Receipt"}
+                    </button>
+                )}
+            </section>
+        );
+    };
+
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {receiptNotice && (
@@ -833,9 +887,11 @@ const OrderDetails = () => {
 
                         {/* Update Order Status */}
                         {canManageOrderStatus && !isDelivery && renderOrderStatusSection()}
+                        {renderSellerConfirmationSection()}
 
                         {/* Update Payment Status */}
-                        {(!isDelivery || order.paymentMethod === "Cash on Delivery") && (
+                        {(adminUser?.role === "admin" ||
+                            order.paymentMethod === "Cash on Delivery") && (
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
                                 <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />

@@ -550,6 +550,14 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     throw new Error("Cashier accounts can only confirm pending orders");
                 }
 
+                if (
+                    order.paymentMethod === "BAKONG_KHQR" &&
+                    order.paymentStatus !== "Paid"
+                ) {
+                    res.status(400);
+                    throw new Error("BAKONG payment must be completed before confirming this order");
+                }
+
                 if (!order.receiptSent?.sentAt) {
                     res.status(400);
                     throw new Error("Please print/send the receipt before confirming this order");
@@ -740,9 +748,12 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
             throw new Error("Delivery accounts can only mark cash on delivery orders as paid");
         }
 
-        if (req.user?.role === "seller" && paymentStatus !== "Paid") {
+        if (
+            req.user?.role === "seller" &&
+            (paymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
+        ) {
             res.status(403);
-            throw new Error("Cashier accounts can only mark orders as paid");
+            throw new Error("Cashier accounts can only mark cash on delivery orders as paid");
         }
 
         order.paymentStatus = paymentStatus;

@@ -60,21 +60,17 @@ const SellerDashboard = () => {
         );
     }, [loadDashboard]);
 
-    const pendingCashOrders = useMemo(() => {
+    const pendingConfirmationOrders = useMemo(() => {
         return orders
-            .filter(
-                (order) =>
-                    order.paymentMethod === "Cash on Delivery" &&
-                    order.paymentStatus !== "Paid" &&
-                    !["Delivered", "Cancelled"].includes(order.orderStatus)
-            )
+            .filter((order) => order.orderStatus === "Pending")
             .slice(0, 5);
     }, [orders]);
 
     const paidTodayCount = cashReport?.summary?.orderCount || 0;
     const totalCashToday = cashReport?.summary?.totalCash || 0;
-    const unpaidCashCount = pendingCashOrders.length;
-    const pendingTotal = pendingCashOrders.reduce(
+    const allPendingOrders = orders.filter((order) => order.orderStatus === "Pending");
+    const pendingConfirmationCount = allPendingOrders.length;
+    const pendingTotal = allPendingOrders.reduce(
         (total, order) => total + Number(order.totalPrice || 0),
         0
     );
@@ -93,9 +89,9 @@ const SellerDashboard = () => {
             bg: "bg-green-50",
         },
         {
-            label: "Payment Queue",
-            value: unpaidCashCount,
-            hint: `${formatCurrency(pendingTotal)} pending`,
+            label: "Needs Confirmation",
+            value: pendingConfirmationCount,
+            hint: `${formatCurrency(pendingTotal)} in pending orders`,
             icon: Clock,
             tone: "text-amber-700",
             bg: "bg-amber-50",
@@ -175,14 +171,14 @@ const SellerDashboard = () => {
                 <section className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
                     <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4">
                         <div>
-                            <h2 className="text-lg font-black text-gray-950">Needs Payment</h2>
+                            <h2 className="text-lg font-black text-gray-950">Needs Confirmation</h2>
                             <p className="mt-1 text-sm font-medium text-gray-500">
-                                Cash orders waiting for payment confirmation.
+                                New orders waiting for receipt printing and seller confirmation.
                             </p>
                         </div>
                         <button
                             type="button"
-                            onClick={() => navigate(getPortalPaymentQueuePath(adminUser))}
+                            onClick={() => navigate("/seller/orders?status=Pending")}
                             className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)]"
                         >
                             View all
@@ -190,17 +186,17 @@ const SellerDashboard = () => {
                         </button>
                     </div>
 
-                    {pendingCashOrders.length === 0 ? (
+                    {pendingConfirmationOrders.length === 0 ? (
                         <div className="px-5 py-14 text-center">
                             <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
-                            <p className="mt-3 font-black text-gray-950">No pending cash payments</p>
+                            <p className="mt-3 font-black text-gray-950">No orders waiting for confirmation</p>
                             <p className="mt-1 text-sm font-medium text-gray-500">
-                                The payment queue is clear.
+                                New customer orders will appear here.
                             </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
-                            {pendingCashOrders.map((order) => (
+                            {pendingConfirmationOrders.map((order) => (
                                 <button
                                     key={order._id}
                                     type="button"
@@ -218,7 +214,9 @@ const SellerDashboard = () => {
                                     <div className="text-left sm:text-right">
                                         <p className="font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
                                         <p className="mt-1 text-xs font-black uppercase text-amber-700">
-                                            {order.paymentStatus}
+                                            {order.paymentMethod === "BAKONG_KHQR"
+                                                ? `BAKONG · ${order.paymentStatus}`
+                                                : `Cash on Delivery · ${order.paymentStatus}`}
                                         </p>
                                     </div>
                                 </button>
