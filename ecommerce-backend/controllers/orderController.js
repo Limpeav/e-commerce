@@ -227,6 +227,8 @@ const mergeOrderItems = (currentItems = [], incomingItems = []) => {
     return mergedItems;
 };
 
+const PENDING_ORDER_MERGE_WINDOW_MS = 30 * 60 * 1000;
+
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
@@ -324,8 +326,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                         paymentStatus: "Pending",
                         paymentMethod,
                         "receiptSent.sentAt": { $exists: false },
+                        createdAt: {
+                            $gte: new Date(Date.now() - PENDING_ORDER_MERGE_WINDOW_MS),
+                        },
                     })
-                        .sort({ createdAt: 1 })
+                        .sort({ createdAt: -1 })
                         .session(session)
                     : null;
 
@@ -370,19 +375,32 @@ export const createOrder = asyncHandler(async (req, res) => {
                 googleMapsLink = `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`;
             }
 
-            const notification = new Notification({
-                type: "order",
-                title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
-                message: mergedIntoExistingOrder
-                    ? `${createdOrder.user.name} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
-                    : `${createdOrder.user.name} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${Number(totalPrice || 0).toFixed(2)}`,
-                orderId: createdOrder._id,
-                userId: req.user._id,
-                link: `/admin/orders/${createdOrder._id}`,
-                googleMapsLink: googleMapsLink,
-            });
+            const customerName =
+                createdOrder.user?.name ||
+                req.user?.name ||
+                shippingAddress.fullName ||
+                "Customer";
+            let notification = null;
 
-            await notification.save();
+            try {
+                notification = await Notification.create({
+                    type: "order",
+                    title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
+                    message: mergedIntoExistingOrder
+                        ? `${customerName} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
+                        : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${Number(totalPrice || 0).toFixed(2)}`,
+                    orderId: createdOrder._id,
+                    userId: req.user._id,
+                    link: `/admin/orders/${createdOrder._id}`,
+                    googleMapsLink: googleMapsLink,
+                });
+            } catch (notificationError) {
+                console.error(
+                    `Order notification creation failed for ${createdOrder._id}:`,
+                    notificationError.message
+                );
+            }
+
             if (mergedIntoExistingOrder) {
                 emitOrderUpdated(createdOrder, {
                     orderStatus: createdOrder.orderStatus,
@@ -406,7 +424,9 @@ export const createOrder = asyncHandler(async (req, res) => {
                 },
                 { users: true }
             );
-            emitNotificationCreated(notification);
+            if (notification) {
+                emitNotificationCreated(notification);
+            }
 
             res.status(mergedIntoExistingOrder ? 200 : 201).json(createdOrder);
 
