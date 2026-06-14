@@ -132,7 +132,7 @@ export default function ProductDetail() {
               isInWishlist={isInWishlist(product._id)}
             />
             {showPurchaseActionsUnderImage && (
-              <div className="w-full px-1 sm:px-2 lg:px-0">
+              <div className="hidden w-full lg:block lg:px-0">
                 <ProductPurchaseActions
                   product={product}
                   quantity={quantity}
@@ -154,6 +154,7 @@ export default function ProductDetail() {
             onLoginRequired={() => navigate("/login")}
             user={user}
             showPurchaseActions={!showPurchaseActionsUnderImage}
+            showPurchaseActionsOnMobile={showPurchaseActionsUnderImage}
           />
         </div>
 

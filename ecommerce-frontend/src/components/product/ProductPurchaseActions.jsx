@@ -56,23 +56,23 @@ const ProductPurchaseActions = ({
       <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>
         Quantity
       </label>
-      <div className="flex flex-col items-stretch gap-2 min-[430px]:flex-row sm:gap-4">
-        <div className={`flex w-full items-center justify-between gap-1 rounded-[1.15rem] border-2 p-1.5 shadow-sm min-[430px]:w-auto min-[430px]:shrink-0 sm:gap-3 ${isDark ? "border-slate-700 bg-slate-900" : "border-stone-100 bg-white"}`}>
+      <div className="flex w-full items-stretch gap-2 sm:gap-4">
+        <div className={`flex shrink-0 items-center justify-between gap-0.5 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:gap-3 ${isDark ? "border-slate-700 bg-slate-900" : "border-stone-100 bg-white"}`}>
           <button
             type="button"
             onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
+            className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
             aria-label="Decrease quantity"
           >
             −
           </button>
-          <span className={`w-9 text-center font-display text-lg font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
+          <span className={`w-7 text-center font-display text-lg font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
             {quantity}
           </span>
           <button
             type="button"
             onClick={() => setQuantity((currentQuantity) => currentQuantity + 1)}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:h-10 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
+            className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
             aria-label="Increase quantity"
           >
             +
@@ -94,7 +94,7 @@ const ProductPurchaseActions = ({
 
             onAddToCart({ size: selectedSize });
           }}
-          className={`group relative flex min-h-14 w-full min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-3 py-3 text-sm font-bold transition-all duration-300 active:scale-95 min-[430px]:w-auto sm:gap-3 sm:px-4 sm:text-base ${
+          className={`group relative flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-2 py-3 text-xs font-bold transition-all duration-300 active:scale-95 sm:gap-3 sm:px-4 sm:text-base ${
             user
               ? needsSize && !selectedSize
                 ? isDark

@@ -233,6 +233,18 @@ export default function Home() {
 
     const productSections = useMemo(() => {
         const normalizedProducts = [...filteredProducts];
+        const allProductsSection = {
+            title: t("product.all"),
+            description: searchQuery
+                ? t("product.showingMatches", { query: searchQuery })
+                : t("product.browseFullCollection"),
+            products: normalizedProducts,
+        };
+
+        if (selectedCategory !== "All") {
+            return normalizedProducts.length > 0 ? [allProductsSection] : [];
+        }
+
         const newArrivals = [...normalizedProducts]
             .filter((product) => product.isNewArrival)
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -268,15 +280,9 @@ export default function Home() {
                 products: bestSellers,
                 layout: "horizontal",
             },
-            {
-                title: t("product.all"),
-                description: searchQuery
-                    ? t("product.showingMatches", { query: searchQuery })
-                    : t("product.browseFullCollection"),
-                products: normalizedProducts,
-            },
+            allProductsSection,
         ].filter((section) => section.products.length > 0);
-    }, [filteredProducts, searchQuery, t]);
+    }, [filteredProducts, searchQuery, selectedCategory, t]);
 
     if (error) {
         return <ErrorState error={error} onRetry={handleRetry} />;

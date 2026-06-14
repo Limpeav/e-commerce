@@ -13,12 +13,19 @@ import {
     Navigation,
     Phone,
     Printer,
+    LogOut,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
-import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import {
+    clearAdminSession,
+    getPortalLoginPath,
+    getPortalOrderDetailsPath,
+    getStoredAdminUser,
+} from "../../../utils/adminSession";
+import {
+    disconnectRealtime,
     subscribeRealtimeDomains,
     subscribeRealtimeEvent,
 } from "../../../services/realtime";
@@ -535,6 +542,19 @@ const AdminOrders = () => {
         window.open(url, "_blank");
     };
 
+    const handleDeliveryLogout = () => {
+        if (!window.confirm("Are you sure you want to log out?")) {
+            return;
+        }
+
+        const loginPath = getPortalLoginPath(adminUser);
+        disconnectRealtime();
+        clearAdminSession("delivery");
+        sessionStorage.removeItem(DELIVERY_ORDERS_CACHE_KEY);
+        sessionStorage.removeItem(DELIVERY_ORDERS_VIEW_STATE_KEY);
+        navigate(loginPath, { replace: true });
+    };
+
     const deliveryOrders = orders.filter((order) =>
         DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
     );
@@ -600,6 +620,14 @@ const AdminOrders = () => {
                             <p className="text-sm font-semibold text-blue-700">Delivery</p>
                             <h1 className="text-2xl font-black text-gray-950">Today&apos;s Runs</h1>
                         </div>
+                        <button
+                            type="button"
+                            onClick={handleDeliveryLogout}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50"
+                        >
+                            <LogOut className="h-4 w-4" />
+                            Logout
+                        </button>
                     </div>
 
                     <div className="mb-4 grid grid-cols-3 gap-2">

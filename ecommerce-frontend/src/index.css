@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Alice&family=Kantumruy+Pro:wght@300;400;500;600;700;800;900&family=Koh+Santepheap:wght@300;400;700;900&family=Lato:wght@300;400;700;900&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
     /* Fonts */
     --font-sans: "Lato", system-ui, -apple-system, sans-serif;
@@ -94,6 +96,47 @@ html:lang(kh) [class*="tracking-"] {
 
 #root {
     min-height: 100vh;
+}
+
+@media (max-height: 700px) and (min-width: 1024px) {
+    .register-brand-logo {
+        margin-bottom: 1rem;
+    }
+
+    .register-brand-title {
+        font-size: 2rem;
+    }
+
+    .register-brand-copy {
+        margin-top: 0.75rem;
+        line-height: 1.35rem;
+    }
+
+    .register-benefits {
+        gap: 0.5rem;
+    }
+
+    .register-heading {
+        margin-bottom: 0.5rem;
+    }
+
+    .register-form {
+        row-gap: 0.5rem;
+    }
+
+    .register-security {
+        display: none;
+    }
+}
+
+@media (max-height: 620px) and (min-width: 1024px) {
+    .register-benefits {
+        display: none;
+    }
+
+    .register-brand {
+        justify-content: center;
+    }
 }
 
 html.dark body {

@@ -6,6 +6,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
 import { useLanguage } from "../../../context/useLanguage";
+import storeLogo from "../../../assets/logo.png";
 import {
   Mail,
   Lock,
@@ -13,7 +14,7 @@ import {
   Loader,
   Eye,
   EyeOff,
-  ShieldCheck,
+  CheckCircle,
 } from "lucide-react";
 
 const Login = () => {
@@ -168,256 +169,238 @@ const Login = () => {
 
   return (
     <div
-      className={`min-h-[100svh] flex items-start sm:items-center justify-center px-3 sm:px-4 py-6 sm:py-10 md:py-12 pb-20 md:pb-12 relative overflow-x-hidden overflow-y-auto font-sans transition-colors duration-300 ${
+      className={`relative flex h-[100svh] items-center justify-center overflow-hidden px-3 py-4 font-sans transition-colors duration-300 sm:px-4 sm:py-6 lg:p-5 ${
         isDark ? "bg-slate-950 text-slate-100" : "bg-bg-base"
       }`}
     >
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <motion.div
           animate={{ x: [0, 10, 0], y: [0, -10, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className={`absolute top-20 left-10 w-72 h-72 rounded-full filter blur-3xl opacity-30 ${
+          className={`absolute left-10 top-20 h-72 w-72 rounded-full opacity-30 blur-3xl ${
             isDark ? "bg-indigo-500/10" : "bg-primary-light/10 mix-blend-multiply"
           }`}
         />
         <motion.div
           animate={{ x: [0, -20, 0], y: [0, 20, 0], scale: [1, 1.2, 1] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className={`absolute top-40 right-10 w-72 h-72 rounded-full filter blur-3xl opacity-40 ${
+          className={`absolute right-10 top-40 h-72 w-72 rounded-full opacity-40 blur-3xl ${
             isDark ? "bg-cyan-500/10" : "bg-primary/5 mix-blend-multiply"
           }`}
         />
         <motion.div
           animate={{ x: [0, 15, 0], y: [0, 15, 0], scale: [1, 0.9, 1] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className={`absolute bottom-20 left-1/2 w-72 h-72 rounded-full filter blur-3xl opacity-30 ${
+          className={`absolute bottom-20 left-1/2 h-72 w-72 rounded-full opacity-30 blur-3xl ${
             isDark ? "bg-fuchsia-500/10" : "bg-secondary/5 mix-blend-multiply"
           }`}
         />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo/Brand Section */}
-        <div className="text-center mb-6 sm:mb-10">
-          <h1
-            className={`text-3xl sm:text-5xl font-black mb-2 sm:mb-3 font-display tracking-tight leading-none ${
-              isDark ? "text-slate-100" : "text-text-main"
-            }`}
-          >
-            {t("Welcome Back")}
-          </h1>
-          <p className={`font-medium text-sm sm:text-lg ${isDark ? "text-slate-400" : "text-text-muted"}`}>
-            {t("Sign in to continue shopping")}
-          </p>
-        </div>
+      <div className="relative z-10 mx-auto grid max-h-full w-full max-w-md grid-cols-1 overflow-hidden rounded-2xl bg-transparent sm:rounded-[2.5rem] lg:h-full lg:max-w-6xl lg:grid-cols-[40%_60%] lg:rounded-[2rem] lg:border lg:border-white/80 lg:bg-white/90 lg:shadow-[0_32px_90px_-38px_rgba(45,49,46,0.45)] lg:backdrop-blur-xl lg:dark:border-slate-700 lg:dark:bg-slate-900/95">
+        <section className="relative hidden min-h-0 overflow-hidden bg-primary p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
+          <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-white/10" />
 
-        {/* Login Card */}
-        <div
-          className={`backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border p-5 sm:p-10 transition-colors duration-300 ${
-            isDark
-              ? "bg-slate-900/80 border-slate-800 shadow-[0_34px_90px_-28px_rgba(2,6,23,0.95)]"
-              : "bg-white/70 border-white"
-          }`}
-        >
-          <form onSubmit={submitHandler} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <div className="flex animate-shake items-start gap-3 rounded-2xl border border-red-400/30 bg-red-600/90 p-4 shadow-lg shadow-red-950/20">
-                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-white" />
-                <p className="text-sm font-bold leading-relaxed text-white">{error}</p>
-              </div>
-            )}
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
+              <img
+                src={storeLogo}
+                alt="Cherish Baby"
+                className="h-12 w-12 object-contain"
+              />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">
+                Welcome to
+              </p>
+              <h2 className="font-display text-2xl font-black">Cherish Baby</h2>
+            </div>
+          </div>
 
-            {/* Email Input */}
-            <div className="group">
-              <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                {t("Email Address")}
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="email"
-                  placeholder="john@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className={`w-full pl-12 pr-4 py-4 border-2 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold ${
-                    isDark
-                      ? "border-slate-700 text-slate-100 placeholder-slate-500 bg-slate-950/60 focus:bg-slate-950"
-                      : "border-stone-100 text-text-main placeholder-stone-300 bg-stone-50/50 focus:bg-white"
-                  }`}
-                />
+          <div className="relative z-10">
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-white/70">
+              Everything for your little one
+            </p>
+            <h1 className="max-w-sm font-display text-4xl font-black leading-tight xl:text-5xl">
+              Welcome back to simpler family shopping.
+            </h1>
+            <p className="mt-5 max-w-md text-base font-medium leading-relaxed text-white/75">
+              Sign in to manage your orders, save your favorite products, and
+              continue shopping with confidence.
+            </p>
+          </div>
+
+          <div className="relative z-10 space-y-3">
+            {[
+              "Quick and secure checkout",
+              "Track every order in one place",
+              "Products selected for growing families",
+            ].map((benefit) => (
+              <div key={benefit} className="flex items-center gap-3 text-sm font-bold">
+                <CheckCircle className="h-5 w-5 flex-none text-white/85" />
+                <span>{benefit}</span>
               </div>
+            ))}
+          </div>
+        </section>
+
+        <main className="flex min-h-0 justify-center overflow-y-auto rounded-2xl border border-white bg-white/95 px-5 py-5 shadow-[0_18px_50px_-28px_rgba(45,49,46,0.3)] backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900/95 sm:rounded-[2.5rem] sm:px-8 sm:py-7 lg:items-center lg:overflow-hidden lg:rounded-none lg:border-0 lg:bg-transparent lg:px-10 lg:py-4 lg:shadow-none lg:backdrop-blur-none lg:dark:bg-transparent xl:px-12">
+          <div className="mx-auto w-full max-w-md">
+            <div className="mb-5 text-center sm:mb-6">
+              <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main dark:text-slate-100 sm:text-4xl">
+                {t("Welcome Back")}
+              </h1>
+              <p className="mt-2 text-sm font-medium text-text-muted dark:text-slate-400 sm:text-base">
+                {t("Sign in to continue shopping")}
+              </p>
             </div>
 
-            {/* Password Input */}
-            <div className="group">
-              <label className="block text-xs font-black text-primary uppercase tracking-[0.2em] mb-3 ml-1">
-                {t("Password")}
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors">
-                  <Lock className="w-5 h-5" />
+            <form onSubmit={submitHandler} className="space-y-4">
+              {error && (
+                <div className="flex animate-shake items-start gap-3 rounded-xl border border-red-400/30 bg-red-600/90 p-3 shadow-lg shadow-red-950/20">
+                  <AlertCircle className="mt-0.5 h-5 w-5 flex-none text-white" />
+                  <p className="text-sm font-bold leading-relaxed text-white">{error}</p>
                 </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder={t("Enter your password")}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className={`w-full pl-12 pr-12 py-4 border-2 rounded-2xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all font-bold ${
-                    isDark
-                      ? "border-slate-700 text-slate-100 placeholder-slate-500 bg-slate-950/60 focus:bg-slate-950"
-                      : "border-stone-100 text-text-main placeholder-stone-300 bg-stone-50/50 focus:bg-white"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute right-4 top-1/2 transform -translate-y-1/2 transition-colors focus:outline-none ${
-                    isDark ? "text-slate-500 hover:text-primary" : "text-stone-400 hover:text-primary"
-                  }`}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
+              )}
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-xs px-1">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className={`w-4 h-4 text-primary border-2 rounded focus:ring-2 focus:ring-primary/20 accent-primary ${
-                    isDark ? "bg-slate-800 border-slate-600" : "bg-stone-100 border-stone-300"
-                  }`}
-                />
-                <span
-                  className={`font-bold group-hover:text-primary transition-colors select-none uppercase tracking-widest ${
-                    isDark ? "text-slate-400" : "text-text-muted"
-                  }`}
+              <div className="group">
+                <label className="mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary">
+                  {t("Email Address")}
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary" />
+                  <input
+                    type="email"
+                    placeholder="john@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 w-full rounded-xl border border-stone-200 bg-white !pl-12 pr-4 font-bold text-text-main outline-none transition-all placeholder:text-stone-400 focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                </div>
+              </div>
+
+              <div className="group">
+                <label className="mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary">
+                  {t("Password")}
+                </label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t("Enter your password")}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-12 w-full rounded-xl border border-stone-200 bg-white !pl-12 !pr-12 font-bold text-text-main outline-none transition-all placeholder:text-stone-400 focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 transition-colors hover:text-primary focus:outline-none dark:text-slate-500"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
+                <label className="group flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-2 border-stone-300 bg-stone-100 accent-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-800"
+                  />
+                  <span className="select-none font-bold uppercase tracking-wider text-text-muted transition-colors group-hover:text-primary dark:text-slate-400">
+                    {t("Remember me")}
+                  </span>
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="font-black uppercase tracking-wider text-primary transition-colors hover:text-primary-dark"
                 >
-                  {t("Remember me")}
-                </span>
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-primary hover:text-primary-dark font-black uppercase tracking-widest transition-colors"
+                  {t("Forgot password?")}
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-xl disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:hover:translate-y-0 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
               >
-                {t("Forgot password?")}
+                {loading ? (
+                  <>
+                    <Loader className="h-5 w-5 animate-spin" />
+                    {t("Identifying...")}
+                  </>
+                ) : (
+                  t("Sign In")
+                )}
+              </button>
+            </form>
+
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-stone-200 dark:border-slate-700" />
+              </div>
+              <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
+                <span className="bg-white px-5 text-stone-400 dark:bg-slate-900 dark:text-slate-500">
+                  {t("OR")}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-stone-200 bg-white px-4 font-bold text-text-main shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100"
+            >
+              <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 0 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              <span className="text-xs uppercase tracking-wider sm:text-sm">
+                {t("Sign in with Google")}
+              </span>
+            </button>
+
+            <div className="mt-4 text-center">
+              <Link
+                to="/register"
+                className="inline-flex flex-wrap items-center justify-center gap-x-2 text-sm font-bold text-text-muted transition-colors hover:text-primary dark:text-slate-400"
+              >
+                {t("Dont have an account?")}
+                <span className="border-b-2 border-primary/20 font-black uppercase tracking-wider text-primary transition-all hover:border-primary">
+                  {t("Create one now")}
+                </span>
               </Link>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-5 rounded-2xl border-2 font-black uppercase tracking-[0.2em] transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading
-                ? isDark
-                  ? "border-slate-700 bg-transparent text-slate-500 cursor-not-allowed"
-                  : "border-stone-200 bg-transparent text-stone-500 cursor-not-allowed"
-                : isDark
-                  ? "border-primary bg-transparent text-primary hover:border-primary-light hover:text-primary-light hover:shadow-lg hover:shadow-primary/15 hover:-translate-y-1 active:scale-95"
-                  : "border-primary bg-transparent text-primary hover:border-primary-dark hover:text-primary-dark hover:shadow-lg hover:shadow-primary/15 hover:-translate-y-1 active:scale-95"
-                }`}
-            >
-              {loading ? (
-                <>
-                  <Loader className="w-5 h-5 animate-spin" />
-                  {t("Identifying...")}
-                </>
-              ) : (
-                <>
-                  {t("Sign In")}
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-10">
-            <div className="absolute inset-0 flex items-center">
-              <div className={`w-full border-t ${isDark ? "border-slate-800" : "border-stone-100"}`}></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-              <span className={`px-6 ${isDark ? "bg-slate-900 text-slate-500" : "bg-white text-stone-400"}`}>
-                {t("OR")}
-              </span>
-            </div>
           </div>
-
-          {/* Google Sign In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className={`w-full py-4 border rounded-2xl font-bold shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
-              isDark
-                ? "bg-slate-950/70 border-slate-700 text-slate-100 hover:border-primary"
-                : "bg-white border-stone-100 text-text-main hover:border-primary"
-            }`}
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            <span className="text-sm uppercase tracking-widest">{t("Sign in with Google")}</span>
-          </button>
-
-          {/* Sign Up Link */}
-          <div className="text-center mt-10">
-            <Link
-              to="/register"
-              className={`inline-flex items-center gap-2 hover:text-primary font-bold text-sm transition-colors group ${
-                isDark ? "text-slate-400" : "text-text-muted"
-              }`}
-            >
-              {t("Dont have an account?")}
-              <span className="text-primary font-black uppercase tracking-widest border-b-2 border-primary/20 group-hover:border-primary transition-all">
-                {t("Create one now")}
-              </span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Security Badge */}
-        <div className="mt-10 text-center">
-          <div
-            className={`inline-flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-full border shadow-sm backdrop-blur-sm ${
-              isDark
-                ? "text-slate-400 bg-slate-900/60 border-slate-800"
-                : "text-stone-400 bg-white/50 border-white/20"
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>{t("Secure SSL Encryption")}</span>
-          </div>
-        </div>
+        </main>
       </div>
-
     </div>
   );
 };

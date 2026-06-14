@@ -18,6 +18,7 @@ const ProductInfo = ({
   onLoginRequired,
   user,
   showPurchaseActions = true,
+  showPurchaseActionsOnMobile = false,
 }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
@@ -158,6 +159,19 @@ const ProductInfo = ({
           onLoginRequired={onLoginRequired}
           user={user}
         />
+      )}
+
+      {showPurchaseActionsOnMobile && (
+        <div className="lg:hidden">
+          <ProductPurchaseActions
+            product={product}
+            quantity={quantity}
+            setQuantity={setQuantity}
+            onAddToCart={onAddToCart}
+            onLoginRequired={onLoginRequired}
+            user={user}
+          />
+        </div>
       )}
     </div>
   );

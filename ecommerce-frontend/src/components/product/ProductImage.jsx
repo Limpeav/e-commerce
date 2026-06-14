@@ -35,9 +35,7 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
           aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
-            className={`h-5 w-5 transition-all sm:h-6 sm:w-6 ${
-              isInWishlist ? "fill-current" : ""
-            }`}
+            className="h-5 w-5 fill-none transition-all sm:h-6 sm:w-6"
             strokeWidth={2.5}
           />
         </button>

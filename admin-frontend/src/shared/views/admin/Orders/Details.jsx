@@ -16,12 +16,22 @@ import {
     Navigation,
     Phone,
     Printer,
+    LogOut,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
-import { getPortalOrdersPath, getStoredAdminUser } from "../../../utils/adminSession";
-import { joinOrderRoom, subscribeRealtimeEvent } from "../../../services/realtime";
+import {
+    clearAdminSession,
+    getPortalLoginPath,
+    getPortalOrdersPath,
+    getStoredAdminUser,
+} from "../../../utils/adminSession";
+import {
+    disconnectRealtime,
+    joinOrderRoom,
+    subscribeRealtimeEvent,
+} from "../../../services/realtime";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -172,6 +182,19 @@ const OrderDetails = () => {
         }
 
         navigate(returnTo);
+    };
+
+    const handleDeliveryLogout = () => {
+        if (!window.confirm("Are you sure you want to log out?")) {
+            return;
+        }
+
+        const loginPath = getPortalLoginPath(adminUser);
+        disconnectRealtime();
+        clearAdminSession("delivery");
+        sessionStorage.removeItem("adminDeliveryOrdersCache");
+        sessionStorage.removeItem("adminDeliveryOrdersViewState");
+        navigate(loginPath, { replace: true });
     };
 
     const handleStatusUpdate = async (newStatus) => {
@@ -625,6 +648,16 @@ const OrderDetails = () => {
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                            {isDelivery && (
+                                <button
+                                    type="button"
+                                    onClick={handleDeliveryLogout}
+                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Logout
+                                </button>
+                            )}
                             <div
                                 className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
                             >

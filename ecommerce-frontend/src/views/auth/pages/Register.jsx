@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
 import { motion } from "framer-motion";
+import storeLogo from "../../../assets/logo.png";
 import {
   User,
   Mail,
@@ -49,6 +50,31 @@ const Register = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    const requiredFields = [
+      ["name", "full name"],
+      ["email", "email address"],
+      ["phone", "phone number"],
+      ["password", "password"],
+    ];
+    const missingFields = requiredFields
+      .filter(([key]) => !String(form[key] || "").trim())
+      .map(([, label]) => label);
+
+    if (missingFields.length > 0) {
+      setError(`Please fill in all required fields: ${missingFields.join(", ")}.`);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("Password must contain at least 6 characters.");
+      return;
+    }
 
     if (!agreedToTerms) {
       setError("Please agree to the Terms of Service and Privacy Policy");
@@ -205,14 +231,14 @@ const Register = () => {
   };
 
   const inputClassName =
-    "w-full border-2 rounded-2xl transition-all text-text-main font-bold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-white/90 border-stone-200 placeholder-stone-400 focus:bg-white dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-500 dark:focus:bg-slate-900";
+    "h-12 w-full rounded-xl border bg-white px-4 font-bold text-text-main transition-all placeholder:text-stone-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-500";
   const iconClassName =
-    "absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 group-focus-within:text-primary transition-colors";
+    "absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 transition-colors group-focus-within:text-primary";
   const labelClassName =
-    "block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1 dark:text-primary-light";
+    "mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary dark:text-primary-light";
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-start lg:items-center justify-center px-3 sm:px-4 py-8 sm:py-12 pb-24 lg:pb-12 relative overflow-x-hidden overflow-y-auto font-sans">
+    <div className="register-page relative flex h-[100svh] items-center justify-center overflow-hidden bg-bg-base px-3 py-4 font-sans sm:px-4 sm:py-6 lg:p-5">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -232,24 +258,62 @@ const Register = () => {
         />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo/Brand Section */}
-        <div className="text-center mb-6 sm:mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-stone-100 mb-4 sm:mb-8 transform hover:scale-105 transition-transform duration-300 dark:border-slate-700 dark:bg-slate-900">
-            <UserPlus className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-text-main mb-2 sm:mb-3 font-display tracking-tight leading-none">
-            Create Account
-          </h1>
-          <p className="text-text-muted font-medium text-sm sm:text-lg text-center">
-            Join thousands of happy parents today
-          </p>
-        </div>
+      <div className="register-shell relative z-10 mx-auto grid max-h-full w-full max-w-md grid-cols-1 overflow-hidden rounded-2xl bg-transparent sm:rounded-[2.5rem] lg:h-full lg:max-w-6xl lg:grid-cols-[40%_60%] lg:rounded-[2rem] lg:border lg:border-white/80 lg:bg-white/90 lg:shadow-[0_30px_100px_-35px_rgba(45,49,46,0.4)] lg:backdrop-blur-xl lg:dark:border-slate-700 lg:dark:bg-slate-900/95">
+        <section className="register-brand relative hidden min-h-0 overflow-hidden bg-primary text-white lg:flex lg:flex-col lg:justify-between lg:p-8 xl:p-10">
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10" />
+          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-secondary/30" />
 
-        {/* Register Card */}
-        <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-8 lg:p-10 mb-6 dark:border-slate-700 dark:bg-slate-900/92 dark:shadow-black/40">
+          <div className="relative flex min-w-0 flex-col items-center sm:items-start lg:block">
+            <div className="register-brand-logo inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-lg ring-1 ring-white/25 sm:h-12 sm:w-12 lg:mb-5 lg:h-14 lg:w-14 lg:rounded-2xl xl:mb-8">
+              <img
+                src={storeLogo}
+                alt="Cherish Baby store logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div className="min-w-0 text-center sm:mt-4 sm:text-left lg:mt-0">
+              <p className="mt-3 [writing-mode:vertical-rl] rotate-180 text-[9px] font-black uppercase tracking-[0.22em] text-white/80 sm:mt-0 sm:[writing-mode:horizontal-tb] sm:rotate-0 sm:text-xs lg:mb-3 lg:tracking-[0.3em]">
+                Cherish Baby
+              </p>
+              <h1 className="register-brand-title mt-3 hidden max-w-xl text-lg font-black leading-tight text-white sm:block sm:text-xl lg:mt-0 lg:max-w-sm lg:text-4xl lg:leading-[1.08] xl:text-5xl">
+                Everything your family needs, in one place.
+              </h1>
+              <p className="register-brand-copy mt-3 hidden max-w-sm text-xs font-medium leading-5 text-white/75 md:block lg:mt-5 lg:text-base lg:leading-7">
+                Create your account to save favorites, place orders, and follow every delivery.
+              </p>
+            </div>
+          </div>
+
+          <div className="register-benefits relative hidden space-y-3 lg:block lg:space-y-4">
+            {[
+              "Secure checkout and account protection",
+              "Live order and delivery tracking",
+              "Faster shopping with saved details",
+            ].map((benefit) => (
+              <div key={benefit} className="flex items-center gap-2.5 text-xs font-bold text-white/90 lg:gap-3 lg:text-sm">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
+                  <CheckCircle className="h-4 w-4" />
+                </span>
+                {benefit}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <main className="register-main flex min-h-0 justify-center overflow-y-auto rounded-2xl border border-white bg-white/95 px-5 py-5 shadow-[0_18px_50px_-28px_rgba(45,49,46,0.3)] backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900/95 sm:rounded-[2.5rem] sm:px-8 sm:py-7 lg:items-center lg:overflow-hidden lg:rounded-none lg:border-0 lg:bg-transparent lg:px-10 lg:py-4 lg:shadow-none lg:backdrop-blur-none lg:dark:bg-transparent xl:px-12">
+          <div className="mx-auto w-full max-w-xl">
+            <div className="register-heading mb-5 text-center sm:mb-6 lg:text-left">
+              <h2 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main dark:text-slate-100 sm:text-4xl">
+                Create your account
+              </h2>
+              <p className="mt-2 text-sm font-medium text-text-muted dark:text-slate-400 sm:text-base">
+                Join Cherish Baby and start shopping in minutes.
+              </p>
+            </div>
+
+        <div>
           {verificationEmail ? (
-            <form onSubmit={handleVerifyEmail} className="space-y-6">
+            <form onSubmit={handleVerifyEmail} className="space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -322,12 +386,12 @@ const Register = () => {
               </button>
             </form>
           ) : (
-          <form onSubmit={submitHandler} className="space-y-6">
+          <form onSubmit={submitHandler} noValidate className="register-form grid w-full grid-cols-1 gap-x-4 gap-y-3 lg:grid-cols-2">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-red-700 text-sm font-bold">{error}</p>
+              <div className="fixed left-3 right-3 top-3 z-50 mx-auto flex max-w-xl animate-shake items-start gap-3 rounded-xl border border-red-200 bg-red-600 p-3 text-white shadow-2xl">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-white" />
+                <p className="text-sm font-bold text-white">{error}</p>
               </div>
             )}
 
@@ -346,7 +410,7 @@ const Register = () => {
                   value={form.name || ""}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  className={`${inputClassName} py-4 pl-12 pr-4`}
+                  className={`${inputClassName} !pl-12`}
                 />
               </div>
             </div>
@@ -366,7 +430,7 @@ const Register = () => {
                   value={form.email || ""}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
-                  className={`${inputClassName} py-4 pl-12 pr-4`}
+                  className={`${inputClassName} !pl-12`}
                 />
               </div>
             </div>
@@ -376,8 +440,8 @@ const Register = () => {
               <label className={labelClassName}>
                 Phone Number
               </label>
-              <div className="flex gap-2">
-                <div className="flex items-center px-4 py-4 bg-stone-100 border-2 border-stone-200 rounded-2xl text-text-main font-black shadow-sm text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <div className="flex h-12 shrink-0 items-center rounded-xl border border-stone-200 bg-stone-100 px-4 font-black text-text-main dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
                   +855
                 </div>
                 <input
@@ -387,7 +451,7 @@ const Register = () => {
                   value={form.phone || ""}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   required
-                  className={`${inputClassName} min-w-0 flex-1 px-5 py-4`}
+                  className={`${inputClassName} min-w-0 flex-1`}
                 />
               </div>
             </div>
@@ -410,7 +474,7 @@ const Register = () => {
                   }
                   required
                   minLength={6}
-                  className={`${inputClassName} py-4 pl-12 pr-12`}
+                  className={`${inputClassName} !pl-12 !pr-12`}
                 />
                 <button
                   type="button"
@@ -424,19 +488,19 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-2 text-[10px] text-stone-500 font-bold uppercase tracking-widest pl-1 dark:text-slate-400">Min. 6 characters</p>
+              <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-stone-500 dark:text-slate-400 sm:mt-1 sm:text-[9px]">Min. 6 characters</p>
             </div>
 
             {/* Terms and Conditions */}
-            <div className="bg-primary/5 rounded-[1.5rem] p-5 border border-primary/10 dark:bg-primary/10 dark:border-primary/20">
-              <label className="flex items-start gap-4 cursor-pointer group">
+            <div className="col-span-full rounded-xl border border-primary/10 bg-primary/5 p-2.5 dark:border-primary/20 dark:bg-primary/10 sm:p-3">
+              <label className="flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="w-5 h-5 mt-0.5 text-primary border-2 border-stone-300 rounded focus:ring-2 focus:ring-primary accent-primary"
+                  className="h-5 w-5 shrink-0 rounded border-2 border-stone-300 text-primary accent-primary focus:ring-2 focus:ring-primary"
                 />
-                <span className="text-xs text-text-muted leading-relaxed font-semibold dark:text-slate-300">
+                <span className="text-[11px] font-semibold leading-relaxed text-text-muted dark:text-slate-300 sm:text-xs">
                   I agree to the{" "}
                   <a
                     href="/terms"
@@ -458,10 +522,11 @@ const Register = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !isFormValid()}
-              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading || !isFormValid()
-                ? "bg-stone-200 text-stone-500 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500"
-                : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95 shadow-stone-200"
+              disabled={loading}
+              aria-disabled={loading || !isFormValid()}
+              className={`col-span-full flex h-12 w-full items-center justify-center gap-3 rounded-xl text-sm font-black uppercase tracking-[0.18em] shadow-lg transition-all duration-300 ${loading || !isFormValid()
+                ? `${loading ? "cursor-wait" : "cursor-pointer hover:bg-primary/30"} bg-primary/20 text-primary-dark shadow-primary/10 dark:bg-primary/15 dark:text-primary-light`
+                : "bg-primary text-white shadow-primary/25 hover:bg-primary-dark hover:shadow-primary/35 hover:-translate-y-1 active:scale-95"
                 }`}
             >
               {loading ? (
@@ -480,12 +545,12 @@ const Register = () => {
           )}
 
           {/* Divider */}
-          {!verificationEmail && <div className="relative my-10">
+          {!verificationEmail && <div className="relative my-4 w-full">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-stone-200 dark:border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-              <span className="px-6 bg-white text-stone-500 dark:bg-slate-900 dark:text-slate-400">
+              <span className="bg-white px-4 text-stone-500 dark:bg-slate-900 dark:text-slate-400">
                 OR SIGN UP WITH
               </span>
             </div>
@@ -496,7 +561,7 @@ const Register = () => {
             type="button"
             onClick={handleGoogleSignUp}
             disabled={loading}
-            className="w-full py-4 bg-white border border-stone-200 rounded-2xl font-bold shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-3 text-text-main hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-stone-200 bg-white font-bold text-text-main shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -520,39 +585,25 @@ const Register = () => {
           </button>}
 
           {/* Divider */}
-          {!verificationEmail && <div className="relative my-10">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-200 dark:border-slate-700"></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
-              <span className="px-6 bg-white text-stone-500 dark:bg-slate-900 dark:text-slate-400">
-                Already Joined?
-              </span>
-            </div>
-          </div>}
-
           {/* Sign In Link */}
-          {!verificationEmail && <div className="text-center">
+          {!verificationEmail && <div className="mt-3 w-full text-center">
             <a
               href="/login"
-              className="inline-flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm transition-colors group"
+              className="inline-flex items-center gap-2 text-xs font-bold text-text-muted transition-colors hover:text-primary sm:text-sm"
             >
-              Sign in to your account
-              <span className="text-primary font-black uppercase tracking-widest border-b-2 border-primary/20 group-hover:border-primary transition-all">
-                Login here
-              </span>
+              Already have an account?
+              <span className="font-black text-primary">Sign in</span>
             </a>
           </div>}
         </div>
 
-        {/* Security Badge */}
-        <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-500 uppercase tracking-[0.2em] bg-white/70 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-400">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Secure Registration • SSL Encrypted</span>
+          <div className="register-security mt-2 hidden items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-stone-500 dark:text-slate-400 sm:flex sm:mt-3">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            Secure registration
           </div>
+          </div>
+        </main>
         </div>
-      </div>
 
       {/* Google Account Confirmation Modal */}
       {showGoogleConfirm && googleUser && (
