@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
+import { useLanguage } from "../../../context/useLanguage";
 import { motion } from "framer-motion";
 import storeLogo from "../../../assets/logo.png";
 import {
@@ -38,6 +39,7 @@ const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const requestedRedirect = location.state?.from;
   const safeRedirect =
     typeof requestedRedirect === "string" &&
@@ -52,32 +54,32 @@ const Register = () => {
     e.preventDefault();
 
     const requiredFields = [
-      ["name", "full name"],
-      ["email", "email address"],
-      ["phone", "phone number"],
-      ["password", "password"],
+      ["name", t("registerPage.fieldNames.fullName")],
+      ["email", t("registerPage.fieldNames.emailAddress")],
+      ["phone", t("registerPage.fieldNames.phoneNumber")],
+      ["password", t("registerPage.fieldNames.password")],
     ];
     const missingFields = requiredFields
       .filter(([key]) => !String(form[key] || "").trim())
       .map(([, label]) => label);
 
     if (missingFields.length > 0) {
-      setError(`Please fill in all required fields: ${missingFields.join(", ")}.`);
+      setError(t("registerPage.errors.requiredFields", { fields: missingFields.join(", ") }));
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      setError("Please enter a valid email address.");
+      setError(t("registerPage.errors.validEmail"));
       return;
     }
 
     if (form.password.length < 6) {
-      setError("Password must contain at least 6 characters.");
+      setError(t("registerPage.errors.passwordLength"));
       return;
     }
 
     if (!agreedToTerms) {
-      setError("Please agree to the Terms of Service and Privacy Policy");
+      setError(t("registerPage.errors.acceptTerms"));
       return;
     }
 
@@ -94,10 +96,10 @@ const Register = () => {
 
       const { data } = await registerUser(formData);
       setVerificationEmail(data.email || formData.email);
-      setSuccessMessage(data.message || "We sent a verification code to your email.");
+      setSuccessMessage(data.message || t("registerPage.messages.verificationSent"));
       setLoading(false);
     } catch (err) {
-      let errorMessage = "Registration failed. Please try again.";
+      let errorMessage = t("registerPage.errors.registrationFailed");
 
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
@@ -113,8 +115,7 @@ const Register = () => {
         errorMessage.toLowerCase().includes("already registered") ||
         errorMessage.toLowerCase().includes("already exists")
       ) {
-        errorMessage =
-          "This email is already registered. Please use a different email or login.";
+        errorMessage = t("registerPage.errors.duplicateEmail");
       }
 
       setError(errorMessage);
@@ -126,7 +127,7 @@ const Register = () => {
     e.preventDefault();
 
     if (!verificationCode.trim()) {
-      setError("Please enter the verification code from your email.");
+      setError(t("registerPage.errors.verificationCodeRequired"));
       return;
     }
 
@@ -137,11 +138,11 @@ const Register = () => {
         email: verificationEmail,
         code: verificationCode,
       });
-      setSuccessMessage(data.message || "Email verified successfully. You can now log in.");
+      setSuccessMessage(data.message || t("registerPage.messages.verificationSuccess"));
       setLoading(false);
       navigate("/login", { state: { from: safeRedirect } });
     } catch (err) {
-      setError(err.response?.data?.message || "Could not verify this code. Please try again.");
+      setError(err.response?.data?.message || t("registerPage.errors.verificationFailed"));
       setLoading(false);
     }
   };
@@ -151,10 +152,10 @@ const Register = () => {
       setError("");
       setLoading(true);
       const { data } = await resendRegistrationVerification({ email: verificationEmail });
-      setSuccessMessage(data.message || "A new verification code has been sent.");
+      setSuccessMessage(data.message || t("registerPage.messages.verificationResent"));
       setLoading(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Could not resend verification code.");
+      setError(err.response?.data?.message || t("registerPage.errors.resendFailed"));
       setLoading(false);
     }
   };
@@ -176,7 +177,7 @@ const Register = () => {
       setShowGoogleConfirm(true);
     },
     onError: () => {
-      setError("Google sign up failed. Please try again.");
+      setError(t("registerPage.errors.googleFailed"));
       setLoading(false);
     },
   });
@@ -200,11 +201,11 @@ const Register = () => {
       const data = authData.user;
 
       if (!data?.token) {
-        throw new Error("Google sign up response is missing an authentication token.");
+        throw new Error(t("registerPage.errors.googleMissingToken"));
       }
 
       if (data.role !== "user") {
-        setError("Not a user account. Please use appropriate credentials.");
+        setError(t("registerPage.errors.wrongAccountType"));
         setLoading(false);
         return;
       }
@@ -219,7 +220,7 @@ const Register = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "Google sign up failed. Please try again."
+        err.response?.data?.message || t("registerPage.errors.googleFailed")
       );
       setLoading(false);
     }
@@ -276,19 +277,19 @@ const Register = () => {
                 Cherish Baby
               </p>
               <h1 className="register-brand-title mt-3 hidden max-w-xl text-lg font-black leading-tight text-white sm:block sm:text-xl lg:mt-0 lg:max-w-sm lg:text-4xl lg:leading-[1.08] xl:text-5xl">
-                Everything your family needs, in one place.
+                {t("registerPage.brandTitle")}
               </h1>
               <p className="register-brand-copy mt-3 hidden max-w-sm text-xs font-medium leading-5 text-white/75 md:block lg:mt-5 lg:text-base lg:leading-7">
-                Create your account to save favorites, place orders, and follow every delivery.
+                {t("registerPage.brandDescription")}
               </p>
             </div>
           </div>
 
           <div className="register-benefits relative hidden space-y-3 lg:block lg:space-y-4">
             {[
-              "Secure checkout and account protection",
-              "Live order and delivery tracking",
-              "Faster shopping with saved details",
+              t("registerPage.benefits.secureCheckout"),
+              t("registerPage.benefits.liveTracking"),
+              t("registerPage.benefits.fasterShopping"),
             ].map((benefit) => (
               <div key={benefit} className="flex items-center gap-2.5 text-xs font-bold text-white/90 lg:gap-3 lg:text-sm">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
@@ -304,10 +305,10 @@ const Register = () => {
           <div className="mx-auto w-full max-w-xl">
             <div className="register-heading mb-5 text-center sm:mb-6 lg:text-left">
               <h2 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main dark:text-slate-100 sm:text-4xl">
-                Create your account
+                {t("registerPage.title")}
               </h2>
               <p className="mt-2 text-sm font-medium text-text-muted dark:text-slate-400 sm:text-base">
-                Join Cherish Baby and start shopping in minutes.
+                {t("registerPage.subtitle")}
               </p>
             </div>
 
@@ -332,16 +333,16 @@ const Register = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
                   <Mail className="w-7 h-7 text-primary" />
                 </div>
-                <h2 className="text-2xl font-black text-text-main mb-2">Verify your email</h2>
+                <h2 className="text-2xl font-black text-text-main mb-2">{t("registerPage.verifyEmail")}</h2>
                 <p className="text-sm text-text-muted font-semibold">
-                  Enter the 6-digit code sent to{" "}
+                  {t("registerPage.verificationInstructions")}{" "}
                   <span className="text-text-main font-black">{verificationEmail}</span>
                 </p>
               </div>
 
               <div className="group">
                 <label className={labelClassName}>
-                  Verification Code
+                  {t("registerPage.verificationCode")}
                 </label>
                 <input
                   type="text"
@@ -366,12 +367,12 @@ const Register = () => {
                 {loading ? (
                   <>
                     <Loader className="w-5 h-5 animate-spin" />
-                    Verifying...
+                    {t("registerPage.verifying")}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-5 h-5" />
-                    Verify Email
+                    {t("registerPage.verify")}
                   </>
                 )}
               </button>
@@ -382,7 +383,7 @@ const Register = () => {
                 disabled={loading}
                 className="w-full py-3 text-sm font-black uppercase tracking-widest text-primary hover:text-primary-dark disabled:opacity-50"
               >
-                Resend Code
+                {t("registerPage.resendCode")}
               </button>
             </form>
           ) : (
@@ -398,7 +399,7 @@ const Register = () => {
             {/* Name Input */}
             <div className="group">
               <label className={labelClassName}>
-                Full Name
+                {t("registerPage.fullName")}
               </label>
               <div className="relative">
                 <div className={iconClassName}>
@@ -418,7 +419,7 @@ const Register = () => {
             {/* Email Input */}
             <div className="group">
               <label className={labelClassName}>
-                Email Address
+                {t("registerPage.emailAddress")}
               </label>
               <div className="relative">
                 <div className={iconClassName}>
@@ -438,7 +439,7 @@ const Register = () => {
             {/* Phone Input */}
             <div className="group">
               <label className={labelClassName}>
-                Phone Number
+                {t("registerPage.phoneNumber")}
               </label>
               <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
                 <div className="flex h-12 shrink-0 items-center rounded-xl border border-stone-200 bg-stone-100 px-4 font-black text-text-main dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -459,7 +460,7 @@ const Register = () => {
             {/* Password Input */}
             <div className="group">
               <label className={labelClassName}>
-                Password
+                {t("registerPage.password")}
               </label>
               <div className="relative">
                 <div className={iconClassName}>
@@ -467,7 +468,7 @@ const Register = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
+                  placeholder={t("registerPage.passwordPlaceholder")}
                   value={form.password || ""}
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
@@ -488,7 +489,7 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-stone-500 dark:text-slate-400 sm:mt-1 sm:text-[9px]">Min. 6 characters</p>
+              <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-stone-500 dark:text-slate-400 sm:mt-1 sm:text-[9px]">{t("registerPage.passwordHint")}</p>
             </div>
 
             {/* Terms and Conditions */}
@@ -501,19 +502,19 @@ const Register = () => {
                   className="h-5 w-5 shrink-0 rounded border-2 border-stone-300 text-primary accent-primary focus:ring-2 focus:ring-primary"
                 />
                 <span className="text-[11px] font-semibold leading-relaxed text-text-muted dark:text-slate-300 sm:text-xs">
-                  I agree to the{" "}
+                  {t("registerPage.agreePrefix")}{" "}
                   <a
                     href="/terms"
                     className="text-primary hover:text-primary-dark font-black transition-colors underline decoration-primary/20 hover:decoration-primary"
                   >
-                    Terms of Service
+                    {t("registerPage.termsOfService")}
                   </a>{" "}
-                  and{" "}
+                  {t("registerPage.and")}{" "}
                   <a
                     href="/privacy"
                     className="text-primary hover:text-primary-dark font-black transition-colors underline decoration-primary/20 hover:decoration-primary"
                   >
-                    Privacy Policy
+                    {t("registerPage.privacyPolicy")}
                   </a>
                 </span>
               </label>
@@ -532,12 +533,12 @@ const Register = () => {
               {loading ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
-                  Creating...
+                  {t("registerPage.creating")}
                 </>
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  Create Account
+                  {t("registerPage.createAccount")}
                 </>
               )}
             </button>
@@ -551,7 +552,7 @@ const Register = () => {
             </div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
               <span className="bg-white px-4 text-stone-500 dark:bg-slate-900 dark:text-slate-400">
-                OR SIGN UP WITH
+                {t("registerPage.alternativeSignUp")}
               </span>
             </div>
           </div>}
@@ -581,7 +582,7 @@ const Register = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="text-sm uppercase tracking-widest font-black">Sign up with Google</span>
+            <span className="text-sm uppercase tracking-widest font-black">{t("registerPage.googleSignUp")}</span>
           </button>}
 
           {/* Divider */}
@@ -591,15 +592,15 @@ const Register = () => {
               href="/login"
               className="inline-flex items-center gap-2 text-xs font-bold text-text-muted transition-colors hover:text-primary sm:text-sm"
             >
-              Already have an account?
-              <span className="font-black text-primary">Sign in</span>
+              {t("registerPage.alreadyHaveAccount")}
+              <span className="font-black text-primary">{t("registerPage.signIn")}</span>
             </a>
           </div>}
         </div>
 
           <div className="register-security mt-2 hidden items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-stone-500 dark:text-slate-400 sm:flex sm:mt-3">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-            Secure registration
+            {t("registerPage.secureRegistration")}
           </div>
           </div>
         </main>
@@ -621,26 +622,26 @@ const Register = () => {
               {googleUser.picture && (
                 <img
                   src={googleUser.picture}
-                  alt={googleUser.name || "Google user"}
+                  alt={googleUser.name || t("registerPage.googleUserAlt")}
                   className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                 />
               )}
 
               <h3 className="text-xl font-bold mb-1 text-gray-900">
-                Continue with Google?
+                {t("registerPage.googleConfirmTitle")}
               </h3>
               
               <p className="text-sm mb-6 text-gray-500">
-                Google will be verified on the server before account creation completes.
+                {t("registerPage.googleConfirmDescription")}
               </p>
               
               <div className="flex items-center justify-center gap-3 p-3 rounded-xl mb-6 bg-gray-100">
                 <div className="text-left">
                   <p className="font-medium text-gray-900">
-                    Continue with your selected Google account
+                    {t("registerPage.googleSelectedAccount")}
                   </p>
                   <p className="text-sm text-gray-500">
-                    You can cancel and choose a different account if needed.
+                    {t("registerPage.googleChooseAnother")}
                   </p>
                 </div>
               </div>
@@ -651,7 +652,7 @@ const Register = () => {
                   onClick={handleGoogleCancel}
                   className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none bg-gray-100 text-gray-900 hover:bg-gray-200 transition-all"
                 >
-                  Cancel
+                  {t("registerPage.cancel")}
                 </button>
                 <button
                   type="button"
@@ -661,7 +662,7 @@ const Register = () => {
                   style={{ color: "#FFFFFF" }}
                 >
                   {loading && <Loader className="w-4 h-4 animate-spin" />}
-                  Continue
+                  {t("registerPage.continue")}
                 </button>
               </div>
             </div>
