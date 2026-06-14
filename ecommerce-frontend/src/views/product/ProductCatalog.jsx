@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -78,6 +78,7 @@ export default function ProductCatalog() {
   const [isDark] = useDarkMode();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const resultsRef = useRef(null);
 
   const { products, loading, error, refetch } = useProducts(language);
   const {
@@ -112,6 +113,19 @@ export default function ProductCatalog() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeView]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) return undefined;
+
+    const scrollTimer = window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 300);
+
+    return () => window.clearTimeout(scrollTimer);
+  }, [searchQuery]);
 
   const handleAddToCart = (product) => {
     if (!user) return;
@@ -172,7 +186,10 @@ export default function ProductCatalog() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-8 sm:py-12 md:py-16">
+      <main
+        ref={resultsRef}
+        className="scroll-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-8 sm:py-12 md:py-16"
+      >
         <section className="mb-8 sm:mb-12">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2">

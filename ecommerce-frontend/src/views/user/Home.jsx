@@ -186,6 +186,19 @@ export default function Home() {
         filteredProducts
     } = useProductFilters(products);
 
+    useEffect(() => {
+        if (!searchQuery.trim()) return undefined;
+
+        const scrollTimer = window.setTimeout(() => {
+            productsRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }, 300);
+
+        return () => window.clearTimeout(scrollTimer);
+    }, [searchQuery]);
+
     const handleCategorySelect = (category) => {
         setSelectedCategory(category);
         // Add a small delay to ensure React state updates before scrolling
@@ -314,7 +327,7 @@ export default function Home() {
                 {/* Hero Section Banner */}
                 <Hero />
 
-                <div ref={productsRef} className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
+                <div ref={productsRef} className="scroll-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pb-12 sm:pb-24">
                     {loading ? (
                         <ProductLoadingPlaceholder title={t("product.loadingProducts")} />
                     ) : productSections.length > 0 ? (

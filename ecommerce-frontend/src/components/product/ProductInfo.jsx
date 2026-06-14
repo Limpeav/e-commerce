@@ -61,6 +61,7 @@ const ProductInfo = ({
 
         <Link
           to={`/products/${product._id}/reviews`}
+          state={{ fromProductDetail: true }}
           className={`group flex w-full items-center gap-3 rounded-2xl border p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-lg hover:shadow-primary/10 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-fit sm:min-w-[28rem] ${
             isDark
               ? "border-slate-700 bg-slate-900/80"
