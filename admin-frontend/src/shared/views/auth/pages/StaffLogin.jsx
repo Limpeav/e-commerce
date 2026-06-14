@@ -211,14 +211,6 @@ const StaffLogin = () => {
             </button>
           </form>
 
-          <div className="flex items-center justify-center border-t border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 px-8 py-5">
-            <a
-              href="/login"
-              className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
-            >
-              Back to Customer Login
-            </a>
-          </div>
         </div>
 
         <div className="mt-8 text-center">

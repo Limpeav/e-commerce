@@ -184,16 +184,6 @@ const AdminLogin = () => {
             </button>
           </form>
 
-          {/* Footer Section */}
-          <div className="bg-[var(--color-surface-soft)]/70 px-8 py-5 border-t border-[var(--color-border)] flex items-center justify-center">
-            <a
-              href="/login"
-              className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2 font-medium"
-            >
-              Back to Customer Login
-            </a>
-          </div>
-
         </div>
 
         {/* Footer info - simple */}
