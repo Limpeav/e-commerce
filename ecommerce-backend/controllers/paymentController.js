@@ -12,7 +12,7 @@ import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
 import axios from "axios";
 
-const { BakongKHQR, IndividualInfo, khqrData } = khqrPackage;
+const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
 
 const getWebhookSignature = (headers = {}) =>
@@ -279,11 +279,15 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             ? khqrData.currency.khr
             : khqrData.currency.usd;
     const expiresAt = new Date(Date.now() + KHQR_EXPIRY_MS);
+    const merchantId = (process.env.BAKONG_MERCHANT_ID || "MERCHANT001").trim();
+    const acquiringBank = (process.env.BAKONG_ACQUIRING_BANK || "bakong").trim();
 
-    const individualInfo = new IndividualInfo(
+    const merchantInfo = new MerchantInfo(
         accountId,
         merchantName,
         merchantCity,
+        merchantId,
+        acquiringBank,
         {
             currency: khqrCurrency,
             amount: paymentAmount,
@@ -294,7 +298,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             expirationTimestamp: expiresAt.getTime(),
         }
     );
-    const khqrResponse = new BakongKHQR().generateIndividual(individualInfo);
+    const khqrResponse = new BakongKHQR().generateMerchant(merchantInfo);
     const khqrString = khqrResponse?.data?.qr;
 
     if (
@@ -318,8 +322,6 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             light: "#ffffff",
         },
     });
-
-    const merchantId = accountId;
 
     // Create or update payment record
     if (payment) {
