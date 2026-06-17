@@ -10,6 +10,7 @@ import khqrPackage from "bakong-khqr";
 import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
+import axios from "axios";
 
 const { BakongKHQR, IndividualInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
@@ -443,10 +444,76 @@ export const getPaymentStatus = asyncHandler(async (req, res) => {
         throw new Error("Not authorized to access this payment");
     }
 
-    // Check if payment has expired
-    if (payment.status === "Pending" && payment.khqrData?.expiresAt < new Date()) {
-        payment.status = "Expired";
-        await payment.save();
+    const isExpired = payment.khqrData?.expiresAt < new Date();
+
+    // Active verification against official Bakong Open API if still Pending
+    if (payment.status === "Pending") {
+        const bakongToken = process.env.BAKONG_TOKEN;
+        const apiBaseUrl = process.env.BAKONG_API_URL || "https://api-bakong.nbc.gov.kh";
+
+        if (bakongToken && payment.khqrData?.qrString) {
+            try {
+                // Generate MD5 from the QR code string
+                const md5 = crypto.createHash("md5").update(payment.khqrData.qrString).digest("hex");
+
+                const response = await axios.post(
+                    `${apiBaseUrl}/v1/check_transaction_by_md5`,
+                    { md5 },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${bakongToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        timeout: 5000,
+                    }
+                );
+
+                if (response.data && response.data.responseCode === 0) {
+                    const txData = response.data.data;
+
+                    payment.status = "Completed";
+                    payment.completedAt = new Date();
+                    payment.paymentResult = {
+                        transactionId: payment.khqrData.transactionId,
+                        ackId: txData.hash || "",
+                        payerName: txData.fromAccountId || "Bakong User",
+                        payerAccount: txData.fromAccountId || "",
+                        paymentTime: txData.acknowledgedDateMs ? new Date(txData.acknowledgedDateMs) : new Date(),
+                        responseCode: "00",
+                        responseMessage: "Payment successful (verified via Bakong API)",
+                    };
+                    await payment.save();
+
+                    await markOrderAsPaid(payment.order, {
+                        id: payment.khqrData.transactionId,
+                        status: "Completed",
+                        update_time: new Date().toISOString(),
+                    });
+
+                    emitDomainChanged(
+                        "payments",
+                        "completed",
+                        { paymentId: payment._id, orderId: getOrderId(payment.order) },
+                        { roles: ["admin", "seller"], userId: payment.user }
+                    );
+                } else if (isExpired) {
+                    payment.status = "Expired";
+                    await payment.save();
+                }
+            } catch (err) {
+                console.error("Error checking status with Bakong API:", err.message);
+                if (isExpired) {
+                    payment.status = "Expired";
+                    await payment.save();
+                }
+            }
+        } else {
+            // Fallback for development if no token is configured
+            if (isExpired) {
+                payment.status = "Expired";
+                await payment.save();
+            }
+        }
     }
 
     res.json(payment);
