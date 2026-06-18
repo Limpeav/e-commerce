@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 import { useLanguage } from "../../context/useLanguage";
 import { useDarkMode } from "../../hooks";
+import { config } from "../../config";
 
 const KHQR_EXPIRY_SECONDS = 5 * 60;
 
@@ -36,6 +37,12 @@ const ArrowLeftIcon = () => (
 const ShieldIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+const PhoneIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
   </svg>
 );
 
@@ -202,10 +209,11 @@ export default function BakongPayment() {
               )}
             </button>
             <button
-              onClick={() => navigate(`/customer/orders/${orderId}`)}
+              onClick={handleCancel}
+              disabled={cancelling}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
-              {t("bakongPayment.backToOrder")}
+              {t("bakongPayment.backToCheckout")}
             </button>
           </div>
         </div>
@@ -416,22 +424,19 @@ export default function BakongPayment() {
               </div>
 
               <div className="shrink-0 pt-3 sm:pt-4 md:mt-auto">
-                <div className={`mb-3 flex items-center justify-center gap-2 rounded-xl border py-2 text-[10px] font-bold sm:text-xs ${
-                  isDark
-                    ? "border-[#285e3d] bg-[#effdf4] text-[#087a36]"
-                    : "border-green-100 bg-green-50 text-green-700"
-                }`}>
-                  <span className="flex gap-1">
-                    {[0, 1, 2].map((index) => (
-                      <span
-                        key={index}
-                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-green-600"
-                        style={{ animationDelay: `${index * 0.15}s` }}
-                      />
-                    ))}
-                  </span>
-                  {t("bakongPayment.paymentStatusUpdates")}
-                </div>
+                {config.ABA_MOBILE_PAYMENT_URL && (
+                  <a
+                    href={config.ABA_MOBILE_PAYMENT_URL}
+                    className={`mb-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors sm:min-h-12 sm:text-sm md:hidden ${
+                      isDark
+                        ? "border-blue-400/30 bg-blue-500/15 text-blue-200 hover:bg-blue-500/25"
+                        : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    }`}
+                  >
+                    <PhoneIcon />
+                    {t("bakongPayment.openAbaMobile")}
+                  </a>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button

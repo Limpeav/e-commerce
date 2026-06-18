@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CheckoutSuccess from "../../components/cart/checkout/CheckoutSuccess";
 import OrderSummaryPanel from "../../components/cart/checkout/OrderSummaryPanel";
 import PaymentMethodSection from "../../components/cart/checkout/PaymentMethodSection";
@@ -45,6 +45,7 @@ const getSavedCheckoutLocation = () => {
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cart, clearCart } = useCart();
   const { user } = useAuth();
   const [isDark] = useDarkMode();
@@ -53,7 +54,12 @@ const Checkout = () => {
   const [error, setError] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
+  const [paymentMethod, setPaymentMethod] = useState(
+    location.state?.paymentMethod === "BAKONG_KHQR"
+      ? "BAKONG_KHQR"
+      : "Cash on Delivery"
+  );
+  const [showBakongWarning, setShowBakongWarning] = useState(false);
   const checkoutCompletedRef = useRef(false);
   const [shippingAddress, setShippingAddress] = useState(() => ({
     fullName: user?.name || "",
@@ -269,8 +275,7 @@ const Checkout = () => {
     }
   };
 
-  const handlePlaceOrder = async (event) => {
-    event.preventDefault();
+  const placeOrder = async () => {
     setLoading(true);
     setError("");
 
@@ -304,10 +309,28 @@ const Checkout = () => {
       });
     }
 
-    clearCart().catch((clearCartError) => {
-      console.error("Cart clear failed after order:", clearCartError);
-    });
+    if (paymentMethod !== "BAKONG_KHQR") {
+      clearCart().catch((clearCartError) => {
+        console.error("Cart clear failed after order:", clearCartError);
+      });
+    }
     setLoading(false);
+  };
+
+  const handlePlaceOrder = (event) => {
+    event.preventDefault();
+
+    if (paymentMethod === "BAKONG_KHQR") {
+      setShowBakongWarning(true);
+      return;
+    }
+
+    placeOrder();
+  };
+
+  const confirmBakongPayment = () => {
+    setShowBakongWarning(false);
+    placeOrder();
   };
 
   const handleViewOrderDetails = () => {
@@ -360,6 +383,9 @@ const Checkout = () => {
                 isDark={isDark}
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={setPaymentMethod}
+                showBakongWarning={showBakongWarning}
+                onCloseBakongWarning={() => setShowBakongWarning(false)}
+                onConfirmBakongPayment={confirmBakongPayment}
               />
             </div>
 

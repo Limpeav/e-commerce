@@ -321,7 +321,7 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
 const expireBakongPayment = async (payment) => {
     const session = await mongoose.startSession();
     let expiredPayment;
-    let cancelledOrder;
+    let order;
 
     try {
         await session.withTransaction(async () => {
@@ -334,48 +334,36 @@ const expireBakongPayment = async (payment) => {
                 return;
             }
 
-            cancelledOrder = await Order.findById(expiredPayment.order).session(session);
+            order = await Order.findById(expiredPayment.order).session(session);
 
-            if (!cancelledOrder || cancelledOrder.isPaid) {
+            if (!order || order.isPaid) {
                 return;
             }
 
-            expiredPayment.status = "Expired";
-            cancelledOrder.orderStatus = "Cancelled";
-            cancelledOrder.paymentStatus = "Failed";
-            cancelledOrder.paymentResult.status = "Expired";
-            cancelledOrder.paymentResult.update_time = new Date().toISOString();
+            expiredPayment.status = "Cancelled";
+            order.paymentStatus = "Failed";
+            order.paymentResult.status = "Cancelled";
+            order.paymentResult.update_time = new Date().toISOString();
 
-            await restoreCancelledOrder(cancelledOrder, session);
-            await cancelledOrder.save({ session });
+            await order.save({ session });
             await expiredPayment.save({ session });
         });
     } finally {
         await session.endSession();
     }
 
-    if (expiredPayment?.status === "Expired" && cancelledOrder) {
-        emitOrderUpdated(cancelledOrder, {
-            orderStatus: cancelledOrder.orderStatus,
-            paymentStatus: cancelledOrder.paymentStatus,
-            stockRestored: cancelledOrder.stockRestored,
+    if (expiredPayment?.status === "Cancelled" && order) {
+        emitOrderUpdated(order, {
+            orderStatus: order.orderStatus,
+            paymentStatus: order.paymentStatus,
         });
         emitDomainChanged(
-            "products",
-            "inventory-restored",
-            {
-                productIds: cancelledOrder.orderItems
-                    .map((item) => item.product?._id || item.product)
-                    .filter(Boolean),
-            },
-            { users: true }
-        );
-        emitDomainChanged(
             "payments",
-            "expired",
+            "cancelled",
             {
                 paymentId: expiredPayment._id,
                 orderId: expiredPayment.order,
+                reason: "expired",
             },
             { roles: ["admin", "seller"], userId: expiredPayment.user }
         );
@@ -429,7 +417,7 @@ export const reconcilePendingBakongPayments = async ({
 
             if (updatedPayment?.status === "Completed") {
                 summary.completed += 1;
-            } else if (updatedPayment?.status === "Expired") {
+            } else if (updatedPayment?.status === "Cancelled") {
                 summary.expired += 1;
             }
         } catch (error) {

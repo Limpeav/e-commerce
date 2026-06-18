@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, CreditCard, ShieldCheck, X } from "lucide-react";
 import { useLanguage } from "../../../context/useLanguage";
 
 const PAYMENT_METHODS = ["BAKONG_KHQR", "Cash on Delivery"];
 
-const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) => {
+const PaymentMethodSection = ({
+  isDark,
+  paymentMethod,
+  onPaymentMethodChange,
+  showBakongWarning,
+  onCloseBakongWarning,
+  onConfirmBakongPayment,
+}) => {
   const { t } = useLanguage();
-  const [showBakongWarning, setShowBakongWarning] = useState(false);
 
   useEffect(() => {
     if (!showBakongWarning) return undefined;
@@ -14,7 +20,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setShowBakongWarning(false);
+        onCloseBakongWarning();
       }
     };
 
@@ -25,21 +31,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showBakongWarning]);
-
-  const handlePaymentMethodChange = (method) => {
-    if (method === "BAKONG_KHQR" && paymentMethod !== method) {
-      setShowBakongWarning(true);
-      return;
-    }
-
-    onPaymentMethodChange(method);
-  };
-
-  const confirmBakongPayment = () => {
-    onPaymentMethodChange("BAKONG_KHQR");
-    setShowBakongWarning(false);
-  };
+  }, [onCloseBakongWarning, showBakongWarning]);
 
   return (
   <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
@@ -69,7 +61,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
             name="paymentMethod"
             value={method}
             checked={paymentMethod === method}
-            onChange={(event) => handlePaymentMethodChange(event.target.value)}
+            onChange={(event) => onPaymentMethodChange(event.target.value)}
             className="hidden"
           />
           <span className={`font-bold text-sm ${paymentMethod === method ? "text-primary" : isDark ? "text-slate-400" : "text-text-muted"}`}>
@@ -100,7 +92,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
         aria-labelledby="bakong-warning-title"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
-            setShowBakongWarning(false);
+            onCloseBakongWarning();
           }
         }}
       >
@@ -113,7 +105,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
 
           <button
             type="button"
-            onClick={() => setShowBakongWarning(false)}
+            onClick={onCloseBakongWarning}
             className={`absolute right-4 top-5 flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
               isDark
                 ? "text-slate-400 hover:bg-slate-800 hover:text-white"
@@ -159,8 +151,8 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => setShowBakongWarning(false)}
-                className={`min-h-12 rounded-xl border px-5 text-sm font-bold transition-all active:scale-[0.98] ${
+                onClick={onCloseBakongWarning}
+                className={`min-h-12 whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition-all active:scale-[0.98] sm:px-5 sm:text-sm ${
                   isDark
                     ? "border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
                     : "border-stone-200 bg-stone-100 text-stone-700 hover:bg-stone-200"
@@ -170,7 +162,7 @@ const PaymentMethodSection = ({ isDark, paymentMethod, onPaymentMethodChange }) 
               </button>
               <button
                 type="button"
-                onClick={confirmBakongPayment}
+                onClick={onConfirmBakongPayment}
                 autoFocus
                 className="min-h-12 rounded-xl bg-primary px-5 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-dark active:scale-[0.98]"
               >

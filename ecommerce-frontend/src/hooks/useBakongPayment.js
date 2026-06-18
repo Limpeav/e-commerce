@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PaymentController } from "../controllers/paymentController";
 import { useCart } from "../context/useCart";
+import { cancelOrder } from "../services/orderService";
 
 export const useBakongPayment = (orderId, navigate) => {
-  const { refreshCart } = useCart();
+  const { clearCart, refreshCart } = useCart();
+  const clearCartRef = useRef(clearCart);
+  const completedPaymentHandledRef = useRef(false);
   const [order, setOrder] = useState(null);
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,6 +16,10 @@ export const useBakongPayment = (orderId, navigate) => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [selectedCurrency, setSelectedCurrency] = useState("USD");
+
+  useEffect(() => {
+    clearCartRef.current = clearCart;
+  }, [clearCart]);
 
   const fetchOrderAndGenerateQR = useCallback(
     async (isRefresh = false, currency = "USD") => {
@@ -60,13 +67,38 @@ export const useBakongPayment = (orderId, navigate) => {
       setPayment(nextPayment);
       setPaymentStatus(nextStatus);
 
-      if (nextStatus === "completed") {
-        window.setTimeout(() => navigate(`/customer/orders/${orderId}`), 3000);
-      }
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [payment?._id, paymentStatus, orderId, navigate]);
+  }, [payment?._id, paymentStatus]);
+
+  useEffect(() => {
+    if (
+      paymentStatus !== "completed"
+      || completedPaymentHandledRef.current
+    ) {
+      return undefined;
+    }
+
+    completedPaymentHandledRef.current = true;
+    let redirectTimer;
+
+    const finishPayment = async () => {
+      await clearCartRef.current();
+      redirectTimer = window.setTimeout(
+        () => navigate(`/customer/orders/${orderId}`),
+        3000
+      );
+    };
+
+    finishPayment();
+
+    return () => {
+      if (redirectTimer) {
+        window.clearTimeout(redirectTimer);
+      }
+    };
+  }, [navigate, orderId, paymentStatus]);
 
   useEffect(() => {
     if (!payment?.khqrData?.expiresAt) {
@@ -90,18 +122,38 @@ export const useBakongPayment = (orderId, navigate) => {
   const handleCancel = async () => {
     setCancelling(true);
 
-    if (payment?._id && paymentStatus === "pending") {
+    if (
+      payment?._id
+      && (paymentStatus === "pending" || paymentStatus === "expired")
+    ) {
       const result = await PaymentController.cancel(payment._id);
 
       if (!result.success) {
-        setError(result.error);
-        setCancelling(false);
-        return;
+        if (paymentStatus === "expired") {
+          try {
+            await cancelOrder(orderId);
+          } catch (cancelError) {
+            setError(
+              cancelError.response?.data?.message
+              || cancelError.message
+              || "Failed to return to checkout"
+            );
+            setCancelling(false);
+            return;
+          }
+        } else {
+          setError(result.error);
+          setCancelling(false);
+          return;
+        }
       }
     }
 
     await refreshCart();
-    navigate("/customer/checkout", { replace: true });
+    navigate("/customer/checkout", {
+      replace: true,
+      state: { paymentMethod: "BAKONG_KHQR" },
+    });
   };
 
   const handleCurrencyChange = async (currency) => {

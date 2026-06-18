@@ -67,7 +67,7 @@ export class PaymentController {
 
     if (status === "completed") return "completed";
     if (status === "failed") return "failed";
-    if (status === "expired") return "expired";
+    if (status === "expired" || status === "cancelled") return "expired";
     return "pending";
   }
 
