@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   additionalRoutes,
@@ -51,6 +51,7 @@ const phoneExemptPaths = [
 
 export default function AppView() {
   const location = useLocation();
+  const [isStandalonePaymentScreen, setIsStandalonePaymentScreen] = useState(false);
   const { user } = useAuth();
   const [isDark] = useDarkMode();
   const { language } = useLanguage();
@@ -83,6 +84,18 @@ export default function AppView() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const handlePaymentScreenMode = (event) => {
+      setIsStandalonePaymentScreen(Boolean(event.detail?.standalone));
+    };
+
+    window.addEventListener("bakong-payment-screen-mode", handlePaymentScreenMode);
+
+    return () => {
+      window.removeEventListener("bakong-payment-screen-mode", handlePaymentScreenMode);
+    };
+  }, []);
+
+  useEffect(() => {
     const html = document.documentElement;
 
     if (isPortalRoute) {
@@ -110,7 +123,10 @@ export default function AppView() {
   );
   const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);
   const shouldShowNav =
-    !hideNavFooterPaths.includes(location.pathname) && !isAdminRoute && !isOrderReviewRoute;
+    !isStandalonePaymentScreen
+    && !hideNavFooterPaths.includes(location.pathname)
+    && !isAdminRoute
+    && !isOrderReviewRoute;
   const shouldShowFooter = shouldShowNav && !isWishlistRoute;
 
   const needsPhone =

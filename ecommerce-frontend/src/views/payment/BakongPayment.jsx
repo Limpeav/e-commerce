@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 
@@ -84,6 +85,22 @@ export default function BakongPayment() {
     handleCurrencyChange,
     handleCancel,
   } = useBakongPayment(orderId, navigate);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("bakong-payment-screen-mode", {
+        detail: { standalone: paymentStatus === "completed" },
+      })
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("bakong-payment-screen-mode", {
+          detail: { standalone: false },
+        })
+      );
+    };
+  }, [paymentStatus]);
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {
