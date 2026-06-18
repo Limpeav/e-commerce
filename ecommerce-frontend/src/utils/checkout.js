@@ -1,6 +1,6 @@
 export const CAMBODIA_DIAL_CODE = "+855";
 export const ORDER_REQUEST_TIMEOUT_MS = 10000;
-export const SHIPPING_PRICE = 2;
+export const SHIPPING_PRICE = 0;
 export const TAX_RATE = 0.08;
 
 export const displayValue = (value, fallback) => value || fallback;

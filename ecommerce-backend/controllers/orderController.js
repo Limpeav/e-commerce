@@ -241,6 +241,11 @@ export const createOrder = asyncHandler(async (req, res) => {
         shippingPrice,
         totalPrice,
     } = req.body;
+    const freeShippingPrice = 0;
+    const totalWithoutShipping = Math.max(
+        0,
+        Number(totalPrice || 0) - Math.max(0, Number(shippingPrice || 0))
+    );
 
     if (orderItems && orderItems.length === 0) {
         res.status(400);
@@ -335,6 +340,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                     : null;
 
                 if (existingPendingOrder) {
+                    const existingTotalWithoutShipping = Math.max(
+                        0,
+                        Number(existingPendingOrder.totalPrice || 0)
+                            - Math.max(0, Number(existingPendingOrder.shippingPrice || 0))
+                    );
                     existingPendingOrder.orderItems = mergeOrderItems(
                         existingPendingOrder.orderItems,
                         orderItems
@@ -343,9 +353,9 @@ export const createOrder = asyncHandler(async (req, res) => {
                     existingPendingOrder.taxPrice =
                         Number(existingPendingOrder.taxPrice || 0) + Number(taxPrice || 0);
                     existingPendingOrder.shippingPrice =
-                        Number(existingPendingOrder.shippingPrice || 0) + Number(shippingPrice || 0);
+                        freeShippingPrice;
                     existingPendingOrder.totalPrice =
-                        Number(existingPendingOrder.totalPrice || 0) + Number(totalPrice || 0);
+                        existingTotalWithoutShipping + totalWithoutShipping;
                     existingPendingOrder.stockReduced = true;
                     existingPendingOrder.stockRestored = false;
 
@@ -358,8 +368,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                         shippingAddress,
                         paymentMethod,
                         taxPrice,
-                        shippingPrice,
-                        totalPrice,
+                        shippingPrice: freeShippingPrice,
+                        totalPrice: totalWithoutShipping,
                         stockReduced: true,
                         stockRestored: false,
                     });
@@ -388,7 +398,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                     title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
                     message: mergedIntoExistingOrder
                         ? `${customerName} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
-                        : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${Number(totalPrice || 0).toFixed(2)}`,
+                        : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalWithoutShipping.toFixed(2)}`,
                     orderId: createdOrder._id,
                     userId: req.user._id,
                     link: `/admin/orders/${createdOrder._id}`,

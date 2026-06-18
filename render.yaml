@@ -6,6 +6,8 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET
@@ -17,7 +19,31 @@ services:
       - key: ADMIN_FRONTEND_URL
         sync: false
       - key: ALLOW_LOCAL_DEV_ORIGINS
+        value: "false"
+      - key: BAKONG_ENABLED
         value: "true"
+      - key: BAKONG_ACCOUNT_TYPE
+        value: INDIVIDUAL
+      - key: BAKONG_ACCOUNT_ID
+        sync: false
+      - key: BAKONG_ACCOUNT_USERNAME
+        sync: false
+      - key: BAKONG_MERCHANT_CITY
+        value: Phnom Penh
+      - key: BAKONG_PHONE_NUMBER
+        sync: false
+      - key: BAKONG_TOKEN
+        sync: false
+      - key: BAKONG_API_URL
+        value: https://api-bakong.nbc.gov.kh
+      - key: BAKONG_WEBHOOK_SECRET
+        sync: false
+      - key: USD_TO_KHR_RATE
+        value: "4100"
+      - key: BAKONG_RECONCILIATION_INTERVAL_MS
+        value: "15000"
+      - key: BAKONG_RECONCILIATION_BATCH_SIZE
+        value: "25"
       - key: EMAIL_PROVIDER
         value: resend
       - key: RESEND_API_KEY

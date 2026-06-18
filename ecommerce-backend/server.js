@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import productRoutes from "./routes/productRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -19,8 +20,20 @@ import rateLimit from "express-rate-limit";
 
 import http from "http";
 import { initializeSocket } from "./realtime/socket.js";
+import { assertBakongConfig } from "./config/bakong.js";
+import {
+  startBakongReconciliation,
+  stopBakongReconciliation,
+} from "./services/bakongReconciliationService.js";
 
 dotenv.config();
+
+const { errors: bakongConfigErrors } = assertBakongConfig();
+if (bakongConfigErrors.length > 0) {
+  console.warn(
+    `Bakong payment configuration is incomplete: ${bakongConfigErrors.join("; ")}`
+  );
+}
 
 // Connect to Database
 await connectDB();
@@ -197,5 +210,23 @@ app.use((err, req, res, next) => {
 
 // START SERVER
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  startBakongReconciliation();
+});
+
+const shutdown = (signal) => {
+  console.log(`${signal} received. Shutting down gracefully.`);
+  stopBakongReconciliation();
+
+  server.close(async () => {
+    await mongoose.disconnect();
+    process.exit(0);
+  });
+
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));
 // Server updated with email config

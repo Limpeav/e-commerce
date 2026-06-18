@@ -331,19 +331,32 @@ export default function BakongPayment() {
 
             {/* QR Code */}
             <div className="flex justify-center px-8 py-8">
-              <div className="relative">
+              <div className="relative w-full max-w-[19rem]">
                 <PulseRing />
-                <div className="relative bg-white rounded-2xl border-2 border-stone-100 shadow-lg p-4">
-                  {/* Corner decorations */}
-                  <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-primary rounded-tl-lg" />
-                  <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-primary rounded-tr-lg" />
-                  <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-lg" />
-                  <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-lg" />
-                  <img
-                    src={payment.khqrData.qrCode}
-                    alt="BAKONG KHQR Code"
-                    className="w-56 h-56 object-contain"
-                  />
+                <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
+                  <div className="flex items-center justify-center bg-[#e1232e] px-5 py-3 text-white">
+                    <span className="text-2xl font-black tracking-tight">KHQR</span>
+                  </div>
+                  <div className="px-5 pb-5 pt-4">
+                    <div className="mb-3 text-center">
+                      <p className="truncate text-sm font-bold uppercase text-stone-900">
+                        {payment.khqrData.merchantName}
+                      </p>
+                      <p className="text-xs font-semibold text-stone-500">
+                        Scan with Bakong or any KHQR-supported app
+                      </p>
+                    </div>
+                    <img
+                      src={payment.khqrData.qrCode}
+                      alt="Bakong KHQR payment code"
+                      className="mx-auto aspect-square w-full max-w-64 object-contain"
+                    />
+                    <div className="mt-2 border-t border-stone-100 pt-3 text-center">
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#e1232e]">
+                        Bakong KHQR
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

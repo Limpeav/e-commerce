@@ -16,6 +16,33 @@ import {
   toLocalPhoneDigits,
 } from "../../utils/checkout";
 
+const CHECKOUT_LOCATION_STORAGE_KEY = "checkoutDeliveryLocation";
+
+const getSavedCheckoutLocation = () => {
+  try {
+    const savedLocation = JSON.parse(
+      localStorage.getItem(CHECKOUT_LOCATION_STORAGE_KEY) || "null"
+    );
+
+    if (
+      Number.isFinite(savedLocation?.latitude)
+      && Number.isFinite(savedLocation?.longitude)
+    ) {
+      return {
+        street: savedLocation.street || "",
+        address: savedLocation.address || "",
+        city: savedLocation.city || "",
+        latitude: savedLocation.latitude,
+        longitude: savedLocation.longitude,
+      };
+    }
+  } catch {
+    localStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
+  }
+
+  return null;
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
@@ -28,7 +55,7 @@ const Checkout = () => {
   const [orderId, setOrderId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
   const checkoutCompletedRef = useRef(false);
-  const [shippingAddress, setShippingAddress] = useState({
+  const [shippingAddress, setShippingAddress] = useState(() => ({
     fullName: user?.name || "",
     street: "",
     address: "",
@@ -36,7 +63,8 @@ const Checkout = () => {
     phone: toLocalPhoneDigits(user?.phone || ""),
     latitude: null,
     longitude: null,
-  });
+    ...getSavedCheckoutLocation(),
+  }));
   const errorRef = useRef(null);
 
   const validCartItems = useMemo(() => getValidCartItems(cart), [cart]);
@@ -54,6 +82,32 @@ const Checkout = () => {
       navigate("/customer/cart");
     }
   }, [validCartItems.length, navigate, orderPlaced]);
+
+  useEffect(() => {
+    if (
+      !Number.isFinite(shippingAddress.latitude)
+      || !Number.isFinite(shippingAddress.longitude)
+    ) {
+      return;
+    }
+
+    localStorage.setItem(
+      CHECKOUT_LOCATION_STORAGE_KEY,
+      JSON.stringify({
+        street: shippingAddress.street,
+        address: shippingAddress.address,
+        city: shippingAddress.city,
+        latitude: shippingAddress.latitude,
+        longitude: shippingAddress.longitude,
+      })
+    );
+  }, [
+    shippingAddress.street,
+    shippingAddress.address,
+    shippingAddress.city,
+    shippingAddress.latitude,
+    shippingAddress.longitude,
+  ]);
 
   const scrollToError = () => {
     window.requestAnimationFrame(() => {

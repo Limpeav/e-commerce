@@ -11,6 +11,7 @@ import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
 import axios from "axios";
+import { getBakongConfig } from "../config/bakong.js";
 
 const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
@@ -181,6 +182,10 @@ const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
         return null;
     }
 
+    if (order.isPaid && order.paymentStatus === "Paid") {
+        return order;
+    }
+
     order.isPaid = true;
     order.paidAt = new Date();
     order.paymentStatus = "Paid";
@@ -203,12 +208,254 @@ const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
     return order;
 };
 
+const checkBakongTransaction = async (payment) => {
+    const config = getBakongConfig();
+
+    if (!config.token || !payment.khqrData?.qrString) {
+        return { checked: false, paid: false, data: null };
+    }
+
+    const md5 = crypto
+        .createHash("md5")
+        .update(payment.khqrData.qrString)
+        .digest("hex");
+    const response = await axios.post(
+        `${config.apiBaseUrl}/v1/check_transaction_by_md5`,
+        { md5 },
+        {
+            headers: {
+                Authorization: `Bearer ${config.token}`,
+                "Content-Type": "application/json",
+            },
+            timeout: 8000,
+        }
+    );
+
+    return {
+        checked: true,
+        paid: Number(response.data?.responseCode) === 0,
+        data: response.data?.data || null,
+    };
+};
+
+const completeBakongPayment = async (payment, transactionData = {}) => {
+    const orderId = getOrderId(payment.order);
+    const completedAt = new Date();
+    const transactionId = payment.khqrData?.transactionId;
+    const session = await mongoose.startSession();
+    let completedPayment;
+    let paidOrder;
+
+    try {
+        await session.withTransaction(async () => {
+            completedPayment = await Payment.findOne({
+                _id: payment._id,
+                status: "Pending",
+            }).session(session);
+
+            if (!completedPayment) {
+                return;
+            }
+
+            paidOrder = await Order.findById(orderId).session(session);
+
+            if (!paidOrder) {
+                throw new Error("Order not found for Bakong payment");
+            }
+
+            completedPayment.status = "Completed";
+            completedPayment.completedAt = completedAt;
+            completedPayment.paymentResult = {
+                transactionId,
+                ackId: transactionData.hash || transactionData.ackId || "",
+                payerName:
+                    transactionData.fromAccountId
+                    || transactionData.payerName
+                    || "Bakong User",
+                payerAccount:
+                    transactionData.fromAccountId
+                    || transactionData.payerAccount
+                    || "",
+                paymentTime: transactionData.acknowledgedDateMs
+                    ? new Date(transactionData.acknowledgedDateMs)
+                    : completedAt,
+                responseCode: "00",
+                responseMessage: "Payment successful (verified via Bakong API)",
+            };
+
+            paidOrder.isPaid = true;
+            paidOrder.paidAt = paidOrder.paidAt || completedAt;
+            paidOrder.paymentStatus = "Paid";
+            paidOrder.paymentResult = {
+                ...paidOrder.paymentResult,
+                id: transactionId,
+                status: "Completed",
+                update_time: completedAt.toISOString(),
+            };
+
+            await paidOrder.save({ session });
+            await completedPayment.save({ session });
+        });
+    } finally {
+        await session.endSession();
+    }
+
+    if (completedPayment?.status === "Completed" && paidOrder) {
+        emitOrderUpdated(paidOrder, {
+            paymentStatus: paidOrder.paymentStatus,
+            isPaid: paidOrder.isPaid,
+            paidAt: paidOrder.paidAt,
+        });
+        dispatchPaidOrderTelegramAlert(paidOrder._id);
+        emitDomainChanged(
+            "payments",
+            "completed",
+            { paymentId: completedPayment._id, orderId },
+            { roles: ["admin", "seller"], userId: completedPayment.user }
+        );
+    }
+
+    return completedPayment || Payment.findById(payment._id);
+};
+
+const expireBakongPayment = async (payment) => {
+    const session = await mongoose.startSession();
+    let expiredPayment;
+    let cancelledOrder;
+
+    try {
+        await session.withTransaction(async () => {
+            expiredPayment = await Payment.findOne({
+                _id: payment._id,
+                status: "Pending",
+            }).session(session);
+
+            if (!expiredPayment) {
+                return;
+            }
+
+            cancelledOrder = await Order.findById(expiredPayment.order).session(session);
+
+            if (!cancelledOrder || cancelledOrder.isPaid) {
+                return;
+            }
+
+            expiredPayment.status = "Expired";
+            cancelledOrder.orderStatus = "Cancelled";
+            cancelledOrder.paymentStatus = "Failed";
+            cancelledOrder.paymentResult.status = "Expired";
+            cancelledOrder.paymentResult.update_time = new Date().toISOString();
+
+            await restoreCancelledOrder(cancelledOrder, session);
+            await cancelledOrder.save({ session });
+            await expiredPayment.save({ session });
+        });
+    } finally {
+        await session.endSession();
+    }
+
+    if (expiredPayment?.status === "Expired" && cancelledOrder) {
+        emitOrderUpdated(cancelledOrder, {
+            orderStatus: cancelledOrder.orderStatus,
+            paymentStatus: cancelledOrder.paymentStatus,
+            stockRestored: cancelledOrder.stockRestored,
+        });
+        emitDomainChanged(
+            "products",
+            "inventory-restored",
+            {
+                productIds: cancelledOrder.orderItems
+                    .map((item) => item.product?._id || item.product)
+                    .filter(Boolean),
+            },
+            { users: true }
+        );
+        emitDomainChanged(
+            "payments",
+            "expired",
+            {
+                paymentId: expiredPayment._id,
+                orderId: expiredPayment.order,
+            },
+            { roles: ["admin", "seller"], userId: expiredPayment.user }
+        );
+    }
+
+    return expiredPayment || Payment.findById(payment._id);
+};
+
+export const reconcileBakongPayment = async (paymentRef) => {
+    const payment = typeof paymentRef?.save === "function"
+        ? paymentRef
+        : await Payment.findById(paymentRef);
+
+    if (!payment || payment.status !== "Pending") {
+        return payment;
+    }
+
+    const verification = await checkBakongTransaction(payment);
+
+    if (verification.paid) {
+        return completeBakongPayment(payment, verification.data);
+    }
+
+    const isExpired =
+        payment.khqrData?.expiresAt
+        && new Date(payment.khqrData.expiresAt).getTime() <= Date.now();
+
+    if (verification.checked && isExpired) {
+        return expireBakongPayment(payment);
+    }
+
+    return payment;
+};
+
+export const reconcilePendingBakongPayments = async ({
+    batchSize = getBakongConfig().reconciliationBatchSize,
+} = {}) => {
+    const payments = await Payment.find({
+        paymentMethod: "BAKONG_KHQR",
+        status: "Pending",
+        "khqrData.qrString": { $exists: true, $ne: "" },
+    })
+        .sort({ createdAt: 1 })
+        .limit(batchSize);
+    const summary = { checked: 0, completed: 0, expired: 0, failed: 0 };
+
+    for (const payment of payments) {
+        try {
+            const updatedPayment = await reconcileBakongPayment(payment);
+            summary.checked += 1;
+
+            if (updatedPayment?.status === "Completed") {
+                summary.completed += 1;
+            } else if (updatedPayment?.status === "Expired") {
+                summary.expired += 1;
+            }
+        } catch (error) {
+            summary.failed += 1;
+            console.error(
+                `Bakong reconciliation failed for payment ${payment._id}:`,
+                error.message
+            );
+        }
+    }
+
+    return summary;
+};
+
 // @desc    Generate BAKONG KHQR code for payment
 // @route   POST /api/payments/bakong/generate
 // @access  Private
 export const generateBakongQR = asyncHandler(async (req, res) => {
     const { orderId } = req.body;
     const requestedCurrency = String(req.body.currency || "USD").toUpperCase();
+    const bakongConfig = getBakongConfig();
+
+    if (!bakongConfig.enabled) {
+        res.status(503);
+        throw new Error("Bakong payments are temporarily unavailable");
+    }
 
     if (!["USD", "KHR"].includes(requestedCurrency)) {
         res.status(400);
@@ -254,21 +501,17 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     // Generate unique transaction ID
     const transactionId = `TXN${Date.now()}${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    const accountId = process.env.BAKONG_ACCOUNT_ID?.trim();
-    const merchantName = (
-        process.env.BAKONG_ACCOUNT_USERNAME
-        || process.env.BAKONG_MERCHANT_NAME
-        || "Cherish Baby Store"
-    ).trim();
-    const merchantCity = (process.env.BAKONG_MERCHANT_CITY || "Phnom Penh").trim();
-    const mobileNumber = (process.env.BAKONG_PHONE_NUMBER || "").replace(/\D/g, "");
+    const accountId = bakongConfig.accountId;
+    const merchantName = bakongConfig.accountUsername;
+    const merchantCity = bakongConfig.merchantCity;
+    const mobileNumber = bakongConfig.phoneNumber;
 
     if (!accountId || !accountId.includes("@")) {
         res.status(500);
         throw new Error("BAKONG_ACCOUNT_ID is missing or invalid");
     }
 
-    const exchangeRate = parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
+    const exchangeRate = bakongConfig.exchangeRate;
     const amountInKHR = Math.round(order.totalPrice * exchangeRate);
     const paymentAmount =
         requestedCurrency === "KHR"
@@ -279,26 +522,54 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             ? khqrData.currency.khr
             : khqrData.currency.usd;
     const expiresAt = new Date(Date.now() + KHQR_EXPIRY_MS);
-    const merchantId = (process.env.BAKONG_MERCHANT_ID || "MERCHANT001").trim();
-    const acquiringBank = (process.env.BAKONG_ACQUIRING_BANK || "bakong").trim();
+    const accountType = bakongConfig.accountType;
+    const merchantId = bakongConfig.merchantId;
+    const acquiringBank = bakongConfig.acquiringBank;
+    const optionalData = {
+        currency: khqrCurrency,
+        amount: paymentAmount,
+        billNumber: order._id.toString(),
+        mobileNumber: mobileNumber || undefined,
+        storeLabel: merchantName,
+        terminalLabel: "WEB",
+        expirationTimestamp: expiresAt.getTime(),
+    };
 
-    const merchantInfo = new MerchantInfo(
-        accountId,
-        merchantName,
-        merchantCity,
-        merchantId,
-        acquiringBank,
-        {
-            currency: khqrCurrency,
-            amount: paymentAmount,
-            billNumber: order._id.toString(),
-            mobileNumber: mobileNumber || undefined,
-            storeLabel: "Cherish Baby Store",
-            terminalLabel: "WEB",
-            expirationTimestamp: expiresAt.getTime(),
-        }
-    );
-    const khqrResponse = new BakongKHQR().generateMerchant(merchantInfo);
+    if (!["INDIVIDUAL", "MERCHANT"].includes(accountType)) {
+        res.status(500);
+        throw new Error("BAKONG_ACCOUNT_TYPE must be INDIVIDUAL or MERCHANT");
+    }
+
+    if (
+        accountType === "MERCHANT"
+        && (!merchantId || !acquiringBank || merchantId === "MERCHANT001")
+    ) {
+        res.status(500);
+        throw new Error(
+            "Real BAKONG_MERCHANT_ID and BAKONG_ACQUIRING_BANK values are required for merchant KHQR"
+        );
+    }
+
+    const khqr = new BakongKHQR();
+    const khqrResponse = accountType === "MERCHANT"
+        ? khqr.generateMerchant(
+            new MerchantInfo(
+                accountId,
+                merchantName,
+                merchantCity,
+                merchantId,
+                acquiringBank,
+                optionalData
+            )
+        )
+        : khqr.generateIndividual(
+            new IndividualInfo(
+                accountId,
+                merchantName,
+                merchantCity,
+                optionalData
+            )
+        );
     const khqrString = khqrResponse?.data?.qr;
 
     if (
@@ -326,7 +597,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     // Create or update payment record
     if (payment) {
         payment.khqrData = {
-            merchantId,
+            merchantId: accountType === "MERCHANT" ? merchantId : accountId,
             merchantName,
             qrCode: qrCodeBase64,
             qrString: khqrString,
@@ -348,7 +619,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             amount: paymentAmount,
             currency: requestedCurrency,
             khqrData: {
-                merchantId,
+                merchantId: accountType === "MERCHANT" ? merchantId : accountId,
                 merchantName,
                 qrCode: qrCodeBase64,
                 qrString: khqrString,
@@ -389,44 +660,46 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
         throw new Error("Payment not found");
     }
 
-    // Update payment status
     if (status === "SUCCESS" || responseCode === "00") {
-        payment.status = "Completed";
-        payment.completedAt = new Date();
-        payment.paymentResult = {
-            transactionId,
+        const completedPayment = await completeBakongPayment(payment, {
             ackId,
             payerName,
             payerAccount,
-            paymentTime: new Date(),
-            responseCode,
-            responseMessage: "Payment successful",
-        };
-
-        await markOrderAsPaid(payment.order, {
-            id: transactionId,
-            status: "Completed",
-            update_time: new Date().toISOString(),
+            acknowledgedDateMs: Date.now(),
         });
-    } else {
-        payment.status = "Failed";
-        payment.failedAt = new Date();
-        payment.paymentResult = {
-            transactionId,
-            responseCode,
-            responseMessage: "Payment failed",
-        };
+
+        return res.json({ success: true, payment: completedPayment });
     }
 
-    await payment.save();
-    emitDomainChanged(
-        "payments",
-        payment.status === "Completed" ? "completed" : "failed",
-        { paymentId: payment._id, orderId: getOrderId(payment.order) },
-        { roles: ["admin", "seller"], userId: payment.user }
+    const failedPayment = await Payment.findOneAndUpdate(
+        { _id: payment._id, status: "Pending" },
+        {
+            $set: {
+                status: "Failed",
+                failedAt: new Date(),
+                paymentResult: {
+                    transactionId,
+                    responseCode,
+                    responseMessage: "Payment failed",
+                },
+            },
+        },
+        { new: true }
     );
 
-    res.json({ success: true, payment });
+    if (failedPayment) {
+        emitDomainChanged(
+            "payments",
+            "failed",
+            { paymentId: failedPayment._id, orderId: getOrderId(payment.order) },
+            { roles: ["admin", "seller"], userId: failedPayment.user }
+        );
+    }
+
+    res.json({
+        success: true,
+        payment: failedPayment || await Payment.findById(payment._id),
+    });
 });
 
 // @desc    Check payment status
@@ -446,79 +719,18 @@ export const getPaymentStatus = asyncHandler(async (req, res) => {
         throw new Error("Not authorized to access this payment");
     }
 
-    const isExpired = payment.khqrData?.expiresAt < new Date();
-
-    // Active verification against official Bakong Open API if still Pending
     if (payment.status === "Pending") {
-        const bakongToken = process.env.BAKONG_TOKEN;
-        const apiBaseUrl = process.env.BAKONG_API_URL || "https://api-bakong.nbc.gov.kh";
-
-        if (bakongToken && payment.khqrData?.qrString) {
-            try {
-                // Generate MD5 from the QR code string
-                const md5 = crypto.createHash("md5").update(payment.khqrData.qrString).digest("hex");
-
-                const response = await axios.post(
-                    `${apiBaseUrl}/v1/check_transaction_by_md5`,
-                    { md5 },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${bakongToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        timeout: 5000,
-                    }
-                );
-
-                if (response.data && response.data.responseCode === 0) {
-                    const txData = response.data.data;
-
-                    payment.status = "Completed";
-                    payment.completedAt = new Date();
-                    payment.paymentResult = {
-                        transactionId: payment.khqrData.transactionId,
-                        ackId: txData.hash || "",
-                        payerName: txData.fromAccountId || "Bakong User",
-                        payerAccount: txData.fromAccountId || "",
-                        paymentTime: txData.acknowledgedDateMs ? new Date(txData.acknowledgedDateMs) : new Date(),
-                        responseCode: "00",
-                        responseMessage: "Payment successful (verified via Bakong API)",
-                    };
-                    await payment.save();
-
-                    await markOrderAsPaid(payment.order, {
-                        id: payment.khqrData.transactionId,
-                        status: "Completed",
-                        update_time: new Date().toISOString(),
-                    });
-
-                    emitDomainChanged(
-                        "payments",
-                        "completed",
-                        { paymentId: payment._id, orderId: getOrderId(payment.order) },
-                        { roles: ["admin", "seller"], userId: payment.user }
-                    );
-                } else if (isExpired) {
-                    payment.status = "Expired";
-                    await payment.save();
-                }
-            } catch (err) {
-                console.error("Error checking status with Bakong API:", err.message);
-                if (isExpired) {
-                    payment.status = "Expired";
-                    await payment.save();
-                }
-            }
-        } else {
-            // Fallback for development if no token is configured
-            if (isExpired) {
-                payment.status = "Expired";
-                await payment.save();
-            }
+        try {
+            await reconcileBakongPayment(payment);
+        } catch (error) {
+            console.error(
+                `Bakong status check failed for payment ${payment._id}:`,
+                error.message
+            );
         }
     }
 
-    res.json(payment);
+    res.json(await Payment.findById(payment._id).populate("order"));
 });
 
 // @desc    Get payment by order ID

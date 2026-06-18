@@ -55,7 +55,7 @@ export class CartController {
   static calculateTotals(cartItems) {
     const cart = new CartModel(cartItems);
     const tax = cart.subtotal * 0.1;
-    const shipping = cart.subtotal > 100 ? 0 : 10;
+    const shipping = 0;
     const grandTotal = cart.subtotal + tax + shipping;
 
     return {
