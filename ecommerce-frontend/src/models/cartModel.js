@@ -1,15 +1,15 @@
 export class CartItemModel {
   constructor(data = {}) {
-    const product = data.product || {};
+    const product = data.product || null;
 
     this.product = product;
-    this.productId = data.productId || product._id || data._id || "";
-    this.name = data.name || product.name || product.title || "";
+    this.productId = data.productId || product?._id || data._id || "";
+    this.name = data.name || product?.name || product?.title || "";
     this.image =
-      data.image || product.image || product.images?.[0] || "";
-    this.price = Number(data.price ?? product.price ?? 0);
+      data.image || product?.image || product?.images?.[0] || "";
+    this.price = Number(data.price ?? product?.price ?? 0);
     this.quantity = Number(data.quantity ?? 1);
-    this.stock = Number(data.stock ?? product.stock ?? 0);
+    this.stock = Number(data.stock ?? product?.stock ?? 0);
     this.size = data.size || "";
   }
 

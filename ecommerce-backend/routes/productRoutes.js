@@ -14,6 +14,7 @@ import {
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
 import Product from '../models/Product.js';
+import Cart from "../models/cartModel.js";
 import { protect, admin, optionalAuth } from "../middleware/authMiddleware.js";
 import { emitDomainChanged } from "../realtime/socket.js";
 
@@ -52,6 +53,10 @@ router.delete("/:id", protect, admin, async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Not found" });
+    await Cart.updateMany(
+      { "items.product": deleted._id },
+      { $pull: { items: { product: deleted._id } } }
+    );
     emitDomainChanged("products", "deleted", { productId: deleted._id }, { users: true });
     res.json({ message: "Product deleted" });
   } catch (err) {

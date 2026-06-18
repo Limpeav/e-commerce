@@ -8,9 +8,31 @@ import {
 const sameCartLine = (item, productId, size = "") =>
   item.product.toString() === productId && String(item.size || "") === String(size || "");
 
+const populateAndPruneCart = async (cart) => {
+  if (!cart) {
+    return null;
+  }
+
+  await cart.populate("items.product");
+
+  const validItems = cart.items.filter((item) => item.product?._id);
+
+  if (validItems.length !== cart.items.length) {
+    cart.items = validItems.map((item) => ({
+      product: item.product._id,
+      quantity: item.quantity,
+      size: item.size,
+    }));
+    await cart.save();
+    await cart.populate("items.product");
+  }
+
+  return cart;
+};
+
 export const getCart = async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user._id }).populate(
-    "items.product"
+  const cart = await populateAndPruneCart(
+    await Cart.findOne({ user: req.user._id })
   );
 
   res.json(cart || { items: [] });
@@ -46,7 +68,7 @@ export const addToCart = async (req, res) => {
 
   await cart.save();
 
-  await cart.populate("items.product");
+  await populateAndPruneCart(cart);
 
   res.json(cart);
 };
@@ -64,7 +86,7 @@ export const removeFromCart = async (req, res) => {
 
   await cart.save();
 
-  await cart.populate("items.product");
+  await populateAndPruneCart(cart);
 
   res.json(cart);
 };
@@ -87,7 +109,7 @@ export const updateCartQuantity = async (req, res) => {
   await cart.save();
 
   // Populate product details before sending response
-  await cart.populate("items.product");
+  await populateAndPruneCart(cart);
 
   res.json(cart);
 };
@@ -101,7 +123,7 @@ export const clearCart = async (req, res) => {
   cart.items = [];
   await cart.save();
 
-  await cart.populate("items.product");
+  await populateAndPruneCart(cart);
 
   res.json(cart);
 };

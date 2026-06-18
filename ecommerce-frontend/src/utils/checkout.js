@@ -25,7 +25,8 @@ export const getEffectiveCartProductPrice = (product) =>
     ? product.discountPrice
     : product?.price || 0;
 
-export const getValidCartItems = (cart = []) => cart.filter((item) => item.product);
+export const getValidCartItems = (cart = []) =>
+  cart.filter((item) => item.product?._id);
 
 const checkoutValidationMessages = {
   incompleteShipping: "Please complete your shipping details before placing the order.",
