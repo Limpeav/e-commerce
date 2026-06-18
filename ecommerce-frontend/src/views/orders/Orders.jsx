@@ -449,7 +449,11 @@ const Orders = () => {
                           )}
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row">
-                          {String(order.orderStatus || "").trim() === "Pending" && (
+                          {String(order.orderStatus || "").trim() === "Pending"
+                            && !(
+                              order.paymentMethod === "BAKONG_KHQR"
+                              && (order.isPaid || order.paymentStatus === "Paid")
+                            ) && (
                             <button
                               type="button"
                               onClick={() => handleCancelOrder(order._id)}

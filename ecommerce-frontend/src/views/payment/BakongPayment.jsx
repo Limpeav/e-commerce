@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
+import { useLanguage } from "../../context/useLanguage";
+import { useDarkMode } from "../../hooks";
 
 const KHQR_EXPIRY_SECONDS = 5 * 60;
 
@@ -31,46 +33,17 @@ const ArrowLeftIcon = () => (
     <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
   </svg>
 );
-const PhoneIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
-  </svg>
-);
-const ScanIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-    <polyline points="4 7 4 4 7 4" /><polyline points="17 4 20 4 20 7" /><polyline points="20 17 20 20 17 20" /><polyline points="7 20 4 20 4 17" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
-  </svg>
-);
 const ShieldIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
 
-// ─── Step indicator ───────────────────────────────────────────────────────────
-const Step = ({ num, label, active, done }) => (
-  <div className="flex flex-col items-center gap-1.5">
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
-      ${done ? "bg-primary text-white" : active ? "bg-primary/10 border-2 border-primary text-primary" : "bg-stone-100 text-stone-400"}`}>
-      {done ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><polyline points="20 6 9 17 4 12" /></svg> : num}
-    </div>
-    <span className={`text-[10px] font-bold uppercase tracking-wider ${active || done ? "text-primary" : "text-stone-400"}`}>{label}</span>
-  </div>
-);
-const StepConnector = ({ done }) => (
-  <div className={`h-0.5 flex-1 rounded-full transition-all ${done ? "bg-primary" : "bg-stone-200"}`} />
-);
-
-// ─── Pulse ring ───────────────────────────────────────────────────────────────
-const PulseRing = () => (
-  <div className="absolute inset-0 pointer-events-none">
-    <span className="absolute inset-0 rounded-2xl animate-ping bg-primary/10" style={{ animationDuration: "2s" }} />
-  </div>
-);
-
 export default function BakongPayment() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+  const [isDark] = useDarkMode();
   const {
     order,
     payment,
@@ -89,7 +62,7 @@ export default function BakongPayment() {
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("bakong-payment-screen-mode", {
-        detail: { standalone: paymentStatus === "completed" },
+        detail: { standalone: true },
       })
     );
 
@@ -100,7 +73,7 @@ export default function BakongPayment() {
         })
       );
     };
-  }, [paymentStatus]);
+  }, []);
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {
@@ -114,13 +87,13 @@ export default function BakongPayment() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <div className="h-[100dvh] overflow-hidden bg-bg-base flex items-center justify-center">
         <div className="text-center animate-fade-in">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
             <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           </div>
-          <p className="text-text-muted font-semibold">Generating your secure QR code…</p>
+          <p className="text-text-muted font-semibold">{t("bakongPayment.generatingSecureQr")}</p>
         </div>
       </div>
     );
@@ -129,25 +102,25 @@ export default function BakongPayment() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+      <div className="h-[100dvh] overflow-hidden bg-bg-base flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
           <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-500">
             <XCircleIcon />
           </div>
-          <h2 className="text-2xl font-bold text-text-main mb-2">Payment Error</h2>
+          <h2 className="text-2xl font-bold text-text-main mb-2">{t("bakongPayment.paymentError")}</h2>
           <p className="text-text-muted mb-8 text-sm leading-relaxed">{error}</p>
           <div className="flex gap-3">
             <button
               onClick={() => fetchOrderAndGenerateQR(false, selectedCurrency)}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
             >
-              Try Again
+              {t("bakongPayment.tryAgain")}
             </button>
             <button
               onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
-              Back to Order
+              {t("bakongPayment.backToOrder")}
             </button>
           </div>
         </div>
@@ -158,7 +131,7 @@ export default function BakongPayment() {
   // ── Payment Completed ─────────────────────────────────────────────────────
   if (paymentStatus === "completed") {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+      <div className="h-[100dvh] overflow-hidden bg-bg-base flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
           <div className="relative w-24 h-24 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full bg-green-100 animate-ping opacity-60" style={{ animationDuration: "1.5s" }} />
@@ -166,11 +139,11 @@ export default function BakongPayment() {
               <CheckCircleIcon />
             </div>
           </div>
-          <h2 className="text-3xl font-black text-text-main mb-2 tracking-tight">Payment Successful!</h2>
-          <p className="text-text-muted text-sm mb-6">Your payment has been confirmed. Redirecting to your order…</p>
+          <h2 className="text-3xl font-black text-text-main mb-2 tracking-tight">{t("bakongPayment.paymentSuccessful")}</h2>
+          <p className="text-text-muted text-sm mb-6">{t("bakongPayment.paymentConfirmed")}</p>
           <div className="bg-green-50 border border-green-100 rounded-2xl px-6 py-4 inline-flex items-center gap-2 text-green-700 text-sm font-semibold">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Redirecting in a few seconds
+            {t("bakongPayment.redirecting")}
           </div>
         </div>
       </div>
@@ -180,25 +153,25 @@ export default function BakongPayment() {
   // ── Payment Failed ────────────────────────────────────────────────────────
   if (paymentStatus === "failed") {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+      <div className="h-[100dvh] overflow-hidden bg-bg-base flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
           <div className="w-20 h-20 bg-red-50 rounded-full border-2 border-red-100 flex items-center justify-center text-red-500 mx-auto mb-6 p-5">
             <XCircleIcon />
           </div>
-          <h2 className="text-2xl font-bold text-text-main mb-2">Payment Failed</h2>
-          <p className="text-text-muted text-sm mb-8">Something went wrong. Please try again or choose a different payment method.</p>
+          <h2 className="text-2xl font-bold text-text-main mb-2">{t("bakongPayment.paymentFailed")}</h2>
+          <p className="text-text-muted text-sm mb-8">{t("bakongPayment.paymentFailedMessage")}</p>
           <div className="flex gap-3">
             <button
               onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
             >
-              Try Again
+              {t("bakongPayment.tryAgain")}
             </button>
             <button
               onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
-              Back to Order
+              {t("bakongPayment.backToOrder")}
             </button>
           </div>
         </div>
@@ -209,13 +182,13 @@ export default function BakongPayment() {
   // ── QR Expired ─────────────────────────────────────────────────────────────
   if (paymentStatus === "expired") {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center px-4">
+      <div className="h-[100dvh] overflow-hidden bg-bg-base flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 text-center animate-scale-in border border-stone-100">
           <div className="w-20 h-20 bg-amber-50 rounded-full border-2 border-amber-100 flex items-center justify-center text-amber-500 mx-auto mb-6 p-5">
             <ClockIcon />
           </div>
-          <h2 className="text-2xl font-bold text-text-main mb-2">QR Code Expired</h2>
-          <p className="text-text-muted text-sm mb-8">Your QR code has expired after 5 minutes. Generate a new one to complete your payment.</p>
+          <h2 className="text-2xl font-bold text-text-main mb-2">{t("bakongPayment.qrExpired")}</h2>
+          <p className="text-text-muted text-sm mb-8">{t("bakongPayment.qrExpiredMessage")}</p>
           <div className="flex gap-3">
             <button
               onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
@@ -223,16 +196,16 @@ export default function BakongPayment() {
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {refreshing ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating…</>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t("bakongPayment.generating")}</>
               ) : (
-                <><RefreshIcon />New QR Code</>
+                <><RefreshIcon />{t("bakongPayment.newQrCode")}</>
               )}
             </button>
             <button
               onClick={() => navigate(`/customer/orders/${orderId}`)}
               className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95"
             >
-              Back to Order
+              {t("bakongPayment.backToOrder")}
             </button>
           </div>
         </div>
@@ -253,223 +226,254 @@ export default function BakongPayment() {
       ? `≈ $${amountUSD} USD`
       : `≈ ៛${amountKHR} KHR`;
 
+  const timerProgress = (() => {
+    if (!timeLeft || timeLeft === "00:00") return 0;
+    const [minutes, seconds] = timeLeft.split(":").map(Number);
+    return Math.max(
+      0,
+      Math.min(100, ((minutes * 60 + seconds) / KHQR_EXPIRY_SECONDS) * 100)
+    );
+  })();
+  const pageSurface = isDark ? "bg-[#070b09]" : "bg-[#f7f3ee]";
+  const cardSurface = isDark
+    ? "border-[#26352d] bg-[#111713] shadow-[0_28px_90px_-32px_rgba(0,0,0,0.9)]"
+    : "border-stone-200 bg-white shadow-[0_24px_80px_-32px_rgba(45,49,46,0.3)]";
+  const headerBorder = isDark ? "border-[#26352d]" : "border-stone-100";
+  const primaryText = isDark ? "text-[#f5f8f5]" : "text-[#2d312e]";
+  const secondaryText = isDark ? "text-[#aab7ae]" : "text-[#727871]";
+  const qrPanelSurface = isDark
+    ? "border-[#26352d] bg-[#0c120e]"
+    : "border-stone-100 bg-stone-50/70";
+  const contentBorder = isDark ? "border-[#2b3931]" : "border-stone-100";
+
   return (
-    <div className="min-h-screen bg-bg-base py-10 pt-24 px-4 font-sans">
-      <div className="max-w-xl mx-auto">
+    <div className={`h-[100dvh] overflow-hidden p-3 font-sans sm:p-5 lg:p-7 ${pageSurface}`}>
+      <main className={`mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-[1.75rem] border sm:rounded-[2rem] ${cardSurface}`}>
+        <header className={`grid min-h-[4.75rem] shrink-0 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2 border-b px-3 py-2 sm:min-h-0 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:px-6 sm:py-3 lg:px-8 ${headerBorder}`}>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={cancelling}
+            className={`inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-xl px-2 text-sm font-bold transition-colors disabled:opacity-50 sm:min-w-0 sm:justify-start sm:px-3 ${
+              isDark
+                ? "text-[#aab7ae] hover:bg-[#1c2721] hover:text-white"
+                : "text-[#727871] hover:bg-stone-100 hover:text-[#2d312e]"
+            }`}
+          >
+            <ArrowLeftIcon />
+            <span className="hidden sm:inline">{t("bakongPayment.back")}</span>
+          </button>
 
-        {/* Back button */}
-        <button
-          onClick={handleCancel}
-          disabled={cancelling}
-          className="flex items-center gap-2 text-text-muted hover:text-primary font-bold text-sm mb-8 transition-all bg-white px-5 py-2.5 rounded-full shadow-sm border border-stone-100 hover:shadow-md w-fit"
-        >
-          <ArrowLeftIcon />
-          Back to Checkout
-        </button>
-
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" className="w-4 h-4">
-                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
-              </svg>
-            </div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary">BAKONG KHQR</p>
+          <div className="min-w-0 px-1 text-center">
+            <p className="truncate text-[9px] font-black uppercase tracking-[0.12em] text-[#e1232e] sm:text-xs sm:tracking-[0.22em]">
+              Bakong KHQR
+            </p>
+            <h1 className={`truncate text-base font-black leading-tight sm:text-xl ${primaryText}`}>
+              {t("bakongPayment.scanToPay")}
+            </h1>
           </div>
-          <h1 className="text-4xl font-black text-text-main tracking-tight">Scan to Pay</h1>
-          <p className="text-text-muted text-sm mt-1">Use any KHQR-compatible banking app to complete your payment</p>
-        </div>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-8">
-          <Step num="1" label="Order" done />
-          <StepConnector done />
-          <Step num="2" label="Scan QR" active />
-          <StepConnector done={false} />
-          <Step num="3" label="Confirm" active={false} done={false} />
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-2 shadow-sm">
-          <p className="px-3 pt-2 pb-3 text-xs font-bold uppercase tracking-widest text-text-muted">
-            Choose payment currency
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { value: "USD", label: "US Dollar", symbol: "$" },
-              { value: "KHR", label: "Khmer Riel", symbol: "៛" },
-            ].map((currency) => (
-              <button
-                key={currency.value}
-                type="button"
-                onClick={() => handleCurrencyChange(currency.value)}
-                disabled={refreshing || cancelling}
-                className={`rounded-xl border px-4 py-3 text-left transition-all disabled:opacity-60 ${
-                  selectedCurrency === currency.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-stone-100 bg-stone-50 text-text-muted hover:border-primary/30"
-                }`}
-              >
-                <span className="mr-2 text-lg font-black">{currency.symbol}</span>
-                <span className="text-sm font-bold">{currency.label}</span>
-              </button>
-            ))}
+          <div className={`flex h-10 max-w-[7.5rem] items-center gap-1.5 rounded-xl border px-2 text-[10px] font-bold sm:max-w-none sm:gap-2 sm:px-3 sm:text-xs ${
+            isDark
+              ? "border-emerald-400/20 bg-[#10241a] text-[#6ee7a0]"
+              : "border-green-100 bg-green-50 text-green-700"
+          }`}>
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#38d477]" />
+            <span className="hidden max-w-[10rem] truncate sm:inline">{t("bakongPayment.waitingForPayment")}</span>
+            <span className="sm:hidden">{t("bakongPayment.live")}</span>
           </div>
-        </div>
+        </header>
 
-        {/* Main card */}
         {payment && (
-          <div className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 border border-stone-100 overflow-hidden animate-scale-in">
-
-            {/* Timer bar */}
-            <div className="px-8 pt-8 pb-0">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Expires In 5 Minutes</span>
-                <span className={`text-2xl font-black tabular-nums ${getTimerColour()}`}>{timeLeft ?? "—"}</span>
-              </div>
-              {/* Progress bar */}
-              {timeLeft && timeLeft !== "00:00" && (() => {
-                const [m, s] = timeLeft.split(":").map(Number);
-                const secondsLeft = m * 60 + s;
-                const pct = Math.max(0, Math.min(100, (secondsLeft / KHQR_EXPIRY_SECONDS) * 100));
-                return (
-                  <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        background: m < 2 ? "#EF4444" : m < 4 ? "#F59E0B" : "#4F46E5",
-                      }}
-                    />
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* QR Code */}
-            <div className="flex justify-center px-8 py-8">
-              <div className="relative w-full max-w-[19rem]">
-                <PulseRing />
-                <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
-                  <div className="flex items-center justify-center bg-[#e1232e] px-5 py-3 text-white">
-                    <span className="text-2xl font-black tracking-tight">KHQR</span>
-                  </div>
-                  <div className="px-5 pb-5 pt-4">
-                    <div className="mb-3 text-center">
-                      <p className="truncate text-sm font-bold uppercase text-stone-900">
-                        {payment.khqrData.merchantName}
-                      </p>
-                      <p className="text-xs font-semibold text-stone-500">
-                        Scan with Bakong or any KHQR-supported app
-                      </p>
-                    </div>
-                    <img
-                      src={payment.khqrData.qrCode}
-                      alt="Bakong KHQR payment code"
-                      className="mx-auto aspect-square w-full max-w-64 object-contain"
-                    />
-                    <div className="mt-2 border-t border-stone-100 pt-3 text-center">
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#e1232e]">
-                        Bakong KHQR
-                      </p>
-                    </div>
-                  </div>
+          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.12fr)_minmax(0,0.88fr)] md:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)] md:grid-rows-1">
+            <section className={`flex min-h-0 items-start justify-center overflow-hidden border-b px-3 pb-5 pt-3 md:items-center md:border-b-0 md:border-r md:p-6 lg:p-8 ${qrPanelSurface}`}>
+              <div className="flex h-full max-h-[34rem] w-full max-w-md flex-col items-center justify-start pt-1 md:justify-center md:pt-0">
+                <div className="mb-2 flex w-full max-w-[19rem] items-center justify-between sm:mb-3">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest sm:text-xs ${secondaryText}`}>
+                    {t("bakongPayment.expiresIn")}
+                  </span>
+                  <span className={`text-lg font-black tabular-nums sm:text-2xl ${getTimerColour()}`}>
+                    {timeLeft ?? "—"}
+                  </span>
                 </div>
-              </div>
-            </div>
 
-            {/* Amount */}
-            <div className="mx-8 mb-6 bg-primary/5 rounded-2xl p-5 text-center border border-primary/10">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary/60 mb-0.5">Amount Due</p>
-              <p className="text-4xl font-black text-primary tracking-tight">{primaryAmount}</p>
-              <p className="text-xs text-text-muted mt-0.5 font-medium">{convertedAmount}</p>
-            </div>
-
-            {/* How to pay */}
-            <div className="mx-8 mb-6">
-              <p className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3">How to Pay</p>
-              <ol className="space-y-2.5">
-                {[
-                  { icon: <PhoneIcon />, text: "Open BAKONG or any KHQR-compatible bank app" },
-                  { icon: <ScanIcon />, text: 'Tap "Scan QR" or "Pay with KHQR"' },
-                  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>, text: "Verify the amount and confirm payment" },
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-primary/8 flex items-center justify-center text-primary flex-shrink-0">{step.icon}</div>
-                    <span className="text-sm text-text-muted leading-tight pt-1.5 font-medium">{step.text}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Payment details */}
-            <div className="mx-8 mb-6 border-t border-stone-100 pt-5 space-y-3">
-              {[
-                { label: "Merchant", value: payment.khqrData.merchantName },
-                { label: "Order ID", value: `#${orderId.slice(-8).toUpperCase()}`, mono: true },
-                { label: "Transaction ID", value: payment.khqrData.transactionId, mono: true, small: true },
-              ].map(({ label, value, mono, small }) => (
-                <div key={label} className="flex items-center justify-between gap-4">
-                  <span className="text-xs text-text-muted font-semibold uppercase tracking-wide">{label}</span>
-                  <span className={`font-bold text-text-main ${mono ? "font-mono" : ""} ${small ? "text-xs" : "text-sm"} truncate max-w-[55%] text-right`}>{value}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Polling indicator */}
-            <div className="mx-8 mb-6 flex items-center justify-center gap-2 text-xs text-text-muted bg-stone-50 rounded-xl py-3 border border-stone-100">
-              <div className="flex gap-1">
-                {[0, 1, 2].map((i) => (
+                <div className={`mb-3 h-1.5 w-full max-w-[19rem] overflow-hidden rounded-full ${
+                  isDark ? "bg-[#2a352e]" : "bg-stone-200"
+                }`}>
                   <div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${timerProgress}%`,
+                      background:
+                        timerProgress < 40
+                          ? "#ef4444"
+                          : timerProgress < 80
+                            ? "#f59e0b"
+                            : "#7A967E",
+                    }}
                   />
-                ))}
+                </div>
+
+                <div
+                  className="shrink-0 overflow-hidden rounded-2xl border border-[#d8d8d8] shadow-[0_18px_45px_-18px_rgba(0,0,0,0.55)]"
+                  style={{
+                    width: "min(18rem, calc(100vw - 4rem), calc(36dvh - 4.5rem))",
+                    minWidth: "9.5rem",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <div className="flex items-center justify-center bg-[#e1232e] py-2 text-white sm:py-2.5">
+                    <span className="text-xl font-black tracking-tight sm:text-2xl">KHQR</span>
+                  </div>
+                  <div className="p-2.5 sm:p-3" style={{ backgroundColor: "#ffffff" }}>
+                    <p
+                      className="mb-1 truncate text-center text-xs font-black uppercase sm:text-sm"
+                      style={{ color: "#171717" }}
+                    >
+                      {payment.khqrData.merchantName}
+                    </p>
+                    <div
+                      className="mx-auto aspect-square w-full p-3 sm:p-3.5"
+                      style={{ backgroundColor: "#ffffff" }}
+                    >
+                      <img
+                        src={payment.khqrData.qrCode}
+                        alt={t("bakongPayment.qrAlt")}
+                        className="block h-full w-full object-contain"
+                        style={{ backgroundColor: "#ffffff" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <p className={`mt-2 pb-1 text-center text-[10px] font-semibold sm:mt-3 sm:text-xs ${secondaryText}`}>
+                  {t("bakongPayment.scanInstruction")}
+                </p>
               </div>
-              <span className="font-semibold">Checking payment status automatically</span>
-            </div>
+            </section>
 
-            {/* Actions */}
-            <div className="px-8 pb-8 flex gap-3">
-              <button
-                onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
-                disabled={refreshing}
-                className="flex-1 py-3.5 bg-stone-100 text-text-muted rounded-xl font-bold text-sm hover:bg-stone-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
-              >
-                {refreshing ? (
-                  <div className="w-4 h-4 border-2 border-stone-400/30 border-t-stone-400 rounded-full animate-spin" />
-                ) : (
-                  <RefreshIcon />
-                )}
-                Refresh QR
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="flex-1 py-3.5 bg-red-50 text-red-500 border border-red-100 rounded-xl font-bold text-sm hover:bg-red-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
-              >
-                {cancelling ? (
-                  <div className="w-4 h-4 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" />
-                ) : null}
-                Cancel Payment
-              </button>
-            </div>
+            <section className={`flex min-h-0 flex-col justify-start p-4 sm:p-5 md:p-6 lg:p-8 ${
+              isDark ? "bg-[#151c17]" : "bg-white"
+            }`}>
+              <div className="min-h-0">
+                <div className={`flex items-end justify-between gap-3 border-b pb-3 sm:pb-4 ${contentBorder}`}>
+                  <div>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest sm:text-xs ${secondaryText}`}>
+                      {t("bakongPayment.amountDue")}
+                    </p>
+                    <p className="text-3xl font-black tracking-tight text-primary sm:text-4xl lg:text-5xl">
+                      {primaryAmount}
+                    </p>
+                  </div>
+                  <p className={`pb-1 text-right text-[10px] font-semibold sm:text-xs ${secondaryText}`}>
+                    {convertedAmount}
+                  </p>
+                </div>
 
-            {/* Security note */}
-            <div className="border-t border-stone-100 px-8 py-4 flex items-center justify-center gap-2 text-xs text-stone-400 font-medium">
-              <ShieldIcon />
-              Secured by NBC BAKONG · 256-bit Encryption
-            </div>
+                <div className="py-3 sm:py-4">
+                  <p className={`mb-2 text-[10px] font-bold uppercase tracking-widest sm:text-xs ${secondaryText}`}>
+                    {t("bakongPayment.currency")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "USD", label: t("bakongPayment.usd"), symbol: "$" },
+                      { value: "KHR", label: t("bakongPayment.khr"), symbol: "៛" },
+                    ].map((currency) => (
+                      <button
+                        key={currency.value}
+                        type="button"
+                        onClick={() => handleCurrencyChange(currency.value)}
+                        disabled={refreshing || cancelling}
+                        className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-left transition-all disabled:opacity-60 sm:min-h-12 sm:px-4 ${
+                          selectedCurrency === currency.value
+                            ? isDark
+                              ? "border-[#42d77d] bg-[#123322] text-[#69e89a] shadow-[inset_0_0_0_1px_rgba(66,215,125,0.12)]"
+                              : "border-primary bg-primary/10 text-primary"
+                            : isDark
+                              ? "border-[#334139] bg-[#202923] text-[#aab7ae] hover:border-[#52675b]"
+                              : "border-stone-200 bg-stone-50 text-text-muted hover:border-primary/40"
+                        }`}
+                      >
+                        <span className="text-lg font-black">{currency.symbol}</span>
+                        <span className="text-xs font-bold sm:text-sm">{currency.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`hidden space-y-2 border-t pt-4 min-[700px]:block md:block ${contentBorder}`}>
+                  {[
+                    [t("bakongPayment.merchant"), payment.khqrData.merchantName],
+                    [t("bakongPayment.order"), `#${orderId.slice(-8).toUpperCase()}`],
+                    [t("bakongPayment.status"), t("bakongPayment.checkingAutomatically")],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between gap-4 text-xs">
+                      <span className={`font-bold uppercase tracking-wide ${secondaryText}`}>{label}</span>
+                      <span className={`max-w-[65%] truncate text-right font-bold ${primaryText}`}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="shrink-0 pt-3 sm:pt-4 md:mt-auto">
+                <div className={`mb-3 flex items-center justify-center gap-2 rounded-xl border py-2 text-[10px] font-bold sm:text-xs ${
+                  isDark
+                    ? "border-[#285e3d] bg-[#effdf4] text-[#087a36]"
+                    : "border-green-100 bg-green-50 text-green-700"
+                }`}>
+                  <span className="flex gap-1">
+                    {[0, 1, 2].map((index) => (
+                      <span
+                        key={index}
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-green-600"
+                        style={{ animationDelay: `${index * 0.15}s` }}
+                      />
+                    ))}
+                  </span>
+                  {t("bakongPayment.paymentStatusUpdates")}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
+                    disabled={refreshing}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors disabled:opacity-60 sm:min-h-12 sm:text-sm ${
+                      isDark
+                        ? "border-[#334139] bg-[#202923] text-[#d4ddd7] hover:bg-[#29352e]"
+                        : "border-transparent bg-stone-100 text-text-muted hover:bg-stone-200"
+                    }`}
+                  >
+                    {refreshing ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-400/30 border-t-stone-500" />
+                    ) : (
+                      <RefreshIcon />
+                    )}
+                    {t("bakongPayment.refresh")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    className={`flex min-h-11 items-center justify-center rounded-xl border px-3 text-xs font-bold transition-colors disabled:opacity-60 sm:min-h-12 sm:text-sm ${
+                      isDark
+                        ? "border-[#733d32] bg-[#3a211d] text-[#ffb5a5] hover:bg-[#4a2822]"
+                        : "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
+                    }`}
+                  >
+                    {cancelling ? t("bakongPayment.cancelling") : t("bakongPayment.cancelPayment")}
+                  </button>
+                </div>
+
+                <p className={`mt-3 flex items-center justify-center gap-1.5 text-[9px] font-semibold sm:text-[10px] [@media(max-height:700px)]:hidden ${secondaryText}`}>
+                  <ShieldIcon />
+                  {t("bakongPayment.securityNote")}
+                </p>
+              </div>
+            </section>
           </div>
         )}
-
-        {/* Supported banks */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-stone-400 font-medium">Accepted by ABA, ACLEDA, Canadia, Chip Mong, and all KHQR-enabled banks</p>
-        </div>
-
-      </div>
+      </main>
     </div>
   );
 }

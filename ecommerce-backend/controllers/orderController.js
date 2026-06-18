@@ -710,6 +710,14 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
                 throw new Error("Orders can only be cancelled before the seller confirms them");
             }
 
+            if (
+                order.paymentMethod === "BAKONG_KHQR"
+                && (order.isPaid || order.paymentStatus === "Paid")
+            ) {
+                res.status(400);
+                throw new Error("Paid Bakong KHQR orders cannot be cancelled");
+            }
+
             order.orderStatus = "Cancelled";
             await restoreOrderStockIfNeeded(order, session);
             updatedOrder = await order.save({ session });

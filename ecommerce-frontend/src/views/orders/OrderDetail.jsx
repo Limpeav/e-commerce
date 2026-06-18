@@ -27,6 +27,23 @@ import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime
 import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
+const KHMER_MONTHS = [
+  "មករា",
+  "កុម្ភៈ",
+  "មីនា",
+  "មេសា",
+  "ឧសភា",
+  "មិថុនា",
+  "កក្កដា",
+  "សីហា",
+  "កញ្ញា",
+  "តុលា",
+  "វិច្ឆិកា",
+  "ធ្នូ",
+];
+
+const isKhmerLanguage = (language = "") =>
+  ["kh", "km"].includes(String(language).toLowerCase());
 
 const getLocalizedOrderItemName = (item, language) =>
   language === "kh" && (item.titleKm || item.product?.titleKm)
@@ -114,12 +131,23 @@ const OrderDetail = () => {
     }).format(amount || 0);
   };
 
-  const formatDate = (value) =>
-    new Date(value).toLocaleDateString(language === "kh" ? "km-KH" : undefined, {
+  const formatDate = (value) => {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    if (isKhmerLanguage(language)) {
+      return `${date.getDate()} ${KHMER_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+    }
+
+    return date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
     });
+  };
 
   const normalizeTranslationKey = (value = "") =>
     String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
@@ -145,7 +173,10 @@ const OrderDetail = () => {
   };
 
   const currentOrderStatus = String(order?.orderStatus || "").trim();
-  const canCancelOrder = currentOrderStatus === "Pending";
+  const isPaidBakongOrder =
+    order?.paymentMethod === "BAKONG_KHQR"
+    && (order?.isPaid || order?.paymentStatus === "Paid");
+  const canCancelOrder = currentOrderStatus === "Pending" && !isPaidBakongOrder;
 
   const handleCancelOrder = async () => {
     if (!canCancelOrder || cancelling) return;
