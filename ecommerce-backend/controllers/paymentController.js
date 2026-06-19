@@ -17,7 +17,10 @@ import { getBakongConfig } from "../config/bakong.js";
 const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
 const BAKONG_DEEP_LINK_TIMEOUT_MS = 10000;
+const BAKONG_AUTHORIZATION_COOLDOWN_MS = 60 * 1000;
 const reconciliationByPayment = new Map();
+let bakongAuthorizationBlockedUntil = 0;
+let bakongAuthorizationErrorLoggedAt = 0;
 
 const getWebhookSignature = (headers = {}) =>
     headers["x-bakong-signature"]
@@ -209,21 +212,71 @@ const checkBakongTransaction = async (payment) => {
         return { checked: false, paid: false, data: null };
     }
 
+    if (Date.now() < bakongAuthorizationBlockedUntil) {
+        return {
+            checked: false,
+            paid: false,
+            data: null,
+            authorizationBlocked: true,
+        };
+    }
+
     const md5 = crypto
         .createHash("md5")
         .update(payment.khqrData.qrString)
         .digest("hex");
-    const response = await axios.post(
-        `${config.apiBaseUrl}/v1/check_transaction_by_md5`,
-        { md5 },
-        {
-            headers: {
-                Authorization: `Bearer ${config.token}`,
-                "Content-Type": "application/json",
-            },
-            timeout: 8000,
+
+    let response;
+    try {
+        response = await axios.post(
+            `${config.apiBaseUrl}/v1/check_transaction_by_md5`,
+            { md5 },
+            {
+                headers: {
+                    Authorization: `Bearer ${config.token}`,
+                    "Content-Type": "application/json",
+                },
+                timeout: 8000,
+            }
+        );
+    } catch (error) {
+        const status = error.response?.status;
+
+        if (status === 401 || status === 403) {
+            const now = Date.now();
+            bakongAuthorizationBlockedUntil =
+                now + BAKONG_AUTHORIZATION_COOLDOWN_MS;
+
+            if (
+                now - bakongAuthorizationErrorLoggedAt
+                >= BAKONG_AUTHORIZATION_COOLDOWN_MS
+            ) {
+                bakongAuthorizationErrorLoggedAt = now;
+                const responseData = error.response?.data;
+                const responseMessage =
+                    responseData?.responseMessage
+                    || responseData?.message
+                    || responseData?.error
+                    || (typeof responseData === "string" ? responseData : "")
+                    || "No response message";
+
+                console.error(
+                    `Bakong authorization rejected with HTTP ${status}: ${responseMessage}. `
+                    + "Verify the Render BAKONG_TOKEN diagnostic; if it matches local, "
+                    + "Bakong must allow Render's outbound IP ranges."
+                );
+            }
+
+            return {
+                checked: false,
+                paid: false,
+                data: null,
+                authorizationBlocked: true,
+            };
         }
-    );
+
+        throw error;
+    }
 
     return {
         checked: true,

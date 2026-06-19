@@ -1,6 +1,39 @@
+import crypto from "crypto";
+
 const BAKONG_ACCOUNT_TYPES = new Set(["INDIVIDUAL", "MERCHANT"]);
 
 const normalizeUrl = (value = "") => String(value).trim().replace(/\/+$/, "");
+const normalizeToken = (value = "") =>
+  String(value)
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+
+export const getBakongTokenDiagnostic = (tokenValue = process.env.BAKONG_TOKEN) => {
+  const token = normalizeToken(tokenValue);
+  let expiresAt = null;
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1] || "", "base64url").toString("utf8")
+    );
+    expiresAt = payload.exp
+      ? new Date(Number(payload.exp) * 1000).toISOString()
+      : null;
+  } catch {
+    // A token can still be valid even when it is not a JWT.
+  }
+
+  return {
+    present: Boolean(token),
+    length: token.length,
+    hash: token
+      ? crypto.createHash("sha256").update(token).digest("hex").slice(0, 12)
+      : null,
+    expiresAt,
+  };
+};
 
 export const getBakongConfig = () => ({
   enabled: process.env.BAKONG_ENABLED !== "false",
@@ -19,7 +52,7 @@ export const getBakongConfig = () => ({
   phoneNumber: String(process.env.BAKONG_PHONE_NUMBER || "").replace(/\D/g, ""),
   merchantId: String(process.env.BAKONG_MERCHANT_ID || "").trim(),
   acquiringBank: String(process.env.BAKONG_ACQUIRING_BANK || "").trim(),
-  token: String(process.env.BAKONG_TOKEN || "").trim(),
+  token: normalizeToken(process.env.BAKONG_TOKEN),
   apiBaseUrl: normalizeUrl(
     process.env.BAKONG_API_URL || "https://api-bakong.nbc.gov.kh"
   ),

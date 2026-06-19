@@ -20,7 +20,10 @@ import rateLimit from "express-rate-limit";
 
 import http from "http";
 import { initializeSocket } from "./realtime/socket.js";
-import { assertBakongConfig } from "./config/bakong.js";
+import {
+  assertBakongConfig,
+  getBakongTokenDiagnostic,
+} from "./config/bakong.js";
 import {
   startBakongReconciliation,
   stopBakongReconciliation,
@@ -34,6 +37,7 @@ if (bakongConfigErrors.length > 0) {
     `Bakong payment configuration is incomplete: ${bakongConfigErrors.join("; ")}`
   );
 }
+console.log("Bakong token diagnostic:", getBakongTokenDiagnostic());
 
 // Connect to Database
 await connectDB();

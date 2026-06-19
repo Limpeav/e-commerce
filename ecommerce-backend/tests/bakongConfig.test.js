@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   getBakongConfig,
   getBakongConfigErrors,
+  getBakongTokenDiagnostic,
 } from "../config/bakong.js";
 
 const BAKONG_ENV_KEYS = [
@@ -99,4 +100,27 @@ test("deep-link configuration rejects an invalid endpoint path", () => {
       assert.ok(errors.some((error) => error.includes("BAKONG_DEEP_LINK_URL")));
     }
   );
+});
+
+test("normalizes token copied with a Bearer prefix and quotes", () => {
+  withBakongEnv(
+    {
+      BAKONG_ACCOUNT_TYPE: "INDIVIDUAL",
+      BAKONG_ACCOUNT_ID: "store@bank",
+      BAKONG_ACCOUNT_USERNAME: "Cherish Baby Store",
+      BAKONG_TOKEN: '"Bearer production-token"',
+    },
+    () => {
+      assert.equal(getBakongConfig().token, "production-token");
+    }
+  );
+});
+
+test("token diagnostic does not expose the token", () => {
+  const diagnostic = getBakongTokenDiagnostic("production-token");
+
+  assert.equal(diagnostic.present, true);
+  assert.equal(diagnostic.length, 16);
+  assert.equal(diagnostic.hash.length, 12);
+  assert.equal(JSON.stringify(diagnostic).includes("production-token"), false);
 });
