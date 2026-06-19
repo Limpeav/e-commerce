@@ -108,11 +108,11 @@ export default function BakongPayment() {
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {
-    if (!timeLeft) return "text-primary";
+    if (!timeLeft) return "var(--color-primary)";
     const [m] = timeLeft.split(":").map(Number);
-    if (m < 2) return "text-red-500";
-    if (m < 4) return "text-amber-500";
-    return "text-primary";
+    if (m < 2) return "#ef4444";
+    if (m < 4) return "#f59e0b";
+    return "var(--color-primary)";
   };
 
   const handleSaveQr = async () => {
@@ -124,10 +124,78 @@ export default function BakongPayment() {
 
     try {
       const response = await fetch(payment.khqrData.qrCode);
-      const blob = await response.blob();
-      const file = new File([blob], fileName, { type: blob.type || "image/png" });
+      const qrBlob = await response.blob();
+      const qrUrl = URL.createObjectURL(qrBlob);
+      const qrImage = new Image();
+
+      await new Promise((resolve, reject) => {
+        qrImage.onload = resolve;
+        qrImage.onerror = reject;
+        qrImage.src = qrUrl;
+      });
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const width = 900;
+      const height = 1200;
+      const radius = 70;
+      const headerHeight = 220;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      context.save();
+      context.beginPath();
+      context.roundRect(4, 4, width - 8, height - 8, radius);
+      context.clip();
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+
+      context.fillStyle = "#e9232e";
+      context.fillRect(0, 0, width, headerHeight);
+
+      context.fillStyle = "#ffffff";
+      context.font = "900 96px Lato, Arial, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("KHQR", width / 2, headerHeight / 2 + 5);
+
+      context.fillStyle = "#171717";
+      context.font = "900 52px Lato, Arial, sans-serif";
+      context.fillText(
+        String(payment.khqrData.merchantName || "CHERISH BABY STORE").toUpperCase(),
+        width / 2,
+        325,
+        width - 100
+      );
+
+      context.imageSmoothingEnabled = false;
+      context.drawImage(qrImage, 130, 420, 640, 640);
+
+      context.restore();
+      context.beginPath();
+      context.roundRect(4, 4, width - 8, height - 8, radius);
+      context.strokeStyle = "#d2d2d2";
+      context.lineWidth = 8;
+      context.stroke();
+
+      URL.revokeObjectURL(qrUrl);
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (generatedBlob) =>
+            generatedBlob ? resolve(generatedBlob) : reject(new Error("QR export failed")),
+          "image/png"
+        );
+      });
+      const file = new File([blob], fileName, { type: "image/png" });
+      const isMobileDevice =
+        navigator.maxTouchPoints > 0 &&
+        window.matchMedia("(pointer: coarse)").matches;
 
       if (
+        isMobileDevice
+        &&
         navigator.share
         && navigator.canShare?.({ files: [file] })
       ) {
@@ -372,7 +440,10 @@ export default function BakongPayment() {
                   <span className={`text-[10px] font-bold uppercase tracking-widest sm:text-xs ${secondaryText}`}>
                     {t("bakongPayment.expiresIn")}
                   </span>
-                  <span className={`text-lg font-black tabular-nums sm:text-2xl ${getTimerColour()}`}>
+                  <span
+                    className="text-lg font-black tabular-nums sm:text-2xl"
+                    style={{ color: getTimerColour() }}
+                  >
                     {timeLeft ?? "—"}
                   </span>
                 </div>
@@ -510,51 +581,18 @@ export default function BakongPayment() {
                   </a>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleSaveQr}
-                  className={`mb-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors active:scale-[0.99] sm:min-h-12 sm:text-sm ${
-                    isDark
-                      ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                  }`}
-                >
-                  <DownloadIcon />
-                  {t("bakongPayment.saveQr")}
-                </button>
-
-                <details className={`mb-2 rounded-xl border px-3 py-2 text-[10px] sm:px-4 sm:text-xs ${
-                  isDark
-                    ? "border-[#334139] bg-[#1b241e] text-[#aab7ae]"
-                    : "border-stone-200 bg-stone-50 text-text-muted"
-                }`}>
-                  <summary className="cursor-pointer select-none font-bold">
-                    {t("bakongPayment.samePhoneHelp")}
-                  </summary>
-                  <ol className="mt-2 list-decimal space-y-1 pl-4 font-medium leading-relaxed">
-                    <li>{t("bakongPayment.samePhoneStep1")}</li>
-                    <li>{t("bakongPayment.samePhoneStep2")}</li>
-                    <li>{t("bakongPayment.samePhoneStep3")}</li>
-                  </ol>
-                </details>
-
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button
                     type="button"
-                    onClick={() => fetchOrderAndGenerateQR(true, selectedCurrency)}
-                    disabled={refreshing}
-                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors disabled:opacity-60 sm:min-h-12 sm:text-sm ${
+                    onClick={handleSaveQr}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors active:scale-[0.99] sm:min-h-12 sm:text-sm ${
                       isDark
-                        ? "border-[#334139] bg-[#202923] text-[#d4ddd7] hover:bg-[#29352e]"
-                        : "border-transparent bg-stone-100 text-text-muted hover:bg-stone-200"
+                        ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                     }`}
                   >
-                    {refreshing ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-400/30 border-t-stone-500" />
-                    ) : (
-                      <RefreshIcon />
-                    )}
-                    {t("bakongPayment.refresh")}
+                    <DownloadIcon />
+                    {t("bakongPayment.saveQr")}
                   </button>
                   <button
                     type="button"

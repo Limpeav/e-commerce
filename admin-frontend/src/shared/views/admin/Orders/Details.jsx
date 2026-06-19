@@ -16,19 +16,15 @@ import {
     Navigation,
     Phone,
     Printer,
-    LogOut,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import {
-    clearAdminSession,
-    getPortalLoginPath,
     getPortalOrdersPath,
     getStoredAdminUser,
 } from "../../../utils/adminSession";
 import {
-    disconnectRealtime,
     joinOrderRoom,
     subscribeRealtimeEvent,
 } from "../../../services/realtime";
@@ -184,20 +180,12 @@ const OrderDetails = () => {
         navigate(returnTo);
     };
 
-    const handleDeliveryLogout = () => {
-        if (!window.confirm("Are you sure you want to log out?")) {
+    const handleStatusUpdate = async (newStatus) => {
+        if (newStatus === "Delivered" && !order?.deliveryProof?.imageUrl) {
+            alert("Please take or upload a delivery proof photo before marking this order as delivered.");
             return;
         }
 
-        const loginPath = getPortalLoginPath(adminUser);
-        disconnectRealtime();
-        clearAdminSession("delivery");
-        sessionStorage.removeItem("adminDeliveryOrdersCache");
-        sessionStorage.removeItem("adminDeliveryOrdersViewState");
-        navigate(loginPath, { replace: true });
-    };
-
-    const handleStatusUpdate = async (newStatus) => {
         setUpdating(true);
         const result = await AdminController.updateOrderStatus(id, newStatus);
 
@@ -522,23 +510,29 @@ const OrderDetails = () => {
                 {availableOrderActionStatuses.map(
                     ({ label, value }) => {
                         const isCurrent = currentOrderStatus === value;
+                        const requiresDeliveryProof =
+                            value === "Delivered" && !order.deliveryProof?.imageUrl;
 
                         return (
                         <button
                             key={label}
                             onClick={() => handleStatusUpdate(value)}
-                            disabled={updating || isCurrent}
+                            disabled={updating || isCurrent || requiresDeliveryProof}
                             aria-label={
                                 isCurrent
                                     ? `Current order status: ${label}`
+                                    : requiresDeliveryProof
+                                        ? "Upload a delivery proof photo before marking as delivered"
                                     : `Mark order as ${label}`
                             }
                             title={
                                 isCurrent
                                     ? `Current order status: ${label}`
+                                    : requiresDeliveryProof
+                                        ? "Take or upload a delivery proof photo first"
                                     : `Mark as ${label}`
                             }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent
+                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || requiresDeliveryProof
                                 ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                 : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                 }`}
@@ -548,6 +542,8 @@ const OrderDetails = () => {
                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
                                     {label}
                                 </span>
+                            ) : requiresDeliveryProof ? (
+                                "Photo Required"
                             ) : (
                                 `Mark as ${label}`
                             )}
@@ -640,24 +636,9 @@ const OrderDetails = () => {
                                 <h1 className="text-2xl font-black leading-tight text-[var(--color-text-main)] sm:text-4xl">
                                     Order #{displayOrderId}
                                 </h1>
-                                {isDelivery && (
-                                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                        {customerName} · {formatCurrency(displayedTotal)}
-                                    </p>
-                                )}
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                            {isDelivery && (
-                                <button
-                                    type="button"
-                                    onClick={handleDeliveryLogout}
-                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    Logout
-                                </button>
-                            )}
                             <div
                                 className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
                             >
@@ -1144,15 +1125,26 @@ const OrderDetails = () => {
                         <button
                             type="button"
                             onClick={() => handleStatusUpdate("Delivered")}
-                            disabled={updating || currentOrderStatus === "Delivered"}
+                            disabled={
+                                updating ||
+                                currentOrderStatus === "Delivered" ||
+                                !order.deliveryProof?.imageUrl
+                            }
+                            title={
+                                !order.deliveryProof?.imageUrl
+                                    ? "Take or upload a delivery proof photo first"
+                                    : "Mark order as delivered"
+                            }
                             className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
                                 currentOrderStatus === "Delivered"
                                     ? "bg-green-100 text-green-700"
+                                    : !order.deliveryProof?.imageUrl
+                                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
                                     : "bg-green-600 text-white"
                             }`}
                         >
                             <CheckCircle className="h-5 w-5" />
-                            Done
+                            {order.deliveryProof?.imageUrl ? "Done" : "Photo First"}
                         </button>
                     </div>
                 </div>

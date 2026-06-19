@@ -560,7 +560,7 @@ const AdminOrders = ({ renderDelivery }) => {
     );
     const deliveryStats = [
         {
-            label: "Active",
+            label: "Processing",
             value: deliveryOrders.filter((order) =>
                 normalizeOrderStatus(order.orderStatus) === "Processing"
             ).length,
@@ -798,7 +798,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950"
                                                         >
                                                             <Eye className="h-5 w-5" />
-                                                            Open
+                                                            View Details
                                                         </button>
                                                     </div>
                                                 </article>
@@ -1088,9 +1088,9 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                         handleRowNavigation(order._id);
                                                                     }}
                                                                     className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                                                                    title="View Delivery"
+                                                                    title="View Details"
                                                                 >
-                                                                    Open
+                                                                    View Details
                                                                 </button>
                                                             ) : adminUser?.role === "admin" ? (
                                                                 <button

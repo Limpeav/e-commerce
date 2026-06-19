@@ -9,6 +9,13 @@ import {
   removeImageBackground,
 } from "../utils/backgroundRemoval.js";
 
+const ADMIN_VISIBLE_ORDER_FILTER = {
+  $or: [
+    { paymentMethod: { $ne: "BAKONG_KHQR" } },
+    { paymentStatus: "Paid" },
+  ],
+};
+
 const uploadImageBuffer = (file, folder) =>
   new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -332,17 +339,21 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Get counts
   const usersCount = await User.countDocuments();
   const productsCount = await Product.countDocuments();
-  const ordersCount = await Order.countDocuments();
+  const ordersCount = await Order.countDocuments(ADMIN_VISIBLE_ORDER_FILTER);
   const pendingOrdersCount = await Order.countDocuments({
+    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Pending",
   });
   const processingOrdersCount = await Order.countDocuments({
+    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: { $in: ["Processing", "Shipped"] },
   });
   const deliveredOrdersCount = await Order.countDocuments({
+    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Delivered",
   });
   const cancelledOrdersCount = await Order.countDocuments({
+    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Cancelled",
   });
 
@@ -351,6 +362,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paymentStatus: "Paid",
   });
   const unpaidOrdersCount = await Order.countDocuments({
+    ...ADMIN_VISIBLE_ORDER_FILTER,
     paymentStatus: { $ne: "Paid" },
   });
   const cashToCollectCount = await Order.countDocuments({
@@ -367,7 +379,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
 
   // Get recent activity (users only – exclude admin actions)
-  const recentOrders = await Order.find({})
+  const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
     .sort({ createdAt: -1 })
     .limit(3)
     .populate("user", "name email role");

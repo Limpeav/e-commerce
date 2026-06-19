@@ -237,7 +237,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
                               className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950"
                             >
                               <Eye className="h-5 w-5" />
-                              Open
+                              View Details
                             </button>
                           </div>
                         </article>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PaymentController } from "../controllers/paymentController";
 import { useCart } from "../context/useCart";
-import { cancelOrder } from "../services/orderService";
 
 export const useBakongPayment = (orderId, navigate) => {
   const { clearCart, refreshCart } = useCart();
@@ -135,23 +134,9 @@ export const useBakongPayment = (orderId, navigate) => {
       const result = await PaymentController.cancel(payment._id);
 
       if (!result.success) {
-        if (paymentStatus === "expired") {
-          try {
-            await cancelOrder(orderId);
-          } catch (cancelError) {
-            setError(
-              cancelError.response?.data?.message
-              || cancelError.message
-              || "Failed to return to checkout"
-            );
-            setCancelling(false);
-            return;
-          }
-        } else {
-          setError(result.error);
-          setCancelling(false);
-          return;
-        }
+        setError(result.error);
+        setCancelling(false);
+        return;
       }
     }
 

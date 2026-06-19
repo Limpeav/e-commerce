@@ -23,7 +23,6 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [stats, setStats] = useState({});
     const [refreshing, setRefreshing] = useState(false);
 
     const customerUsers = useMemo(
@@ -57,29 +56,19 @@ const UserManagement = () => {
         }
     }, []);
 
-    const fetchStats = useCallback(async () => {
-        try {
-            const response = await UserController.getStats();
-            setStats(response.data);
-        } catch (err) {
-            console.error("Failed to fetch user stats", err);
-        }
-    }, []);
-
     const refresh = useCallback(async (showSpinner = false) => {
         if (showSpinner) setRefreshing(true);
-        await Promise.all([fetchUsers(), fetchStats()]);
+        await fetchUsers();
         if (showSpinner) setRefreshing(false);
-    }, [fetchStats, fetchUsers]);
+    }, [fetchUsers]);
 
     useEffect(() => {
         queueMicrotask(() => {
             fetchUsers();
-            fetchStats();
         });
 
         return subscribeRealtimeDomains(["users", "reviews"], () => refresh(false));
-    }, [fetchStats, fetchUsers, refresh]);
+    }, [fetchUsers, refresh]);
 
     const renderRoleBadge = (role = "user") => {
         const meta = roleMeta[role] || roleMeta.user;
@@ -102,7 +91,6 @@ const UserManagement = () => {
             try {
                 await UserController.delete(userId);
                 await fetchUsers();
-                await fetchStats();
             } catch (err) {
                 alert(err.response?.data?.message || "Failed to delete user");
             }
@@ -279,39 +267,6 @@ const UserManagement = () => {
                     </div>
                 </div>
 
-                {/* Recent Users */}
-                {stats.recentUsers?.filter((user) => (user.role || "user") === "user").length > 0 && (
-                    <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            Recently Joined Customers
-                        </h2>
-                        <div className="space-y-3">
-                            {stats.recentUsers.filter((user) => (user.role || "user") === "user").map((user) => (
-                                <div
-                                    key={user._id}
-                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span className="text-blue-600 font-semibold text-sm">
-                                                {user.name?.charAt(0).toUpperCase() || "U"}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {user.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">{user.email}</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                                        {new Date(user.createdAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

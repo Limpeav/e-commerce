@@ -419,26 +419,30 @@ export const createOrder = asyncHandler(async (req, res) => {
                 "Customer";
             let notification = null;
 
-            try {
-                notification = await Notification.create({
-                    type: "order",
-                    title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
-                    message: mergedIntoExistingOrder
-                        ? `${customerName} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
-                        : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalWithoutShipping.toFixed(2)}`,
-                    orderId: createdOrder._id,
-                    userId: req.user._id,
-                    link: `/admin/orders/${createdOrder._id}`,
-                    googleMapsLink: googleMapsLink,
-                });
-            } catch (notificationError) {
-                console.error(
-                    `Order notification creation failed for ${createdOrder._id}:`,
-                    notificationError.message
-                );
+            if (paymentMethod !== "BAKONG_KHQR") {
+                try {
+                    notification = await Notification.create({
+                        type: "order",
+                        title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
+                        message: mergedIntoExistingOrder
+                            ? `${customerName} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
+                            : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalWithoutShipping.toFixed(2)}`,
+                        orderId: createdOrder._id,
+                        userId: req.user._id,
+                        link: `/admin/orders/${createdOrder._id}`,
+                        googleMapsLink: googleMapsLink,
+                    });
+                } catch (notificationError) {
+                    console.error(
+                        `Order notification creation failed for ${createdOrder._id}:`,
+                        notificationError.message
+                    );
+                }
             }
 
-            if (mergedIntoExistingOrder) {
+            if (paymentMethod === "BAKONG_KHQR") {
+                // Bakong orders remain private drafts until payment succeeds.
+            } else if (mergedIntoExistingOrder) {
                 emitOrderUpdated(createdOrder, {
                     orderStatus: createdOrder.orderStatus,
                     paymentStatus: createdOrder.paymentStatus,
@@ -497,7 +501,12 @@ export const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders
 // @access  Private/Admin
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find({})
+    const orders = await Order.find({
+        $or: [
+            { paymentMethod: { $ne: "BAKONG_KHQR" } },
+            { paymentStatus: "Paid" },
+        ],
+    })
         .populate("user", "name email")
         .sort({ createdAt: -1 })
         .lean();
@@ -598,6 +607,11 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             if (nextStatus === "Shipped") {
                 res.status(400);
                 throw new Error("Shipped is no longer an available order status");
+            }
+
+            if (nextStatus === "Delivered" && !order.deliveryProof?.imageUrl) {
+                res.status(400);
+                throw new Error("Please take or upload a delivery proof photo before marking this order as delivered");
             }
 
             if (req.user?.role === "seller") {

@@ -34,7 +34,14 @@ const ProductCard = ({
   const localizedProduct = getLocalizedProductText(product, language);
   const navigate = useNavigate();
 
-  const handleAddClick = () => {
+  const openProductDetails = () => {
+    navigate(`/products/${product._id}`);
+  };
+
+  const handleAddClick = (event) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+
     if (!user) {
       navigate('/login');
       return;
@@ -49,7 +56,20 @@ const ProductCard = ({
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className={`group relative flex flex-col h-full rounded-2xl overflow-hidden transition-shadow duration-500 border sm:rounded-[2rem] ${
+      onClick={openProductDetails}
+      onKeyDown={(event) => {
+        if (
+          event.target === event.currentTarget &&
+          (event.key === 'Enter' || event.key === ' ')
+        ) {
+          event.preventDefault();
+          openProductDetails();
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      aria-label={`${localizedProduct.title} — ${t('product.details')}`}
+      className={`group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border transition-shadow duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:rounded-[2rem] ${
         isDark
           ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
           : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(122,150,126,0.25)]'
@@ -57,7 +77,11 @@ const ProductCard = ({
     >
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
       <div className={`relative aspect-square overflow-hidden rounded-xl sm:rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
-        <Link to={`/products/${product._id}`} className="block w-full h-full">
+        <Link
+          to={`/products/${product._id}`}
+          onClick={(event) => event.stopPropagation()}
+          className="block h-full w-full"
+        >
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
             alt={localizedProduct.title}
@@ -103,6 +127,7 @@ const ProductCard = ({
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}
+              onClick={(event) => event.stopPropagation()}
               className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-xl shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] transition-transform hover:scale-105 active:scale-95"
               title={t("product.chooseSize")}
             >
@@ -139,7 +164,11 @@ const ProductCard = ({
         </div>
 
         {/* Title */}
-        <Link to={`/products/${product._id}`} className="group-hover:text-primary transition-colors duration-300 cursor-pointer">
+        <Link
+          to={`/products/${product._id}`}
+          onClick={(event) => event.stopPropagation()}
+          className="cursor-pointer transition-colors duration-300 group-hover:text-primary"
+        >
           <h3 data-no-static-translation className={`font-bold text-sm leading-snug line-clamp-1 min-h-[1.125rem] sm:min-h-[1.375rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
             {localizedProduct.title}
           </h3>
@@ -176,6 +205,7 @@ const ProductCard = ({
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}
+              onClick={(event) => event.stopPropagation()}
               className={`md:hidden rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider sm:px-4 sm:text-xs ${isDark ? 'bg-primary/15 text-primary-light' : 'bg-primary/10 text-primary'}`}
             >
               Size
@@ -191,7 +221,11 @@ const ProductCard = ({
           )}
 
           {/* Desktop: View Details Arrow */}
-          <Link to={`/products/${product._id}`} className={`hidden md:flex items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary ${isDark ? 'text-slate-400' : 'text-stone-300'}`}>
+          <Link
+            to={`/products/${product._id}`}
+            onClick={(event) => event.stopPropagation()}
+            className={`hidden items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary md:flex ${isDark ? 'text-slate-400' : 'text-stone-300'}`}
+          >
             {t('product.details')} <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

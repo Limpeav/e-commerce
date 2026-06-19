@@ -2,12 +2,17 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
+import Notification from "../models/notificationModel.js";
 import Cart from "../models/cartModel.js";
 import Product from "../models/Product.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
 import khqrPackage from "bakong-khqr";
-import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
+import {
+    emitDomainChanged,
+    emitNotificationCreated,
+    emitOrderCreated,
+} from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { getAvailableStock } from "../utils/productInventory.js";
 import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
@@ -471,6 +476,31 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
     }
 
     if (completedPayment?.status === "Completed" && paidOrder) {
+        await paidOrder.populate("user", "name email");
+        const shippingAddress = paidOrder.shippingAddress || {};
+        const googleMapsLink =
+            shippingAddress.latitude && shippingAddress.longitude
+                ? `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`
+                : "";
+        let notification = null;
+
+        try {
+            notification = await Notification.create({
+                type: "order",
+                title: "New Paid Order Received",
+                message: `${paidOrder.user?.name || shippingAddress.fullName || "Customer"} paid for order #${paidOrder._id.toString().slice(-8).toUpperCase()} ($${Number(paidOrder.totalPrice || 0).toFixed(2)})`,
+                orderId: paidOrder._id,
+                userId: paidOrder.user?._id || paidOrder.user,
+                link: `/admin/orders/${paidOrder._id}`,
+                googleMapsLink,
+            });
+        } catch (notificationError) {
+            console.error(
+                `Paid order notification creation failed for ${paidOrder._id}:`,
+                notificationError.message
+            );
+        }
+
         if (updatedProductIds.length > 0) {
             emitDomainChanged(
                 "products",
@@ -479,12 +509,10 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
                 { users: true }
             );
         }
-        emitOrderUpdated(paidOrder, {
-            paymentStatus: paidOrder.paymentStatus,
-            isPaid: paidOrder.isPaid,
-            paidAt: paidOrder.paidAt,
-            stockReduced: paidOrder.stockReduced,
-        });
+        emitOrderCreated(paidOrder);
+        if (notification) {
+            emitNotificationCreated(notification);
+        }
         dispatchPaidOrderTelegramAlert(paidOrder._id);
         emitDomainChanged(
             "payments",
@@ -498,75 +526,9 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
 };
 
 const expireBakongPayment = async (payment) => {
-    const session = await mongoose.startSession();
-    let expiredPayment;
-    let order;
-    let inventoryChanged = false;
-
-    try {
-        await session.withTransaction(async () => {
-            expiredPayment = await Payment.findOne({
-                _id: payment._id,
-                status: "Pending",
-            }).session(session);
-
-            if (!expiredPayment) {
-                return;
-            }
-
-            order = await Order.findById(expiredPayment.order).session(session);
-
-            if (!order || order.isPaid) {
-                return;
-            }
-
-            inventoryChanged = order.stockReserved
-                || (order.stockReduced && !order.stockRestored);
-            await restoreCancelledOrder(order, session);
-            expiredPayment.status = "Cancelled";
-            order.paymentStatus = "Failed";
-            order.paymentResult.status = "Cancelled";
-            order.paymentResult.update_time = new Date().toISOString();
-
-            await order.save({ session });
-            await expiredPayment.save({ session });
-        });
-    } finally {
-        await session.endSession();
-    }
-
-    if (expiredPayment?.status === "Cancelled" && order) {
-        if (inventoryChanged) {
-            emitDomainChanged(
-                "products",
-                "inventory-restored",
-                {
-                    productIds: order.orderItems
-                        .map((item) => item.product?._id || item.product)
-                        .filter(Boolean),
-                },
-                { users: true }
-            );
-        }
-        emitOrderUpdated(order, {
-            orderStatus: order.orderStatus,
-            paymentStatus: order.paymentStatus,
-            stockReserved: order.stockReserved,
-            stockRestored: order.stockRestored,
-        });
-        emitDomainChanged(
-            "payments",
-            "cancelled",
-            {
-                paymentId: expiredPayment._id,
-                orderId: expiredPayment.order,
-                reason: "expired",
-            },
-            { roles: ["admin", "seller"], userId: expiredPayment.user }
-        );
-    }
-
-    return expiredPayment || Payment.findById(payment._id);
+    // Expiry is a client-side state. Keep the draft pending so the customer
+    // can generate a fresh QR for the same order without notifying admin.
+    return payment;
 };
 
 const performBakongReconciliation = async (paymentRef) => {
@@ -625,6 +587,7 @@ export const reconcilePendingBakongPayments = async ({
         paymentMethod: "BAKONG_KHQR",
         status: "Pending",
         "khqrData.qrString": { $exists: true, $ne: "" },
+        "khqrData.expiresAt": { $gt: new Date() },
     })
         .sort({ createdAt: 1 })
         .limit(batchSize);
@@ -910,34 +873,9 @@ export const verifyBakongPayment = asyncHandler(async (req, res) => {
         return res.json({ success: true, payment: completedPayment });
     }
 
-    const failedPayment = await Payment.findOneAndUpdate(
-        { _id: payment._id, status: "Pending" },
-        {
-            $set: {
-                status: "Failed",
-                failedAt: new Date(),
-                paymentResult: {
-                    transactionId,
-                    responseCode,
-                    responseMessage: "Payment failed",
-                },
-            },
-        },
-        { new: true }
-    );
-
-    if (failedPayment) {
-        emitDomainChanged(
-            "payments",
-            "failed",
-            { paymentId: failedPayment._id, orderId: getOrderId(payment.order) },
-            { roles: ["admin", "seller"], userId: failedPayment.user }
-        );
-    }
-
     res.json({
         success: true,
-        payment: failedPayment || await Payment.findById(payment._id),
+        payment: await Payment.findById(payment._id),
     });
 });
 
@@ -1017,10 +955,7 @@ export const cancelPayment = asyncHandler(async (req, res) => {
                 throw new Error("Not authorized to cancel this payment");
             }
 
-            const canFinalizeExpiredCancellation =
-                payment.status === "Cancelled";
-
-            if (payment.status !== "Pending" && !canFinalizeExpiredCancellation) {
+            if (payment.status !== "Pending") {
                 res.status(400);
                 throw new Error("Can only cancel pending payments");
             }
@@ -1040,25 +975,14 @@ export const cancelPayment = asyncHandler(async (req, res) => {
                 throw new Error("This order can no longer be cancelled");
             }
 
-            payment.status = "Cancelled";
-            order.orderStatus = "Cancelled";
-            order.paymentStatus = "Failed";
-            order.paymentResult.status = "Cancelled";
-            order.paymentResult.update_time = new Date().toISOString();
-
             await restoreCancelledOrder(order, session);
-            await order.save({ session });
-            await payment.save({ session });
+            await Payment.deleteOne({ _id: payment._id }).session(session);
+            await Order.deleteOne({ _id: order._id }).session(session);
         });
     } finally {
         await session.endSession();
     }
 
-    emitOrderUpdated(order, {
-        orderStatus: order.orderStatus,
-        paymentStatus: order.paymentStatus,
-        stockRestored: order.stockRestored,
-    });
     emitDomainChanged(
         "products",
         "inventory-restored",
@@ -1069,21 +993,14 @@ export const cancelPayment = asyncHandler(async (req, res) => {
         },
         { users: true }
     );
-    emitDomainChanged(
-        "payments",
-        "cancelled",
-        { paymentId: payment._id, orderId: payment.order },
-        { roles: ["admin", "seller"], userId: payment.user }
-    );
-
-    res.json({ message: "Payment cancelled successfully", payment, order });
+    res.json({ message: "Payment draft removed successfully" });
 });
 
 // @desc    Get all payments (Admin)
 // @route   GET /api/payments
 // @access  Private/Admin
 export const getAllPayments = asyncHandler(async (req, res) => {
-    const payments = await Payment.find({})
+    const payments = await Payment.find({ status: "Completed" })
         .populate("user", "name email")
         .populate("order")
         .sort({ createdAt: -1 })
