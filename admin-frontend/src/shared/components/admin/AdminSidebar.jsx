@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
-import { adminService } from '../../services/adminService'
+import { OrderController } from '../../controllers'
 import {
   LayoutDashboard,
   Package,
@@ -70,7 +70,7 @@ const AdminSidebar = () => {
 
     const loadOrderCount = async () => {
       try {
-        const response = await adminService.getOrders()
+        const response = await OrderController.getOrders()
         if (isMounted) {
           setOrderCount(getPendingOrderCount(response.data))
         }

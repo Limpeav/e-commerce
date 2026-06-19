@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { adminService } from "../../../services/adminService";
+import { ProductController } from "../../../controllers";
 import { useNavigate } from "react-router-dom";
 import {
   PRODUCT_CATEGORY_OPTIONS,
@@ -106,7 +106,7 @@ const AddProduct = () => {
 
     try {
       setBackgroundRemoving(true);
-      const response = await adminService.uploadProductImage(uploadData);
+      const response = await ProductController.uploadImage(uploadData);
       const processedImageUrl = response.data?.imageUrl;
 
       if (!processedImageUrl) {
@@ -144,7 +144,7 @@ const AddProduct = () => {
     setFormMessage(null);
 
     try {
-      await adminService.createProduct(
+      await ProductController.create(
         buildProductRequestData(form, { includeImage: true })
       );
       setForm(emptyProductForm);
@@ -183,7 +183,7 @@ const AddProduct = () => {
 
     try {
       setCsvLoading(true);
-      const response = await adminService.importProductsCsv(formData);
+      const response = await ProductController.importCsv(formData);
       alert(response.data?.message || "Products imported successfully");
       navigate("/admin/products");
     } catch (err) {

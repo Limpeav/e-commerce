@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 import {
     BarChart3,
     CalendarDays,
+    CircleDollarSign,
+    Clock3,
     Download,
     ListChecks,
     ReceiptText,
     Search,
-    WalletCards,
+    ShoppingCart,
+    TrendingUp,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { CashReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
@@ -73,6 +76,75 @@ const downloadBlob = (blob, fileName) => {
     URL.revokeObjectURL(url);
 };
 
+const CashTrendChart = ({ data }) => {
+    const [hoveredIndex, setHoveredIndex] = useState(null);
+    const chartHeight = 208;
+    const maxCash = Math.max(...data.map((day) => day.totalCash), 0);
+    const hoveredDay = hoveredIndex === null ? null : data[hoveredIndex];
+
+    if (!data.length) {
+        return (
+            <div className="flex h-72 items-center justify-center rounded-lg bg-gray-50 text-sm font-bold text-gray-500">
+                No trend data available
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative mb-6 rounded-lg bg-gray-50 px-3 pb-3 pt-10 sm:px-4">
+            {hoveredDay && (
+                <div className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-lg bg-gray-950 px-3 py-2 text-center text-xs font-bold text-white shadow-lg">
+                    <span className="text-gray-300">{formatDisplayDate(hoveredDay.date)}</span>
+                    <span className="ml-2">{formatCurrency(hoveredDay.totalCash)}</span>
+                    <span className="ml-2 text-gray-300">
+                        {hoveredDay.orderCount} order{hoveredDay.orderCount === 1 ? "" : "s"}
+                    </span>
+                </div>
+            )}
+
+            <div className="flex h-[240px] min-w-[680px] items-end gap-1.5 sm:gap-2">
+                {data.map((day, index) => {
+                    const barHeight =
+                        maxCash > 0 && day.totalCash > 0
+                            ? Math.max(8, (day.totalCash / maxCash) * chartHeight)
+                            : 2;
+                    const isHovered = hoveredIndex === index;
+
+                    return (
+                        <button
+                            key={day.date}
+                            type="button"
+                            onPointerEnter={() => setHoveredIndex(index)}
+                            onPointerMove={() => setHoveredIndex(index)}
+                            onPointerLeave={() => setHoveredIndex(null)}
+                            onFocus={() => setHoveredIndex(index)}
+                            onBlur={() => setHoveredIndex(null)}
+                            className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-2 focus:outline-none"
+                            aria-label={`${formatDisplayDate(day.date)}: ${formatCurrency(day.totalCash)}, ${day.orderCount} paid orders`}
+                        >
+                            <span
+                                className={`w-full rounded-t-md transition-colors ${
+                                    isHovered
+                                        ? "bg-[var(--color-primary-dark)]"
+                                        : day.totalCash > 0
+                                            ? "bg-[var(--color-primary)] group-hover:bg-[var(--color-primary-dark)]"
+                                            : "bg-gray-200"
+                                }`}
+                                style={{ height: `${barHeight}px` }}
+                            />
+                            <span className={`text-[10px] font-bold ${
+                                isHovered ? "text-gray-950" : "text-gray-400"
+                            }`}>
+                                {new Date(`${day.date}T00:00:00`).getDate()}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const CashReport = () => {
     const navigate = useNavigate();
     const adminUser = getStoredAdminUser();
@@ -89,7 +161,7 @@ const CashReport = () => {
             try {
                 if (!silent) setLoading(true);
                 setError("");
-                const response = await adminService.getDailyCashReport(
+                const response = await CashReportController.get(
                     selectedDate,
                     getReportPeriod(activeTab, viewMode)
                 );
@@ -132,7 +204,7 @@ const CashReport = () => {
         try {
             setExporting(true);
             const period = getReportPeriod(activeTab, viewMode);
-            const response = await adminService.exportDailyCashReport(selectedDate, period);
+            const response = await CashReportController.export(selectedDate, period);
             downloadBlob(response.data, `cash-report-${period}-${selectedDate}.csv`);
         } catch (err) {
             alert(err.response?.data?.message || "Failed to export cash report");
@@ -148,7 +220,6 @@ const CashReport = () => {
     const summary = report?.summary || {};
     const dailyBreakdown = report?.dailyBreakdown || [];
     const reportPeriod = getReportPeriod(activeTab, viewMode);
-    const maxDailyCash = Math.max(...dailyBreakdown.map((day) => day.totalCash), 0);
     const reportTitle =
         activeTab === "trends"
             ? "Cash Flow Trends"
@@ -165,26 +236,34 @@ const CashReport = () => {
         {
             label: "Total Cash",
             value: formatCurrency(summary.totalCash),
+            hint: `${summary.orderCount || 0} paid order${summary.orderCount === 1 ? "" : "s"}`,
             tone: "text-green-700",
             bg: "bg-green-50",
+            icon: CircleDollarSign,
         },
         {
             label: "Paid Cash Orders",
             value: summary.orderCount || 0,
+            hint: reportPeriod === "trend" ? "last 30 days" : reportPeriod,
             tone: "text-blue-700",
             bg: "bg-blue-50",
+            icon: ShoppingCart,
         },
         {
             label: "Average Order",
             value: formatCurrency(summary.averageOrderValue),
+            hint: "per paid cash order",
             tone: "text-indigo-700",
             bg: "bg-indigo-50",
+            icon: TrendingUp,
         },
         {
-            label: "Pending Cash",
-            value: summary.pendingCashCount || 0,
+            label: "Pending to Collect",
+            value: formatCurrency(summary.pendingCashAmount),
+            hint: `${summary.pendingCashCount || 0} open order${summary.pendingCashCount === 1 ? "" : "s"}`,
             tone: "text-amber-700",
             bg: "bg-amber-50",
+            icon: Clock3,
         },
     ];
 
@@ -254,7 +333,10 @@ const CashReport = () => {
                 )}
 
                 <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {statCards.map((card) => (
+                    {statCards.map((card) => {
+                        const Icon = card.icon;
+
+                        return (
                         <div key={card.label} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
                             <div className="flex items-center justify-between gap-4">
                                 <div>
@@ -262,13 +344,17 @@ const CashReport = () => {
                                         {card.label}
                                     </p>
                                     <p className={`mt-2 text-3xl font-black ${card.tone}`}>{card.value}</p>
+                                    <p className="mt-1 text-xs font-bold capitalize text-gray-400">
+                                        {card.hint}
+                                    </p>
                                 </div>
                                 <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${card.bg}`}>
-                                    <WalletCards className={`h-6 w-6 ${card.tone}`} />
+                                    <Icon className={`h-6 w-6 ${card.tone}`} />
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <section className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
@@ -336,21 +422,8 @@ const CashReport = () => {
                     {reportPeriod !== "day" ? (
                         <div className="p-5">
                             {activeTab === "trends" && (
-                                <div className="mb-6 flex h-72 items-end gap-2 rounded-lg bg-gray-50 p-4">
-                                    {dailyBreakdown.map((day) => (
-                                        <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                                            <div
-                                                className="w-full rounded-t-md bg-[var(--color-primary)] transition-all"
-                                                style={{
-                                                    height: `${maxDailyCash > 0 ? Math.max((day.totalCash / maxDailyCash) * 100, day.totalCash > 0 ? 8 : 0) : 0}%`,
-                                                }}
-                                                title={`${formatDisplayDate(day.date)}: ${formatCurrency(day.totalCash)}`}
-                                            />
-                                            <span className="hidden text-[10px] font-bold text-gray-400 sm:block">
-                                                {new Date(`${day.date}T00:00:00`).getDate()}
-                                            </span>
-                                        </div>
-                                    ))}
+                                <div className="overflow-x-auto">
+                                    <CashTrendChart data={dailyBreakdown} />
                                 </div>
                             )}
                             <div className="overflow-x-auto">

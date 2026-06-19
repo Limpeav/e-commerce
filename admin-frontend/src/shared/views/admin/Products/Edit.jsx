@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { adminService } from "../../../services/adminService";
+import { ProductController } from "../../../controllers";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   PRODUCT_CATEGORY_OPTIONS,
@@ -99,7 +99,7 @@ const EditProduct = () => {
     const fetchProduct = async () => {
       try {
         setFetching(true);
-        const res = await adminService.getProductById(id);
+        const res = await ProductController.getById(id);
         const data = res.data;
         const hasProductIssue = parseBooleanValue(data.hasProductIssue);
 
@@ -193,7 +193,7 @@ const EditProduct = () => {
 
     try {
       setBackgroundRemoving(true);
-      const response = await adminService.uploadProductImage(uploadData);
+      const response = await ProductController.uploadImage(uploadData);
       const processedImageUrl = response.data?.imageUrl;
 
       if (!processedImageUrl) {
@@ -244,7 +244,7 @@ const EditProduct = () => {
     setErrorMessage("");
 
     try {
-      const response = await adminService.updateProduct(
+      const response = await ProductController.update(
         id,
         buildProductRequestData(form, {
           includeImage: Boolean(form.image || form.imageUrl),

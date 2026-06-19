@@ -8,7 +8,7 @@ import {
     UserPlus,
     Users,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
@@ -67,7 +67,7 @@ const StaffManagement = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await adminService.getUsers();
+            const response = await UserController.getUsers();
             setUsers(response.data);
             setError(null);
         } catch (err) {
@@ -109,7 +109,7 @@ const StaffManagement = () => {
                 phone: staffForm.phone.trim(),
             };
 
-            await adminService.createStaffLogin(payload);
+            await UserController.createStaff(payload);
             setStaffForm({
                 name: "",
                 email: "",
@@ -136,7 +136,7 @@ const StaffManagement = () => {
         if (!role) return;
 
         try {
-            await adminService.updateUserRole(userId, role);
+            await UserController.updateRole(userId, role);
             await refresh(false);
         } catch (err) {
             alert(err.response?.data?.message || "Failed to update staff role");
@@ -149,7 +149,7 @@ const StaffManagement = () => {
         }
 
         try {
-            await adminService.deleteUser(userId);
+            await UserController.delete(userId);
             await refresh(false);
         } catch (err) {
             alert(err.response?.data?.message || "Failed to delete staff login");

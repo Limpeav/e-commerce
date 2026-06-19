@@ -9,7 +9,7 @@ import {
     Download,
     Calendar,
 } from "lucide-react";
-import api from "../../../services/api";
+import { ReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
@@ -23,15 +23,11 @@ const Reports = () => {
     const fetchData = useCallback(async ({ silent = false } = {}) => {
         try {
             if (!silent) setLoading(true);
-            const [dashboardRes, ordersRes, productsRes] = await Promise.all([
-                api.get("/admin/dashboard"),
-                api.get("/orders"),
-                api.get("/products"),
-            ]);
+            const reportData = await ReportController.getReportData();
 
-            setStats(dashboardRes.data);
-            setOrders(ordersRes.data);
-            setProducts(productsRes.data);
+            setStats(reportData.stats);
+            setOrders(reportData.orders);
+            setProducts(reportData.products);
             if (!silent) setLoading(false);
         } catch (err) {
             console.error("Failed to fetch data", err);

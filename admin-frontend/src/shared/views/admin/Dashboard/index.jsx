@@ -1,255 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  CircleDollarSign,
-  Clock3,
-  CreditCard,
-  DollarSign,
-  Download,
-  MessageSquareText,
-  Package,
-  RefreshCw,
-  ShoppingBag,
-  ShoppingCart,
-  Sparkles,
-  Star,
-  ThumbsUp,
-  TrendingUp,
-  Users,
-} from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { AlertTriangle } from "lucide-react";
+import { DashboardController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import {
   getStoredAdminToken,
   getStoredAdminUser,
 } from "../../../utils/adminSession";
-import { normalizeProductCategory } from "../../../constants/productCategories";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
-import {
-  getAvailableStock,
-  isOutOfStockProduct,
-  isProductIssue,
-  LOW_STOCK_THRESHOLD,
-} from "../../../utils/adminProducts";
 import {
   completeDashboardScrollRestore,
   getDashboardScrollKey,
   readDashboardScrollPosition,
   saveDashboardScrollPosition,
 } from "../../../utils/dashboardScroll";
+import DashboardPage from "./DashboardPage";
 
-const PERIODS = [
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-  { value: "all", label: "All time" },
-];
-
-const CATEGORY_COLORS = ["#7A967E", "#E6BAA3", "#C7A76C", "#8EA7B8", "#B38A9B"];
 let dashboardCache = null;
-
-const money = (value, compact = false) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: compact ? "compact" : "standard",
-    maximumFractionDigits: compact ? 1 : 2,
-  }).format(Number(value) || 0);
-
-const number = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
-
-const startOfDay = (date) => {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  return result;
-};
-
-const getOrderDate = (order) => {
-  const date = new Date(order?.createdAt || 0);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const getCustomerKey = (order) => {
-  if (typeof order?.user === "string") return order.user;
-  return order?.user?._id || order?.user?.email || order?.shippingAddress?.phone || null;
-};
-
-const getProductId = (item) =>
-  typeof item?.product === "string" ? item.product : item?.product?._id;
-
-const formatDayLabel = (date, dayCount) =>
-  date.toLocaleDateString("en-US", {
-    month: "short",
-    day: dayCount <= 14 ? "numeric" : undefined,
-  });
-
-const changeFrom = (current, previous) => {
-  if (!previous) return current ? 100 : 0;
-  return ((current - previous) / previous) * 100;
-};
-
-const ChangeBadge = ({ value }) => {
-  const positive = value >= 0;
-  const Icon = positive ? ArrowUpRight : ArrowDownRight;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${
-        positive
-          ? "bg-[#edf5ee] text-[#527258]"
-          : "bg-[#fff0eb] text-[#a45f4d]"
-      }`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {Math.abs(value).toFixed(1)}%
-    </span>
-  );
-};
-
-const MetricCard = ({ title, value, change, note, icon: Icon, tone = "sage" }) => {
-  const tones = {
-    sage: "bg-[#edf4ee] text-[#66806b]",
-    peach: "bg-[#fbefea] text-[#b17b62]",
-    gold: "bg-[#f7f1e5] text-[#9a7a3c]",
-    blue: "bg-[#ebf1f4] text-[#668698]",
-  };
-
-  return (
-    <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-[var(--color-text-muted)]">{title}</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-main)]">
-            {value}
-          </p>
-        </div>
-        <div className={`rounded-xl p-2.5 ${tones[tone]}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-4 flex items-center gap-2">
-        {change === null ? null : <ChangeBadge value={change} />}
-        <span className="text-xs font-semibold text-[var(--color-text-muted)]">{note}</span>
-      </div>
-    </article>
-  );
-};
-
-const RevenueChart = ({ data }) => {
-  const width = 720;
-  const height = 245;
-  const padding = { top: 20, right: 18, bottom: 34, left: 52 };
-  const maxValue = Math.max(...data.map((item) => item.revenue), 1);
-  const innerWidth = width - padding.left - padding.right;
-  const innerHeight = height - padding.top - padding.bottom;
-  const points = data.map((item, index) => ({
-    ...item,
-    x:
-      padding.left +
-      (data.length === 1 ? innerWidth / 2 : (index / (data.length - 1)) * innerWidth),
-    y: padding.top + innerHeight - (item.revenue / maxValue) * innerHeight,
-  }));
-  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
-  const area = points.length
-    ? `${padding.left},${padding.top + innerHeight} ${line} ${
-        padding.left + innerWidth
-      },${padding.top + innerHeight}`
-    : "";
-  const gridValues = [0, 0.25, 0.5, 0.75, 1];
-  const labelStep = Math.max(1, Math.ceil(data.length / 7));
-
-  if (!data.length) {
-    return (
-      <div className="flex h-[245px] items-center justify-center text-sm font-semibold text-[var(--color-text-muted)]">
-        No sales in this period
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-[245px] min-w-[640px] w-full"
-        role="img"
-        aria-label="Revenue trend chart"
-      >
-        <defs>
-          <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7A967E" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#7A967E" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        {gridValues.map((ratio) => {
-          const y = padding.top + innerHeight - ratio * innerHeight;
-          return (
-            <g key={ratio}>
-              <line
-                x1={padding.left}
-                x2={padding.left + innerWidth}
-                y1={y}
-                y2={y}
-                stroke="#EAE3DB"
-                strokeDasharray="4 5"
-              />
-              <text
-                x={padding.left - 9}
-                y={y + 4}
-                textAnchor="end"
-                fontSize="11"
-                fill="#8A8F89"
-              >
-                {money(maxValue * ratio, true)}
-              </text>
-            </g>
-          );
-        })}
-        <polygon points={area} fill="url(#revenueArea)" />
-        <polyline
-          points={line}
-          fill="none"
-          stroke="#6F8C74"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {points.map((point, index) => (
-          <g key={point.key}>
-            <circle cx={point.x} cy={point.y} r="4" fill="#fff" stroke="#6F8C74" strokeWidth="2.5">
-              <title>
-                {point.label}: {money(point.revenue)}
-              </title>
-            </circle>
-            {index % labelStep === 0 || index === points.length - 1 ? (
-              <text
-                x={point.x}
-                y={height - 9}
-                textAnchor="middle"
-                fontSize="11"
-                fill="#727871"
-              >
-                {point.label}
-              </text>
-            ) : null}
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-};
-
-const EmptyState = ({ children }) => (
-  <div className="flex min-h-44 items-center justify-center rounded-xl bg-[var(--color-surface-soft)]/60 px-6 text-center text-sm font-semibold text-[var(--color-text-muted)]">
-    {children}
-  </div>
-);
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -259,11 +26,14 @@ const AdminDashboard = () => {
     dashboardCache?.token === adminToken ? dashboardCache : null;
   const dashboardScrollKey = getDashboardScrollKey(adminUser);
   const restoredScrollRef = useRef(false);
+  const hasCachedDashboardRef = useRef(Boolean(cachedDashboard));
   const [period, setPeriod] = useState(() => cachedDashboard?.period || "30");
   const periodRef = useRef(period);
   const [stats, setStats] = useState(() => cachedDashboard?.stats || null);
   const [orders, setOrders] = useState(() => cachedDashboard?.orders || []);
-  const [products, setProducts] = useState(() => cachedDashboard?.products || []);
+  const [products, setProducts] = useState(
+    () => cachedDashboard?.products || []
+  );
   const [loading, setLoading] = useState(() => !cachedDashboard);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -281,45 +51,63 @@ const AdminDashboard = () => {
     [dashboardScrollKey, navigate]
   );
 
-  const loadDashboard = useCallback(async ({ refresh = false, silent = false } = {}) => {
-    if (refresh) setRefreshing(true);
-    if (!refresh && !silent) setLoading(true);
-    setError("");
+  const loadDashboard = useCallback(
+    async ({ refresh = false, silent = false } = {}) => {
+      if (refresh) setRefreshing(true);
+      if (!refresh && !silent) setLoading(true);
+      setError("");
 
-    try {
-      const [statsResponse, ordersResponse, productsResponse] = await Promise.all([
-        adminService.getDashboardStats(),
-        adminService.getOrders(),
-        adminService.getProducts(),
-      ]);
-      const nextStats = statsResponse.data;
-      const nextOrders = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
-      const nextProducts = Array.isArray(productsResponse.data) ? productsResponse.data : [];
+      try {
+        const [statsResponse, ordersResponse, productsResponse] =
+          await Promise.all([
+            DashboardController.getStats(),
+            DashboardController.getOrders(),
+            DashboardController.getProducts(),
+          ]);
+        const nextStats = statsResponse.data;
+        const nextOrders = Array.isArray(ordersResponse.data)
+          ? ordersResponse.data
+          : [];
+        const nextProducts = Array.isArray(productsResponse.data)
+          ? productsResponse.data
+          : [];
 
-      dashboardCache = {
-        token: adminToken,
-        period: periodRef.current,
-        stats: nextStats,
-        orders: nextOrders,
-        products: nextProducts,
-      };
-      setStats(nextStats);
-      setOrders(nextOrders);
-      setProducts(nextProducts);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || "Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [adminToken]);
+        dashboardCache = {
+          token: adminToken,
+          period: periodRef.current,
+          stats: nextStats,
+          orders: nextOrders,
+          products: nextProducts,
+        };
+        setStats(nextStats);
+        setOrders(nextOrders);
+        setProducts(nextProducts);
+      } catch (requestError) {
+        setError(
+          requestError.response?.data?.message ||
+            "Failed to load dashboard data"
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [adminToken]
+  );
 
   useEffect(() => {
-    loadDashboard({ silent: Boolean(cachedDashboard) });
-    return subscribeRealtimeDomains(
+    const initialLoadId = window.setTimeout(() => {
+      loadDashboard({ silent: hasCachedDashboardRef.current });
+    }, 0);
+    const unsubscribe = subscribeRealtimeDomains(
       ["orders", "products", "reviews", "users"],
       () => loadDashboard({ silent: true })
     );
+
+    return () => {
+      window.clearTimeout(initialLoadId);
+      unsubscribe();
+    };
   }, [loadDashboard]);
 
   useEffect(() => {
@@ -376,302 +164,6 @@ const AdminDashboard = () => {
     };
   }, [dashboardScrollKey, loading]);
 
-  const analytics = useMemo(() => {
-    const now = new Date();
-    const days = period === "all" ? null : Number(period);
-    const currentStart = days
-      ? startOfDay(new Date(now.getTime() - (days - 1) * 86400000))
-      : null;
-    const previousStart = days
-      ? startOfDay(new Date(currentStart.getTime() - days * 86400000))
-      : null;
-
-    const isCurrent = (order) => {
-      const date = getOrderDate(order);
-      return date && (!currentStart || date >= currentStart);
-    };
-    const isPrevious = (order) => {
-      const date = getOrderDate(order);
-      return date && previousStart && date >= previousStart && date < currentStart;
-    };
-    const isPaid = (order) =>
-      order.paymentStatus === "Paid" && order.orderStatus !== "Cancelled";
-
-    const currentOrders = orders.filter(isCurrent);
-    const previousOrders = orders.filter(isPrevious);
-    const paidOrders = currentOrders.filter(isPaid);
-    const previousPaidOrders = previousOrders.filter(isPaid);
-    const revenue = paidOrders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
-    const previousRevenue = previousPaidOrders.reduce(
-      (sum, order) => sum + Number(order.totalPrice || 0),
-      0
-    );
-    const units = paidOrders.reduce(
-      (sum, order) =>
-        sum +
-        (order.orderItems || []).reduce(
-          (itemSum, item) => itemSum + Number(item.quantity || 0),
-          0
-        ),
-      0
-    );
-    const previousUnits = previousPaidOrders.reduce(
-      (sum, order) =>
-        sum +
-        (order.orderItems || []).reduce(
-          (itemSum, item) => itemSum + Number(item.quantity || 0),
-          0
-        ),
-      0
-    );
-    const aov = paidOrders.length ? revenue / paidOrders.length : 0;
-    const previousAov = previousPaidOrders.length
-      ? previousRevenue / previousPaidOrders.length
-      : 0;
-
-    const dailyMap = new Map();
-    if (days) {
-      for (let index = 0; index < days; index += 1) {
-        const date = new Date(currentStart.getTime() + index * 86400000);
-        const key = date.toISOString().slice(0, 10);
-        dailyMap.set(key, {
-          key,
-          label: formatDayLabel(date, days),
-          revenue: 0,
-          orders: 0,
-        });
-      }
-      paidOrders.forEach((order) => {
-        const date = getOrderDate(order);
-        if (!date) return;
-        const entry = dailyMap.get(date.toISOString().slice(0, 10));
-        if (entry) {
-          entry.revenue += Number(order.totalPrice || 0);
-          entry.orders += 1;
-        }
-      });
-    } else {
-      const datedOrders = paidOrders
-        .map((order) => ({ order, date: getOrderDate(order) }))
-        .filter((entry) => entry.date)
-        .sort((a, b) => a.date - b.date);
-      const firstDate = datedOrders[0]?.date || now;
-      const cursor = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
-      const finalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      while (cursor <= finalMonth) {
-        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-        dailyMap.set(key, {
-          key,
-          label: cursor.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-          revenue: 0,
-          orders: 0,
-        });
-        cursor.setMonth(cursor.getMonth() + 1);
-      }
-      datedOrders.forEach(({ order, date }) => {
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-        const entry = dailyMap.get(key);
-        if (entry) {
-          entry.revenue += Number(order.totalPrice || 0);
-          entry.orders += 1;
-        }
-      });
-    }
-
-    const productMap = new Map(products.map((product) => [String(product._id), product]));
-    const productSales = new Map();
-    const categorySales = new Map();
-    paidOrders.forEach((order) => {
-      (order.orderItems || []).forEach((item) => {
-        const product = productMap.get(String(getProductId(item)));
-        const category = normalizeProductCategory(product?.category || "Uncategorized");
-        const itemRevenue = Number(item.price || 0) * Number(item.quantity || 0);
-        const itemQuantity = Number(item.quantity || 0);
-        const productKey = String(getProductId(item) || item.name);
-        const existingProduct = productSales.get(productKey) || {
-          id: getProductId(item),
-          name: item.name || product?.title || "Product",
-          image: item.image || product?.image,
-          quantity: 0,
-          revenue: 0,
-        };
-        existingProduct.quantity += itemQuantity;
-        existingProduct.revenue += itemRevenue;
-        productSales.set(productKey, existingProduct);
-        categorySales.set(category, (categorySales.get(category) || 0) + itemRevenue);
-      });
-    });
-
-    const topProducts = [...productSales.values()]
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-    const categories = [...categorySales.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-    const maxCategory = Math.max(...categories.map((category) => category.value), 1);
-
-    const customerCounts = new Map();
-    currentOrders.forEach((order) => {
-      const key = getCustomerKey(order);
-      if (key) customerCounts.set(key, (customerCounts.get(key) || 0) + 1);
-    });
-    const repeatCustomers = [...customerCounts.values()].filter((count) => count > 1).length;
-    const repeatRate = customerCounts.size
-      ? (repeatCustomers / customerCounts.size) * 100
-      : 0;
-
-    const productIssues = products
-      .filter(isProductIssue)
-      .sort((a, b) => getAvailableStock(a) - getAvailableStock(b));
-    const outOfStock = products.filter(isOutOfStockProduct);
-    const inventoryUnits = products.reduce(
-      (sum, product) => sum + getAvailableStock(product),
-      0
-    );
-    const inventoryValue = products.reduce(
-      (sum, product) =>
-        sum +
-        getAvailableStock(product) *
-          Number(product.discountPrice || product.price || 0),
-      0
-    );
-
-    const statusData = ["Pending", "Processing", "Delivered", "Cancelled"].map(
-      (status) => ({
-        status,
-        count: currentOrders.filter((order) =>
-          status === "Processing"
-            ? ["Processing", "Shipped"].includes(order.orderStatus)
-            : order.orderStatus === status
-        ).length,
-      })
-    );
-    const maxStatus = Math.max(...statusData.map((item) => item.count), 1);
-    const paidRate = currentOrders.length ? (paidOrders.length / currentOrders.length) * 100 : 0;
-    const productReviewStats = products.map((product) => {
-      const reviews = Array.isArray(product.reviews) ? product.reviews : [];
-      const reviewCount = reviews.length;
-      const averageRating = reviewCount
-        ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount
-        : Number(product.rating || 0);
-      const lowRatingCount = reviews.filter((review) => Number(review.rating || 0) <= 2).length;
-
-      return {
-        id: product._id,
-        title: product.title || "Product",
-        image: product.image,
-        category: normalizeProductCategory(product.category || "Uncategorized"),
-        reviewCount,
-        averageRating,
-        lowRatingCount,
-      };
-    });
-    const allReviews = products.flatMap((product) =>
-      (Array.isArray(product.reviews) ? product.reviews : []).map((review) => ({
-        ...review,
-        productId: product._id,
-      }))
-    );
-    const totalReviews = allReviews.length;
-    const averageRating = totalReviews
-      ? allReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviews
-      : 0;
-    const positiveReviews = allReviews.filter((review) => Number(review.rating || 0) >= 4).length;
-    const lowReviews = allReviews.filter((review) => Number(review.rating || 0) <= 2).length;
-    const positiveReviewRate = totalReviews ? (positiveReviews / totalReviews) * 100 : 0;
-    const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-      const count = allReviews.filter((review) => Number(review.rating || 0) === rating).length;
-      return {
-        rating,
-        count,
-        percentage: totalReviews ? (count / totalReviews) * 100 : 0,
-      };
-    });
-    const categoryReviewMap = new Map();
-    productReviewStats.forEach((product) => {
-      if (!product.reviewCount) return;
-      const current = categoryReviewMap.get(product.category) || { total: 0, count: 0 };
-      current.total += product.averageRating * product.reviewCount;
-      current.count += product.reviewCount;
-      categoryReviewMap.set(product.category, current);
-    });
-    const categoryRatings = [...categoryReviewMap.entries()]
-      .map(([name, values]) => ({
-        name,
-        reviewCount: values.count,
-        averageRating: values.total / values.count,
-      }))
-      .sort((a, b) => b.averageRating - a.averageRating);
-    return {
-      currentOrders,
-      paidOrders,
-      revenue,
-      units,
-      aov,
-      paidRate,
-      repeatRate,
-      dailyRevenue: [...dailyMap.values()],
-      topProducts,
-      categories: categories.map((category) => ({
-        ...category,
-        percentage: (category.value / maxCategory) * 100,
-      })),
-      productIssues,
-      outOfStock,
-      inventoryUnits,
-      inventoryValue,
-      reviewHealth: {
-        totalReviews,
-        averageRating,
-        positiveReviewRate,
-        lowReviews,
-        unratedProducts: productReviewStats.filter((product) => product.reviewCount === 0).length,
-        ratingDistribution,
-        categoryRatings,
-      },
-      statusData: statusData.map((item) => ({
-        ...item,
-        percentage: (item.count / maxStatus) * 100,
-      })),
-      changes: {
-        revenue: changeFrom(revenue, previousRevenue),
-        orders: changeFrom(currentOrders.length, previousOrders.length),
-        aov: changeFrom(aov, previousAov),
-        units: changeFrom(units, previousUnits),
-      },
-    };
-  }, [orders, products, period]);
-
-  const exportSummary = () => {
-    const rows = [
-      ["Metric", "Value"],
-      ["Period", PERIODS.find((item) => item.value === period)?.label],
-      ["Revenue", analytics.revenue.toFixed(2)],
-      ["Orders", analytics.currentOrders.length],
-      ["Average order value", analytics.aov.toFixed(2)],
-      ["Units sold", analytics.units],
-      ["Paid order rate", `${analytics.paidRate.toFixed(1)}%`],
-      ["Repeat customer rate", `${analytics.repeatRate.toFixed(1)}%`],
-      ["Product issues", analytics.productIssues.length],
-      ["Average product rating", analytics.reviewHealth.averageRating.toFixed(1)],
-      ["Total product reviews", analytics.reviewHealth.totalReviews],
-      ["Positive review rate", `${analytics.reviewHealth.positiveReviewRate.toFixed(1)}%`],
-      ["Low-rating reviews", analytics.reviewHealth.lowReviews],
-      ["Products without reviews", analytics.reviewHealth.unratedProducts],
-    ];
-    const csv = rows
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-      .join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `business-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (loading) return <Loading message="Preparing business insights..." />;
 
   if (error) {
@@ -693,573 +185,18 @@ const AdminDashboard = () => {
     );
   }
 
-  const attentionItems = [
-    analytics.outOfStock.length
-      ? {
-          title: `${analytics.outOfStock.length} product${
-            analytics.outOfStock.length === 1 ? "" : "s"
-          } out of stock`,
-          detail: "Restock now to avoid missed sales.",
-          icon: AlertTriangle,
-          tone: "bg-[#fff0eb] text-[#a45f4d]",
-          action: () => navigateFromDashboard("/admin/products?inventory=sold-out"),
-        }
-      : null,
-    (stats?.pendingOrders || 0) > 0
-      ? {
-          title: `${stats.pendingOrders} order${stats.pendingOrders === 1 ? "" : "s"} awaiting action`,
-          detail: "Review and move pending orders forward.",
-          icon: Clock3,
-          tone: "bg-[#f7f1e5] text-[#927338]",
-          action: () => navigateFromDashboard("/admin/orders?status=Pending"),
-        }
-      : null,
-    (stats?.cashToCollect || 0) > 0
-      ? {
-          title: `${stats.cashToCollect} cash payment${
-            stats.cashToCollect === 1 ? "" : "s"
-          } to collect`,
-          detail: "Track open cash-on-delivery orders.",
-          icon: CreditCard,
-          tone: "bg-[#ebf1f4] text-[#5f7f91]",
-          action: () => navigateFromDashboard("/admin/cash-report"),
-        }
-      : null,
-  ].filter(Boolean);
-
   return (
-    <div className="min-h-screen bg-[var(--color-bg-base)] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <div className="admin-stagger-container mx-auto max-w-[1500px]">
-        <header className="mb-7 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--color-primary-dark)]">
-              <Sparkles className="h-4 w-4" />
-              Business overview
-            </div>
-            <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-main)] sm:text-4xl">
-              Good day, {stats?.admin || adminUser?.name || "Admin"}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-[var(--color-text-muted)] sm:text-base">
-              Monitor sales, customers, orders, and inventory health from one place.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="relative">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
-              <select
-                value={period}
-                onChange={(event) => setPeriod(event.target.value)}
-                className="h-11 rounded-xl border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
-              >
-                {PERIODS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => loadDashboard({ refresh: true })}
-              disabled={refreshing}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-60"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={exportSummary}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--color-text-main)] px-4 text-sm font-bold text-white transition hover:opacity-90"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-          </div>
-        </header>
-
-        <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            title="Net revenue"
-            value={money(analytics.revenue)}
-            change={period === "all" ? null : analytics.changes.revenue}
-            note={period === "all" ? "paid orders" : "vs previous period"}
-            icon={DollarSign}
-            tone="sage"
-          />
-          <MetricCard
-            title="Orders"
-            value={number(analytics.currentOrders.length)}
-            change={period === "all" ? null : analytics.changes.orders}
-            note={`${analytics.paidRate.toFixed(0)}% paid`}
-            icon={ShoppingCart}
-            tone="peach"
-          />
-          <MetricCard
-            title="Average order value"
-            value={money(analytics.aov)}
-            change={period === "all" ? null : analytics.changes.aov}
-            note="per paid order"
-            icon={TrendingUp}
-            tone="gold"
-          />
-          <MetricCard
-            title="Units sold"
-            value={number(analytics.units)}
-            change={period === "all" ? null : analytics.changes.units}
-            note={`${analytics.repeatRate.toFixed(0)}% repeat buyers`}
-            icon={ShoppingBag}
-            tone="blue"
-          />
-        </section>
-
-        <section className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--color-text-main)]">Revenue trend</h2>
-                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                  Revenue from successfully paid orders
-                </p>
-              </div>
-              <div className="rounded-xl bg-[#edf4ee] px-4 py-2 text-right">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#66806b]">
-                  Period total
-                </p>
-                <p className="text-lg font-black text-[#4f6954]">{money(analytics.revenue)}</p>
-              </div>
-            </div>
-            <RevenueChart data={analytics.dailyRevenue} />
-          </article>
-
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-            <div className="mb-5">
-              <h2 className="text-xl font-bold text-[var(--color-text-main)]">Needs attention</h2>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Priority tasks that can affect sales
-              </p>
-            </div>
-            {attentionItems.length ? (
-              <div className="space-y-3">
-                {attentionItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      type="button"
-                      key={item.title}
-                      onClick={item.action}
-                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] p-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      <span className={`rounded-lg p-2 ${item.tone}`}>
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-black text-[var(--color-text-main)]">
-                          {item.title}
-                        </span>
-                        <span className="mt-0.5 block text-xs font-medium text-[var(--color-text-muted)]">
-                          {item.detail}
-                        </span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex min-h-52 flex-col items-center justify-center text-center">
-                <span className="rounded-full bg-[#edf5ee] p-3 text-[#66806b]">
-                  <CheckCircle2 className="h-7 w-7" />
-                </span>
-                <p className="mt-3 font-black text-[var(--color-text-main)]">Everything looks healthy</p>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">No urgent actions right now.</p>
-              </div>
-            )}
-          </article>
-        </section>
-
-        <section className="mb-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Sales by category</h2>
-            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-              Categories driving paid revenue
-            </p>
-            {analytics.categories.length ? (
-              <div className="mt-6 space-y-4">
-                {analytics.categories.map((category, index) => (
-                  <div key={category.name}>
-                    <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
-                      <span className="truncate font-bold text-[var(--color-text-main)]">
-                        {category.name}
-                      </span>
-                      <span className="shrink-0 font-black">{money(category.value)}</span>
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${category.percentage}%`,
-                          backgroundColor: CATEGORY_COLORS[index],
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5">
-                <EmptyState>Category sales will appear after paid orders.</EmptyState>
-              </div>
-            )}
-          </article>
-
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Order progress</h2>
-            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-              Fulfillment status for the selected period
-            </p>
-            <div className="mt-6 space-y-4">
-              {analytics.statusData.map((item, index) => (
-                <div key={item.status} className="grid grid-cols-[86px_1fr_34px] items-center gap-3">
-                  <span className="text-sm font-bold text-[var(--color-text-muted)]">{item.status}</span>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${item.percentage}%`,
-                        backgroundColor: CATEGORY_COLORS[index],
-                      }}
-                    />
-                  </div>
-                  <span className="text-right text-sm font-black text-[var(--color-text-main)]">
-                    {item.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/orders")}
-              className="mt-6 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
-            >
-              Manage all orders <ArrowRight className="h-4 w-4" />
-            </button>
-          </article>
-
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6 lg:col-span-2 xl:col-span-1">
-            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Inventory health</h2>
-            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-              Current stock exposure and value
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#edf4ee] p-4">
-                <Package className="h-5 w-5 text-[#66806b]" />
-                <p className="mt-3 text-2xl font-black text-[#4f6954]">{number(analytics.inventoryUnits)}</p>
-                <p className="mt-1 text-xs font-bold text-[#66806b]">Units in stock</p>
-              </div>
-              <div className="rounded-xl bg-[#f7f1e5] p-4">
-                <CircleDollarSign className="h-5 w-5 text-[#96773e]" />
-                <p className="mt-3 text-2xl font-black text-[#735c31]">{money(analytics.inventoryValue, true)}</p>
-                <p className="mt-1 text-xs font-bold text-[#96773e]">Retail value</p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--color-border)] p-4">
-              <div>
-                <p className="text-sm font-black text-[var(--color-text-main)]">Product issues</p>
-                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">
-                  1 to {LOW_STOCK_THRESHOLD} units remaining
-                </p>
-              </div>
-              <span className={`text-2xl font-black ${analytics.productIssues.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
-                {analytics.productIssues.length}
-              </span>
-            </div>
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--color-border)] p-4">
-              <div>
-                <p className="text-sm font-black text-[var(--color-text-main)]">Sold out</p>
-                <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">
-                  No stock remaining
-                </p>
-              </div>
-              <span className={`text-2xl font-black ${analytics.outOfStock.length ? "text-[#ad6856]" : "text-[#66806b]"}`}>
-                {analytics.outOfStock.length}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/products?inventory=issues")}
-              className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
-            >
-              Review inventory <ArrowRight className="h-4 w-4" />
-            </button>
-          </article>
-        </section>
-
-        <section className="mb-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <article className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-5 sm:px-6">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--color-text-main)]">Top products</h2>
-                <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                  Ranked by paid revenue
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateFromDashboard("/admin/products/best-sellers")}
-                className="text-sm font-black text-[var(--color-primary-dark)]"
-              >
-                View all
-              </button>
-            </div>
-            {analytics.topProducts.length ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[620px] text-left">
-                  <thead className="bg-[var(--color-surface-soft)]/65 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                    <tr>
-                      <th className="px-6 py-3 font-black">Product</th>
-                      <th className="px-4 py-3 text-right font-black">Units</th>
-                      <th className="px-6 py-3 text-right font-black">Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]">
-                    {analytics.topProducts.map((product, index) => (
-                      <tr key={`${product.id || product.name}-${index}`} className="hover:bg-[var(--color-surface-soft)]/35">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-soft)]">
-                              {product.image ? (
-                                <img src={product.image} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <Package className="h-5 w-5 text-[var(--color-text-muted)]" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black text-[var(--color-text-main)]">
-                                {product.name}
-                              </p>
-                              <p className="mt-0.5 text-xs font-medium text-[var(--color-text-muted)]">
-                                #{index + 1} seller
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-right text-sm font-bold">
-                          {number(product.quantity)}
-                        </td>
-                        <td className="px-6 py-3.5 text-right text-sm font-black">
-                          {money(product.revenue)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-6">
-                <EmptyState>Top-selling products will appear after paid orders.</EmptyState>
-              </div>
-            )}
-          </article>
-
-          <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-            <h2 className="text-xl font-bold text-[var(--color-text-main)]">Customer signals</h2>
-            <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-              Indicators of loyalty and payment quality
-            </p>
-            <div className="mt-6 space-y-5">
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="flex items-center gap-2 font-bold text-[var(--color-text-main)]">
-                    <Users className="h-4 w-4 text-[var(--color-primary)]" />
-                    Repeat customer rate
-                  </span>
-                  <span className="font-black">{analytics.repeatRate.toFixed(1)}%</span>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                  <div
-                    className="h-full rounded-full bg-[var(--color-primary)]"
-                    style={{ width: `${Math.min(analytics.repeatRate, 100)}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="flex items-center gap-2 font-bold text-[var(--color-text-main)]">
-                    <CreditCard className="h-4 w-4 text-[#b17b62]" />
-                    Paid order rate
-                  </span>
-                  <span className="font-black">{analytics.paidRate.toFixed(1)}%</span>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                  <div
-                    className="h-full rounded-full bg-[#E6BAA3]"
-                    style={{ width: `${Math.min(analytics.paidRate, 100)}%` }}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="rounded-xl border border-[var(--color-border)] p-4">
-                  <p className="text-xs font-bold text-[var(--color-text-muted)]">Registered users</p>
-                  <p className="mt-2 text-2xl font-black text-[var(--color-text-main)]">
-                    {number(stats?.users)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-[var(--color-border)] p-4">
-                  <p className="text-xs font-bold text-[var(--color-text-muted)]">Catalog size</p>
-                  <p className="mt-2 text-2xl font-black text-[var(--color-text-main)]">
-                    {number(stats?.products)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </article>
-        </section>
-
-        <section className="mb-6">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-[#e2b95f] text-[#e2b95f]" />
-                <h2 className="text-2xl font-bold text-[var(--color-text-main)]">Review health</h2>
-              </div>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Product satisfaction, rating quality, and items needing attention
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/products")}
-              className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]"
-            >
-              View products <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">Average rating</p>
-                <Star className="h-5 w-5 fill-[#e2b95f] text-[#e2b95f]" />
-              </div>
-              <p className="mt-3 text-3xl font-black">
-                {analytics.reviewHealth.averageRating.toFixed(1)}
-                <span className="text-base text-[var(--color-text-muted)]"> / 5</span>
-              </p>
-            </article>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/reviews")}
-              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">Total reviews</p>
-                <MessageSquareText className="h-5 w-5 text-[#668698]" />
-              </div>
-              <p className="mt-3 text-3xl font-black">{number(analytics.reviewHealth.totalReviews)}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/reviews/positive")}
-              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">Positive reviews</p>
-                <ThumbsUp className="h-5 w-5 text-[#66806b]" />
-              </div>
-              <p className="mt-3 text-3xl font-black">
-                {analytics.reviewHealth.positiveReviewRate.toFixed(0)}%
-              </p>
-              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">4 and 5 stars</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateFromDashboard("/admin/reviews/negative")}
-              className="rounded-2xl border border-[var(--color-border)] bg-white p-5 text-left shadow-[0_8px_30px_rgba(61,66,62,0.05)] transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">Needs attention</p>
-                <AlertTriangle className="h-5 w-5 text-[#ad6856]" />
-              </div>
-              <p className="mt-3 text-3xl font-black text-[#ad6856]">
-                {number(analytics.reviewHealth.lowReviews)}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-                1–2 star reviews
-              </p>
-            </button>
-          </div>
-
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating distribution</h3>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Share of reviews by star rating
-              </p>
-              {analytics.reviewHealth.totalReviews ? (
-                <div className="mt-6 space-y-4">
-                  {analytics.reviewHealth.ratingDistribution.map((item) => (
-                    <div key={item.rating} className="grid grid-cols-[54px_1fr_48px] items-center gap-3">
-                      <span className="flex items-center gap-1 text-sm font-black">
-                        {item.rating}
-                        <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
-                      </span>
-                      <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                        <div
-                          className="h-full rounded-full bg-[#e2b95f]"
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-right text-sm font-black">{item.count}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-5">
-                  <EmptyState>Rating distribution will appear after customers submit reviews.</EmptyState>
-                </div>
-              )}
-            </article>
-
-            <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating by category</h3>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Weighted average across reviewed products
-              </p>
-              {analytics.reviewHealth.categoryRatings.length ? (
-                <div className="mt-6 space-y-4">
-                  {analytics.reviewHealth.categoryRatings.slice(0, 6).map((category) => (
-                    <div key={category.name}>
-                      <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
-                        <span className="truncate font-bold">{category.name}</span>
-                        <span className="flex shrink-0 items-center gap-1 font-black">
-                          {category.averageRating.toFixed(1)}
-                          <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
-                          <span className="ml-1 text-xs text-[var(--color-text-muted)]">
-                            ({category.reviewCount})
-                          </span>
-                        </span>
-                      </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                        <div
-                          className="h-full rounded-full bg-[var(--color-primary)]"
-                          style={{ width: `${(category.averageRating / 5) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-5">
-                  <EmptyState>Category ratings will appear after customers submit reviews.</EmptyState>
-                </div>
-              )}
-            </article>
-          </div>
-
-        </section>
-      </div>
-    </div>
+    <DashboardPage
+      adminUser={adminUser}
+      stats={stats}
+      orders={orders}
+      products={products}
+      period={period}
+      setPeriod={setPeriod}
+      refreshing={refreshing}
+      loadDashboard={loadDashboard}
+      navigateFromDashboard={navigateFromDashboard}
+    />
   );
 };
 

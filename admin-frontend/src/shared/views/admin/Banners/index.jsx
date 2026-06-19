@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { BannerController } from "../../../controllers";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 export default function AdminBanners() {
@@ -19,7 +19,7 @@ export default function AdminBanners() {
   const loadBanners = useCallback(async ({ silent = false } = {}) => {
     try {
       if (!silent) setLoading(true);
-      const response = await adminService.getBanners();
+      const response = await BannerController.getAll();
       setBanners(response.data || []);
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to load banners");
@@ -63,7 +63,7 @@ export default function AdminBanners() {
 
     try {
       setSaving(true);
-      await adminService.createBanner(formData);
+      await BannerController.create(formData);
       setImage(null);
       setImagePreview(null);
       await loadBanners();
@@ -80,7 +80,7 @@ export default function AdminBanners() {
 
     try {
       setUpdatingId(banner._id);
-      await adminService.updateBanner(banner._id, formData);
+      await BannerController.update(banner._id, formData);
       await loadBanners();
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to update banner");
@@ -97,7 +97,7 @@ export default function AdminBanners() {
 
     try {
       setUpdatingId(bannerId);
-      await adminService.deleteBanner(bannerId);
+      await BannerController.delete(bannerId);
       await loadBanners();
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to delete banner");

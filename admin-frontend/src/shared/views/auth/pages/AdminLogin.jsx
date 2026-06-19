@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminService } from "../../../services/adminService.js";
+import { AuthController } from "../../../controllers";
 import {
   clearAdminSession,
   hasStoredAdminSession,
@@ -35,7 +35,7 @@ const AdminLogin = () => {
       }
 
       try {
-        const response = await adminService.getCurrentAdmin();
+        const response = await AuthController.getCurrentUser();
         if (response.data?.role === "admin") {
           navigate("/admin", { replace: true });
           return;
@@ -56,7 +56,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await adminService.login({ email, password });
+      const response = await AuthController.login({ email, password });
 
       // Handle both response.data and direct data
       const data = response.data || response;

@@ -15,7 +15,7 @@ import {
     Printer,
     LogOut,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import {
@@ -52,7 +52,7 @@ const readCachedDeliveryViewState = () => {
     }
 };
 
-const AdminOrders = () => {
+const AdminOrders = ({ renderDelivery }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const adminUser = getStoredAdminUser();
@@ -79,7 +79,7 @@ const AdminOrders = () => {
             if (!silent) {
                 setLoading(true);
             }
-            const response = await adminService.getOrders();
+            const response = await OrderController.getOrders();
             setOrders(response.data);
             setFilteredOrders(response.data);
             if (isDelivery) {
@@ -296,7 +296,7 @@ const AdminOrders = () => {
     const handleDeleteOrder = async (id) => {
         if (window.confirm("Are you sure you want to delete this order?")) {
             try {
-                await adminService.deleteOrder(id);
+                await OrderController.delete(id);
                 window.dispatchEvent(new Event("admin-orders-updated"));
                 fetchOrders();
             } catch (err) {
@@ -318,7 +318,7 @@ const AdminOrders = () => {
 
         setConfirmingOrderId(orderId);
         try {
-            const response = await adminService.updateOrderStatus(orderId, "Processing");
+            const response = await OrderController.updateStatus(orderId, "Processing");
             const updatedOrder = response.data;
 
             setOrders((currentOrders) =>
@@ -368,7 +368,7 @@ const AdminOrders = () => {
             const formData = new FormData();
             formData.append("receipt", receiptImage, `order-${order._id}-receipt.png`);
 
-            const response = await adminService.sendOrderReceiptToTelegram(order._id, formData);
+            const response = await OrderController.sendReceipt(order._id, formData);
             const updatedOrder = response.data?.order;
 
             if (updatedOrder) {
@@ -604,6 +604,34 @@ const AdminOrders = () => {
       </div>
     </div>
         );
+    }
+
+    if (isDelivery && renderDelivery) {
+        return renderDelivery({
+            deliveryStats,
+            expandedOrderDates,
+            filteredOrders,
+            formatCurrency,
+            formatDeliveryAddress,
+            formatPhoneNumber,
+            getDisplayPaymentStatus,
+            getMapUrl,
+            getPaymentColor,
+            getStatusColor,
+            getStatusLabel,
+            getStatusStyle,
+            groupedOrders,
+            handleDeliveryLogout,
+            handleOpenGoogleMaps,
+            handleRowNavigation,
+            normalizeOrderStatus,
+            receiptNotice,
+            searchTerm,
+            setSearchTerm,
+            setStatusFilter,
+            statusFilter,
+            toggleOrderDate,
+        });
     }
 
     if (isDelivery) {

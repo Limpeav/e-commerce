@@ -6,7 +6,7 @@ import {
     UserCheck,
     RefreshCw,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
@@ -48,7 +48,7 @@ const UserManagement = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await adminService.getUsers();
+            const response = await UserController.getUsers();
             setUsers(response.data);
             setLoading(false);
         } catch (err) {
@@ -59,7 +59,7 @@ const UserManagement = () => {
 
     const fetchStats = useCallback(async () => {
         try {
-            const response = await adminService.getUserStats();
+            const response = await UserController.getStats();
             setStats(response.data);
         } catch (err) {
             console.error("Failed to fetch user stats", err);
@@ -100,7 +100,7 @@ const UserManagement = () => {
             )
         ) {
             try {
-                await adminService.deleteUser(userId);
+                await UserController.delete(userId);
                 await fetchUsers();
                 await fetchStats();
             } catch (err) {

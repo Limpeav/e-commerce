@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Clock3, XCircle } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { ReviewController } from "../../../controllers";
 
 const STATUS_OPTIONS = ["Pending", "Approved", "Rejected"];
 
@@ -32,7 +32,7 @@ const ReviewsModeration = () => {
       setLoading(true);
       setError("");
 
-      const response = await adminService.getReviewQueue({
+      const response = await ReviewController.getQueue({
         status: statusFilter || undefined,
         page,
         limit: 20,
@@ -68,7 +68,7 @@ const ReviewsModeration = () => {
 
     try {
       setSavingReviewId(review.reviewId);
-      await adminService.moderateReview(review.productId, review.reviewId, {
+      await ReviewController.moderate(review.productId, review.reviewId, {
         status: nextStatus,
         moderationNote: note,
       });

@@ -23,6 +23,7 @@ export const adminLazyComponents = {
   AdminCashReport: () => import("../views/admin/CashReport"),
   SellerDashboard: () => import("../views/admin/SellerDashboard"),
   SellerPaymentQueue: () => import("../views/admin/PaymentQueue"),
+  DeliveryDashboard: () => import("../views/admin/DeliveryDashboard"),
 };
 
 export const adminRoutes = [
@@ -48,7 +49,7 @@ export const adminRoutes = [
   { path: "/seller/orders/:id", component: "AdminOrderDetails", allowedRoles: ["seller"] },
   { path: "/seller/payment-queue", component: "SellerPaymentQueue", allowedRoles: ["seller"] },
   { path: "/seller/cash-report", component: "AdminCashReport", allowedRoles: ["seller"] },
-  { path: "/delivery/orders", component: "AdminOrdersList", allowedRoles: ["delivery"] },
+  { path: "/delivery/orders", component: "DeliveryDashboard", allowedRoles: ["delivery"] },
   { path: "/delivery/orders/:id", component: "AdminOrderDetails", allowedRoles: ["delivery"] },
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/staff", component: "AdminStaff", allowedRoles: ["admin"] },

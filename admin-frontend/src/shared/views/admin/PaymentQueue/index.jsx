@@ -7,7 +7,7 @@ import {
     WalletCards,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
-import { adminService } from "../../../services/adminService";
+import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
@@ -31,7 +31,7 @@ const PaymentQueue = () => {
         try {
             if (!silent) setLoading(true);
             setError("");
-            const response = await adminService.getOrders();
+            const response = await OrderController.getOrders();
             setOrders(response.data || []);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to load payment queue");

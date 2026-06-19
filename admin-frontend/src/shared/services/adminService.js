@@ -1,51 +1,4 @@
-import axios from "axios";
-import { config } from "../config/index.js";
-import {
-  clearAdminSession,
-  getPortalLoginPath,
-  getStoredAdminUser,
-  getStoredAdminToken,
-} from "../utils/adminSession.js";
-
-const API_URL = config.API_BASE_URL;
-
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-// Add admin token to requests
-api.interceptors.request.use(
-  (config) => {
-    if (
-      typeof FormData !== "undefined" &&
-      config.data instanceof FormData
-    ) {
-      config.headers.setContentType(undefined);
-    }
-
-    const adminToken = getStoredAdminToken();
-    if (adminToken) {
-      config.headers.Authorization = `Bearer ${adminToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Handle response errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      const loginPath = getPortalLoginPath(getStoredAdminUser());
-      clearAdminSession();
-      window.location.href = loginPath;
-    }
-    return Promise.reject(error);
-  }
-);
+import api from "./api.js";
 
 // Admin API methods
 export const adminService = {
@@ -135,7 +88,10 @@ export const adminService = {
   exportData: (type, format) => api.get(`/admin/export/${type}?format=${format}`),
 
   // Cleanup
-  cleanupReviews: () => api.post("/admin/cleanup-reviews")
+  cleanupReviews: () => api.post("/admin/cleanup-reviews"),
+  getReviewQueue: (params) => api.get("/admin/reviews", { params }),
+  moderateReview: (productId, reviewId, payload) =>
+    api.put(`/admin/reviews/${productId}/${reviewId}`, payload),
 };
 
 export default api;

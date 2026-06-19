@@ -8,7 +8,7 @@ import {
     Search,
     WalletCards,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { DashboardController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import {
     getPortalCashReportPath,
@@ -39,8 +39,8 @@ const SellerDashboard = () => {
                 if (!silent) setLoading(true);
                 setError("");
                 const [ordersResponse, cashResponse] = await Promise.all([
-                    adminService.getOrders(),
-                    adminService.getDailyCashReport(getTodayDate()),
+                    DashboardController.getOrders(),
+                    DashboardController.getCashReport(getTodayDate()),
                 ]);
 
                 setOrders(ordersResponse.data || []);

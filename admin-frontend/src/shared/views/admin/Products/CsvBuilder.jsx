@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminService } from "../../../services/adminService";
+import { ProductController } from "../../../controllers";
 import {
   PRODUCT_CATEGORY_OPTIONS,
   normalizeProductCategory,
@@ -243,7 +243,7 @@ const CsvBuilder = () => {
     setRowUploadState(rowId, true);
 
     try {
-      const response = await adminService.uploadProductImage(formData);
+      const response = await ProductController.uploadImage(formData);
       const imageUrl = response.data?.imageUrl || "";
 
       setRows((currentRows) =>
@@ -350,7 +350,7 @@ const CsvBuilder = () => {
 
     try {
       setIsApplyingProducts(true);
-      const response = await adminService.upsertProductsCsv(formData);
+      const response = await ProductController.upsertCsv(formData);
       alert(
         response.data?.message
           ? `${response.data.message}\nUpdated: ${response.data.updatedCount || 0}\nCreated: ${response.data.createdCount || 0}`
@@ -421,7 +421,7 @@ const CsvBuilder = () => {
     const loadDraft = async () => {
       try {
         setIsLoadingDraft(true);
-        const response = await adminService.getCsvBuilderDraft();
+        const response = await ProductController.getCsvDraft();
         const savedRows = Array.isArray(response.data?.rows) ? response.data.rows : [];
         const nextRows = savedRows.length > 0 ? savedRows.map(mapDraftRow) : [createEmptyRow()];
         setRows(nextRows);
@@ -462,7 +462,7 @@ const CsvBuilder = () => {
     const timeoutId = window.setTimeout(async () => {
       try {
         setIsSavingDraft(true);
-        await adminService.saveCsvBuilderDraft(payload);
+        await ProductController.saveCsvDraft(payload);
         lastSavedSnapshotRef.current = serializedPayload;
         setDraftStatus("Draft saved to database");
       } catch (error) {

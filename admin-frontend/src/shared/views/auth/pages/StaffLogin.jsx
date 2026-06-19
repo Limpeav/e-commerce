@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { adminService } from "../../../services/adminService.js";
+import { AuthController } from "../../../controllers";
 import {
   clearAdminSession,
   getPortalDashboardPath,
@@ -71,7 +71,7 @@ const StaffLogin = () => {
       }
 
       try {
-        const response = await adminService.getCurrentAdmin();
+        const response = await AuthController.getCurrentUser();
         const sessionUser = response.data || getStoredAdminUser();
 
         if (portal.roles.includes(sessionUser?.role)) {
@@ -94,7 +94,7 @@ const StaffLogin = () => {
     setLoading(true);
 
     try {
-      const response = await adminService.login({ email, password });
+      const response = await AuthController.login({ email, password });
       const data = response.data || response;
 
       if (!data || !data.token) {

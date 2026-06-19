@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Search, Star, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/common/Loading";
-import { adminService } from "../../../services/adminService";
+import { ProductController } from "../../../controllers";
 import { getAvailableStock } from "../../../utils/adminProducts";
 
 const RatingStars = ({ rating }) => (
@@ -40,7 +40,7 @@ const RatingReviewList = ({
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const response = await adminService.getProducts();
+        const response = await ProductController.getProducts();
         setProducts(Array.isArray(response.data) ? response.data : []);
       } catch (requestError) {
         setError(

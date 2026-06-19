@@ -179,7 +179,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
   };
   const timezone = getTimezoneName(timezoneOffset);
 
-  const [orders, summaryData, dailyRows, pendingCashCount] = await Promise.all([
+  const [orders, summaryData, dailyRows, pendingCashData] = await Promise.all([
     normalizedPeriod === "day"
       ? Order.find(paidCashMatch)
           .sort({ paidAt: -1 })
@@ -217,17 +217,32 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
           },
           { $sort: { _id: 1 } },
         ]),
-    Order.countDocuments({
-      paymentMethod: "Cash on Delivery",
-      paymentStatus: { $ne: "Paid" },
-      orderStatus: { $nin: ["Delivered", "Cancelled"] },
-    }),
+    Order.aggregate([
+      {
+        $match: {
+          paymentMethod: "Cash on Delivery",
+          paymentStatus: { $ne: "Paid" },
+          orderStatus: { $nin: ["Delivered", "Cancelled"] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          pendingCashCount: { $sum: 1 },
+          pendingCashAmount: { $sum: "$totalPrice" },
+        },
+      },
+    ]),
   ]);
 
   const summary = summaryData[0] || {
     totalCash: 0,
     orderCount: 0,
     averageOrderValue: 0,
+  };
+  const pendingCash = pendingCashData[0] || {
+    pendingCashCount: 0,
+    pendingCashAmount: 0,
   };
 
   return {
@@ -242,7 +257,8 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
       totalCash: Number(summary.totalCash || 0),
       orderCount: Number(summary.orderCount || 0),
       averageOrderValue: Number(summary.averageOrderValue || 0),
-      pendingCashCount,
+      pendingCashCount: Number(pendingCash.pendingCashCount || 0),
+      pendingCashAmount: Number(pendingCash.pendingCashAmount || 0),
     },
     dailyBreakdown:
       normalizedPeriod === "day"
@@ -270,6 +286,7 @@ const buildCashReportCsv = (report) => {
     ["Paid Cash Orders", report.summary.orderCount],
     ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
     ["Pending Cash Orders", report.summary.pendingCashCount],
+    ["Pending Cash Amount", report.summary.pendingCashAmount.toFixed(2)],
     [],
     ...(report.period === "day"
       ? [

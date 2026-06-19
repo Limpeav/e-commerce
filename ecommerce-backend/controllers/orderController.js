@@ -828,7 +828,7 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         // Update isPaid and paidAt when marked as Paid
         if (paymentStatus === "Paid") {
             order.isPaid = true;
-            order.paidAt = Date.now();
+            order.paidAt = order.paidAt || Date.now();
         } else if (paymentStatus === "Pending" || paymentStatus === "Failed" || paymentStatus === "Refunded") {
             order.isPaid = false;
             order.paidAt = undefined;
