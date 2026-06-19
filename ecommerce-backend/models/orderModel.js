@@ -125,6 +125,11 @@ const orderSchema = new mongoose.Schema(
             required: true,
             default: false,
         },
+        stockReserved: {
+            type: Boolean,
+            required: true,
+            default: false,
+        },
         stockRestored: {
             type: Boolean,
             required: true,

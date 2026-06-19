@@ -32,6 +32,8 @@ const paymentSchema = new mongoose.Schema(
             merchantName: { type: String },
             qrCode: { type: String }, // Base64 encoded QR code
             qrString: { type: String }, // QR code string
+            deepLink: { type: String, default: "" },
+            deepLinkAttemptedAt: { type: Date },
             transactionId: { type: String }, // Unique transaction ID
             expiresAt: { type: Date },
         },

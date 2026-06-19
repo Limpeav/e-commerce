@@ -23,6 +23,7 @@ export const getBakongConfig = () => ({
   apiBaseUrl: normalizeUrl(
     process.env.BAKONG_API_URL || "https://api-bakong.nbc.gov.kh"
   ),
+  deepLinkUrl: String(process.env.BAKONG_DEEP_LINK_URL || "").trim(),
   exchangeRate: Number.parseFloat(process.env.USD_TO_KHR_RATE) || 4100,
   reconciliationIntervalMs: Math.max(
     5000,
@@ -67,6 +68,22 @@ export const getBakongConfigErrors = (config = getBakongConfig()) => {
     }
   } catch {
     errors.push("BAKONG_API_URL must be a valid URL");
+  }
+
+  if (config.deepLinkUrl) {
+    try {
+      const deepLinkUrl = new URL(config.deepLinkUrl);
+      if (
+        deepLinkUrl.protocol !== "https:"
+        || deepLinkUrl.pathname !== "/v1/generate_deeplink_by_qr"
+      ) {
+        errors.push(
+          "BAKONG_DEEP_LINK_URL must use HTTPS and end with /v1/generate_deeplink_by_qr"
+        );
+      }
+    } catch {
+      errors.push("BAKONG_DEEP_LINK_URL must be a valid URL");
+    }
   }
 
   if (

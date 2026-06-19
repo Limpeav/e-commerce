@@ -43,6 +43,22 @@ const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
 };
 
 const restoreOrderStockIfNeeded = async (order, session) => {
+    if (order.stockReserved) {
+        for (const item of order.orderItems) {
+            const product = await Product.findById(item.product).session(session);
+
+            if (product) {
+                product.reservedStock = Math.max(
+                    0,
+                    Number(product.reservedStock || 0) - Number(item.quantity || 0)
+                );
+                await product.save({ session });
+            }
+        }
+
+        order.stockReserved = false;
+    }
+
     if (!order.stockReduced || order.stockRestored) {
         return;
     }
@@ -253,6 +269,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     } else {
         const session = await mongoose.startSession();
         const lowStockAlerts = [];
+        const shouldReduceStockImmediately = paymentMethod !== "BAKONG_KHQR";
 
         try {
             let createdOrder;
@@ -296,31 +313,40 @@ export const createOrder = asyncHandler(async (req, res) => {
                     }
                 }
 
-                for (const item of orderItems) {
-                    const product = productMap.get(String(item.product));
-                    const previousStock = product.stock;
-                    product.stock -= item.quantity;
-                    product.totalSold = Math.max(
-                        0,
-                        Number(product.totalSold || 0) + Number(item.quantity || 0)
-                    );
-                    syncLowStockAlertFlag(product);
-                    await product.save({ session });
+                if (shouldReduceStockImmediately) {
+                    for (const item of orderItems) {
+                        const product = productMap.get(String(item.product));
+                        const previousStock = product.stock;
+                        product.stock -= item.quantity;
+                        product.totalSold = Math.max(
+                            0,
+                            Number(product.totalSold || 0) + Number(item.quantity || 0)
+                        );
+                        syncLowStockAlertFlag(product);
+                        await product.save({ session });
 
-                    if (
-                        shouldSendLowStockAlert({
-                            previousStock,
-                            currentStock: product.stock,
-                            lowStockAlertSent: product.lowStockAlertSent,
-                        })
-                    ) {
-                        lowStockAlerts.push({
-                            productId: product._id,
-                            title: product.title,
-                            category: product.category,
-                            stock: product.stock,
-                            imageUrl: product.image,
-                        });
+                        if (
+                            shouldSendLowStockAlert({
+                                previousStock,
+                                currentStock: product.stock,
+                                lowStockAlertSent: product.lowStockAlertSent,
+                            })
+                        ) {
+                            lowStockAlerts.push({
+                                productId: product._id,
+                                title: product.title,
+                                category: product.category,
+                                stock: product.stock,
+                                imageUrl: product.image,
+                            });
+                        }
+                    }
+                } else {
+                    for (const [productId, quantity] of requestedQuantityByProduct) {
+                        const product = productMap.get(productId);
+                        product.reservedStock =
+                            Number(product.reservedStock || 0) + quantity;
+                        await product.save({ session });
                     }
                 }
 
@@ -370,7 +396,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                         taxPrice,
                         shippingPrice: freeShippingPrice,
                         totalPrice: totalWithoutShipping,
-                        stockReduced: true,
+                        stockReduced: shouldReduceStockImmediately,
+                        stockReserved: !shouldReduceStockImmediately,
                         stockRestored: false,
                     });
 
@@ -424,16 +451,18 @@ export const createOrder = asyncHandler(async (req, res) => {
             } else {
                 emitOrderCreated(createdOrder);
             }
-            emitDomainChanged(
-                "products",
-                "inventory-updated",
-                {
-                    productIds: createdOrder.orderItems.map((item) =>
-                        resolveOrderItemProductId(item)
-                    ).filter(Boolean),
-                },
-                { users: true }
-            );
+            if (createdOrder.stockReduced || createdOrder.stockReserved) {
+                emitDomainChanged(
+                    "products",
+                    "inventory-updated",
+                    {
+                        productIds: createdOrder.orderItems.map((item) =>
+                            resolveOrderItemProductId(item)
+                        ).filter(Boolean),
+                    },
+                    { users: true }
+                );
+            }
             if (notification) {
                 emitNotificationCreated(notification);
             }

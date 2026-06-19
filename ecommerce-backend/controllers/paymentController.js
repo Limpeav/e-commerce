@@ -9,12 +9,15 @@ import crypto from "crypto";
 import khqrPackage from "bakong-khqr";
 import { emitDomainChanged, emitOrderUpdated } from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
+import { getAvailableStock } from "../utils/productInventory.js";
 import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
 import axios from "axios";
 import { getBakongConfig } from "../config/bakong.js";
 
 const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
+const BAKONG_DEEP_LINK_TIMEOUT_MS = 10000;
+const reconciliationByPayment = new Map();
 
 const getWebhookSignature = (headers = {}) =>
     headers["x-bakong-signature"]
@@ -126,6 +129,26 @@ const dispatchPaidOrderTelegramAlert = (orderId) => {
 };
 
 const restoreCancelledOrder = async (order, session) => {
+    if (order.stockReserved) {
+        for (const item of order.orderItems) {
+            const product = await Product.findById(item.product).session(session);
+
+            if (product) {
+                product.reservedStock = Math.max(
+                    0,
+                    Number(product.reservedStock || 0) - Number(item.quantity || 0)
+                );
+                await product.save({ session });
+            }
+        }
+
+        order.stockReserved = false;
+    }
+
+    if (order.stockRestored) {
+        return;
+    }
+
     if (order.stockReduced && !order.stockRestored) {
         for (const item of order.orderItems) {
             const product = await Product.findById(item.product).session(session);
@@ -160,7 +183,13 @@ const restoreCancelledOrder = async (order, session) => {
         );
 
         if (existingItem) {
-            existingItem.quantity += Number(item.quantity || 0);
+            // KHQR checkout keeps the customer's cart until payment succeeds.
+            // Ensure the cancelled order quantity is present without adding the
+            // same items a second time when the customer returns to checkout.
+            existingItem.quantity = Math.max(
+                Number(existingItem.quantity || 0),
+                Number(item.quantity || 0)
+            );
         } else {
             cart.items.push({
                 product: productId,
@@ -171,41 +200,6 @@ const restoreCancelledOrder = async (order, session) => {
     }
 
     await cart.save({ session });
-};
-
-const markOrderAsPaid = async (orderRef, paymentResult = {}) => {
-    const order = typeof orderRef?.save === "function"
-        ? orderRef
-        : await Order.findById(orderRef);
-
-    if (!order) {
-        return null;
-    }
-
-    if (order.isPaid && order.paymentStatus === "Paid") {
-        return order;
-    }
-
-    order.isPaid = true;
-    order.paidAt = new Date();
-    order.paymentStatus = "Paid";
-
-    if (Object.keys(paymentResult).length > 0) {
-        order.paymentResult = {
-            ...order.paymentResult,
-            ...paymentResult,
-        };
-    }
-
-    await order.save();
-    emitOrderUpdated(order, {
-        paymentStatus: order.paymentStatus,
-        isPaid: order.isPaid,
-        paidAt: order.paidAt,
-    });
-    dispatchPaidOrderTelegramAlert(order._id);
-
-    return order;
 };
 
 const checkBakongTransaction = async (payment) => {
@@ -238,6 +232,123 @@ const checkBakongTransaction = async (payment) => {
     };
 };
 
+const generateBakongDeepLink = async (qrString, config = getBakongConfig()) => {
+    if (!config.deepLinkUrl || !qrString) {
+        return "";
+    }
+
+    try {
+        const response = await axios.post(
+            config.deepLinkUrl,
+            { qr: qrString },
+            {
+                headers: { "Content-Type": "application/json" },
+                timeout: BAKONG_DEEP_LINK_TIMEOUT_MS,
+            }
+        );
+        const shortLink = String(response.data?.data?.shortLink || "").trim();
+
+        if (!shortLink) {
+            console.warn(
+                "Bakong deep-link API did not return a shortLink:",
+                response.data?.errorCode ?? response.data?.responseCode ?? "unknown"
+            );
+            return "";
+        }
+
+        const parsedShortLink = new URL(shortLink);
+        if (!["https:", "http:"].includes(parsedShortLink.protocol)) {
+            console.warn("Bakong deep-link API returned an unsupported URL");
+            return "";
+        }
+
+        return parsedShortLink.toString();
+    } catch (error) {
+        console.warn(
+            "Bakong deep-link generation unavailable; QR scanning remains enabled:",
+            error.response?.data?.message
+            || error.response?.data?.errorCode
+            || error.code
+            || error.message
+        );
+        return "";
+    }
+};
+
+const reducePaidOrderStockIfNeeded = async (order, session) => {
+    if (order.stockReduced) {
+        return [];
+    }
+
+    const quantityByProduct = new Map();
+    for (const item of order.orderItems) {
+        const productId = String(item.product?._id || item.product);
+        quantityByProduct.set(
+            productId,
+            Number(quantityByProduct.get(productId) || 0)
+                + Number(item.quantity || 0)
+        );
+    }
+
+    const productIds = [...quantityByProduct.keys()];
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productById = new Map(
+        products.map((product) => [product._id.toString(), product])
+    );
+
+    for (const [productId, quantity] of quantityByProduct) {
+        const product = productById.get(productId);
+        if (!product) {
+            throw Object.assign(
+                new Error("A product in this paid order no longer exists"),
+                { statusCode: 409 }
+            );
+        }
+
+        const availableStock = order.stockReserved
+            ? Math.max(
+                0,
+                Number(product.stock || 0)
+                    - (
+                        product.hasProductIssue
+                            ? Number(product.issueQuantity || 0)
+                            : 0
+                    )
+            )
+            : getAvailableStock(product);
+        if (availableStock < quantity) {
+            throw Object.assign(
+                new Error(
+                    `${product.title} only has ${availableStock} left, but the paid order requires ${quantity}`
+                ),
+                { statusCode: 409 }
+            );
+        }
+    }
+
+    for (const [productId, quantity] of quantityByProduct) {
+        const product = productById.get(productId);
+        if (order.stockReserved) {
+            product.reservedStock = Math.max(
+                0,
+                Number(product.reservedStock || 0) - quantity
+            );
+        }
+        product.stock -= quantity;
+        product.totalSold = Math.max(
+            0,
+            Number(product.totalSold || 0) + quantity
+        );
+        syncLowStockAlertFlag(product);
+        await product.save({ session });
+    }
+
+    order.stockReduced = true;
+    order.stockReserved = false;
+    order.stockRestored = false;
+    return productIds;
+};
+
 const completeBakongPayment = async (payment, transactionData = {}) => {
     const orderId = getOrderId(payment.order);
     const completedAt = new Date();
@@ -245,6 +356,7 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
     const session = await mongoose.startSession();
     let completedPayment;
     let paidOrder;
+    let updatedProductIds = [];
 
     try {
         await session.withTransaction(async () => {
@@ -262,6 +374,11 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
             if (!paidOrder) {
                 throw new Error("Order not found for Bakong payment");
             }
+
+            updatedProductIds = await reducePaidOrderStockIfNeeded(
+                paidOrder,
+                session
+            );
 
             completedPayment.status = "Completed";
             completedPayment.completedAt = completedAt;
@@ -301,10 +418,19 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
     }
 
     if (completedPayment?.status === "Completed" && paidOrder) {
+        if (updatedProductIds.length > 0) {
+            emitDomainChanged(
+                "products",
+                "inventory-updated",
+                { productIds: updatedProductIds },
+                { users: true }
+            );
+        }
         emitOrderUpdated(paidOrder, {
             paymentStatus: paidOrder.paymentStatus,
             isPaid: paidOrder.isPaid,
             paidAt: paidOrder.paidAt,
+            stockReduced: paidOrder.stockReduced,
         });
         dispatchPaidOrderTelegramAlert(paidOrder._id);
         emitDomainChanged(
@@ -322,6 +448,7 @@ const expireBakongPayment = async (payment) => {
     const session = await mongoose.startSession();
     let expiredPayment;
     let order;
+    let inventoryChanged = false;
 
     try {
         await session.withTransaction(async () => {
@@ -340,6 +467,9 @@ const expireBakongPayment = async (payment) => {
                 return;
             }
 
+            inventoryChanged = order.stockReserved
+                || (order.stockReduced && !order.stockRestored);
+            await restoreCancelledOrder(order, session);
             expiredPayment.status = "Cancelled";
             order.paymentStatus = "Failed";
             order.paymentResult.status = "Cancelled";
@@ -353,9 +483,23 @@ const expireBakongPayment = async (payment) => {
     }
 
     if (expiredPayment?.status === "Cancelled" && order) {
+        if (inventoryChanged) {
+            emitDomainChanged(
+                "products",
+                "inventory-restored",
+                {
+                    productIds: order.orderItems
+                        .map((item) => item.product?._id || item.product)
+                        .filter(Boolean),
+                },
+                { users: true }
+            );
+        }
         emitOrderUpdated(order, {
             orderStatus: order.orderStatus,
             paymentStatus: order.paymentStatus,
+            stockReserved: order.stockReserved,
+            stockRestored: order.stockRestored,
         });
         emitDomainChanged(
             "payments",
@@ -372,7 +516,7 @@ const expireBakongPayment = async (payment) => {
     return expiredPayment || Payment.findById(payment._id);
 };
 
-export const reconcileBakongPayment = async (paymentRef) => {
+const performBakongReconciliation = async (paymentRef) => {
     const payment = typeof paymentRef?.save === "function"
         ? paymentRef
         : await Payment.findById(paymentRef);
@@ -396,6 +540,29 @@ export const reconcileBakongPayment = async (paymentRef) => {
     }
 
     return payment;
+};
+
+export const reconcileBakongPayment = async (paymentRef) => {
+    const paymentId = String(paymentRef?._id || paymentRef || "");
+
+    if (!paymentId) {
+        return null;
+    }
+
+    const activeReconciliation = reconciliationByPayment.get(paymentId);
+    if (activeReconciliation) {
+        return activeReconciliation;
+    }
+
+    const reconciliation = performBakongReconciliation(paymentRef)
+        .finally(() => {
+            if (reconciliationByPayment.get(paymentId) === reconciliation) {
+                reconciliationByPayment.delete(paymentId);
+            }
+        });
+
+    reconciliationByPayment.set(paymentId, reconciliation);
+    return reconciliation;
 };
 
 export const reconcilePendingBakongPayments = async ({
@@ -482,6 +649,18 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             && existingQr
             && BakongKHQR.verify(existingQr).isValid
         ) {
+            if (
+                !payment.khqrData?.deepLink
+                && !payment.khqrData?.deepLinkAttemptedAt
+                && bakongConfig.deepLinkUrl
+            ) {
+                payment.khqrData.deepLinkAttemptedAt = new Date();
+                payment.khqrData.deepLink = await generateBakongDeepLink(
+                    existingQr,
+                    bakongConfig
+                );
+                await payment.save();
+            }
             return res.json(payment);
         }
     }
@@ -581,6 +760,7 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             light: "#ffffff",
         },
     });
+    const deepLink = await generateBakongDeepLink(khqrString, bakongConfig);
 
     // Create or update payment record
     if (payment) {
@@ -589,6 +769,8 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
             merchantName,
             qrCode: qrCodeBase64,
             qrString: khqrString,
+            deepLink,
+            deepLinkAttemptedAt: bakongConfig.deepLinkUrl ? new Date() : undefined,
             transactionId,
             expiresAt,
         };
@@ -611,6 +793,8 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
                 merchantName,
                 qrCode: qrCodeBase64,
                 qrString: khqrString,
+                deepLink,
+                deepLinkAttemptedAt: bakongConfig.deepLinkUrl ? new Date() : undefined,
                 transactionId,
                 expiresAt,
             },
@@ -766,7 +950,10 @@ export const cancelPayment = asyncHandler(async (req, res) => {
                 throw new Error("Not authorized to cancel this payment");
             }
 
-            if (payment.status !== "Pending") {
+            const canFinalizeExpiredCancellation =
+                payment.status === "Cancelled";
+
+            if (payment.status !== "Pending" && !canFinalizeExpiredCancellation) {
                 res.status(400);
                 throw new Error("Can only cancel pending payments");
             }
@@ -778,7 +965,10 @@ export const cancelPayment = asyncHandler(async (req, res) => {
                 throw new Error("Order not found");
             }
 
-            if (order.orderStatus !== "Pending" || order.isPaid) {
+            if (
+                !["Pending", "Cancelled"].includes(order.orderStatus)
+                || order.isPaid
+            ) {
                 res.status(400);
                 throw new Error("This order can no longer be cancelled");
             }
@@ -846,16 +1036,10 @@ export const confirmPayment = asyncHandler(async (req, res) => {
         throw new Error("Payment not found");
     }
 
-    payment.status = "Completed";
-    payment.completedAt = new Date();
-    payment.paymentResult = {
-        ...payment.paymentResult,
-        responseMessage: "Payment confirmed by admin",
-    };
-
-    await markOrderAsPaid(payment.order);
-
-    await payment.save();
+    const completedPayment = await completeBakongPayment(payment, {
+        payerName: "Admin confirmation",
+        acknowledgedDateMs: Date.now(),
+    });
     emitDomainChanged(
         "payments",
         "confirmed",
@@ -863,5 +1047,8 @@ export const confirmPayment = asyncHandler(async (req, res) => {
         { roles: ["admin", "seller"], userId: payment.user }
     );
 
-    res.json({ message: "Payment confirmed successfully", payment });
+    res.json({
+        message: "Payment confirmed successfully",
+        payment: completedPayment,
+    });
 });

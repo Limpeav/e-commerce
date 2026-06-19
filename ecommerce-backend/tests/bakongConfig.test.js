@@ -17,6 +17,7 @@ const BAKONG_ENV_KEYS = [
   "BAKONG_ACQUIRING_BANK",
   "BAKONG_TOKEN",
   "BAKONG_API_URL",
+  "BAKONG_DEEP_LINK_URL",
 ];
 
 const withBakongEnv = (values, callback) => {
@@ -50,6 +51,8 @@ test("individual production configuration is accepted", () => {
       BAKONG_ACCOUNT_USERNAME: "Cherish Baby Store",
       BAKONG_TOKEN: "production-token",
       BAKONG_API_URL: "https://api-bakong.nbc.gov.kh",
+      BAKONG_DEEP_LINK_URL:
+        "https://api-bakong.nbc.gov.kh/v1/generate_deeplink_by_qr",
     },
     () => {
       assert.deepEqual(getBakongConfigErrors(getBakongConfig()), []);
@@ -79,4 +82,21 @@ test("disabled Bakong payments do not require credentials", () => {
   withBakongEnv({ BAKONG_ENABLED: "false" }, () => {
     assert.deepEqual(getBakongConfigErrors(getBakongConfig()), []);
   });
+});
+
+test("deep-link configuration rejects an invalid endpoint path", () => {
+  withBakongEnv(
+    {
+      BAKONG_ACCOUNT_TYPE: "INDIVIDUAL",
+      BAKONG_ACCOUNT_ID: "store@bank",
+      BAKONG_ACCOUNT_USERNAME: "Cherish Baby Store",
+      BAKONG_TOKEN: "production-token",
+      BAKONG_API_URL: "https://api-bakong.nbc.gov.kh",
+      BAKONG_DEEP_LINK_URL: "https://api-bakong.nbc.gov.kh/deeplink",
+    },
+    () => {
+      const errors = getBakongConfigErrors(getBakongConfig());
+      assert.ok(errors.some((error) => error.includes("BAKONG_DEEP_LINK_URL")));
+    }
+  );
 });

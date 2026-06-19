@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 import { useLanguage } from "../../context/useLanguage";
 import { useDarkMode } from "../../hooks";
-import { config } from "../../config";
+import { useToast } from "../../context/ToastContext";
 
 const KHQR_EXPIRY_SECONDS = 5 * 60;
 
@@ -45,12 +45,20 @@ const PhoneIcon = () => (
     <line x1="12" y1="18" x2="12.01" y2="18" />
   </svg>
 );
+const DownloadIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M12 3v12" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M5 21h14" />
+  </svg>
+);
 
 export default function BakongPayment() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [isDark] = useDarkMode();
+  const { success, error: toastError } = useToast();
   const {
     order,
     payment,
@@ -89,6 +97,54 @@ export default function BakongPayment() {
     if (m < 2) return "text-red-500";
     if (m < 4) return "text-amber-500";
     return "text-primary";
+  };
+
+  const handleSaveQr = async () => {
+    if (!payment?.khqrData?.qrCode) {
+      return;
+    }
+
+    const fileName = `cherish-khqr-${orderId.slice(-8).toUpperCase()}.png`;
+
+    try {
+      const response = await fetch(payment.khqrData.qrCode);
+      const blob = await response.blob();
+      const file = new File([blob], fileName, { type: blob.type || "image/png" });
+
+      if (
+        navigator.share
+        && navigator.canShare?.({ files: [file] })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: t("bakongPayment.shareQrTitle"),
+          text: t("bakongPayment.shareQrText"),
+        });
+        return;
+      }
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      success(
+        t("bakongPayment.qrSavedTitle"),
+        t("bakongPayment.qrSavedMessage")
+      );
+    } catch (saveError) {
+      if (saveError?.name === "AbortError") {
+        return;
+      }
+
+      toastError(
+        t("bakongPayment.qrSaveFailedTitle"),
+        t("bakongPayment.qrSaveFailedMessage")
+      );
+    }
   };
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -360,7 +416,7 @@ export default function BakongPayment() {
               </div>
             </section>
 
-            <section className={`flex min-h-0 flex-col justify-start p-4 sm:p-5 md:p-6 lg:p-8 ${
+            <section className={`flex min-h-0 flex-col justify-start overflow-y-auto p-4 sm:p-5 md:p-6 lg:p-8 ${
               isDark ? "bg-[#151c17]" : "bg-white"
             }`}>
               <div className="min-h-0">
@@ -424,9 +480,9 @@ export default function BakongPayment() {
               </div>
 
               <div className="shrink-0 pt-3 sm:pt-4 md:mt-auto">
-                {config.ABA_MOBILE_PAYMENT_URL && (
+                {payment.khqrData.deepLink && (
                   <a
-                    href={config.ABA_MOBILE_PAYMENT_URL}
+                    href={payment.khqrData.deepLink}
                     className={`mb-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors sm:min-h-12 sm:text-sm md:hidden ${
                       isDark
                         ? "border-blue-400/30 bg-blue-500/15 text-blue-200 hover:bg-blue-500/25"
@@ -434,9 +490,37 @@ export default function BakongPayment() {
                     }`}
                   >
                     <PhoneIcon />
-                    {t("bakongPayment.openAbaMobile")}
+                    {t("bakongPayment.payWithBankingApp")}
                   </a>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveQr}
+                  className={`mb-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors active:scale-[0.99] sm:min-h-12 sm:text-sm ${
+                    isDark
+                      ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                >
+                  <DownloadIcon />
+                  {t("bakongPayment.saveQr")}
+                </button>
+
+                <details className={`mb-2 rounded-xl border px-3 py-2 text-[10px] sm:px-4 sm:text-xs ${
+                  isDark
+                    ? "border-[#334139] bg-[#1b241e] text-[#aab7ae]"
+                    : "border-stone-200 bg-stone-50 text-text-muted"
+                }`}>
+                  <summary className="cursor-pointer select-none font-bold">
+                    {t("bakongPayment.samePhoneHelp")}
+                  </summary>
+                  <ol className="mt-2 list-decimal space-y-1 pl-4 font-medium leading-relaxed">
+                    <li>{t("bakongPayment.samePhoneStep1")}</li>
+                    <li>{t("bakongPayment.samePhoneStep2")}</li>
+                    <li>{t("bakongPayment.samePhoneStep3")}</li>
+                  </ol>
+                </details>
 
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button

@@ -351,7 +351,7 @@ const Checkout = () => {
   }
 
   return (
-    <div className={`min-h-screen pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
+    <div className={`min-h-screen pt-24 sm:pt-28 lg:pt-32 pb-16 lg:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         <div className="mb-12">
           <button

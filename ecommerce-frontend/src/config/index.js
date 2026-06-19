@@ -11,8 +11,6 @@ const normalizeApiBaseUrl = (rawUrl) => {
 export const config = {
   // API Configuration
   API_BASE_URL: normalizeApiBaseUrl(import.meta.env.VITE_API_URL),
-  ABA_MOBILE_PAYMENT_URL:
-    import.meta.env.VITE_ABA_MOBILE_PAYMENT_URL?.trim() || "",
 
   // App Configuration
   APP_NAME: 'E-Commerce Platform',
