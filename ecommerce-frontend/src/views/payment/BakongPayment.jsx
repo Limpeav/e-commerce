@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 import { useLanguage } from "../../context/useLanguage";
@@ -59,6 +59,7 @@ export default function BakongPayment() {
   const { t } = useLanguage();
   const [isDark] = useDarkMode();
   const { success, error: toastError } = useToast();
+  const successAlertShownRef = useRef(false);
   const {
     order,
     payment,
@@ -89,6 +90,21 @@ export default function BakongPayment() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      paymentStatus !== "completed"
+      || successAlertShownRef.current
+    ) {
+      return;
+    }
+
+    successAlertShownRef.current = true;
+    success(
+      t("bakongPayment.paymentSuccessful"),
+      t("bakongPayment.paymentConfirmed")
+    );
+  }, [paymentStatus, success, t]);
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {

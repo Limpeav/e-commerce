@@ -631,6 +631,20 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
         throw new Error("Not authorized to access this order");
     }
 
+    if (order.isPaid || order.paymentStatus === "Paid") {
+        const completedPayment = await Payment.findOne({
+            order: orderId,
+            status: "Completed",
+        }).sort({ completedAt: -1, createdAt: -1 });
+
+        if (completedPayment) {
+            return res.json(completedPayment);
+        }
+
+        res.status(409);
+        throw new Error("This order has already been paid");
+    }
+
     // Check if payment already exists for this order
     let payment = await Payment.findOne({ order: orderId, status: "Pending" });
 

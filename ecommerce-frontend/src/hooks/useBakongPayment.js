@@ -36,9 +36,12 @@ export const useBakongPayment = (orderId, navigate) => {
         return;
       }
 
+      const nextPayment = result.data.payment;
+
       setOrder(result.data.order);
-      setPayment(result.data.payment);
-      setSelectedCurrency(result.data.payment.currency || currency);
+      setPayment(nextPayment);
+      setPaymentStatus(PaymentController.deriveStatus(nextPayment));
+      setSelectedCurrency(nextPayment.currency || currency);
       setLoading(false);
       setRefreshing(false);
     },
@@ -101,7 +104,10 @@ export const useBakongPayment = (orderId, navigate) => {
   }, [navigate, orderId, paymentStatus]);
 
   useEffect(() => {
-    if (!payment?.khqrData?.expiresAt) {
+    if (
+      paymentStatus !== "pending"
+      || !payment?.khqrData?.expiresAt
+    ) {
       return undefined;
     }
 
@@ -117,7 +123,7 @@ export const useBakongPayment = (orderId, navigate) => {
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [payment?.khqrData?.expiresAt]);
+  }, [payment?.khqrData?.expiresAt, paymentStatus]);
 
   const handleCancel = async () => {
     setCancelling(true);
