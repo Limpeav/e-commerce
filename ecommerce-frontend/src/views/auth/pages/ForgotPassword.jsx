@@ -42,8 +42,10 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
+  const [verificationRejected, setVerificationRejected] = useState(false);
 
   const codeInputRefs = useRef([]);
+  const verificationFeedbackTimerRef = useRef(null);
   const navigate = useNavigate();
 
   // Countdown timer for resend button
@@ -60,6 +62,50 @@ const ForgotPassword = () => {
       setTimeout(() => codeInputRefs.current[0]?.focus(), 300);
     }
   }, [step]);
+
+  useEffect(() => () => {
+    if (verificationFeedbackTimerRef.current) {
+      clearTimeout(verificationFeedbackTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (step !== STEPS.SUCCESS) {
+      return undefined;
+    }
+
+    const redirectTimer = setTimeout(() => {
+      navigate("/login", { replace: true });
+    }, 3000);
+
+    return () => clearTimeout(redirectTimer);
+  }, [navigate, step]);
+
+  const showRejectedVerification = () => {
+    setVerificationRejected(true);
+
+    if (verificationFeedbackTimerRef.current) {
+      clearTimeout(verificationFeedbackTimerRef.current);
+    }
+
+    verificationFeedbackTimerRef.current = setTimeout(() => {
+      setVerificationRejected(false);
+      verificationFeedbackTimerRef.current = null;
+    }, 3000);
+  };
 
   // Step 1: Find account by email
   const handleFindAccount = async (e) => {
@@ -139,6 +185,7 @@ const ForgotPassword = () => {
         err.response?.data?.message ||
         "Invalid code. Please check and try again."
       );
+      showRejectedVerification();
       // Clear code inputs on error
       setCode(["", "", "", "", "", ""]);
       codeInputRefs.current[0]?.focus();
@@ -157,6 +204,7 @@ const ForgotPassword = () => {
       await resendResetCode({ email: email.trim() });
       setResendCooldown(60);
       setCode(["", "", "", "", "", ""]);
+      setVerificationRejected(false);
       codeInputRefs.current[0]?.focus();
     } catch (err) {
       setError(
@@ -208,7 +256,7 @@ const ForgotPassword = () => {
     if (step === STEPS.SUCCESS) return null;
 
     return (
-      <div className="flex items-center justify-center gap-2 mb-8">
+      <div className="forgot-password-steps flex items-center justify-center gap-2 mb-3 sm:mb-5">
         {steps.map((s, i) => (
           <div key={s.num} className="flex items-center gap-2">
             <div
@@ -270,7 +318,7 @@ const ForgotPassword = () => {
   const config = getStepConfig();
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center px-4 py-12 relative overflow-hidden font-sans">
+    <div className="forgot-password-page h-[100dvh] min-h-0 bg-bg-base flex items-center justify-center px-3 py-3 sm:px-4 sm:py-5 relative overflow-hidden font-sans">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
@@ -284,16 +332,16 @@ const ForgotPassword = () => {
         ></div>
       </div>
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="forgot-password-shell w-full max-w-md relative z-10">
         {/* Logo/Brand Section */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl border border-stone-100 mb-8 transform hover:scale-105 transition-transform duration-300 dark:bg-[#232624] dark:border-[#383D39]">
+        <div className="forgot-password-heading text-center mb-4 sm:mb-6">
+          <div className="forgot-password-heading-icon inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-stone-100 mb-3 sm:mb-4 transform hover:scale-105 transition-transform duration-300 dark:bg-[#232624] dark:border-[#383D39]">
             {config.icon}
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-text-main mb-3 font-display tracking-tight leading-none">
+          <h1 className="forgot-password-title text-3xl sm:text-4xl font-black text-text-main mb-2 font-display tracking-tight leading-none">
             {config.title}
           </h1>
-          <p className="text-text-muted font-medium text-lg">
+          <p className="forgot-password-subtitle text-text-muted font-medium text-sm sm:text-base">
             {config.subtitle}
           </p>
         </div>
@@ -302,14 +350,33 @@ const ForgotPassword = () => {
         <StepIndicator />
 
         {/* Card */}
-        <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white p-10 dark:bg-[#232624]/95 dark:border-[#383D39]">
+        <div
+          className={`forgot-password-card bg-white/80 backdrop-blur-2xl rounded-[1.75rem] sm:rounded-[2.5rem] shadow-2xl border border-white p-5 sm:p-7 dark:bg-[#232624]/95 dark:border-[#383D39] ${
+            step === STEPS.VERIFY_CODE
+              ? `otp-electric-frame otp-embossed-card ${verificationRejected ? "otp-electric-frame--error" : ""}`
+              : ""
+          }`}
+        >
           {/* Error Message */}
-          {error && (
+          {step === STEPS.VERIFY_CODE ? (
+            <div
+              role="alert"
+              aria-live="polite"
+              className={`forgot-password-error-slot ${
+                error ? "forgot-password-error-slot--visible" : ""
+              }`}
+            >
+              <div className="forgot-password-error-message">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <p className="text-red-700 text-sm font-bold">{error || "\u00a0"}</p>
+              </div>
+            </div>
+          ) : error ? (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake mb-6">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-red-700 text-sm font-bold">{error}</p>
             </div>
-          )}
+          ) : null}
 
           {/* ===== STEP 1: Find Account ===== */}
           {step === STEPS.FIND_ACCOUNT && (
@@ -378,8 +445,8 @@ const ForgotPassword = () => {
           {/* ===== STEP 2: Verify Code ===== */}
           {step === STEPS.VERIFY_CODE && (
             <form onSubmit={handleVerifyCode} className="space-y-6">
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 text-center dark:bg-[#1A1C1B] dark:border-[#383D39]">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
+              <div className="otp-embossed-panel bg-primary/5 rounded-2xl p-5 border border-primary/10 text-center dark:bg-[#1A1C1B] dark:border-[#383D39]">
+                <div className="otp-embossed-icon inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
                 <p className="text-sm text-text-muted leading-relaxed">
@@ -408,6 +475,7 @@ const ForgotPassword = () => {
                         handleCodeChange(index, val);
                       }}
                       onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                      aria-invalid={verificationRejected}
                       onPaste={(e) => {
                         e.preventDefault();
                         const pastedData = e.clipboardData
@@ -418,7 +486,7 @@ const ForgotPassword = () => {
                           handleCodeChange(0, pastedData);
                         }
                       }}
-                      className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black border-2 rounded-xl transition-all focus:outline-none ${digit
+                      className={`otp-embossed-input w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-black border-2 rounded-xl transition-all focus:outline-none ${digit
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-stone-200 bg-stone-50/50 text-text-main focus:border-primary focus:ring-4 focus:ring-primary/5 dark:border-[#383D39] dark:bg-[#1A1C1B]"
                         }`}
@@ -461,8 +529,9 @@ const ForgotPassword = () => {
                     setStep(STEPS.FIND_ACCOUNT);
                     setError("");
                     setCode(["", "", "", "", "", ""]);
+                    setVerificationRejected(false);
                   }}
-                  className="flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2 dark:border-[#383D39] dark:bg-[#1A1C1B] dark:hover:bg-[#2D312E]"
+                  className="otp-embossed-button flex-1 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs border-2 border-stone-100 text-text-muted hover:border-stone-200 hover:bg-stone-50 transition-all flex items-center justify-center gap-2 dark:border-[#383D39] dark:bg-[#1A1C1B] dark:hover:bg-[#2D312E]"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -470,7 +539,7 @@ const ForgotPassword = () => {
                 <button
                   type="submit"
                   disabled={loading || code.join("").length !== 6}
-                  className={`flex-[2] py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 ${loading || code.join("").length !== 6
+                  className={`otp-embossed-button flex-[2] py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-xs shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 ${loading || code.join("").length !== 6
                     ? "bg-stone-200 text-stone-500 cursor-not-allowed"
                     : "bg-primary text-white hover:bg-primary-dark hover:shadow-primary/20 hover:-translate-y-0.5 active:scale-95"
                     }`}
@@ -616,22 +685,28 @@ const ForgotPassword = () => {
 
           {/* ===== STEP 4: Success ===== */}
           {step === STEPS.SUCCESS && (
-            <div className="space-y-6 text-center">
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-5">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="forgot-password-success space-y-6 text-center">
+              <div className="forgot-password-success-panel bg-green-50 border border-green-100 rounded-2xl p-8">
+                <div className="forgot-password-success-icon inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-5">
+                  <CheckCircle className="forgot-password-success-check w-8 h-8 text-green-500" />
                 </div>
-                <h3 className="text-lg font-black text-green-800 mb-2">
+                <h3 className="forgot-password-success-copy text-lg font-black text-green-800 mb-2">
                   All Set!
                 </h3>
-                <p className="text-sm text-green-700 leading-relaxed">
+                <p className="forgot-password-success-copy text-sm text-green-700 leading-relaxed">
                   Your password has been changed successfully. You can now sign
                   in with your new password.
                 </p>
+                <p className="forgot-password-success-copy mt-4 text-xs font-bold uppercase tracking-wider text-green-600">
+                  Redirecting to sign in…
+                </p>
+                <div className="forgot-password-success-progress mt-3 h-1 overflow-hidden rounded-full bg-green-200">
+                  <span className="block h-full rounded-full bg-green-500" />
+                </div>
               </div>
 
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login", { replace: true })}
                 className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -639,14 +714,6 @@ const ForgotPassword = () => {
               </button>
             </div>
           )}
-        </div>
-
-        {/* Security Badge */}
-        <div className="mt-10 text-center">
-          <div className="inline-flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] bg-white/50 px-6 py-3 rounded-full border border-white/20 shadow-sm backdrop-blur-sm dark:bg-[#232624]/80 dark:border-[#383D39]">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Secure SSL Encryption</span>
-          </div>
         </div>
       </div>
     </div>

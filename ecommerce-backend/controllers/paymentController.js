@@ -23,7 +23,14 @@ const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
 const BAKONG_DEEP_LINK_TIMEOUT_MS = 10000;
 const BAKONG_AUTHORIZATION_COOLDOWN_MS = 60 * 1000;
+const BAKONG_RETRY_DELAYS_MS = [
+    60 * 1000,
+    2 * 60 * 1000,
+    5 * 60 * 1000,
+    15 * 60 * 1000,
+];
 const reconciliationByPayment = new Map();
+const reconciliationBackoffByPayment = new Map();
 let bakongAuthorizationBlockedUntil = 0;
 let bakongAuthorizationErrorLoggedAt = 0;
 
@@ -598,12 +605,36 @@ export const reconcilePendingBakongPayments = async ({
         "khqrData.expiresAt": { $gt: reconciliationCutoff },
     })
         .sort({ createdAt: 1 })
-        .limit(effectiveBatchSize);
-    const summary = { checked: 0, completed: 0, expired: 0, failed: 0 };
+        // Fetch extra candidates because some may currently be deferred by
+        // temporary per-payment API backoff.
+        .limit(Math.min(100, effectiveBatchSize * 4));
+    const summary = {
+        checked: 0,
+        completed: 0,
+        expired: 0,
+        failed: 0,
+        deferred: 0,
+    };
+    let attempted = 0;
 
     for (const payment of payments) {
+        const paymentId = payment._id.toString();
+        const backoff = reconciliationBackoffByPayment.get(paymentId);
+
+        if (backoff?.nextRetryAt > Date.now()) {
+            summary.deferred += 1;
+            continue;
+        }
+
+        if (attempted >= effectiveBatchSize) {
+            break;
+        }
+
+        attempted += 1;
+
         try {
             const updatedPayment = await reconcileBakongPayment(payment);
+            reconciliationBackoffByPayment.delete(paymentId);
             summary.checked += 1;
 
             if (updatedPayment?.status === "Completed") {
@@ -613,9 +644,24 @@ export const reconcilePendingBakongPayments = async ({
             }
         } catch (error) {
             summary.failed += 1;
+            const previousFailures = backoff?.failures || 0;
+            const failures = previousFailures + 1;
+            const retryDelayMs = BAKONG_RETRY_DELAYS_MS[
+                Math.min(failures - 1, BAKONG_RETRY_DELAYS_MS.length - 1)
+            ];
+            const nextRetryAt = Date.now() + retryDelayMs;
+
+            reconciliationBackoffByPayment.set(paymentId, {
+                failures,
+                nextRetryAt,
+            });
+
             console.error(
-                `Bakong reconciliation failed for payment ${payment._id}:`,
-                error.message
+                `Bakong reconciliation failed for payment ${payment._id}; `
+                + `retrying in ${Math.round(retryDelayMs / 60000)} minute(s):`,
+                error.response?.status
+                    ? `HTTP ${error.response.status}`
+                    : error.message
             );
         }
     }

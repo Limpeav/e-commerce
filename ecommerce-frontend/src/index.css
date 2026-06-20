@@ -248,6 +248,399 @@ h6 {
     animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+/* Moving verification border. The card's existing colors remain untouched. */
+@property --otp-electric-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+.otp-electric-frame {
+    --otp-electric-color: var(--color-primary);
+    --otp-electric-angle: 0deg;
+    position: relative;
+    isolation: isolate;
+}
+
+.otp-electric-frame::before,
+.otp-electric-frame::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    z-index: -1;
+    padding: 3px;
+    border-radius: calc(2.5rem + 3px);
+    background: conic-gradient(
+        from var(--otp-electric-angle),
+        transparent 0deg 300deg,
+        color-mix(in srgb, var(--otp-electric-color) 22%, transparent) 312deg,
+        var(--otp-electric-color) 334deg,
+        color-mix(in srgb, var(--otp-electric-color) 45%, transparent) 350deg,
+        transparent 360deg
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: otp-electric-orbit 3.2s linear infinite;
+    transition: background 180ms ease, filter 180ms ease;
+    pointer-events: none;
+}
+
+.otp-electric-frame::after {
+    inset: -4px;
+    padding: 4px;
+    filter: blur(5px);
+    opacity: 0.28;
+}
+
+.otp-electric-frame--error {
+    --otp-electric-color: #dc2626;
+}
+
+.otp-embossed-card {
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(in srgb, white 94%, var(--color-primary) 6%),
+            color-mix(in srgb, white 98%, var(--color-surface-soft) 2%)
+        );
+    box-shadow:
+        22px 22px 45px rgba(71, 77, 72, 0.16),
+        -16px -16px 35px rgba(255, 255, 255, 0.9),
+        inset 1px 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.otp-embossed-panel {
+    box-shadow:
+        inset 7px 7px 14px rgba(93, 103, 95, 0.08),
+        inset -7px -7px 14px rgba(255, 255, 255, 0.9);
+}
+
+.otp-embossed-icon {
+    box-shadow:
+        7px 7px 14px rgba(93, 103, 95, 0.12),
+        -7px -7px 14px rgba(255, 255, 255, 0.9);
+}
+
+.otp-embossed-input {
+    caret-color: var(--otp-electric-color);
+    box-shadow:
+        inset 7px 7px 12px rgba(82, 90, 84, 0.14),
+        inset -7px -7px 12px rgba(255, 255, 255, 0.92);
+}
+
+.otp-embossed-input:focus {
+    border-color: var(--otp-electric-color);
+    box-shadow:
+        inset 5px 5px 10px rgba(82, 90, 84, 0.12),
+        inset -5px -5px 10px rgba(255, 255, 255, 0.94),
+        0 0 0 4px color-mix(in srgb, var(--otp-electric-color) 13%, transparent),
+        0 0 18px color-mix(in srgb, var(--otp-electric-color) 28%, transparent);
+}
+
+.otp-electric-frame--error .otp-embossed-input {
+    border-color: color-mix(in srgb, #dc2626 70%, white);
+}
+
+.otp-embossed-button {
+    box-shadow:
+        9px 9px 18px rgba(73, 81, 75, 0.16),
+        -7px -7px 16px rgba(255, 255, 255, 0.82);
+}
+
+.otp-embossed-button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+    box-shadow:
+        inset 5px 5px 10px rgba(73, 81, 75, 0.14),
+        inset -5px -5px 10px rgba(255, 255, 255, 0.3);
+}
+
+.forgot-password-error-slot {
+    min-height: 3.25rem;
+    margin-bottom: 0.65rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.forgot-password-error-slot--visible {
+    opacity: 1;
+    visibility: visible;
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.forgot-password-error-message {
+    min-height: 3.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #fecaca;
+    border-radius: 1rem;
+    background: #fef2f2;
+    box-shadow: 0 10px 24px rgba(127, 29, 29, 0.1);
+}
+
+html.dark .forgot-password-error-message {
+    border-color: rgba(248, 113, 113, 0.42);
+    background: #3b1f22;
+}
+
+html.dark .forgot-password-error-message p {
+    color: #fecaca;
+}
+
+html.dark .forgot-password-error-message svg {
+    color: #f87171;
+}
+
+.forgot-password-success {
+    animation: forgot-password-success-enter 550ms
+        cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.forgot-password-success-panel {
+    animation: forgot-password-success-glow 1.8s ease-in-out infinite alternate;
+}
+
+.forgot-password-success-icon {
+    animation: forgot-password-success-pop 650ms
+        cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.forgot-password-success-check {
+    animation: forgot-password-success-check 600ms ease-out 260ms both;
+}
+
+.forgot-password-success-copy {
+    animation: fadeIn 500ms ease-out 280ms both;
+}
+
+.forgot-password-success-progress span {
+    width: 100%;
+    transform-origin: left;
+    animation: forgot-password-success-countdown 3s linear both;
+}
+
+html.dark .forgot-password-success-panel {
+    border-color: rgba(34, 197, 94, 0.38);
+    background: rgba(20, 83, 45, 0.22);
+}
+
+html.dark .forgot-password-success-panel h3 {
+    color: #86efac;
+}
+
+html.dark .forgot-password-success-panel p {
+    color: #bbf7d0;
+}
+
+@keyframes forgot-password-success-enter {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes forgot-password-success-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.35) rotate(-18deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+@keyframes forgot-password-success-check {
+    from {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 80;
+    }
+
+    to {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes forgot-password-success-glow {
+    from {
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    }
+
+    to {
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.14);
+    }
+}
+
+@keyframes forgot-password-success-countdown {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+html.dark .otp-electric-frame::before,
+html.dark .otp-electric-frame::after {
+    opacity: 0.85;
+}
+
+html.dark .otp-electric-frame::after {
+    opacity: 0.22;
+}
+
+html.dark .otp-embossed-card {
+    background: linear-gradient(145deg, #252925, #202321);
+    box-shadow:
+        20px 20px 40px rgba(0, 0, 0, 0.34),
+        -10px -10px 24px rgba(62, 69, 63, 0.28),
+        inset 1px 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html.dark .otp-embossed-panel,
+html.dark .otp-embossed-input {
+    box-shadow:
+        inset 7px 7px 14px rgba(0, 0, 0, 0.32),
+        inset -6px -6px 12px rgba(70, 78, 71, 0.22);
+}
+
+html.dark .otp-embossed-icon,
+html.dark .otp-embossed-button {
+    box-shadow:
+        8px 8px 16px rgba(0, 0, 0, 0.3),
+        -6px -6px 14px rgba(70, 78, 71, 0.2);
+}
+
+@media (max-width: 390px) {
+    .forgot-password-card {
+        padding: 1rem;
+    }
+
+    .otp-embossed-input {
+        width: 2.65rem;
+        height: 3.25rem;
+        font-size: 1.125rem;
+    }
+
+    .forgot-password-error-slot,
+    .forgot-password-error-message {
+        min-height: 2.75rem;
+    }
+
+    .forgot-password-error-message {
+        align-items: center;
+        padding: 0.6rem 0.75rem;
+        border-radius: 1rem;
+    }
+
+    .forgot-password-error-message p {
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+    }
+}
+
+@media (max-height: 760px) {
+    .forgot-password-heading {
+        margin-bottom: 0.65rem;
+    }
+
+    .forgot-password-heading-icon {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .forgot-password-title {
+        font-size: 1.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .forgot-password-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .forgot-password-page .forgot-password-card {
+        padding: 1rem 1.25rem;
+    }
+
+    .forgot-password-error-slot {
+        min-height: 2.65rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .forgot-password-error-message {
+        min-height: 2.65rem;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .forgot-password-page .forgot-password-card form {
+        gap: 0.75rem;
+    }
+
+    .forgot-password-page .otp-embossed-panel {
+        padding: 0.75rem;
+    }
+
+    .forgot-password-page .otp-embossed-panel .otp-embossed-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .forgot-password-page .otp-embossed-input {
+        height: 3rem;
+    }
+}
+
+@media (max-height: 650px) {
+    .forgot-password-heading {
+        display: none;
+    }
+
+    .forgot-password-steps {
+        margin-bottom: 0.45rem;
+    }
+
+    .forgot-password-page .forgot-password-card {
+        padding: 0.8rem 1rem;
+    }
+}
+
+@keyframes otp-electric-orbit {
+    to {
+        --otp-electric-angle: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .otp-electric-frame::before,
+    .otp-electric-frame::after,
+    .forgot-password-success,
+    .forgot-password-success-panel,
+    .forgot-password-success-icon,
+    .forgot-password-success-check,
+    .forgot-password-success-copy,
+    .forgot-password-success-progress span {
+        animation: none;
+    }
+}
+
 /* Global Interactive Pointers */
 button,
 [role="button"],

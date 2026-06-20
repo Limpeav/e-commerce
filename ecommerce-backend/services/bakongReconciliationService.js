@@ -14,7 +14,7 @@ const runReconciliation = async () => {
   try {
     const summary = await reconcilePendingBakongPayments();
 
-    if (summary.completed || summary.expired || summary.failed) {
+    if (summary.completed || summary.expired) {
       console.log("Bakong reconciliation:", summary);
     }
   } catch (error) {
