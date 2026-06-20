@@ -69,6 +69,11 @@ export const getBakongConfig = () => ({
       Number.parseInt(process.env.BAKONG_RECONCILIATION_BATCH_SIZE, 10) || 25
     )
   ),
+  reconciliationLookbackMs: Math.max(
+    5 * 60 * 1000,
+    Number.parseInt(process.env.BAKONG_RECONCILIATION_LOOKBACK_MS, 10)
+      || 24 * 60 * 60 * 1000
+  ),
 });
 
 export const getBakongConfigErrors = (config = getBakongConfig()) => {

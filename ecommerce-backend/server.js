@@ -201,6 +201,13 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+app.get("/health", (req, res) => {
+  res.status(mongoose.connection.readyState === 1 ? 200 : 503).json({
+    status: mongoose.connection.readyState === 1 ? "ok" : "unavailable",
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
+
 app.get("/test", (req, res) => {
   res.json({ message: "Backend working fine" });
 });

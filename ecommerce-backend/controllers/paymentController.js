@@ -581,16 +581,24 @@ export const reconcileBakongPayment = async (paymentRef) => {
 };
 
 export const reconcilePendingBakongPayments = async ({
-    batchSize = getBakongConfig().reconciliationBatchSize,
+    batchSize,
+    lookbackMs,
 } = {}) => {
+    const config = getBakongConfig();
+    const effectiveBatchSize = batchSize || config.reconciliationBatchSize;
+    const effectiveLookbackMs = lookbackMs || config.reconciliationLookbackMs;
+    const reconciliationCutoff = new Date(Date.now() - effectiveLookbackMs);
     const payments = await Payment.find({
         paymentMethod: "BAKONG_KHQR",
         status: "Pending",
         "khqrData.qrString": { $exists: true, $ne: "" },
-        "khqrData.expiresAt": { $gt: new Date() },
+        // Continue checking recently expired QR attempts. A production host can
+        // sleep or restart while the customer pays, and Bakong confirmation may
+        // therefore be observed after the QR's display timer has elapsed.
+        "khqrData.expiresAt": { $gt: reconciliationCutoff },
     })
         .sort({ createdAt: 1 })
-        .limit(batchSize);
+        .limit(effectiveBatchSize);
     const summary = { checked: 0, completed: 0, expired: 0, failed: 0 };
 
     for (const payment of payments) {
@@ -665,6 +673,22 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     let payment = await Payment.findOne({ order: orderId, status: "Pending" });
 
     if (payment) {
+        // Check the previous QR before replacing it. This prevents a delayed
+        // bank confirmation from being lost when the customer requests a new
+        // QR immediately after the display timer expires.
+        try {
+            payment = await reconcileBakongPayment(payment);
+        } catch (error) {
+            console.error(
+                `Bakong pre-regeneration check failed for payment ${payment._id}:`,
+                error.message
+            );
+        }
+
+        if (payment?.status === "Completed") {
+            return res.json(payment);
+        }
+
         // Return existing payment if still valid
         const existingQr = payment.khqrData?.qrString;
         const expectedNotePrefix = `KHQR amount: ${payment.amount} ${requestedCurrency}`;

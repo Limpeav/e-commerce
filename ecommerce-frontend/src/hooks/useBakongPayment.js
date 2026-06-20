@@ -51,7 +51,10 @@ export const useBakongPayment = (orderId, navigate) => {
   }, [fetchOrderAndGenerateQR]);
 
   useEffect(() => {
-    if (!payment?._id || paymentStatus !== "pending") {
+    if (
+      !payment?._id
+      || !["pending", "expired"].includes(paymentStatus)
+    ) {
       return undefined;
     }
 
@@ -64,9 +67,13 @@ export const useBakongPayment = (orderId, navigate) => {
 
       const nextPayment = result.data;
       const nextStatus = PaymentController.deriveStatus(nextPayment);
+      const qrHasExpired =
+        nextStatus === "pending"
+        && nextPayment?.khqrData?.expiresAt
+        && new Date(nextPayment.khqrData.expiresAt).getTime() <= Date.now();
 
       setPayment(nextPayment);
-      setPaymentStatus(nextStatus);
+      setPaymentStatus(qrHasExpired ? "expired" : nextStatus);
 
     }, 5000);
 

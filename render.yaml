@@ -5,6 +5,7 @@ services:
     rootDir: ecommerce-backend
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -46,6 +47,8 @@ services:
         value: "15000"
       - key: BAKONG_RECONCILIATION_BATCH_SIZE
         value: "25"
+      - key: BAKONG_RECONCILIATION_LOOKBACK_MS
+        value: "86400000"
       - key: EMAIL_PROVIDER
         value: resend
       - key: RESEND_API_KEY
