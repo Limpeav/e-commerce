@@ -3,7 +3,10 @@ const WEAK_SECRET_PATTERN =
 
 export const assertSecurityConfig = () => {
   const errors = [];
+  const isProduction = process.env.NODE_ENV === "production";
   const secret = process.env.JWT_SECRET || "";
+  const allowLocalDevOrigins =
+    process.env.ALLOW_LOCAL_DEV_ORIGINS ?? (isProduction ? "false" : "true");
   const allowedOrigins = String(process.env.ALLOWED_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
@@ -13,22 +16,22 @@ export const assertSecurityConfig = () => {
     errors.push("JWT_SECRET must be a cryptographically random value of at least 32 characters");
   }
 
-  if (process.env.NODE_ENV === "production" && allowedOrigins.length === 0) {
+  if (isProduction && allowedOrigins.length === 0) {
     errors.push("ALLOWED_ORIGINS must be explicitly configured in production");
   }
 
   if (
-    process.env.NODE_ENV === "production" &&
+    isProduction &&
     allowedOrigins.some((origin) => !origin.startsWith("https://"))
   ) {
     errors.push("Every production ALLOWED_ORIGINS entry must use HTTPS");
   }
 
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_LOCAL_DEV_ORIGINS !== "false") {
+  if (isProduction && allowLocalDevOrigins !== "false") {
     errors.push("ALLOW_LOCAL_DEV_ORIGINS must be false in production");
   }
 
-  if (errors.length > 0 && process.env.NODE_ENV === "production") {
+  if (errors.length > 0 && isProduction) {
     throw new Error(`Unsafe security configuration: ${errors.join("; ")}`);
   }
 

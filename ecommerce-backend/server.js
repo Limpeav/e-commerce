@@ -71,7 +71,10 @@ const parseAllowedOrigins = () => {
 const allowedOrigins = parseAllowedOrigins();
 const hasConfiguredOrigins = allowedOrigins.length > 0;
 const isDevelopment = process.env.NODE_ENV !== "production";
-const allowLocalDevOrigins = process.env.ALLOW_LOCAL_DEV_ORIGINS !== "false";
+const allowLocalDevOrigins =
+  process.env.ALLOW_LOCAL_DEV_ORIGINS === undefined
+    ? isDevelopment
+    : process.env.ALLOW_LOCAL_DEV_ORIGINS === "true";
 const localNetworkOriginPattern =
   /^https?:\/\/(?:(?:localhost|127\.0\.0\.1|\[::1\])|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/;
 const localNetworkDomainOriginPattern =
