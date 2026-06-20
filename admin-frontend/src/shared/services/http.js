@@ -31,8 +31,7 @@ export const getStoredUser = () => {
 
 export const getUserToken = () => getStoredUser()?.token || null;
 
-export const getAdminToken = () =>
-  getStoredAdminToken() || localStorage.getItem("adminToken");
+export const getAdminToken = () => getStoredAdminToken();
 
 export const getPreferredToken = () => getAdminToken() || getUserToken();
 

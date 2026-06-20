@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import { assertSecurityConfig } from "./config/security.js";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -30,6 +31,7 @@ import {
 } from "./services/bakongReconciliationService.js";
 
 dotenv.config();
+assertSecurityConfig();
 
 const { errors: bakongConfigErrors } = assertBakongConfig();
 if (bakongConfigErrors.length > 0) {
@@ -85,7 +87,7 @@ const isOriginAllowed = (origin) => {
   const normalizedOrigin = normalizeOrigin(origin);
 
   return (
-    !hasConfiguredOrigins ||
+    (isDevelopment && !hasConfiguredOrigins) ||
     allowedOrigins.includes(normalizedOrigin) ||
     ((isDevelopment || allowLocalDevOrigins) &&
       (localNetworkOriginPattern.test(normalizedOrigin) ||

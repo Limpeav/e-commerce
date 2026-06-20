@@ -1,87 +1,81 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import User from "./models/userModel.js";
+import { validatePortalPassword } from "./utils/authSecurity.js";
 
 dotenv.config();
 
-const userSchema = mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    phone: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false },
-    role: { type: String, enum: ["admin", "user"], default: "user" },
-  },
-  { timestamps: true }
-);
+const ADMIN_EMAIL = "thesisplus2026@gmail.com";
 
-const User = mongoose.model("User", userSchema);
-
-async function createAdmin() {
+const createAdmin = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ecommerce');
-    console.log('Connected to MongoDB');
+    const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const passwordCheck = validatePortalPassword(password);
 
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ email: 'admin@gmail.com' });
-    if (existingAdmin) {
-      if (!existingAdmin.isAdmin) {
-        const salt = await bcrypt.genSalt(10);
-        existingAdmin.password = await bcrypt.hash('admin123', salt);
-        existingAdmin.isAdmin = true;
-        existingAdmin.role = 'admin';
-        await existingAdmin.save();
-        console.log('✅ Admin updated with isAdmin flag!');
-      } else {
-        console.log('Admin already exists:');
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is required");
+    }
+
+    await mongoose.connect(process.env.MONGO_URI);
+
+    const targetUser = await User.findOne({ email: ADMIN_EMAIL }).select("+tokenVersion");
+    const legacyAdmin = await User.findOne({
+      email: "admin@gmail.com",
+      role: "admin",
+    }).select("+tokenVersion");
+    const existingUser = targetUser || legacyAdmin;
+
+    if (existingUser) {
+      const hasSecurePassword = existingUser.password?.startsWith("$2");
+      if (!passwordCheck.valid && !hasSecurePassword) {
+        throw new Error(
+          `The existing administrator has an unsafe password. Set ADMIN_BOOTSTRAP_PASSWORD. ${passwordCheck.message}`
+        );
       }
-      console.log('Email: admin@gmail.com');
-      console.log('Password: admin123');
-      process.exit(0);
+
+      existingUser.name = existingUser.name || "Administrator";
+      existingUser.email = ADMIN_EMAIL;
+      if (passwordCheck.valid) {
+        existingUser.password = password;
+      }
+      existingUser.role = "admin";
+      existingUser.isVerified = true;
+      existingUser.tokenVersion = (existingUser.tokenVersion || 0) + 1;
+      await existingUser.save();
+
+      if (legacyAdmin && legacyAdmin._id.toString() !== existingUser._id.toString()) {
+        legacyAdmin.role = "user";
+        legacyAdmin.isAdmin = false;
+        legacyAdmin.tokenVersion = (legacyAdmin.tokenVersion || 0) + 1;
+        await legacyAdmin.save();
+      }
+
+      console.log(`Administrator updated: ${ADMIN_EMAIL}`);
+      return;
     }
 
-    // Check if user with phone exists, update to admin
-    const existingPhone = await User.findOne({ phone: '1234567890' });
-    if (existingPhone) {
-      const salt = await bcrypt.genSalt(10);
-      existingPhone.email = 'admin@gmail.com';
-      existingPhone.password = await bcrypt.hash('admin123', salt);
-      existingPhone.role = 'admin';
-      existingPhone.isAdmin = true;
-      await existingPhone.save();
-      console.log('✅ Admin updated successfully!');
-      console.log('Email: admin@gmail.com');
-      console.log('Password: admin123');
-      process.exit(0);
+    if (!passwordCheck.valid) {
+      throw new Error(
+        `Set ADMIN_BOOTSTRAP_PASSWORD in the environment. ${passwordCheck.message}`
+      );
     }
 
-    // Create admin user
-    const adminUser = new User({
-      name: 'Admin User',
-      phone: '1234567890',
-      email: 'admin@gmail.com',
-      password: 'admin123',
-      role: 'admin',
-      isAdmin: true
+    await User.create({
+      name: "Administrator",
+      email: ADMIN_EMAIL,
+      password,
+      role: "admin",
+      isAdmin: true,
+      isVerified: true,
     });
 
-    await adminUser.save();
-    
-    console.log('✅ Admin created successfully!');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📧 Email: admin@gmail.com');
-    console.log('🔑 Password: admin123');
-    console.log('👤 Name: Admin User');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🌐 Go to: http://localhost:5173/admin/login');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Error creating admin:', error);
-    process.exit(1);
+    console.log(`Administrator created: ${ADMIN_EMAIL}`);
+  } finally {
+    await mongoose.disconnect();
   }
-}
+};
 
-createAdmin();
+createAdmin().catch((error) => {
+  console.error(`Unable to bootstrap administrator: ${error.message}`);
+  process.exitCode = 1;
+});

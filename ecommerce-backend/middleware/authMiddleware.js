@@ -1,6 +1,10 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 import { PORTAL_ROLES } from "../constants/roles.js";
+import {
+  PORTAL_TOKEN_AUDIENCE,
+  PORTAL_TOKEN_ISSUER,
+} from "../utils/authSecurity.js";
 
 export const protect = async (req, res, next) => {
   let token;
@@ -17,12 +21,26 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
+    req.auth = decoded;
 
-    req.user = await User.findById(decoded.id).select("-password");
+    req.user = await User.findById(decoded.id).select("+tokenVersion -password");
 
     if (!req.user) {
       return res.status(401).json({ message: "User not found" });
+    }
+
+    if (decoded.type === "portal-session") {
+      if (
+        decoded.iss !== PORTAL_TOKEN_ISSUER ||
+        decoded.aud !== PORTAL_TOKEN_AUDIENCE ||
+        decoded.role !== req.user.role ||
+        decoded.tokenVersion !== (req.user.tokenVersion || 0)
+      ) {
+        return res.status(401).json({ message: "Session is no longer valid" });
+      }
     }
 
     next();
@@ -32,7 +50,11 @@ export const protect = async (req, res, next) => {
 };
 
 export const admin = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+  if (
+    req.user &&
+    req.user.role === "admin" &&
+    req.auth?.type === "portal-session"
+  ) {
     next();
   } else {
     res.status(403).json({ message: "Admin access only" });
@@ -40,7 +62,11 @@ export const admin = (req, res, next) => {
 };
 
 export const portalAccess = (req, res, next) => {
-  if (req.user && PORTAL_ROLES.includes(req.user.role)) {
+  if (
+    req.user &&
+    PORTAL_ROLES.includes(req.user.role) &&
+    req.auth?.type === "portal-session"
+  ) {
     next();
   } else {
     res.status(403).json({ message: "Seller portal access only" });

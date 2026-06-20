@@ -32,7 +32,7 @@ import {
   getMyOrders,
 } from "../../services/orderService";
 import { subscribeRealtimeDomains } from "../../services/realtime";
-import logo from "../../assets/logo.png";
+import BrandLogo from "../common/BrandLogo";
 
 const LanguageSelect = ({ language, setLanguage, t, fullWidth = false }) => (
   <label
@@ -193,7 +193,7 @@ export default function Navbar() {
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 className="flex h-12 w-12 items-center justify-center transition-all duration-300"
               >
-                <img src={logo} alt="Cherish Baby Store Logo" className="h-full w-full object-contain" />
+                <BrandLogo className="h-full w-full object-contain" />
               </Motion.div>
               <h1 className="text-2xl font-bold text-text-main tracking-tight font-display leading-none">
                 Cherish Baby Store
@@ -369,7 +369,7 @@ export default function Navbar() {
             </button>
             <Link to="/customer" className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center">
-                <img src={logo} alt="Cherish Baby Store Logo" className="h-full w-full object-contain" />
+                <BrandLogo className="h-full w-full object-contain" />
               </div>
               <h1 className="text-[1.1rem] font-bold text-text-main font-display tracking-tight">Cherish Baby Store</h1>
             </Link>

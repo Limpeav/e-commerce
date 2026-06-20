@@ -17,4 +17,6 @@ test("rejects unknown prefixes and incorrect lengths", () => {
   assert.equal(normalizeCambodiaMobilePhone("013 123 456"), null);
   assert.equal(normalizeCambodiaMobilePhone("096 123 456"), null);
   assert.equal(normalizeCambodiaMobilePhone("012 345 67"), null);
+  assert.equal(normalizeCambodiaMobilePhone("+1 202 555 0123"), null);
+  assert.equal(normalizeCambodiaMobilePhone(""), null);
 });

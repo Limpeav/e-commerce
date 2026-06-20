@@ -6,7 +6,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
 import { useLanguage } from "../../../context/useLanguage";
-import storeLogo from "../../../assets/logo.png";
+import BrandLogo from "../../../components/common/BrandLogo";
 import {
   Mail,
   Lock,
@@ -204,8 +204,7 @@ const Login = () => {
 
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
-              <img
-                src={storeLogo}
+              <BrandLogo
                 alt="Cherish Baby"
                 className="h-12 w-12 object-contain"
               />

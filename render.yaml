@@ -12,6 +12,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://cherishbabykhstore.store,https://www.cherishbabykhstore.store,https://baby-products-wtux.onrender.com
       - key: FRONTEND_URL

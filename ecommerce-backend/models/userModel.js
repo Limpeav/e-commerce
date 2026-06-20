@@ -21,6 +21,11 @@ const userSchema = mongoose.Schema(
     phoneVerificationExpire: { type: Date },
     deleteAccountOtp: { type: String },
     deleteAccountOtpExpire: { type: Date },
+    tokenVersion: { type: Number, default: 0, select: false },
+    portalLoginCodeHash: { type: String, select: false },
+    portalLoginChallengeId: { type: String, select: false },
+    portalLoginCodeExpires: { type: Date, select: false },
+    portalLoginAttempts: { type: Number, default: 0, select: false },
     notificationPreferences: {
       promotionalEmails: { type: Boolean, default: true },
     },
@@ -42,11 +47,11 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
     return false;
   }
 
-  if (this.password.startsWith("$2")) {
-    return bcrypt.compare(enteredPassword, this.password);
+  if (!this.password.startsWith("$2")) {
+    return false;
   }
 
-  return enteredPassword === this.password;
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model("User", userSchema);

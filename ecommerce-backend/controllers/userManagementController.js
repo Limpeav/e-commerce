@@ -3,6 +3,7 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import { USER_ROLES } from "../constants/roles.js";
 import { emitDomainChanged } from "../realtime/socket.js";
+import { normalizeEmail, validatePortalPassword } from "../utils/authSecurity.js";
 
 const STAFF_LOGIN_ROLES = ["seller", "delivery", "admin"];
 
@@ -19,7 +20,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 export const createStaffLogin = asyncHandler(async (req, res) => {
     const name = req.body.name?.trim();
-    const email = req.body.email?.trim().toLowerCase();
+    const email = normalizeEmail(req.body.email);
     const password = req.body.password;
     const phone = req.body.phone?.trim();
     const role = req.body.role || "seller";
@@ -28,8 +29,9 @@ export const createStaffLogin = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: "Name, email, and password are required" });
     }
 
-    if (password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const passwordCheck = validatePortalPassword(password);
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ message: passwordCheck.message });
     }
 
     if (!STAFF_LOGIN_ROLES.includes(role)) {
@@ -100,7 +102,11 @@ export const updateUserRole = asyncHandler(async (req, res) => {
             throw new Error("Cannot remove your own admin access");
         }
 
+        const previousRole = user.role;
         user.role = role || user.role;
+        if (role && role !== previousRole) {
+            user.tokenVersion = (user.tokenVersion || 0) + 1;
+        }
         const updatedUser = await user.save();
         emitDomainChanged("users", "updated", {
             userId: updatedUser._id,

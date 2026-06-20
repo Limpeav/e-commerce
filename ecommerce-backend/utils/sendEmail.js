@@ -953,3 +953,31 @@ ${fromName}
     throw new Error(err.message || "Failed to send confirmation email");
   }
 };
+
+export const sendPortalLoginCode = async (email, userName, code) => {
+  const safeName = escapeHtml(userName || "there");
+  const safeCode = escapeHtml(code);
+
+  return sendConfiguredEmail(
+    {
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: [email],
+      subject: `${code} is your portal security code`,
+      html: `
+        <!doctype html>
+        <html lang="en">
+          <body style="margin:0;padding:32px;background:#f6f7fb;font-family:Arial,sans-serif;color:#111827;">
+            <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:20px;padding:32px;">
+              <h1 style="margin:0 0 16px;font-size:24px;">Portal sign-in verification</h1>
+              <p style="line-height:1.6;color:#4b5563;">Hello ${safeName}, enter this one-time code to finish signing in:</p>
+              <div style="margin:28px 0;padding:18px;text-align:center;background:#f3f4f6;border-radius:14px;font-size:32px;font-weight:800;letter-spacing:8px;">${safeCode}</div>
+              <p style="line-height:1.6;color:#6b7280;">This code expires in 5 minutes. If you did not attempt to sign in, change your password and contact the site owner.</p>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `Hello ${userName || "there"},\n\nYour portal security code is ${code}.\nIt expires in 5 minutes.\n\nIf you did not attempt to sign in, change your password and contact the site owner.`,
+    },
+    "portal login security code"
+  );
+};

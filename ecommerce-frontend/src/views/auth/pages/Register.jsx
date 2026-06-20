@@ -9,8 +9,13 @@ import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
 import { useLanguage } from "../../../context/useLanguage";
+import {
+  isValidCambodiaMobilePhone,
+  normalizeCambodiaMobilePhone,
+  toCambodiaLocalPhoneDigits,
+} from "../../../utils/cambodiaPhone";
 import { motion } from "framer-motion";
-import storeLogo from "../../../assets/logo.png";
+import BrandLogo from "../../../components/common/BrandLogo";
 import {
   User,
   Mail,
@@ -73,6 +78,11 @@ const Register = () => {
       return;
     }
 
+    if (!isValidCambodiaMobilePhone(form.phone)) {
+      setError(t("registerPage.errors.validCambodiaPhone"));
+      return;
+    }
+
     if (form.password.length < 6) {
       setError(t("registerPage.errors.passwordLength"));
       return;
@@ -90,7 +100,7 @@ const Register = () => {
       const formData = {
         name: form.name,
         email: form.email,
-        phone: `+855${form.phone}`,
+        phone: normalizeCambodiaMobilePhone(form.phone),
         password: form.password,
       };
 
@@ -266,8 +276,7 @@ const Register = () => {
 
           <div className="relative flex min-w-0 flex-col items-center sm:items-start lg:block">
             <div className="register-brand-logo inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-lg ring-1 ring-white/25 sm:h-12 sm:w-12 lg:mb-5 lg:h-14 lg:w-14 lg:rounded-2xl xl:mb-8">
-              <img
-                src={storeLogo}
+              <BrandLogo
                 alt="Cherish Baby store logo"
                 className="h-full w-full object-contain"
               />
@@ -450,7 +459,15 @@ const Register = () => {
                   name="phone"
                   placeholder="12 345 678"
                   value={form.phone || ""}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      phone: toCambodiaLocalPhoneDigits(e.target.value).slice(0, 9),
+                    })
+                  }
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  maxLength={9}
                   required
                   className={`${inputClassName} min-w-0 flex-1`}
                 />

@@ -4,6 +4,7 @@ import api from "./api.js";
 export const adminService = {
   // Authentication
   login: (credentials) => api.post("/admin/login", credentials),
+  verifyLogin: (challenge) => api.post("/admin/login/verify", challenge),
   getCurrentAdmin: () => api.get("/admin/me"),
 
   // Dashboard

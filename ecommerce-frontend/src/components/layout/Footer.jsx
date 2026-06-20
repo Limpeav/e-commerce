@@ -4,7 +4,7 @@ import {
   Phone,
 } from "lucide-react";
 import { useLanguage } from "../../context/useLanguage";
-import logo from "../../assets/logo.png";
+import BrandLogo from "../common/BrandLogo";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -26,9 +26,7 @@ export default function Footer() {
           <div className="col-span-2 space-y-6">
             <Link to="/" className="group flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-stone-100 bg-white p-1 shadow-xl shadow-primary/20 transition-transform duration-500 group-hover:rotate-12 sm:h-14 sm:w-14 sm:rounded-2xl">
-                <img
-                  src={logo}
-                  alt="Cherish Baby Store Logo"
+                <BrandLogo
                   className="h-full w-full rounded-lg object-contain sm:rounded-xl"
                 />
               </div>

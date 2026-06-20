@@ -7,7 +7,12 @@ import {
     saveCsvBuilderDraft,
     uploadProductImage,
 } from "../controllers/adminController.js";
-import { registerAdmin, loginAdmin, getAdminProfile } from "../controllers/adminAuthController.js";
+import {
+    registerAdmin,
+    loginAdmin,
+    verifyAdminLogin,
+    getAdminProfile,
+} from "../controllers/adminAuthController.js";
 import {
     createStaffLogin,
     getAllUsers,
@@ -25,6 +30,12 @@ const router = express.Router();
 const productImageUpload = createMemoryImageUpload();
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+const adminMfaLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
@@ -33,6 +44,7 @@ const adminLoginLimiter = rateLimit({
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
+router.post("/login/verify", adminMfaLimiter, verifyAdminLogin);
 router.get("/me", protect, portalAccess, getAdminProfile);
 
 // Dashboard

@@ -14,7 +14,7 @@ const getSessionKeys = (role = getPortalRoleFromPath()) => ({
 });
 
 const parseStoredUser = (key) => {
-  const adminStr = localStorage.getItem(key);
+  const adminStr = sessionStorage.getItem(key);
   if (!adminStr || adminStr === "undefined") return null;
   try {
     return JSON.parse(adminStr);
@@ -24,7 +24,13 @@ const parseStoredUser = (key) => {
 };
 
 const getLegacyUserForRole = (role) => {
-  const user = parseStoredUser(LEGACY_ADMIN_KEY);
+  const rawUser = localStorage.getItem(LEGACY_ADMIN_KEY);
+  let user = null;
+  try {
+    user = rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    user = null;
+  }
   return user?.role === role ? user : null;
 };
 
@@ -32,7 +38,7 @@ export const getActivePortalRole = () => getPortalRoleFromPath();
 
 export const getStoredAdminToken = (role = getPortalRoleFromPath()) => {
   const { token } = getSessionKeys(role);
-  return localStorage.getItem(token) || (getLegacyUserForRole(role) ? localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) : null);
+  return sessionStorage.getItem(token) || (getLegacyUserForRole(role) ? localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) : null);
 };
 
 export const getStoredAdminUser = (role = getPortalRoleFromPath()) => {
@@ -48,12 +54,16 @@ export const setAdminSession = (token, admin) => {
   const role = admin?.role && PORTAL_ROLES.includes(admin.role) ? admin.role : getPortalRoleFromPath();
   const { token: tokenKey, user: userKey } = getSessionKeys(role);
 
-  localStorage.setItem(tokenKey, token);
+  sessionStorage.setItem(tokenKey, token);
   if (admin) {
-    localStorage.setItem(userKey, JSON.stringify(admin));
+    sessionStorage.setItem(userKey, JSON.stringify(admin));
   } else {
-    localStorage.removeItem(userKey);
+    sessionStorage.removeItem(userKey);
   }
+
+  localStorage.removeItem(LEGACY_ADMIN_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_ADMIN_KEY);
+  localStorage.removeItem("adminToken");
 };
 
 export const persistAdminSession = (token, admin) => {
@@ -62,8 +72,8 @@ export const persistAdminSession = (token, admin) => {
 
 export const clearAdminSession = (role = getPortalRoleFromPath()) => {
   const { token, user } = getSessionKeys(role);
-  localStorage.removeItem(token);
-  localStorage.removeItem(user);
+  sessionStorage.removeItem(token);
+  sessionStorage.removeItem(user);
 
   const legacyUser = getLegacyUserForRole(role);
   if (legacyUser) {

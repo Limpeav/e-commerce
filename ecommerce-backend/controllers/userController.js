@@ -8,6 +8,8 @@ import {
 } from "../utils/sendEmail.js";
 import { emitDomainChanged } from "../realtime/socket.js";
 import { normalizeCambodiaMobilePhone } from "../utils/cambodiaPhone.js";
+import { PORTAL_ROLES } from "../constants/roles.js";
+import { validatePortalPassword } from "../utils/authSecurity.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -31,13 +33,13 @@ export const registerUser = async (req, res) => {
   try {
     const { name, password } = req.body;
     const email = normalizeEmail(req.body.email);
-    const normalizedPhone = req.body.phone ? normalizeCambodiaMobilePhone(req.body.phone) : "";
+    const normalizedPhone = normalizeCambodiaMobilePhone(req.body.phone);
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Name, email, and password are required" });
+    if (!name || !email || !req.body.phone || !password) {
+      return res.status(400).json({ message: "Name, email, phone number, and password are required" });
     }
 
-    if (req.body.phone && !normalizedPhone) {
+    if (!normalizedPhone) {
       return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
     }
 
@@ -76,11 +78,9 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    if (normalizedPhone) {
-      const phoneExists = await User.findOne({ phone: normalizedPhone });
-      if (phoneExists) {
-        return res.status(400).json({ message: "Phone number already in use" });
-      }
+    const phoneExists = await User.findOne({ phone: normalizedPhone });
+    if (phoneExists) {
+      return res.status(409).json({ message: "Phone number already in use" });
     }
 
     const verificationCode = generateSixDigitCode();
@@ -253,7 +253,7 @@ export const loginUser = async (req, res) => {
 // 🔄 UPDATE USER PROFILE
 export const updateUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("+tokenVersion");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -300,6 +300,14 @@ export const updateUserProfile = async (req, res) => {
       const isMatch = await user.matchPassword(req.body.currentPassword);
       if (!isMatch) {
         return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      if (PORTAL_ROLES.includes(user.role)) {
+        const passwordCheck = validatePortalPassword(req.body.newPassword);
+        if (!passwordCheck.valid) {
+          return res.status(400).json({ message: passwordCheck.message });
+        }
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
       }
 
       user.password = req.body.newPassword;
@@ -565,12 +573,20 @@ export const resetPassword = async (req, res) => {
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() },
-    });
+    }).select("+tokenVersion");
 
     if (!user) {
       return res
         .status(400)
         .json({ message: "Invalid or expired reset token. Please start over." });
+    }
+
+    if (PORTAL_ROLES.includes(user.role)) {
+      const passwordCheck = validatePortalPassword(password);
+      if (!passwordCheck.valid) {
+        return res.status(400).json({ message: passwordCheck.message });
+      }
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
     }
 
     // Set new password

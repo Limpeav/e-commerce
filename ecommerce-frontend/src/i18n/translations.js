@@ -55,6 +55,7 @@ export const translations = {
       errors: {
         requiredFields: "Please fill in all required fields: {{fields}}.",
         validEmail: "Please enter a valid email address.",
+        validCambodiaPhone: "Please enter a valid Cambodian mobile phone number.",
         passwordLength: "Password must contain at least 6 characters.",
         acceptTerms: "Please agree to the Terms of Service and Privacy Policy.",
         registrationFailed: "Registration failed. Please try again.",
@@ -830,6 +831,7 @@ export const translations = {
       errors: {
         requiredFields: "សូមបំពេញព័ត៌មានចាំបាច់ទាំងអស់៖ {{fields}}។",
         validEmail: "សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ។",
+        validCambodiaPhone: "សូមបញ្ចូលលេខទូរស័ព្ទចល័តកម្ពុជាដែលត្រឹមត្រូវ។",
         passwordLength: "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ។",
         acceptTerms: "សូមយល់ព្រមនឹងលក្ខខណ្ឌសេវាកម្ម និងគោលការណ៍ឯកជនភាព។",
         registrationFailed: "ការចុះឈ្មោះមិនបានសម្រេច។ សូមព្យាយាមម្តងទៀត។",
