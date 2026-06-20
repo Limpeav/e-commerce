@@ -345,13 +345,18 @@ export default function Settings() {
           <SectionHeader title="Security & Privacy" icon={Shield} />
           <div className={sectionCard} style={borderStyle}>
             <div className="flex flex-wrap gap-3">
-              <button className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary" style={borderStyle}>
+              <button
+                type="button"
+                onClick={() => navigate('/customer/profile', {
+                  state: { activeTab: 'security' },
+                })}
+                className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                style={borderStyle}
+              >
                 Change Password
               </button>
-              <button className="rounded-xl border bg-bg-card px-5 py-3 text-xs font-bold text-text-main transition-all hover:border-primary/30 hover:text-primary" style={borderStyle}>
-                Enable 2FA
-              </button>
               <button
+                type="button"
                 onClick={() => setShowDeleteModal(true)}
                 className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white"
               >

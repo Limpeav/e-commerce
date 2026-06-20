@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Save,
   User,
@@ -59,9 +59,12 @@ const containerVariants = {
 
 const Profile = () => {
   const { user, login } = useAuth();
+  const location = useLocation();
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("edit");
+  const [activeTab, setActiveTab] = useState(
+    () => location.state?.activeTab === "security" ? "security" : "edit"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -325,9 +328,9 @@ const Profile = () => {
   }
 
   return (
-    <div className={`min-h-screen pb-20 font-sans transition-colors ${isDark ? "bg-transparent" : "bg-[#FCF9F5]"}`}>
+    <div className={`no-scrollbar h-[100dvh] overflow-y-auto overscroll-none pb-6 pt-16 font-sans transition-colors lg:pt-20 ${isDark ? "bg-transparent" : "bg-[#FCF9F5]"}`}>
       {/* Visual Header Banner */}
-      <div className="relative h-56 w-full overflow-hidden md:h-64">
+      <div className="relative h-32 w-full overflow-hidden sm:h-40 md:h-44">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,#6F8A73_0%,#AFC7B2_48%,#F1D2C2_100%)]" />
         <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.42),transparent_26%),radial-gradient(circle_at_82%_24%,rgba(255,255,255,0.28),transparent_24%)]" />
         <div className="absolute -bottom-20 left-[-10%] h-44 w-[120%] rounded-[50%] bg-white/18 blur-2xl" />
@@ -335,7 +338,7 @@ const Profile = () => {
         <div className="relative mx-auto h-full max-w-7xl px-4 sm:px-6 md:px-8" aria-hidden="true" />
       </div>
 
-      <div className="relative z-20 mx-auto -mt-8 max-w-7xl px-4 sm:px-6 md:px-8">
+      <div className="relative z-20 mx-auto -mt-6 max-w-7xl px-4 sm:px-6 md:px-8">
         
         <AnimatePresence>
           {success && (

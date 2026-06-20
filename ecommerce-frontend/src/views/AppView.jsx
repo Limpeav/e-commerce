@@ -76,11 +76,19 @@ export default function AppView() {
 
   useEffect(() => {
     // Clear any leftover global page-lock styles from modals when routes change.
-    document.body.style.overflow = "";
+    const profileRoute = /^\/(?:customer\/)?profile\/?$/.test(location.pathname);
+
+    document.body.style.overflow = profileRoute ? "hidden" : "";
+    document.documentElement.style.overflow = profileRoute ? "hidden" : "";
     document.body.style.position = "";
     document.body.style.width = "";
     document.body.style.top = "";
     document.body.style.pointerEvents = "";
+
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -122,12 +130,13 @@ export default function AppView() {
     location.pathname
   );
   const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);
+  const isProfileRoute = /^\/(?:customer\/)?profile\/?$/.test(location.pathname);
   const shouldShowNav =
     !isStandalonePaymentScreen
     && !hideNavFooterPaths.includes(location.pathname)
     && !isAdminRoute
     && !isOrderReviewRoute;
-  const shouldShowFooter = shouldShowNav && !isWishlistRoute;
+  const shouldShowFooter = shouldShowNav && !isWishlistRoute && !isProfileRoute;
 
   const needsPhone =
     user &&
