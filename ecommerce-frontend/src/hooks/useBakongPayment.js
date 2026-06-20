@@ -5,7 +5,6 @@ import { useCart } from "../context/useCart";
 export const useBakongPayment = (orderId, navigate) => {
   const { clearCart, refreshCart } = useCart();
   const clearCartRef = useRef(clearCart);
-  const completedPaymentHandledRef = useRef(false);
   const [order, setOrder] = useState(null);
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,31 +74,26 @@ export const useBakongPayment = (orderId, navigate) => {
   }, [payment?._id, paymentStatus]);
 
   useEffect(() => {
-    if (
-      paymentStatus !== "completed"
-      || completedPaymentHandledRef.current
-    ) {
+    if (paymentStatus !== "completed") {
       return undefined;
     }
 
-    completedPaymentHandledRef.current = true;
-    let redirectTimer;
+    // Cart cleanup must never block the customer from reaching the success
+    // page. Keeping the timer inside this effect also makes it safe when React
+    // replays effects in development Strict Mode.
+    clearCartRef.current().catch((clearCartError) => {
+      console.error("Cart clear failed after Bakong payment:", clearCartError);
+    });
 
-    const finishPayment = async () => {
-      await clearCartRef.current();
-      redirectTimer = window.setTimeout(
-        () => navigate(`/customer/orders/${orderId}`),
-        3000
-      );
-    };
+    const redirectTimer = window.setTimeout(() => {
+      localStorage.setItem("latestOrderId", orderId);
+      navigate("/customer/cart/success", {
+        replace: true,
+        state: { orderId },
+      });
+    }, 3000);
 
-    finishPayment();
-
-    return () => {
-      if (redirectTimer) {
-        window.clearTimeout(redirectTimer);
-      }
-    };
+    return () => window.clearTimeout(redirectTimer);
   }, [navigate, orderId, paymentStatus]);
 
   useEffect(() => {
