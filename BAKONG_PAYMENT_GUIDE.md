@@ -77,7 +77,7 @@ API client for payment operations
 
 ### Environment Variables (Backend `.env`)
 
-Add these to your `/ecommerce-backend/.env`:
+Add these to your `/backend/.env`:
 
 ```bash
 # BAKONG KHQR Payment Configuration
@@ -110,7 +110,7 @@ BAKONG_RECONCILIATION_BATCH_SIZE=25
 
 ### Backend
 ```bash
-cd ecommerce-backend
+cd backend
 npm install qrcode
 ```
 

@@ -3,7 +3,7 @@
 ## Project Structure
 
 ```
-ecommerce-frontend/
+user-frontend/
 ├── src/
 │   ├── controllers/          # Controllers (Handle user interactions and API calls)
 │   │   ├── authController.js

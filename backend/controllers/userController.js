@@ -141,15 +141,18 @@ export const verifyRegistrationEmail = async (req, res) => {
       return res.status(400).json({ message: "Email and code are required" });
     }
 
-    const hashedCode = hashCode(code);
-    const user = await User.findOne({
-      email,
-      verificationCode: hashedCode,
-      verificationCodeExpires: { $gt: Date.now() },
-    });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired verification code." });
+      return res.status(400).json({ message: "Invalid verification code. Please check the code and try again." });
+    }
+
+    if (!user.verificationCode || user.verificationCode !== hashCode(code)) {
+      return res.status(400).json({ message: "Invalid verification code. Please check the code and try again." });
+    }
+
+    if (!user.verificationCodeExpires || user.verificationCodeExpires <= Date.now()) {
+      return res.status(400).json({ message: "Verification code has expired. Please request a new code." });
     }
 
     user.isVerified = true;
@@ -716,17 +719,13 @@ export const verifyPhone = async (req, res) => {
   }
 };
 
-// 📧 REQUEST DELETE ACCOUNT OTP (Google users only)
+// 📧 REQUEST DELETE ACCOUNT OTP
 export const requestDeleteOtp = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.googleId) {
-      return res.status(400).json({ message: "This endpoint is only for Google-authenticated accounts" });
     }
 
     // Generate a 6-digit OTP
@@ -767,44 +766,28 @@ export const requestDeleteOtp = async (req, res) => {
 // 🗑️ DELETE ACCOUNT
 export const deleteAccount = async (req, res) => {
   try {
-    const { password, otpCode } = req.body;
+    const { otpCode } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const isGoogleUser = !!user.googleId;
+    if (!otpCode) {
+      return res.status(400).json({ message: "Confirmation code is required" });
+    }
 
-    if (isGoogleUser) {
-      // ── Google users must verify via OTP sent to their email ──
-      if (!otpCode) {
-        return res.status(400).json({ message: "Confirmation code is required" });
-      }
+    if (!user.deleteAccountOtp || !user.deleteAccountOtpExpire) {
+      return res.status(400).json({ message: "No confirmation code found. Please request a new one." });
+    }
 
-      if (!user.deleteAccountOtp || !user.deleteAccountOtpExpire) {
-        return res.status(400).json({ message: "No confirmation code found. Please request a new one." });
-      }
+    if (user.deleteAccountOtpExpire < Date.now()) {
+      return res.status(400).json({ message: "Confirmation code has expired. Please request a new one." });
+    }
 
-      if (user.deleteAccountOtpExpire < Date.now()) {
-        return res.status(400).json({ message: "Confirmation code has expired. Please request a new one." });
-      }
-
-      const hashedOtp = crypto.createHash("sha256").update(otpCode.toString()).digest("hex");
-      if (hashedOtp !== user.deleteAccountOtp) {
-        return res.status(401).json({ message: "Invalid confirmation code. Please check and try again." });
-      }
-
-    } else {
-      // ── Regular users must verify via their password ──
-      if (!password) {
-        return res.status(400).json({ message: "Password is required to delete your account" });
-      }
-
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: "Incorrect password. Cannot delete account." });
-      }
+    const hashedOtp = crypto.createHash("sha256").update(otpCode.toString()).digest("hex");
+    if (hashedOtp !== user.deleteAccountOtp) {
+      return res.status(401).json({ message: "Invalid confirmation code. Please check and try again." });
     }
 
     // Hard delete the account

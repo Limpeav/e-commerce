@@ -25,15 +25,15 @@
 ### ✅ Backend Structure Created
 
 1. **Services Directory** ✅
-   - Created `/ecommerce-backend/services/`
+   - Created `/backend/services/`
    - Example service: `productService.js` ✅
 
 2. **Error Handling** ✅
-   - Created `/ecommerce-backend/errors/AppError.js`
-   - Created `/ecommerce-backend/utils/asyncHandler.js`
+   - Created `/backend/errors/AppError.js`
+   - Created `/backend/utils/asyncHandler.js`
 
 3. **Validators Directory** ✅
-   - Created `/ecommerce-backend/validators/` (ready for use)
+   - Created `/backend/validators/` (ready for use)
 
 ### ✅ Current Project Status
 
@@ -64,12 +64,12 @@ Create the remaining services using `productService.js` as a template:
 
 ```bash
 # Files to create:
-ecommerce-backend/services/userService.js
-ecommerce-backend/services/orderService.js
-ecommerce-backend/services/cartService.js
-ecommerce-backend/services/authService.js
-ecommerce-backend/services/adminService.js
-ecommerce-backend/services/wishlistService.js
+backend/services/userService.js
+backend/services/orderService.js
+backend/services/cartService.js
+backend/services/authService.js
+backend/services/adminService.js
+backend/services/wishlistService.js
 ```
 
 #### 2. Refactor Controllers
@@ -118,7 +118,7 @@ export const validateCreateProduct = (req, res, next) => {
 
 ### Backend (Current):
 ```
-ecommerce-backend/
+backend/
 ├── config/              ✅
 ├── controllers/         ✅ (need refactoring)
 ├── services/            ✅ (example created)
@@ -133,7 +133,7 @@ ecommerce-backend/
 
 ### Frontend (Current):
 ```
-ecommerce-frontend/src/
+user-frontend/src/
 ├── models/              ✅
 ├── services/            ✅
 ├── controllers/         ✅

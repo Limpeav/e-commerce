@@ -5,7 +5,7 @@ import {
 } from "../../../services/authApi";
 import { authService } from "../../../services/authService";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../../context/useAuth";
 import { useLanguage } from "../../../context/useLanguage";
@@ -14,7 +14,7 @@ import {
   normalizeCambodiaMobilePhone,
   toCambodiaLocalPhoneDigits,
 } from "../../../utils/cambodiaPhone";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import BrandLogo from "../../../components/common/BrandLogo";
 import {
   User,
@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  RotateCcw,
 } from "lucide-react";
 
 const Register = () => {
@@ -39,8 +40,14 @@ const Register = () => {
   const [googleUser, setGoogleUser] = useState(null);
   const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
   const [successMessage, setSuccessMessage] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verificationRejected, setVerificationRejected] = useState(false);
+  const [registrationVerified, setRegistrationVerified] = useState(false);
+  const codeInputRefs = useRef([]);
+  const verificationFeedbackTimerRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -54,6 +61,83 @@ const Register = () => {
     !requestedRedirect.startsWith("/register")
       ? requestedRedirect
       : "/customer";
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+
+    const timer = setTimeout(() => setResendCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (!verificationEmail) return undefined;
+
+    const focusTimer = setTimeout(() => codeInputRefs.current[0]?.focus(), 300);
+    return () => clearTimeout(focusTimer);
+  }, [verificationEmail]);
+
+  useEffect(() => () => {
+    if (verificationFeedbackTimerRef.current) {
+      clearTimeout(verificationFeedbackTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!registrationVerified) return undefined;
+
+    const redirectTimer = setTimeout(() => {
+      navigate("/login", { replace: true, state: { from: safeRedirect } });
+    }, 3500);
+
+    return () => clearTimeout(redirectTimer);
+  }, [navigate, registrationVerified, safeRedirect]);
+
+  const showRejectedVerification = () => {
+    setVerificationRejected(true);
+
+    if (verificationFeedbackTimerRef.current) {
+      clearTimeout(verificationFeedbackTimerRef.current);
+    }
+
+    verificationFeedbackTimerRef.current = setTimeout(() => {
+      setVerificationRejected(false);
+      verificationFeedbackTimerRef.current = null;
+    }, 3000);
+  };
+
+  const handleVerificationCodeChange = (index, value) => {
+    setError("");
+    setVerificationRejected(false);
+
+    if (value.length > 1) {
+      const pastedCode = value.slice(0, 6).split("");
+      const nextCode = [...verificationCode];
+
+      pastedCode.forEach((digit, offset) => {
+        if (index + offset < 6) {
+          nextCode[index + offset] = digit;
+        }
+      });
+
+      setVerificationCode(nextCode);
+      codeInputRefs.current[Math.min(index + pastedCode.length, 5)]?.focus();
+      return;
+    }
+
+    const nextCode = [...verificationCode];
+    nextCode[index] = value;
+    setVerificationCode(nextCode);
+
+    if (value && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleVerificationCodeKeyDown = (index, event) => {
+    if (event.key === "Backspace" && !verificationCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  };
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -107,6 +191,9 @@ const Register = () => {
       const { data } = await registerUser(formData);
       setVerificationEmail(data.email || formData.email);
       setSuccessMessage(data.message || t("registerPage.messages.verificationSent"));
+      setVerificationCode(["", "", "", "", "", ""]);
+      setVerificationRejected(false);
+      setResendCooldown(60);
       setLoading(false);
     } catch (err) {
       let errorMessage = t("registerPage.errors.registrationFailed");
@@ -136,7 +223,9 @@ const Register = () => {
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
 
-    if (!verificationCode.trim()) {
+    const code = verificationCode.join("");
+
+    if (code.length !== 6) {
       setError(t("registerPage.errors.verificationCodeRequired"));
       return;
     }
@@ -146,27 +235,36 @@ const Register = () => {
       setLoading(true);
       const { data } = await verifyRegistrationEmail({
         email: verificationEmail,
-        code: verificationCode,
+        code,
       });
       setSuccessMessage(data.message || t("registerPage.messages.verificationSuccess"));
+      setRegistrationVerified(true);
       setLoading(false);
-      navigate("/login", { state: { from: safeRedirect } });
     } catch (err) {
       setError(err.response?.data?.message || t("registerPage.errors.verificationFailed"));
+      setVerificationCode(["", "", "", "", "", ""]);
+      showRejectedVerification();
+      codeInputRefs.current[0]?.focus();
       setLoading(false);
     }
   };
 
   const handleResendVerification = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
     try {
       setError("");
-      setLoading(true);
+      setResendLoading(true);
       const { data } = await resendRegistrationVerification({ email: verificationEmail });
       setSuccessMessage(data.message || t("registerPage.messages.verificationResent"));
-      setLoading(false);
+      setVerificationCode(["", "", "", "", "", ""]);
+      setVerificationRejected(false);
+      setResendCooldown(60);
+      codeInputRefs.current[0]?.focus();
     } catch (err) {
       setError(err.response?.data?.message || t("registerPage.errors.resendFailed"));
-      setLoading(false);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -252,25 +350,31 @@ const Register = () => {
     <div className="register-page relative flex h-[100svh] items-center justify-center overflow-hidden bg-bg-base px-3 py-4 font-sans sm:px-4 sm:py-6 lg:p-5">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
+        <Motion.div
           animate={{ x: [0, 10, 0], y: [0, -10, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-20 left-10 w-72 h-72 bg-primary-light/10 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
         />
-        <motion.div
+        <Motion.div
           animate={{ x: [0, -20, 0], y: [0, 20, 0], scale: [1, 1.2, 1] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
           className="absolute top-40 right-10 w-72 h-72 bg-primary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-40"
         />
-        <motion.div
+        <Motion.div
           animate={{ x: [0, 15, 0], y: [0, 15, 0], scale: [1, 0.9, 1] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           className="absolute bottom-20 left-1/2 w-72 h-72 bg-secondary/5 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
         />
       </div>
 
-      <div className="register-shell relative z-10 mx-auto grid max-h-full w-full max-w-md grid-cols-1 overflow-hidden rounded-2xl bg-transparent sm:rounded-[2.5rem] lg:h-full lg:max-w-6xl lg:grid-cols-[40%_60%] lg:rounded-[2rem] lg:border lg:border-white/80 lg:bg-white/90 lg:shadow-[0_30px_100px_-35px_rgba(45,49,46,0.4)] lg:backdrop-blur-xl lg:dark:border-slate-700 lg:dark:bg-slate-900/95">
-        <section className="register-brand relative hidden min-h-0 overflow-hidden bg-primary text-white lg:flex lg:flex-col lg:justify-between lg:p-8 xl:p-10">
+      <div
+        className={
+          verificationEmail
+            ? "relative z-10 mx-auto w-full max-w-md"
+            : "register-shell relative z-10 mx-auto grid max-h-full w-full max-w-md grid-cols-1 overflow-hidden rounded-2xl bg-transparent sm:rounded-[2.5rem] lg:h-full lg:max-w-6xl lg:grid-cols-[40%_60%] lg:rounded-[2rem] lg:border lg:border-white/80 lg:bg-white/90 lg:shadow-[0_30px_100px_-35px_rgba(45,49,46,0.4)] lg:backdrop-blur-xl lg:dark:border-slate-700 lg:dark:bg-slate-900/95"
+        }
+      >
+        {!verificationEmail && <section className="register-brand relative hidden min-h-0 overflow-hidden bg-primary text-white lg:flex lg:flex-col lg:justify-between lg:p-8 xl:p-10">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-secondary/30" />
 
@@ -308,93 +412,183 @@ const Register = () => {
               </div>
             ))}
           </div>
-        </section>
+        </section>}
 
-        <main className="register-main flex min-h-0 justify-center overflow-y-auto rounded-2xl border border-white bg-white/95 px-5 py-5 shadow-[0_18px_50px_-28px_rgba(45,49,46,0.3)] backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900/95 sm:rounded-[2.5rem] sm:px-8 sm:py-7 lg:items-center lg:overflow-hidden lg:rounded-none lg:border-0 lg:bg-transparent lg:px-10 lg:py-4 lg:shadow-none lg:backdrop-blur-none lg:dark:bg-transparent xl:px-12">
+        <main
+          className={
+            verificationEmail
+              ? "flex w-full items-center justify-center"
+              : "register-main flex min-h-0 justify-center overflow-y-auto rounded-2xl border border-white bg-white/95 px-5 py-5 shadow-[0_18px_50px_-28px_rgba(45,49,46,0.3)] backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900/95 sm:rounded-[2.5rem] sm:px-8 sm:py-7 lg:items-center lg:overflow-hidden lg:rounded-none lg:border-0 lg:bg-transparent lg:px-10 lg:py-4 lg:shadow-none lg:backdrop-blur-none lg:dark:bg-transparent xl:px-12"
+          }
+        >
           <div className="mx-auto w-full max-w-xl">
-            <div className="register-heading mb-5 text-center sm:mb-6 lg:text-left">
+            {!verificationEmail && <div className="register-heading mb-5 text-center sm:mb-6 lg:text-left">
               <h2 className="font-display text-3xl font-black leading-tight tracking-tight text-text-main dark:text-slate-100 sm:text-4xl">
                 {t("registerPage.title")}
               </h2>
               <p className="mt-2 text-sm font-medium text-text-muted dark:text-slate-400 sm:text-base">
                 {t("registerPage.subtitle")}
               </p>
-            </div>
+            </div>}
 
         <div>
           {verificationEmail ? (
-            <form onSubmit={handleVerifyEmail} className="space-y-4">
-              {error && (
-                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3 animate-shake">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-700 text-sm font-bold">{error}</p>
-                </div>
-              )}
+            <div
+              className={`rounded-[1.75rem] border border-white bg-white/80 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-[2.5rem] sm:p-7 dark:border-[#383D39] dark:bg-[#232624]/95 otp-electric-frame otp-embossed-card ${
+                verificationRejected ? "otp-electric-frame--error" : ""
+              }`}
+            >
+              {registrationVerified ? (
+                <div className="forgot-password-success space-y-6 text-center">
+                  <div className="forgot-password-success-panel rounded-2xl border border-green-100 bg-green-50 p-8">
+                    <div className="forgot-password-success-icon mb-5 inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+                      <CheckCircle className="forgot-password-success-check h-10 w-10 text-green-500" />
+                    </div>
+                    <h2 className="forgot-password-success-copy mb-3 font-display text-3xl font-black text-green-800">
+                      Email verified!
+                    </h2>
+                    <p className="forgot-password-success-copy text-sm font-semibold leading-relaxed text-green-700">
+                      {successMessage || t("registerPage.messages.verificationSuccess")}
+                    </p>
+                    <p className="forgot-password-success-copy mt-5 text-xs font-black uppercase tracking-[0.18em] text-green-600">
+                      Your account is ready. Redirecting to sign in…
+                    </p>
+                    <div className="forgot-password-success-progress mt-4 h-1.5 overflow-hidden rounded-full bg-green-200">
+                      <span className="block h-full rounded-full bg-green-500" />
+                    </div>
+                  </div>
 
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login", { replace: true, state: { from: safeRedirect } })}
+                    className="otp-embossed-button flex w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-dark active:scale-95"
+                  >
+                    <CheckCircle className="h-5 w-5" />
+                    Continue to sign in
+                  </button>
+                </div>
+              ) : <>
               {successMessage && (
-                <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-green-700 text-sm font-bold">{successMessage}</p>
+                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-green-100 bg-green-50 p-4">
+                  <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
+                  <p className="text-sm font-bold text-green-700">{successMessage}</p>
                 </div>
               )}
 
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
-                  <Mail className="w-7 h-7 text-primary" />
+              <form onSubmit={handleVerifyEmail} className="space-y-6">
+                <div className="otp-embossed-panel rounded-2xl border border-primary/10 bg-primary/5 p-5 text-center dark:border-[#383D39] dark:bg-[#1A1C1B]">
+                  <div className="otp-embossed-icon mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="mb-2 text-2xl font-black text-text-main dark:text-slate-100">
+                    {t("registerPage.verifyEmail")}
+                  </h2>
+                  <p className="text-sm font-semibold leading-relaxed text-text-muted">
+                    {t("registerPage.verificationInstructions")}{" "}
+                    <strong className="text-primary">{verificationEmail}</strong>
+                  </p>
                 </div>
-                <h2 className="text-2xl font-black text-text-main mb-2">{t("registerPage.verifyEmail")}</h2>
-                <p className="text-sm text-text-muted font-semibold">
-                  {t("registerPage.verificationInstructions")}{" "}
-                  <span className="text-text-main font-black">{verificationEmail}</span>
-                </p>
-              </div>
 
-              <div className="group">
-                <label className={labelClassName}>
-                  {t("registerPage.verificationCode")}
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="123456"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  required
-                  className={`${inputClassName} px-5 py-4 text-center text-2xl font-black tracking-[0.35em]`}
-                />
-              </div>
+                <div>
+                  <label className="mb-4 ml-1 block text-center text-xs font-black uppercase tracking-[0.2em] text-primary">
+                    {t("registerPage.verificationCode")}
+                  </label>
+                  <div className="flex justify-center gap-2 sm:gap-3">
+                    {verificationCode.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(element) => {
+                          codeInputRefs.current[index] = element;
+                        }}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        maxLength={6}
+                        value={digit}
+                        aria-label={`${t("registerPage.verificationCode")} ${index + 1}`}
+                        aria-invalid={verificationRejected}
+                        onChange={(event) => {
+                          const value = event.target.value.replace(/\D/g, "");
+                          handleVerificationCodeChange(index, value);
+                        }}
+                        onKeyDown={(event) => handleVerificationCodeKeyDown(index, event)}
+                        onPaste={(event) => {
+                          event.preventDefault();
+                          const pastedCode = event.clipboardData
+                            .getData("text")
+                            .replace(/\D/g, "")
+                            .slice(0, 6);
 
-              <button
-                type="submit"
-                disabled={loading || verificationCode.length !== 6}
-                className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transform transition-all duration-300 flex items-center justify-center gap-3 text-sm ${loading || verificationCode.length !== 6
-                  ? "bg-stone-200 text-stone-500 cursor-not-allowed"
-                  : "bg-text-main text-white hover:bg-primary hover:shadow-primary/20 hover:-translate-y-1 active:scale-95 shadow-stone-200"
+                          if (pastedCode) {
+                            handleVerificationCodeChange(0, pastedCode);
+                          }
+                        }}
+                        className={`otp-embossed-input h-14 w-12 rounded-xl border-2 text-center text-xl font-black transition-all focus:outline-none sm:h-16 sm:w-14 sm:text-2xl ${
+                          digit
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-stone-200 bg-stone-50/50 text-text-main focus:border-primary focus:ring-4 focus:ring-primary/5 dark:border-[#383D39] dark:bg-[#1A1C1B]"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className={`mt-3 min-h-5 text-center text-sm font-bold !text-red-600 dark:!text-red-400 ${
+                      error ? "visible opacity-100" : "invisible opacity-0"
+                    }`}
+                  >
+                    {error || "\u00a0"}
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <p className="text-xs font-bold text-stone-400">
+                      {t("registerPage.resendCode")}{" "}
+                      <span className="font-black text-primary">({resendCooldown}s)</span>
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-primary transition-colors hover:text-primary-dark disabled:opacity-50"
+                    >
+                      {resendLoading ? (
+                        <Loader className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
+                      {t("registerPage.resendCode")}
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || verificationCode.join("").length !== 6}
+                  className={`otp-embossed-button flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm font-black uppercase tracking-[0.2em] shadow-xl transition-all duration-300 ${
+                    loading || verificationCode.join("").length !== 6
+                      ? "cursor-not-allowed bg-stone-200 text-stone-500"
+                      : "bg-primary text-white hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-primary/20 active:scale-95"
                   }`}
-              >
-                {loading ? (
-                  <>
-                    <Loader className="w-5 h-5 animate-spin" />
-                    {t("registerPage.verifying")}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    {t("registerPage.verify")}
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={loading}
-                className="w-full py-3 text-sm font-black uppercase tracking-widest text-primary hover:text-primary-dark disabled:opacity-50"
-              >
-                {t("registerPage.resendCode")}
-              </button>
-            </form>
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="h-5 w-5 animate-spin" />
+                      {t("registerPage.verifying")}
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-5 w-5" />
+                      {t("registerPage.verify")}
+                    </>
+                  )}
+                </button>
+              </form>
+              </>}
+            </div>
           ) : (
           <form onSubmit={submitHandler} noValidate className="register-form grid w-full grid-cols-1 gap-x-4 gap-y-3 lg:grid-cols-2">
             {/* Error Message */}
@@ -615,10 +809,10 @@ const Register = () => {
           </div>}
         </div>
 
-          <div className="register-security mt-2 hidden items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-stone-500 dark:text-slate-400 sm:flex sm:mt-3">
+          {!verificationEmail && <div className="register-security mt-2 hidden items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-stone-500 dark:text-slate-400 sm:flex sm:mt-3">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             {t("registerPage.secureRegistration")}
-          </div>
+          </div>}
           </div>
         </main>
         </div>
@@ -630,7 +824,7 @@ const Register = () => {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleGoogleCancel}
           />
-          <motion.div 
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="relative w-full max-w-sm p-6 rounded-2xl shadow-2xl bg-white"
@@ -683,7 +877,7 @@ const Register = () => {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         </div>
       )}
     </div>

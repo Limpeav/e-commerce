@@ -15,7 +15,7 @@
 ## 3. Deploy Backend (Render)
 1.  Click **New +** -> **Web Service**.
 2.  Connect your GitHub repository.
-3.  Select the `ecommerce-backend` folder as Root Directory.
+3.  Select the `backend` folder as Root Directory.
 4.  **Build Command**: `npm install`
 5.  **Start Command**: `node server.js`
 6.  **Environment Variables**:
@@ -33,7 +33,7 @@
 
 ## 4. Deploy Frontend (Vercel)
 1.  Import your GitHub repository.
-2.  Select `ecommerce-frontend` as the Root Directory.
+2.  Select `user-frontend` as the Root Directory.
 3.  **Framework Preset**: Vite.
 4.  **Build Command**: `npm run build`
 5.  **Output Directory**: `dist`

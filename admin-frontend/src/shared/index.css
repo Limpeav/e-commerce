@@ -287,6 +287,17 @@ select {
     cursor: pointer;
 }
 
+/* Keep browser autofill from adding a blue background to admin login fields. */
+.admin-login-form input:-webkit-autofill,
+.admin-login-form input:-webkit-autofill:hover,
+.admin-login-form input:-webkit-autofill:focus,
+.admin-login-form input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--color-text-main);
+    caret-color: var(--color-text-main);
+    box-shadow: 0 0 0 1000px var(--color-surface-soft) inset;
+    transition: background-color 9999s ease-out 0s;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;

@@ -16,7 +16,7 @@ This document provides a detailed implementation plan to refactor your e-commerc
 ### Phase 1: Backend Services Layer (Priority: High)
 
 #### 1.1 Create Core Services
-Create service files in `/ecommerce-backend/services/`:
+Create service files in `/backend/services/`:
 
 1. **productService.js** ✅ (Example created)
    - `getAllProducts()`
@@ -146,7 +146,7 @@ Move business logic from views to controllers:
 
 ### Backend Structure:
 ```
-ecommerce-backend/
+backend/
 ├── config/
 │   ├── db.js
 │   └── env.js
@@ -190,7 +190,7 @@ ecommerce-backend/
 
 ### Frontend Structure:
 ```
-ecommerce-frontend/
+user-frontend/
 ├── src/
 │   ├── models/         # Data structures
 │   ├── services/       # API calls

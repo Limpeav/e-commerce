@@ -42,7 +42,7 @@ If you do not see anything, send a message to the bot first, then refresh the UR
 
 ## 4. Add env values
 
-Update `ecommerce-backend/.env`:
+Update `backend/.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=your_real_bot_token

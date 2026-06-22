@@ -2,7 +2,7 @@ services:
   - type: web
     name: ecommerce-backend
     runtime: node
-    rootDir: ecommerce-backend
+    rootDir: backend
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
@@ -73,8 +73,8 @@ services:
   - type: web
     name: ecommerce-frontend
     runtime: static
-    buildCommand: cd ecommerce-frontend && npm install && npm run build
-    staticPublishPath: ecommerce-frontend/dist
+    buildCommand: cd user-frontend && npm install && npm run build
+    staticPublishPath: user-frontend/dist
     envVars:
       - key: VITE_API_URL
         fromService:

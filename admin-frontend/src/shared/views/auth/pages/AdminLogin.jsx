@@ -122,7 +122,11 @@ const AdminLogin = () => {
             </p>
           </div>
 
-          <form onSubmit={submitHandler} className="px-8 pb-10 space-y-5">
+          <form
+            onSubmit={submitHandler}
+            autoComplete="on"
+            className="admin-login-form px-8 pb-10 space-y-5"
+          >
             {/* Error Display */}
             {error && (
               <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex gap-3 items-start animate-fade-in">
@@ -139,6 +143,7 @@ const AdminLogin = () => {
                 </div>
                 <input
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[var(--color-surface-soft)]/70 border border-[var(--color-border)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var(--color-text-main)] placeholder-stone-400 transition-all shadow-sm"
@@ -157,6 +162,7 @@ const AdminLogin = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 bg-[var(--color-surface-soft)]/70 border border-[var(--color-border)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var(--color-text-main)] placeholder-stone-400 transition-all shadow-sm"

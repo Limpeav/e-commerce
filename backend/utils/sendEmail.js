@@ -810,7 +810,7 @@ ${fromName}
 };
 
 // ─────────────────────────────────────────────────
-// Send Delete Account OTP (for Google OAuth users)
+// Send Delete Account OTP
 // ─────────────────────────────────────────────────
 export const sendDeleteAccountOtp = async (email, userName, otp) => {
   const fromName = FROM_NAME;

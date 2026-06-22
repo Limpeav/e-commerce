@@ -6,13 +6,13 @@
 
 **Terminal 1 - Backend:**
 ```bash
-cd ecommerce-backend
+cd backend
 npm run dev
 ```
 
 **Terminal 2 - Frontend:**
 ```bash
-cd ecommerce-frontend
+cd user-frontend
 npm run dev
 ```
 
@@ -175,10 +175,10 @@ Before testing:
 ### Common Commands:
 ```bash
 # Check backend logs
-cd ecommerce-backend && npm run dev
+cd backend && npm run dev
 
 # Check frontend logs  
-cd ecommerce-frontend && npm run dev
+cd user-frontend && npm run dev
 
 # View MongoDB
 mongosh

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Bell, Shield, Palette, AlertTriangle, Key, Trash2, Mail, RefreshCw, Moon, Globe, ArrowLeft } from 'lucide-react';
+import { User, Bell, Shield, Palette, AlertTriangle, Trash2, Mail, RefreshCw, Moon, Globe, ArrowLeft } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -36,8 +36,7 @@ export default function Settings() {
   const { language, setLanguage } = useLanguage();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [googleStep, setGoogleStep] = useState(1);
+  const [deleteStep, setDeleteStep] = useState(1);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
@@ -46,7 +45,6 @@ export default function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const isGoogleUser = !!user?.googleId;
   const displayPromotionalEmails = promotionalEmails === true;
   const promotionalEmailStatus = displayPromotionalEmails ? 'On' : 'Off';
 
@@ -126,9 +124,8 @@ export default function Settings() {
 
   const closeModal = () => {
     setShowDeleteModal(false);
-    setDeletePassword('');
     setDeleteError('');
-    setGoogleStep(1);
+    setDeleteStep(1);
     setOtpDigits(['', '', '', '', '', '']);
     setMaskedEmail('');
   };
@@ -143,7 +140,9 @@ export default function Settings() {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       setMaskedEmail(res.data.email || user.email);
-      setGoogleStep(2);
+      setOtpDigits(['', '', '', '', '', '']);
+      setDeleteStep(2);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
       setDeleteError(err.response?.data?.message || 'Failed to send confirmation email.');
     } finally {
@@ -184,19 +183,13 @@ export default function Settings() {
     setIsDeleting(true);
     setDeleteError('');
     try {
-      let payload = {};
-      if (isGoogleUser) {
-        const otpCode = otpDigits.join('');
-        if (otpCode.length < 6) {
-          setDeleteError('Please enter the full 6-digit code.');
-          setIsDeleting(false);
-          return;
-        }
-        payload = { otpCode };
-      } else {
-        payload = { password: deletePassword };
+      const otpCode = otpDigits.join('');
+      if (otpCode.length < 6) {
+        setDeleteError('Please enter the full 6-digit code.');
+        setIsDeleting(false);
+        return;
       }
-      await axios.post(`${API_URL}/users/delete-account`, payload, {
+      await axios.post(`${API_URL}/users/delete-account`, { otpCode }, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       logout();
@@ -388,15 +381,14 @@ export default function Settings() {
                 </div>
               )}
 
-              {isGoogleUser ? (
-                <div>
-                  {googleStep === 1 ? (
+              <div>
+                  {deleteStep === 1 ? (
                     <div className="space-y-5">
                       <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
                         <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
                         <div>
-                          <p className="text-sm font-bold text-blue-800">Signed in with Google</p>
-                          <p className="text-xs text-blue-600">We'll send a 6-digit code to your email to verify this request.</p>
+                          <p className="text-sm font-bold text-blue-800">Email verification required</p>
+                          <p className="text-xs text-blue-600">We'll send a 6-digit code to your email address to confirm this deletion request.</p>
                         </div>
                       </div>
                       <div className="flex gap-3">
@@ -421,6 +413,7 @@ export default function Settings() {
                               ref={(el) => (otpRefs.current[i] = el)}
                               type="text"
                               inputMode="numeric"
+                              autoComplete={i === 0 ? 'one-time-code' : 'off'}
                               maxLength={1}
                               value={digit}
                               onChange={(e) => handleOtpChange(i, e.target.value)}
@@ -432,7 +425,7 @@ export default function Settings() {
                       </div>
                       <p className="text-center text-xs text-text-muted">
                         Didn't receive it?{' '}
-                        <button type="button" onClick={() => { setGoogleStep(1); setOtpDigits(['', '', '', '', '', '']); setDeleteError(''); }} className="inline-flex items-center gap-1 font-bold text-red-500 hover:underline">
+                        <button type="button" onClick={handleSendOtp} disabled={isSendingOtp} className="inline-flex items-center gap-1 font-bold text-red-500 hover:underline disabled:opacity-50">
                           <RefreshCw className="h-3 w-3" /> Resend
                         </button>
                       </p>
@@ -445,33 +438,6 @@ export default function Settings() {
                     </form>
                   )}
                 </div>
-              ) : (
-                <form onSubmit={handleDeleteAccount} className="space-y-5">
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-text-muted">Confirm Identity</label>
-                    <p className="mb-3 text-xs text-text-muted">Enter your password to confirm account deletion.</p>
-                    <div className="relative">
-                      <Key className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
-                      <input
-                        type="password"
-                        value={deletePassword}
-                        onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(''); }}
-                        className="w-full rounded-xl border bg-bg-card py-3.5 pl-11 pr-4 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-red-500/20"
-                        style={borderStyle}
-                        placeholder="Enter your current password"
-                        required
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button type="button" onClick={closeModal} disabled={isDeleting} className="flex-1 rounded-xl border bg-bg-card px-5 py-3.5 text-sm font-bold text-text-main transition-colors hover:border-primary/30 disabled:opacity-50" style={borderStyle}>Cancel</button>
-                    <button type="submit" disabled={isDeleting || !deletePassword} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
-                      {isDeleting ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Trash2 className="h-4 w-4" /> Confirm Delete</>}
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
           </div>
         </div>,

@@ -27,7 +27,7 @@ Follow these steps to set up Gmail for sending password reset emails.
 
 ## Step 3: Configure .env File
 
-Open your `ecommerce-backend/.env` file and add these lines:
+Open your `backend/.env` file and add these lines:
 
 ```env
 # Gmail Configuration
@@ -49,7 +49,7 @@ FRONTEND_URL=http://localhost:5173
 Make sure nodemailer is installed:
 
 ```bash
-cd ecommerce-backend
+cd backend
 npm install nodemailer
 ```
 
@@ -105,7 +105,7 @@ After updating the `.env` file:
 
 **Solution:**
 ```bash
-cd ecommerce-backend
+cd backend
 npm install nodemailer
 ```
 

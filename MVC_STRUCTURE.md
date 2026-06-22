@@ -8,7 +8,7 @@ This document outlines the professional MVC (Model-View-Controller) architecture
 ## Backend MVC Structure
 
 ```
-ecommerce-backend/
+backend/
 ├── config/                    # Configuration files
 │   ├── db.js                  # Database configuration
 │   └── env.js                 # Environment variables
@@ -107,7 +107,7 @@ ecommerce-backend/
 ## Frontend MVC Structure
 
 ```
-ecommerce-frontend/
+user-frontend/
 ├── src/
 │   ├── models/                # MODELS - Data structures and validation
 │   │   ├── User.js

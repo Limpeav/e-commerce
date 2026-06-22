@@ -53,6 +53,6 @@ router.put("/notification-preferences", protect, updateNotificationPreferences);
 router.post("/start-phone-verification", protect, otpLimiter, startPhoneVerification);
 router.post("/verify-phone", protect, otpLimiter, verifyPhone);
 router.post("/request-delete-otp", protect, otpLimiter, requestDeleteOtp);
-router.post("/delete-account", protect, deleteAccount);
+router.post("/delete-account", protect, otpLimiter, deleteAccount);
 
 export default router;
