@@ -4,6 +4,7 @@ import {
   hashLoginCode,
   normalizeEmail,
   safeEqual,
+  validateCustomerPassword,
   validatePortalPassword,
 } from "../utils/authSecurity.js";
 
@@ -14,6 +15,14 @@ test("portal password policy rejects weak passwords", () => {
 
 test("portal password policy accepts a strong password", () => {
   assert.equal(validatePortalPassword("ThesisPlus#2026").valid, true);
+});
+
+test("customer password policy rejects weak passwords", () => {
+  assert.equal(validateCustomerPassword("password").valid, false);
+});
+
+test("customer password policy accepts a strong password", () => {
+  assert.equal(validateCustomerPassword("Cherish9!Baby").valid, true);
 });
 
 test("email normalization is consistent", () => {

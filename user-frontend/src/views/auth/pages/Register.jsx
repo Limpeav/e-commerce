@@ -29,7 +29,37 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
+  X,
 } from "lucide-react";
+
+const validateStrongPassword = (password = "") =>
+  password.length >= 10
+  && /[a-z]/.test(password)
+  && /[A-Z]/.test(password)
+  && /\d/.test(password)
+  && /[^A-Za-z0-9]/.test(password);
+
+const generateStrongPassword = () => {
+  const required = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!@#$%&*?"];
+  const allCharacters = required.join("");
+  const randomIndex = (length) => {
+    const values = new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    return values[0] % length;
+  };
+  const characters = required.map((group) => group[randomIndex(group.length)]);
+
+  while (characters.length < 14) {
+    characters.push(allCharacters[randomIndex(allCharacters.length)]);
+  }
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
+  }
+
+  return characters.join("");
+};
 
 const Register = () => {
   const [form, setForm] = useState({});
@@ -37,6 +67,8 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordChoice, setPasswordChoice] = useState("own");
+  const [showPasswordChoice, setShowPasswordChoice] = useState(false);
   const [googleUser, setGoogleUser] = useState(null);
   const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
@@ -167,8 +199,8 @@ const Register = () => {
       return;
     }
 
-    if (form.password.length < 6) {
-      setError(t("registerPage.errors.passwordLength"));
+    if (!validateStrongPassword(form.password)) {
+      setError(t("registerPage.errors.strongPassword"));
       return;
     }
 
@@ -270,7 +302,11 @@ const Register = () => {
 
   const isFormValid = () => {
     return (
-      form.name && form.email && form.phone && form.password && agreedToTerms
+      form.name
+      && form.email
+      && form.phone
+      && validateStrongPassword(form.password)
+      && agreedToTerms
     );
   };
 
@@ -339,12 +375,32 @@ const Register = () => {
     setShowGoogleConfirm(false);
   };
 
+  const useSuggestedPassword = () => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      password: generateStrongPassword(),
+    }));
+    setPasswordChoice("suggested");
+    setShowPassword(true);
+    setShowPasswordChoice(false);
+    setError("");
+  };
+
+  const useOwnPassword = () => {
+    setPasswordChoice("own");
+    setForm((currentForm) => ({ ...currentForm, password: "" }));
+    setShowPassword(false);
+    setShowPasswordChoice(false);
+    setError("");
+    setTimeout(() => document.getElementById("register-password")?.focus(), 0);
+  };
+
   const inputClassName =
-    "h-12 w-full rounded-xl border bg-white px-4 font-bold text-text-main transition-all placeholder:text-stone-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-500";
+    "peer h-12 w-full rounded-xl border-2 border-stone-200 bg-white font-bold leading-none text-text-main outline-none transition-all duration-300 ease-out focus:border-primary focus:shadow-[0_0_0_4px_rgba(122,150,126,0.14),0_12px_30px_rgba(122,150,126,0.22)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
   const iconClassName =
-    "absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 transition-colors group-focus-within:text-primary";
-  const labelClassName =
-    "mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary dark:text-primary-light";
+    "pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-primary/60 transition-colors group-focus-within:text-primary";
+  const floatingLabelClassName =
+    "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 bg-white px-1.5 text-sm font-bold text-stone-400 transition-all duration-300 ease-out peer-focus:left-3 peer-focus:top-0 peer-focus:text-[11px] peer-focus:font-black peer-focus:uppercase peer-focus:tracking-[0.14em] peer-focus:text-primary peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:font-black peer-[:not(:placeholder-shown)]:uppercase peer-[:not(:placeholder-shown)]:tracking-[0.14em] peer-[:not(:placeholder-shown)]:text-primary dark:bg-slate-900 dark:text-slate-500 dark:peer-focus:text-primary-light dark:peer-[:not(:placeholder-shown)]:text-primary-light";
 
   return (
     <div className="register-page relative flex h-[100svh] items-center justify-center overflow-hidden bg-bg-base px-3 py-4 font-sans sm:px-4 sm:py-6 lg:p-5">
@@ -590,104 +646,137 @@ const Register = () => {
               </>}
             </div>
           ) : (
-          <form onSubmit={submitHandler} noValidate className="register-form grid w-full grid-cols-1 gap-x-4 gap-y-3 lg:grid-cols-2">
+          <form onSubmit={submitHandler} noValidate className="register-form grid w-full grid-cols-1 gap-x-5 gap-y-5 lg:grid-cols-2">
             {/* Error Message */}
             {error && (
-              <div className="fixed left-3 right-3 top-3 z-50 mx-auto flex max-w-xl animate-shake items-start gap-3 rounded-xl border border-red-200 bg-red-600 p-3 text-white shadow-2xl">
-                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-white" />
-                <p className="text-sm font-bold text-white">{error}</p>
+              <div
+                role="alert"
+                aria-live="polite"
+                className="col-span-full flex w-full animate-shake items-center justify-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/95 px-4 py-3 text-left shadow-[0_12px_30px_-20px_rgba(120,45,45,0.35)] dark:border-rose-400/25 dark:bg-rose-950/35 sm:px-5"
+              >
+                <span className="flex shrink-0 items-center justify-center !text-red-600 dark:!text-red-400">
+                  <AlertCircle className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-relaxed text-rose-700 dark:text-rose-200">
+                    {error}
+                  </p>
+                </div>
               </div>
             )}
 
             {/* Name Input */}
-            <div className="group">
-              <label className={labelClassName}>
-                {t("registerPage.fullName")}
-              </label>
+            <div className="group self-end">
               <div className="relative">
                 <div className={iconClassName}>
-                  <User className="w-5 h-5" />
+                  <User className="h-5 w-5" />
                 </div>
                 <input
+                  id="register-name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder=" "
                   value={form.name || ""}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  className={`${inputClassName} !pl-12`}
+                  className={`${inputClassName} !pl-12 pr-4`}
                 />
+                <label
+                  htmlFor="register-name"
+                  className={`${floatingLabelClassName} left-11`}
+                >
+                  {t("registerPage.fullName")}
+                </label>
               </div>
             </div>
 
             {/* Email Input */}
-            <div className="group">
-              <label className={labelClassName}>
-                {t("registerPage.emailAddress")}
-              </label>
+            <div className="group self-end">
               <div className="relative">
                 <div className={iconClassName}>
                   <Mail className="w-5 h-5" />
                 </div>
                 <input
+                  id="register-email"
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder=" "
                   value={form.email || ""}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
-                  className={`${inputClassName} !pl-12`}
+                  className={`${inputClassName} !pl-12 pr-4`}
                 />
+                <label
+                  htmlFor="register-email"
+                  className={`${floatingLabelClassName} left-11`}
+                >
+                  {t("registerPage.emailAddress")}
+                </label>
               </div>
             </div>
 
             {/* Phone Input */}
-            <div className="group">
-              <label className={labelClassName}>
-                {t("registerPage.phoneNumber")}
-              </label>
+            <div className="group self-end">
               <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-                <div className="flex h-12 shrink-0 items-center rounded-xl border border-stone-200 bg-stone-100 px-4 font-black text-text-main dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                <div className="flex h-12 shrink-0 items-center rounded-xl border-2 border-stone-200 bg-stone-100 px-4 font-black text-text-main dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
                   +855
                 </div>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="12 345 678"
-                  value={form.phone || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      phone: toCambodiaLocalPhoneDigits(e.target.value).slice(0, 9),
-                    })
-                  }
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  maxLength={9}
-                  required
-                  className={`${inputClassName} min-w-0 flex-1`}
-                />
+                <div className="relative min-w-0">
+                  <div className={iconClassName}>
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <input
+                    id="register-phone"
+                    type="tel"
+                    name="phone"
+                    placeholder=" "
+                    value={form.phone || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        phone: toCambodiaLocalPhoneDigits(e.target.value).slice(0, 9),
+                      })
+                    }
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={9}
+                    required
+                    className={`${inputClassName} min-w-0 !pl-12 pr-4`}
+                  />
+                  <label
+                    htmlFor="register-phone"
+                    className={`${floatingLabelClassName} left-11`}
+                  >
+                    {t("registerPage.phoneNumber")}
+                  </label>
+                </div>
               </div>
             </div>
 
             {/* Password Input */}
             <div className="group">
-              <label className={labelClassName}>
-                {t("registerPage.password")}
-              </label>
               <div className="relative">
                 <div className={iconClassName}>
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
+                  id="register-password"
                   type={showPassword ? "text" : "password"}
-                  placeholder={t("registerPage.passwordPlaceholder")}
+                  placeholder=" "
                   value={form.password || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
+                  onClick={() => setShowPasswordChoice(true)}
+                  onChange={(e) => {
+                    setPasswordChoice("own");
+                    setForm({ ...form, password: e.target.value });
+                  }}
                   required
-                  minLength={6}
+                  minLength={10}
                   className={`${inputClassName} !pl-12 !pr-12`}
                 />
+                <label
+                  htmlFor="register-password"
+                  className={`${floatingLabelClassName} left-11`}
+                >
+                  {t("registerPage.password")}
+                </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -700,7 +789,6 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-0.5 text-[8px] font-bold uppercase tracking-widest text-stone-500 dark:text-slate-400 sm:mt-1 sm:text-[9px]">{t("registerPage.passwordHint")}</p>
             </div>
 
             {/* Terms and Conditions */}
@@ -816,6 +904,72 @@ const Register = () => {
           </div>
         </main>
         </div>
+
+      {showPasswordChoice && !verificationEmail && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Close password options"
+            onClick={() => setShowPasswordChoice(false)}
+            className="absolute inset-0 cursor-default bg-stone-950/35 backdrop-blur-sm"
+          />
+          <Motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-choice-title"
+            className="relative w-full max-w-md rounded-[1.75rem] border border-white/80 bg-white/95 p-5 shadow-[0_30px_90px_-30px_rgba(45,49,46,0.55)] backdrop-blur-2xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-7"
+          >
+            <button
+              type="button"
+              onClick={() => setShowPasswordChoice(false)}
+              aria-label="Close password options"
+              className="absolute right-4 top-4 rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-primary dark:hover:bg-slate-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="pr-9 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h2 id="password-choice-title" className="font-display text-2xl font-black text-text-main dark:text-slate-100">
+                {t("registerPage.passwordChoiceTitle")}
+              </h2>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-text-muted dark:text-slate-300">
+                {t("registerPage.strongPasswordRequirement")}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={useSuggestedPassword}
+                className={`whitespace-nowrap rounded-xl border-2 px-3.5 py-2.5 text-xs font-black transition-all ${
+                  passwordChoice === "suggested"
+                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                    : "border-primary/25 bg-white text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 dark:bg-slate-950"
+                }`}
+              >
+                {t("registerPage.useSuggestedPassword")}
+              </button>
+              <button
+                type="button"
+                onClick={useOwnPassword}
+                className={`whitespace-nowrap rounded-xl border-2 px-3.5 py-2.5 text-xs font-black transition-all ${
+                  passwordChoice === "own"
+                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                    : "border-primary/25 bg-white text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 dark:bg-slate-950"
+                }`}
+              >
+                {t("registerPage.useOwnPassword")}
+              </button>
+            </div>
+          </Motion.div>
+        </div>
+      )}
 
       {/* Google Account Confirmation Modal */}
       {showGoogleConfirm && googleUser && (

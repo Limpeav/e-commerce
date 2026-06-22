@@ -3,7 +3,7 @@ import { authService } from "../../../services/authService";
 import { useAuth } from "../../../context/useAuth";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
 import { useLanguage } from "../../../context/useLanguage";
 import BrandLogo from "../../../components/common/BrandLogo";
@@ -174,21 +174,21 @@ const Login = () => {
       }`}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
+        <Motion.div
           animate={{ x: [0, 10, 0], y: [0, -10, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className={`absolute left-10 top-20 h-72 w-72 rounded-full opacity-30 blur-3xl ${
             isDark ? "bg-indigo-500/10" : "bg-primary-light/10 mix-blend-multiply"
           }`}
         />
-        <motion.div
+        <Motion.div
           animate={{ x: [0, -20, 0], y: [0, 20, 0], scale: [1, 1.2, 1] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
           className={`absolute right-10 top-40 h-72 w-72 rounded-full opacity-40 blur-3xl ${
             isDark ? "bg-cyan-500/10" : "bg-primary/5 mix-blend-multiply"
           }`}
         />
-        <motion.div
+        <Motion.div
           animate={{ x: [0, 15, 0], y: [0, 15, 0], scale: [1, 0.9, 1] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           className={`absolute bottom-20 left-1/2 h-72 w-72 rounded-full opacity-30 blur-3xl ${
@@ -264,36 +264,44 @@ const Login = () => {
               )}
 
               <div className="group">
-                <label className="mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary">
-                  {t("Email Address")}
-                </label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary" />
                   <input
+                    id="login-email"
                     type="email"
-                    placeholder="john@example.com"
+                    placeholder=" "
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-12 w-full rounded-xl border border-stone-200 bg-white !pl-12 pr-4 font-bold text-text-main outline-none transition-all placeholder:text-stone-400 focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="peer h-12 w-full rounded-xl border-2 border-stone-200 bg-white !pl-12 pr-4 font-bold leading-none text-text-main outline-none transition-all duration-300 ease-out focus:border-primary focus:shadow-[0_0_0_4px_rgba(122,150,126,0.14),0_12px_30px_rgba(122,150,126,0.22)] dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
                   />
+                  <label
+                    htmlFor="login-email"
+                    className="pointer-events-none absolute left-11 top-1/2 z-20 -translate-y-1/2 bg-white px-1.5 text-sm font-bold text-stone-400 transition-all duration-300 ease-out peer-focus:left-3 peer-focus:top-0 peer-focus:text-[11px] peer-focus:font-black peer-focus:uppercase peer-focus:tracking-[0.14em] peer-focus:text-primary peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:font-black peer-[:not(:placeholder-shown)]:uppercase peer-[:not(:placeholder-shown)]:tracking-[0.14em] peer-[:not(:placeholder-shown)]:text-primary dark:bg-slate-900 dark:text-slate-500 dark:peer-focus:text-primary-light dark:peer-[:not(:placeholder-shown)]:text-primary-light"
+                  >
+                    {t("Email Address")}
+                  </label>
                 </div>
               </div>
 
               <div className="group">
-                <label className="mb-2 ml-1 block text-xs font-black uppercase tracking-[0.2em] text-primary">
-                  {t("Password")}
-                </label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-primary/45 transition-colors group-focus-within:text-primary" />
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={t("Enter your password")}
+                    placeholder=" "
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-12 w-full rounded-xl border border-stone-200 bg-white !pl-12 !pr-12 font-bold text-text-main outline-none transition-all placeholder:text-stone-400 focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="peer h-12 w-full rounded-xl border-2 border-stone-200 bg-white !pl-12 !pr-12 font-bold leading-none text-text-main outline-none transition-all duration-300 ease-out focus:border-primary focus:shadow-[0_0_0_4px_rgba(122,150,126,0.14),0_12px_30px_rgba(122,150,126,0.22)] dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100"
                   />
+                  <label
+                    htmlFor="login-password"
+                    className="pointer-events-none absolute left-11 top-1/2 z-20 -translate-y-1/2 bg-white px-1.5 text-sm font-bold text-stone-400 transition-all duration-300 ease-out peer-focus:left-3 peer-focus:top-0 peer-focus:text-[11px] peer-focus:font-black peer-focus:uppercase peer-focus:tracking-[0.14em] peer-focus:text-primary peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:font-black peer-[:not(:placeholder-shown)]:uppercase peer-[:not(:placeholder-shown)]:tracking-[0.14em] peer-[:not(:placeholder-shown)]:text-primary dark:bg-slate-900 dark:text-slate-500 dark:peer-focus:text-primary-light dark:peer-[:not(:placeholder-shown)]:text-primary-light"
+                  >
+                    {t("Password")}
+                  </label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -309,7 +317,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
+              <div className="mb-7 mt-5 flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
                 <label className="group flex cursor-pointer items-center gap-2">
                   <input
                     type="checkbox"
@@ -332,16 +340,18 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-xl disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:hover:translate-y-0 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+                className="login-slide-button mt-5 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-primary px-5 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-xl disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:hover:translate-y-0 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
               >
-                {loading ? (
-                  <>
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  {loading ? (
+                    <>
                     <Loader className="h-5 w-5 animate-spin" />
                     {t("Identifying...")}
-                  </>
-                ) : (
-                  t("Sign In")
-                )}
+                    </>
+                  ) : (
+                    t("Sign In")
+                  )}
+                </span>
               </button>
             </form>
 

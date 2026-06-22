@@ -9,7 +9,10 @@ import {
 import { emitDomainChanged } from "../realtime/socket.js";
 import { normalizeCambodiaMobilePhone } from "../utils/cambodiaPhone.js";
 import { PORTAL_ROLES } from "../constants/roles.js";
-import { validatePortalPassword } from "../utils/authSecurity.js";
+import {
+  validateCustomerPassword,
+  validatePortalPassword,
+} from "../utils/authSecurity.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -41,6 +44,11 @@ export const registerUser = async (req, res) => {
 
     if (!normalizedPhone) {
       return res.status(400).json({ message: "Please enter a valid Cambodia phone number" });
+    }
+
+    const passwordCheck = validateCustomerPassword(password);
+    if (!passwordCheck.valid) {
+      return res.status(400).json({ message: passwordCheck.message });
     }
 
     const userExists = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
