@@ -199,7 +199,7 @@ export default function Home() {
         return () => window.clearTimeout(scrollTimer);
     }, [searchQuery]);
 
-    const handleCategorySelect = (category) => {
+    const handleCategorySelect = useCallback((category) => {
         setSelectedCategory(category);
         // Add a small delay to ensure React state updates before scrolling
         setTimeout(() => {
@@ -209,23 +209,23 @@ export default function Home() {
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
         }, 100);
-    };
+    }, [setSelectedCategory]);
 
-    const handleAddToCart = (product) => {
+    const handleAddToCart = useCallback((product) => {
         if (!user) return;
         addToCart(product, 1);
-    };
+    }, [addToCart, user]);
 
-    const handleRetry = () => {
+    const handleRetry = useCallback(() => {
         refetch();
-    };
+    }, [refetch]);
 
-    const handleClearFilters = () => {
+    const handleClearFilters = useCallback(() => {
         setSearchQuery("");
         setSelectedCategory("All");
-    };
+    }, [setSearchQuery, setSelectedCategory]);
 
-    const gridContainerVariants = {
+    const gridContainerVariants = useMemo(() => ({
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
@@ -233,16 +233,16 @@ export default function Home() {
                 staggerChildren: 0.025
             }
         }
-    };
+    }), []);
 
-    const gridItemVariants = {
+    const gridItemVariants = useMemo(() => ({
         hidden: { opacity: 0, y: 12 },
         show: {
             opacity: 1,
             y: 0,
             transition: { duration: 0.18, ease: "easeOut" }
         }
-    };
+    }), []);
 
     const productSections = useMemo(() => {
         const normalizedProducts = [...filteredProducts];

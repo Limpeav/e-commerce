@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useToast } from "./ToastContext";
-import { CartController } from "../controllers/index.js";
+import { CartController } from "../controllers/cartController.js";
 import { useAuth } from "./useAuth";
 import { CartContext } from "./cart-context";
 import { useDarkMode } from "../hooks";
@@ -357,6 +357,8 @@ const CartPreviewDrawer = ({
                       <img
                         src={item.product.image}
                         alt={item.product.title || item.product.name || t("cart.cartProduct")}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     </Link>

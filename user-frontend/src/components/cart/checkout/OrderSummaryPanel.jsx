@@ -29,6 +29,8 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
               <img
                 src={item.product.image}
                 alt={localizedProduct.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-contain"
               />
             </div>

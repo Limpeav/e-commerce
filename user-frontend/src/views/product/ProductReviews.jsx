@@ -91,6 +91,8 @@ export default function ProductReviews() {
               <img
                 src={product.image || product.images?.[0]}
                 alt={localizedProduct.title}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-contain"
               />
             </div>

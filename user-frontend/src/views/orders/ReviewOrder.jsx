@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Send, Star } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion as Motion, useReducedMotion } from "framer-motion";
 import { getOrderById } from "../../services/orderService";
 import { ProductController } from "../../controllers/productController";
 import { useAuth } from "../../context/useAuth";
@@ -293,7 +293,7 @@ export default function ReviewOrder() {
           isDark ? "bg-slate-950" : "bg-bg-base"
         }`}
       >
-        <motion.div
+        <Motion.div
           aria-hidden="true"
           className={`absolute -left-24 top-[12%] h-64 w-64 rounded-full blur-3xl ${
             isDark ? "bg-emerald-500/10" : "bg-primary/10"
@@ -301,7 +301,7 @@ export default function ReviewOrder() {
           animate={reduceMotion ? undefined : { scale: [1, 1.15, 1], opacity: [0.55, 0.9, 0.55] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
+        <Motion.div
           aria-hidden="true"
           className={`absolute -right-24 bottom-[8%] h-72 w-72 rounded-full blur-3xl ${
             isDark ? "bg-amber-400/10" : "bg-secondary/20"
@@ -310,7 +310,7 @@ export default function ReviewOrder() {
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <motion.section
+        <Motion.section
           initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -323,7 +323,7 @@ export default function ReviewOrder() {
           <div className="relative mx-auto mb-6 h-24 w-24 sm:h-28 sm:w-28">
             {!reduceMotion &&
               celebrationDots.map((dot, index) => (
-                <motion.span
+                <Motion.span
                   key={index}
                   aria-hidden="true"
                   className="absolute left-1/2 top-1/2 h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3"
@@ -339,47 +339,47 @@ export default function ReviewOrder() {
                 />
               ))}
 
-            <motion.div
+            <Motion.div
               initial={reduceMotion ? false : { scale: 0, rotate: -18 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 240, damping: 17, delay: 0.12 }}
               className="absolute inset-2 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-[0_14px_35px_rgba(5,150,105,0.22)] ring-8 ring-emerald-50 sm:inset-3"
             >
-              <motion.div
+              <Motion.div
                 animate={reduceMotion ? undefined : { scale: [1, 1.08, 1] }}
                 transition={{ duration: 1.4, repeat: Infinity, repeatDelay: 0.8 }}
               >
                 <CheckCircle className="h-11 w-11 sm:h-13 sm:w-13" strokeWidth={2.4} />
-              </motion.div>
-            </motion.div>
+              </Motion.div>
+            </Motion.div>
           </div>
 
-          <motion.p
+          <Motion.p
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-primary sm:text-xs sm:tracking-[0.24em]"
           >
             Review submitted
-          </motion.p>
-          <motion.h1
+          </Motion.p>
+          <Motion.h1
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.32 }}
             className="font-display text-3xl font-black leading-tight tracking-tight text-text-main sm:text-4xl"
           >
             Thank you for your review
-          </motion.h1>
-          <motion.p
+          </Motion.h1>
+          <Motion.p
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.39 }}
             className="mx-auto mt-4 max-w-md text-sm font-bold leading-6 text-text-muted sm:text-base sm:leading-7"
           >
             Your feedback helps other customers choose with confidence.
-          </motion.p>
+          </Motion.p>
 
-          <motion.div
+          <Motion.div
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -392,15 +392,15 @@ export default function ReviewOrder() {
               <span>3 seconds</span>
             </div>
             <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-slate-700" : "bg-stone-200"}`}>
-              <motion.div
+              <Motion.div
                 className="h-full origin-left rounded-full bg-primary"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: reduceMotion ? 0 : 3, ease: "linear" }}
               />
             </div>
-          </motion.div>
-        </motion.section>
+          </Motion.div>
+        </Motion.section>
       </main>
     );
   }
@@ -438,7 +438,13 @@ export default function ReviewOrder() {
                 <div className="grid gap-5 md:grid-cols-[120px_1fr]">
                   <div className={`aspect-square overflow-hidden rounded-2xl border ${isDark ? "border-slate-800 bg-slate-800" : "border-stone-100 bg-stone-50"}`}>
                     {item.image ? (
-                      <img src={item.image} alt={getProductName(item)} className="h-full w-full object-cover" />
+                      <img
+                        src={item.image}
+                        alt={getProductName(item)}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Package className="h-9 w-9 text-text-muted" />

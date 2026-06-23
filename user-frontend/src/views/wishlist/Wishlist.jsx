@@ -184,6 +184,8 @@ export default function Wishlist() {
                 <img
                   src={product.image}
                   alt={localizedProduct.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-500"
                 />
 

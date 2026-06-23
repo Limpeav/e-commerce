@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import { ProductController } from '../controllers/productController';
 import {
   PRODUCT_CATEGORY_ALIASES,
@@ -109,6 +109,7 @@ export const useProducts = (language = "en") => {
 export const useProductFilters = (products) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const categories = useMemo(() => {
     const productCategories = [
@@ -135,16 +136,16 @@ export const useProductFilters = (products) => {
       );
     }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (deferredSearchQuery) {
+      const query = deferredSearchQuery.toLowerCase();
       result = result.filter(p =>
-        (p.name || p.title).toLowerCase().includes(query) ||
+        String(p.name || p.title || "").toLowerCase().includes(query) ||
         (p.description && p.description.toLowerCase().includes(query))
       );
     }
 
     return result;
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, deferredSearchQuery]);
 
   return {
     searchQuery,

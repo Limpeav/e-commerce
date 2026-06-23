@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Search, X, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { translateCategory } from "../../utils/translationKeys";
@@ -52,7 +52,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                         className="flex w-full items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar sm:max-w-[430px] sm:gap-2 sm:pb-1 md:max-w-[510px] lg:max-w-[560px] xl:max-w-[620px]"
                     >
                         {categories.map((cat) => (
-                            <motion.button
+                            <Motion.button
                                 whileTap={{ scale: 0.95 }}
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
@@ -64,7 +64,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                                     }`}
                             >
                                 {translateCategory(cat, t)}
-                            </motion.button>
+                            </Motion.button>
                         ))}
                     </div>
                     <button

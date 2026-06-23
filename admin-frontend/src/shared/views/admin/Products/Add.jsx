@@ -19,7 +19,6 @@ import {
   FileText,
   Boxes,
   Check,
-  FileSpreadsheet,
   Sparkles,
   CalendarDays,
   X,
@@ -47,8 +46,6 @@ const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [backgroundRemoving, setBackgroundRemoving] = useState(false);
   const [backgroundRemovalMessage, setBackgroundRemovalMessage] = useState(null);
-  const [csvFile, setCsvFile] = useState(null);
-  const [csvLoading, setCsvLoading] = useState(false);
   const [formMessage, setFormMessage] = useState(null);
 
   const handleChange = (e) => {
@@ -165,36 +162,6 @@ const AddProduct = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCsvFileChange = (e) => {
-    setCsvFile(e.target.files?.[0] || null);
-  };
-
-  const handleCsvImport = async () => {
-    if (!csvFile) {
-      alert("Please choose a CSV file first");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", csvFile);
-
-    try {
-      setCsvLoading(true);
-      const response = await ProductController.importCsv(formData);
-      alert(response.data?.message || "Products imported successfully");
-      navigate("/admin/products");
-    } catch (err) {
-      const message =
-        err.response?.data?.errors?.join("\n") ||
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to import CSV";
-      alert(message);
-    } finally {
-      setCsvLoading(false);
     }
   };
 

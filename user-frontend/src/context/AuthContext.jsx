@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AuthController } from "../controllers/index.js";
+import { AuthController } from "../controllers/authController.js";
 import { AuthContext } from "./auth-context";
 import { AUTH_SESSION_EXPIRED_EVENT } from "../services/authService.js";
 

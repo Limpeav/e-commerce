@@ -85,6 +85,8 @@ const ProductCard = ({
           <img
             src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
             alt={localizedProduct.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-105"
             onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'; }}
           />
@@ -234,4 +236,4 @@ const ProductCard = ({
   );
 };
 
-export default ProductCard;
+export default React.memo(ProductCard);

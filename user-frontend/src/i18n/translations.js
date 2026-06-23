@@ -399,7 +399,10 @@ export const translations = {
       undefined: "Undefined",
       cancelOrder: "Cancel Order",
       cancelling: "Cancelling...",
+      cancelConfirmTitle: "Cancel this order?",
       cancelConfirm: "Cancel this order? You can only cancel before the seller confirms it.",
+      keepOrder: "Keep Order",
+      confirmCancel: "Yes, Cancel Order",
       cancelFailed: "Failed to cancel order",
       cancelledNotice: "This order has been cancelled.",
       status: {
@@ -1180,7 +1183,10 @@ export const translations = {
       undefined: "មិនបានកំណត់",
       cancelOrder: "បោះបង់ការបញ្ជាទិញ",
       cancelling: "កំពុងបោះបង់...",
+      cancelConfirmTitle: "បោះបង់ការបញ្ជាទិញនេះ?",
       cancelConfirm: "តើអ្នកចង់បោះបង់ការបញ្ជាទិញនេះមែនទេ? អ្នកអាចបោះបង់បានតែមុនពេលអ្នកលក់បញ្ជាក់ការបញ្ជាទិញ។",
+      keepOrder: "រក្សាការបញ្ជាទិញ",
+      confirmCancel: "បាទ/ចាស បោះបង់ការបញ្ជាទិញ",
       cancelFailed: "មិនអាចបោះបង់ការបញ្ជាទិញបានទេ",
       cancelledNotice: "ការបញ្ជាទិញនេះត្រូវបានបោះបង់។",
       status: {

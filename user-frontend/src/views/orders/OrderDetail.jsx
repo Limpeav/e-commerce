@@ -22,6 +22,7 @@ import {
 import axios from "axios";
 import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
 import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime";
 import { useDarkMode } from "../../hooks";
@@ -59,6 +60,7 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [error, setError] = useState("");
 
   const getAuthToken = () => {
@@ -178,13 +180,13 @@ const OrderDetail = () => {
     && (order?.isPaid || order?.paymentStatus === "Paid");
   const canCancelOrder = currentOrderStatus === "Pending" && !isPaidBakongOrder;
 
-  const handleCancelOrder = async () => {
+  const handleCancelOrder = () => {
     if (!canCancelOrder || cancelling) return;
+    setShowCancelDialog(true);
+  };
 
-    if (!window.confirm(t("orderDetail.cancelConfirm"))) {
-      return;
-    }
-
+  const confirmCancelOrder = async () => {
+    if (!canCancelOrder || cancelling) return;
     try {
       setCancelling(true);
       setError("");
@@ -197,6 +199,7 @@ const OrderDetail = () => {
       );
     } finally {
       setCancelling(false);
+      setShowCancelDialog(false);
     }
   };
 
@@ -304,6 +307,8 @@ const OrderDetail = () => {
                   <img
                     src={item.image}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-contain"
                   />
                 ) : (
@@ -452,6 +457,21 @@ const OrderDetail = () => {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={showCancelDialog}
+        title={t("orderDetail.cancelConfirmTitle")}
+        message={t("orderDetail.cancelConfirm")}
+        cancelLabel={t("orderDetail.keepOrder")}
+        confirmLabel={
+          cancelling
+            ? t("orderDetail.cancelling")
+            : t("orderDetail.confirmCancel")
+        }
+        onCancel={() => setShowCancelDialog(false)}
+        onConfirm={confirmCancelOrder}
+        isDark={isDark}
+        loading={cancelling}
+      />
     </div>
   );
 };

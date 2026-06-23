@@ -18,7 +18,6 @@ const Reports = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [orders, setOrders] = useState([]);
-    const [products, setProducts] = useState([]);
 
     const fetchData = useCallback(async ({ silent = false } = {}) => {
         try {
@@ -27,7 +26,6 @@ const Reports = () => {
 
             setStats(reportData.stats);
             setOrders(reportData.orders);
-            setProducts(reportData.products);
             if (!silent) setLoading(false);
         } catch (err) {
             console.error("Failed to fetch data", err);

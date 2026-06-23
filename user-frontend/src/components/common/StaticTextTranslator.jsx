@@ -125,7 +125,9 @@ export default function StaticTextTranslator({ disabled = false }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (disabled) return undefined;
+    // English is already the source language. Avoid observing and rescanning the
+    // entire DOM unless Khmer translation is actually required.
+    if (disabled || language !== "kh") return undefined;
 
     const dictionary = staticTextTranslations.kh || {};
     const reverseDictionary = buildReverseDictionary(dictionary);

@@ -11,7 +11,7 @@ import PageLayout from '../../components/ui/PageLayout';
 import SectionHeader from '../../components/ui/SectionHeader';
 import FormInput from '../../components/ui/FormInput';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
-import { AlertMessage } from '../../components';
+import AlertMessage from "../../components/ui/AlertMessage";
 import {
   getNotificationPreferences,
   updateNotificationPreferences,

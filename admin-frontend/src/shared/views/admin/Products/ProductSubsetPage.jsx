@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
@@ -47,7 +47,7 @@ const ProductSubsetPage = ({
   emptyHasActiveFilters,
   filterProduct,
   getSubsetProducts,
-  icon: Icon,
+  icon,
   layout = "grid",
   loadingMessage,
   searchPlaceholder,
@@ -153,7 +153,7 @@ const ProductSubsetPage = ({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className={`mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${styles.badge}`}>
-                <Icon className="h-4 w-4" />
+                {createElement(icon, { className: "h-4 w-4" })}
                 {badge}
               </div>
               <h1 className="text-3xl font-bold text-gray-900">{title}</h1>

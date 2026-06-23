@@ -17,7 +17,7 @@ import axios from "axios";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 
 // UI Components
-import { AlertMessage } from "../../components";
+import AlertMessage from "../../components/ui/AlertMessage";
 import ProfileSidebar from "../../components/user/ProfileSidebar";
 import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";

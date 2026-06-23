@@ -19,6 +19,7 @@ import { config } from "../../config/index.js";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
 import { subscribeRealtimeDomains } from "../../services/realtime";
 import { AnimatePresence, motion as Motion } from "framer-motion";
@@ -33,6 +34,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState("");
+  const [pendingCancelOrderId, setPendingCancelOrderId] = useState("");
   const [error, setError] = useState("");
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
@@ -103,13 +105,14 @@ const Orders = () => {
     };
   }, []);
 
-  const handleCancelOrder = async (orderId) => {
+  const handleCancelOrder = (orderId) => {
     if (cancellingOrderId) return;
+    setPendingCancelOrderId(orderId);
+  };
 
-    if (!window.confirm(t("orderDetail.cancelConfirm"))) {
-      return;
-    }
-
+  const confirmCancelOrder = async () => {
+    if (!pendingCancelOrderId || cancellingOrderId) return;
+    const orderId = pendingCancelOrderId;
     try {
       setCancellingOrderId(orderId);
       setError("");
@@ -121,6 +124,7 @@ const Orders = () => {
       );
     } finally {
       setCancellingOrderId("");
+      setPendingCancelOrderId("");
     }
   };
 
@@ -398,6 +402,8 @@ const Orders = () => {
                                 <img
                                   src={item.image}
                                   alt={item.name}
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-contain transform group-hover/item:scale-105 transition-transform duration-500"
                                 />
                               ) : (
@@ -491,6 +497,21 @@ const Orders = () => {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(pendingCancelOrderId)}
+        title={t("orderDetail.cancelConfirmTitle")}
+        message={t("orderDetail.cancelConfirm")}
+        cancelLabel={t("orderDetail.keepOrder")}
+        confirmLabel={
+          cancellingOrderId
+            ? t("orderDetail.cancelling")
+            : t("orderDetail.confirmCancel")
+        }
+        onCancel={() => setPendingCancelOrderId("")}
+        onConfirm={confirmCancelOrder}
+        isDark={isDark}
+        loading={Boolean(cancellingOrderId)}
+      />
     </div>
   );
 };

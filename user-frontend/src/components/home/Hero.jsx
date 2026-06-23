@@ -1,8 +1,30 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { BannerController } from "../../controllers/bannerController";
 import { subscribeRealtimeDomains } from "../../services/realtime";
+
+let cachedSlides = [];
+let bannersRequest = null;
+
+const loadHomepageBanners = async ({ force = false } = {}) => {
+    if (!force && cachedSlides.length > 0) {
+        return cachedSlides;
+    }
+
+    if (!bannersRequest) {
+        bannersRequest = BannerController.getHomepageBanners()
+            .then((result) => {
+                cachedSlides = result.data || [];
+                return cachedSlides;
+            })
+            .finally(() => {
+                bannersRequest = null;
+            });
+    }
+
+    return bannersRequest;
+};
 
 export default function Hero() {
     const [isDark] = useDarkMode();
@@ -10,10 +32,11 @@ export default function Hero() {
     const [containerWidth, setContainerWidth] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
-    const [slides, setSlides] = useState([]);
+    const [slides, setSlides] = useState(() => cachedSlides);
     const sliderRef = useRef(null);
     const dragStartXRef = useRef(0);
     const dragDeltaRef = useRef(0);
+    const dragFrameRef = useRef(0);
 
     useEffect(() => {
         if (!sliderRef.current) return undefined;
@@ -36,19 +59,22 @@ export default function Hero() {
     useEffect(() => {
         let isMounted = true;
 
-        const loadBanners = async () => {
-            const result = await BannerController.getHomepageBanners();
+        const loadBanners = async ({ force = false } = {}) => {
+            const nextSlides = await loadHomepageBanners({ force });
 
             if (!isMounted) {
                 return;
             }
 
-            setSlides(result.data);
+            setSlides(nextSlides);
             setActiveSlide(0);
         };
 
         loadBanners();
-        const unsubscribe = subscribeRealtimeDomains(["banners"], loadBanners);
+        const unsubscribe = subscribeRealtimeDomains(
+            ["banners"],
+            () => loadBanners({ force: true })
+        );
 
         return () => {
             isMounted = false;
@@ -66,6 +92,14 @@ export default function Hero() {
         return () => window.clearInterval(intervalId);
     }, [isDragging, slides.length]);
 
+    useEffect(() => {
+        return () => {
+            if (dragFrameRef.current) {
+                window.cancelAnimationFrame(dragFrameRef.current);
+            }
+        };
+    }, []);
+
     const handleDragStart = (event) => {
         dragStartXRef.current = event.clientX;
         dragDeltaRef.current = 0;
@@ -78,11 +112,21 @@ export default function Hero() {
 
         const delta = event.clientX - dragStartXRef.current;
         dragDeltaRef.current = delta;
-        setDragOffset(delta);
+        if (!dragFrameRef.current) {
+            dragFrameRef.current = window.requestAnimationFrame(() => {
+                setDragOffset(dragDeltaRef.current);
+                dragFrameRef.current = 0;
+            });
+        }
     };
 
     const handleDragEnd = () => {
         if (!isDragging) return;
+
+        if (dragFrameRef.current) {
+            window.cancelAnimationFrame(dragFrameRef.current);
+            dragFrameRef.current = 0;
+        }
 
         const swipeThreshold = Math.max(40, containerWidth * 0.12);
         const delta = dragDeltaRef.current;
@@ -104,7 +148,7 @@ export default function Hero() {
     return (
         <div className={`w-full px-3 pb-4 pt-1 transition-colors duration-300 sm:px-4 sm:pb-8 sm:pt-2 md:px-6 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             <div className="max-w-6xl mx-auto">
-                <motion.div
+                <Motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
@@ -140,6 +184,9 @@ export default function Hero() {
                                         src={slide.image}
                                         alt={slide.alt}
                                         draggable="false"
+                                        loading={index === 0 ? "eager" : "lazy"}
+                                        decoding="async"
+                                        fetchPriority={index === 0 ? "high" : "low"}
                                         className="pointer-events-none block h-full min-h-[200px] w-full select-none object-cover sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px]"
                                     />
                                 </div>
@@ -158,7 +205,7 @@ export default function Hero() {
                             />
                         ))}
                     </div>
-                </motion.div>
+                </Motion.div>
             </div>
         </div>
     );

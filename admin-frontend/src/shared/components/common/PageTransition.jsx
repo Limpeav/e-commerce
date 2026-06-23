@@ -1,11 +1,11 @@
 import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion as Motion, useReducedMotion } from 'framer-motion';
 
 const PageTransition = ({ children }) => {
     const reduceMotion = useReducedMotion();
 
     return (
-        <motion.div
+        <Motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.998 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={
@@ -16,7 +16,7 @@ const PageTransition = ({ children }) => {
             className="admin-page-transition w-full h-full"
         >
             {children}
-        </motion.div>
+        </Motion.div>
     );
 };
 

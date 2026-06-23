@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { useDarkMode } from '../../hooks';
@@ -36,7 +36,7 @@ const ProductsGrid = ({
   return (
     <AnimatePresence mode="wait">
       {filteredProducts.length > 0 ? (
-        <motion.div
+        <Motion.div
           variants={container}
           initial="hidden"
           animate="show"
@@ -54,9 +54,9 @@ const ProductsGrid = ({
               variants={item}
             />
           ))}
-        </motion.div>
+        </Motion.div>
       ) : (
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className={`text-center py-16 sm:py-40 rounded-2xl sm:rounded-[3rem] px-4 border ${isDark ? 'bg-slate-900 border-slate-800 shadow-[0_20px_60px_-24px_rgba(2,6,23,0.7)]' : 'bg-white border-stone-100 shadow-sm'}`}
@@ -72,7 +72,7 @@ const ProductsGrid = ({
           >
             {t("product.exploreEverything")}
           </button>
-        </motion.div>
+        </Motion.div>
       )}
     </AnimatePresence>
   );

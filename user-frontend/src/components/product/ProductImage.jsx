@@ -17,6 +17,8 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
           <img
             src={product.image}
             alt={product.title}
+            decoding="async"
+            fetchPriority="high"
             className={`relative z-10 block max-h-[235px] w-auto max-w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02] sm:max-h-[335px] lg:max-h-[450px] ${
               isDark
                 ? "drop-shadow-[0_20px_32px_rgba(2,6,23,0.55)]"

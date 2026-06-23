@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
 import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
 import { OrderController } from '../../controllers'
 import {
@@ -166,7 +166,7 @@ const AdminSidebar = () => {
       )}
 
       {/* Sidebar */}
-      <motion.div
+      <Motion.div
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
@@ -234,7 +234,7 @@ const AdminSidebar = () => {
                   `}
                 >
                   {isActive && (
-                    <motion.span
+                    <Motion.span
                       layoutId="admin-sidebar-active"
                       className="absolute inset-0 -z-10 rounded-xl bg-[var(--color-primary)] shadow-md"
                       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
@@ -275,7 +275,7 @@ const AdminSidebar = () => {
             </button>
           </div>
         </div>
-      </motion.div>
+      </Motion.div>
 
       {isDelivery && !isOrderDetail && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
@@ -311,7 +311,7 @@ const AdminSidebar = () => {
       {/* Overlay for mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <motion.div
+          <Motion.div
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
