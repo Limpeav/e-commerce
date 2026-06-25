@@ -54,6 +54,18 @@ const getTelegramConfig = (type = "default") => {
     };
   }
 
+  if (type === "payment") {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN_4;
+    const chatId = process.env.TELEGRAM_CHAT_ID_4;
+
+    return {
+      botToken,
+      chatId,
+      threadId: process.env.TELEGRAM_THREAD_ID_4,
+      enabled: Boolean(botToken && chatId),
+    };
+  }
+
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -313,6 +325,125 @@ export const sendOrderTelegramAlert = async ({
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const buildPaymentTelegramMessage = ({
+  orderId,
+  customerName,
+  amount,
+  currency,
+  transactionId,
+  paymentTime,
+}) => {
+  const safeOrderId = orderId ? escapeHtml(orderId) : "N/A";
+  const safeCustomerName = customerName ? escapeHtml(customerName) : "Unknown";
+  const safeCurrency = currency ? escapeHtml(currency) : "USD";
+  const safeTransactionId = transactionId
+    ? escapeHtml(transactionId)
+    : "N/A";
+  const numericAmount = Number(amount || 0);
+  const formattedAmount =
+    safeCurrency === "KHR"
+      ? `${numericAmount.toLocaleString("en-US")} KHR`
+      : `$${numericAmount.toFixed(2)} USD`;
+  const formattedPaymentTime = paymentTime
+    ? new Date(paymentTime).toLocaleString("en-US", {
+        timeZone: "Asia/Phnom_Penh",
+        dateStyle: "medium",
+        timeStyle: "medium",
+      })
+    : "N/A";
+
+  return [
+    "<b>KHQR PAYMENT SUCCESSFUL</b>",
+    "",
+    `<b>Order</b>: <code>${safeOrderId}</code>`,
+    `<b>Customer</b>: ${safeCustomerName}`,
+    `<b>Amount</b>: ${formattedAmount}`,
+    "<b>Status</b>: Paid",
+    `<b>Transaction</b>: <code>${safeTransactionId}</code>`,
+    "",
+    `<b>Paid At</b>: ${escapeHtml(formattedPaymentTime)}`,
+  ].join("\n");
+};
+
+export const sendPaymentTelegramAlert = async (paymentDetails) => {
+  const { botToken, chatId, threadId, enabled } =
+    getTelegramConfig("payment");
+
+  if (!enabled) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  const message = buildPaymentTelegramMessage(paymentDetails);
+  const sendMessage = (targetThreadId) =>
+    axios.post(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      buildTelegramPayload({
+        chatId,
+        threadId: targetThreadId,
+        text: message,
+        parse_mode: "HTML",
+      }),
+      {
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+  try {
+    await sendMessage(threadId);
+
+    return { sent: true, type: "message" };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+      const threadNotFound =
+        Boolean(threadId)
+        && status === 400
+        && String(description || "")
+          .toLowerCase()
+          .includes("message thread not found");
+
+      if (threadNotFound) {
+        console.warn(
+          "Telegram payment topic was not found; retrying in the main chat. "
+          + "Update TELEGRAM_THREAD_ID_4 to send alerts to a specific topic."
+        );
+
+        try {
+          await sendMessage(undefined);
+          return {
+            sent: true,
+            type: "message",
+            fallback: "main-chat",
+          };
+        } catch (fallbackError) {
+          if (axios.isAxiosError(fallbackError)) {
+            const fallbackStatus = fallbackError.response?.status;
+            const fallbackDescription =
+              fallbackError.response?.data?.description;
+
+            throw new Error(
+              fallbackDescription
+                ? `Telegram API ${fallbackStatus}: ${fallbackDescription}`
+                : `Telegram API ${fallbackStatus || "error"}`
+            );
+          }
+
+          throw fallbackError;
+        }
+      }
 
       throw new Error(
         description

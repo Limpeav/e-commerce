@@ -66,6 +66,9 @@ const paymentSchema = new mongoose.Schema(
         failedAt: {
             type: Date,
         },
+        telegramAlert: {
+            sentAt: { type: Date },
+        },
     },
     {
         timestamps: true,

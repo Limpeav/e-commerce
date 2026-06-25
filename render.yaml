@@ -41,6 +41,12 @@ services:
         value: https://api-bakong.nbc.gov.kh
       - key: BAKONG_WEBHOOK_SECRET
         sync: false
+      - key: TELEGRAM_BOT_TOKEN_4
+        sync: false
+      - key: TELEGRAM_CHAT_ID_4
+        sync: false
+      - key: TELEGRAM_THREAD_ID_4
+        sync: false
       - key: USD_TO_KHR_RATE
         value: "4100"
       - key: BAKONG_RECONCILIATION_INTERVAL_MS

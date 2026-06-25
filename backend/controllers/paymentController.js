@@ -15,7 +15,10 @@ import {
 } from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { getAvailableStock } from "../utils/productInventory.js";
-import { sendOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
+import {
+    sendOrderTelegramAlert,
+    sendPaymentTelegramAlert,
+} from "../utils/sendTelegramMessage.js";
 import axios from "axios";
 import { getBakongConfig } from "../config/bakong.js";
 
@@ -139,6 +142,73 @@ const dispatchPaidOrderTelegramAlert = (orderId) => {
                 });
             }
             console.error("Paid order Telegram alert failed:", error.message);
+        }
+    });
+};
+
+const dispatchPaidPaymentTelegramAlert = (paymentId) => {
+    setImmediate(async () => {
+        let claimedPaymentId;
+        let claimedSentAt;
+
+        try {
+            const sentAt = new Date();
+            const payment = await Payment.findOneAndUpdate(
+                {
+                    _id: paymentId,
+                    paymentMethod: "BAKONG_KHQR",
+                    status: "Completed",
+                    "telegramAlert.sentAt": { $exists: false },
+                },
+                { $set: { "telegramAlert.sentAt": sentAt } },
+                { new: true }
+            ).populate({
+                path: "order",
+                populate: { path: "user", select: "name" },
+            });
+
+            if (!payment) {
+                return;
+            }
+
+            claimedPaymentId = payment._id;
+            claimedSentAt = sentAt;
+            const order = payment.order;
+            const result = await sendPaymentTelegramAlert({
+                orderId: order?._id?.toString().slice(-8).toUpperCase(),
+                customerName:
+                    order?.user?.name || order?.shippingAddress?.fullName,
+                amount: payment.amount,
+                currency: payment.currency,
+                transactionId:
+                    payment.paymentResult?.transactionId
+                    || payment.khqrData?.transactionId,
+                paymentTime:
+                    payment.paymentResult?.paymentTime || payment.completedAt,
+            });
+
+            if (!result.sent) {
+                await Payment.updateOne(
+                    { _id: payment._id, "telegramAlert.sentAt": sentAt },
+                    { $unset: { telegramAlert: "" } }
+                );
+            }
+        } catch (error) {
+            if (claimedPaymentId && claimedSentAt) {
+                await Payment.updateOne(
+                    {
+                        _id: claimedPaymentId,
+                        "telegramAlert.sentAt": claimedSentAt,
+                    },
+                    { $unset: { telegramAlert: "" } }
+                ).catch((rollbackError) => {
+                    console.error(
+                        "Paid payment Telegram alert rollback failed:",
+                        rollbackError.message
+                    );
+                });
+            }
+            console.error("Paid payment Telegram alert failed:", error.message);
         }
     });
 };
@@ -521,6 +591,7 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
             emitNotificationCreated(notification);
         }
         dispatchPaidOrderTelegramAlert(paidOrder._id);
+        dispatchPaidPaymentTelegramAlert(completedPayment._id);
         emitDomainChanged(
             "payments",
             "completed",
