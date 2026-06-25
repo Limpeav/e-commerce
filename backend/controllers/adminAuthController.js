@@ -22,7 +22,7 @@ const serializePortalUser = (user, token) => ({
   email: user.email,
   role: user.role,
   token,
-  expiresIn: 15 * 60,
+  expiresIn: null,
 });
 
 export const registerAdmin = async (req, res) => {
@@ -192,4 +192,22 @@ export const getAdminProfile = async (req, res) => {
     phone: req.user.phone,
     role: req.user.role,
   });
+};
+
+export const logoutPortalSession = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("+tokenVersion");
+
+    if (!user) {
+      return res.status(401).json({ message: "Session is no longer valid" });
+    }
+
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save({ validateModifiedOnly: true });
+
+    return res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Portal logout error:", error);
+    return res.status(500).json({ message: "Unable to complete logout" });
+  }
 };

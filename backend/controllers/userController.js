@@ -1,4 +1,5 @@
 import User from "../models/userModel.js";
+import Order from "../models/orderModel.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import {
@@ -30,6 +31,43 @@ const parsePreferenceBoolean = (value, defaultValue = true) => {
   if (value === false || value === "false" || value === "0" || value === 0) return false;
   return defaultValue;
 };
+
+const DELETE_ACCOUNT_MIN_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+const getDeleteAccountEligibility = (user) => {
+  const registeredAt = new Date(user.createdAt);
+  const eligibleAt = new Date(registeredAt.getTime() + DELETE_ACCOUNT_MIN_AGE_MS);
+  const remainingMs = Math.max(0, eligibleAt.getTime() - Date.now());
+
+  return {
+    eligible: remainingMs === 0,
+    registeredAt,
+    eligibleAt,
+    remainingDays: Math.ceil(remainingMs / (24 * 60 * 60 * 1000)),
+  };
+};
+
+const rejectEarlyAccountDeletion = (res, eligibility) =>
+  res.status(403).json({
+    message: `Account deletion becomes available 30 days after registration. You can delete this account on ${eligibility.eligibleAt.toISOString().slice(0, 10)}.`,
+    eligible: false,
+    eligibleAt: eligibility.eligibleAt,
+    remainingDays: eligibility.remainingDays,
+  });
+
+const getActiveOrderCount = (userId) =>
+  Order.countDocuments({
+    user: userId,
+    orderStatus: { $in: ["Pending", "Processing", "Shipped"] },
+  });
+
+const rejectActiveOrderDeletion = (res, activeOrderCount) =>
+  res.status(409).json({
+    message: "You cannot delete your account while an order is being prepared or delivered. Please wait until every order is delivered or cancelled.",
+    eligible: false,
+    blockReason: "active-orders",
+    activeOrderCount,
+  });
 
 // 🟢 REGISTER (admin or user)
 export const registerUser = async (req, res) => {
@@ -728,12 +766,51 @@ export const verifyPhone = async (req, res) => {
 };
 
 // 📧 REQUEST DELETE ACCOUNT OTP
+export const getDeleteEligibility = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const eligibility = getDeleteAccountEligibility(user);
+    const activeOrderCount = await getActiveOrderCount(user._id);
+    return res.json({
+      eligible: eligibility.eligible && activeOrderCount === 0,
+      ageEligible: eligibility.eligible,
+      registeredAt: eligibility.registeredAt,
+      eligibleAt: eligibility.eligibleAt,
+      remainingDays: eligibility.remainingDays,
+      activeOrderCount,
+      blockReason: !eligibility.eligible
+        ? "account-age"
+        : activeOrderCount > 0
+          ? "active-orders"
+          : null,
+    });
+  } catch (error) {
+    console.error("Get delete eligibility error:", error);
+    return res.status(500).json({ message: "Unable to check account deletion eligibility" });
+  }
+};
+
 export const requestDeleteOtp = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    const eligibility = getDeleteAccountEligibility(user);
+    if (!eligibility.eligible) {
+      return rejectEarlyAccountDeletion(res, eligibility);
+    }
+
+    const activeOrderCount = await getActiveOrderCount(user._id);
+    if (activeOrderCount > 0) {
+      return rejectActiveOrderDeletion(res, activeOrderCount);
     }
 
     // Generate a 6-digit OTP
@@ -781,6 +858,16 @@ export const deleteAccount = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const eligibility = getDeleteAccountEligibility(user);
+    if (!eligibility.eligible) {
+      return rejectEarlyAccountDeletion(res, eligibility);
+    }
+
+    const activeOrderCount = await getActiveOrderCount(user._id);
+    if (activeOrderCount > 0) {
+      return rejectActiveOrderDeletion(res, activeOrderCount);
+    }
+
     if (!otpCode) {
       return res.status(400).json({ message: "Confirmation code is required" });
     }
@@ -800,6 +887,7 @@ export const deleteAccount = async (req, res) => {
 
     // Hard delete the account
     await User.findByIdAndDelete(req.user._id);
+    emitDomainChanged("users", "deleted", { userId: req.user._id });
 
     res.json({ message: "Your account has been successfully deleted." });
 

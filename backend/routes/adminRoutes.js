@@ -12,11 +12,13 @@ import {
     loginAdmin,
     verifyAdminLogin,
     getAdminProfile,
+    logoutPortalSession,
 } from "../controllers/adminAuthController.js";
 import {
     createStaffLogin,
     getAllUsers,
     getUserById,
+    updateStaffLogin,
     updateUserRole,
     deleteUser,
     getUserStats,
@@ -45,6 +47,7 @@ const adminMfaLimiter = rateLimit({
 router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
 router.post("/login/verify", adminMfaLimiter, verifyAdminLogin);
+router.post("/logout", protect, portalAccess, logoutPortalSession);
 router.get("/me", protect, portalAccess, getAdminProfile);
 
 // Dashboard
@@ -66,6 +69,7 @@ router.get("/users", protect, admin, getAllUsers);
 router.post("/users", protect, admin, createStaffLogin);
 router.get("/users/stats", protect, admin, getUserStats); // ← must be before /:id
 router.get("/users/:id", protect, admin, getUserById);
+router.put("/users/:id", protect, admin, updateStaffLogin);
 router.put("/users/:id/role", protect, admin, updateUserRole);
 router.delete("/users/:id", protect, admin, deleteUser);
 

@@ -65,6 +65,17 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Use a familiar neutral-blue highlight instead of the warm page palette. */
+::selection {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
+::-moz-selection {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
 html:lang(km) body {
     font-family: "Kantumruy Pro", var(--font-sans);
 }
@@ -295,6 +306,22 @@ select {
     -webkit-text-fill-color: var(--color-text-main);
     caret-color: var(--color-text-main);
     box-shadow: 0 0 0 1000px var(--color-surface-soft) inset;
+    transition: background-color 9999s ease-out 0s;
+}
+
+/* Keep editable admin fields white when browsers/password managers autofill them. */
+.admin-neutral-autofill,
+.admin-neutral-autofill:focus {
+    background-color: #FFFFFF !important;
+}
+
+.admin-neutral-autofill:-webkit-autofill,
+.admin-neutral-autofill:-webkit-autofill:hover,
+.admin-neutral-autofill:-webkit-autofill:focus,
+.admin-neutral-autofill:-webkit-autofill:active {
+    -webkit-text-fill-color: #111827;
+    caret-color: #111827;
+    box-shadow: 0 0 0 1000px #FFFFFF inset !important;
     transition: background-color 9999s ease-out 0s;
 }
 

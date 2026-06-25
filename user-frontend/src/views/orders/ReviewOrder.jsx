@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle, Package, Send, Star } from "lucide-react";
+import { CheckCircle, Package, Send } from "lucide-react";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { getOrderById } from "../../services/orderService";
 import { ProductController } from "../../controllers/productController";
 import { useAuth } from "../../context/useAuth";
 import { useDarkMode } from "../../hooks";
 import Loading from "../../components/common/Loading";
+import AnimatedStarRating from "../../components/ui/AnimatedStarRating";
 
 const getProductId = (item) => {
   const product = item?.product;
@@ -487,25 +488,12 @@ export default function ReviewOrder() {
 
                       <div>
                         <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-primary">Rating</p>
-                        <div className="flex flex-wrap gap-2">
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <button
-                              key={rating}
-                              type="button"
-                              onClick={() => setRating(productId, rating)}
-                              className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-colors ${
-                                Number(form.rating) >= rating
-                                  ? "border-amber-200 bg-amber-50 text-amber-500"
-                                  : isDark
-                                    ? "border-slate-700 bg-slate-800 text-slate-500 hover:text-amber-400"
-                                    : "border-stone-200 bg-stone-50 text-stone-300 hover:text-amber-400"
-                              }`}
-                              aria-label={`${rating} star rating`}
-                            >
-                              <Star className="h-5 w-5 fill-current" />
-                            </button>
-                          ))}
-                        </div>
+                        <AnimatedStarRating
+                          value={form.rating}
+                          onChange={(rating) => setRating(productId, rating)}
+                          isDark={isDark}
+                          name={`rating-${productId}`}
+                        />
                       </div>
 
                       <div>

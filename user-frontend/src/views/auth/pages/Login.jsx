@@ -7,6 +7,7 @@ import { motion as Motion } from "framer-motion";
 import { useDarkMode } from "../../../hooks";
 import { useLanguage } from "../../../context/useLanguage";
 import BrandLogo from "../../../components/common/BrandLogo";
+import PremiumCheckbox from "../../../components/ui/PremiumCheckbox";
 import {
   Mail,
   Lock,
@@ -318,17 +319,14 @@ const Login = () => {
               </div>
 
               <div className="mb-7 mt-5 flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
-                <label className="group flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-stone-300 bg-stone-100 accent-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-800"
-                  />
-                  <span className="select-none font-bold uppercase tracking-wider text-text-muted transition-colors group-hover:text-primary dark:text-slate-400">
-                    {t("Remember me")}
-                  </span>
-                </label>
+                <PremiumCheckbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={setRememberMe}
+                  labelClassName="font-bold uppercase tracking-wider text-text-muted dark:text-slate-400"
+                >
+                  {t("Remember me")}
+                </PremiumCheckbox>
                 <Link
                   to="/forgot-password"
                   className="font-black uppercase tracking-wider text-primary transition-colors hover:text-primary-dark"

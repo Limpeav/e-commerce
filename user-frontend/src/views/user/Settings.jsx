@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Bell, Shield, Palette, AlertTriangle, Trash2, Mail, RefreshCw, Moon, Globe, ArrowLeft } from 'lucide-react';
+import { User, Bell, Shield, Palette, AlertTriangle, Trash2, Mail, RefreshCw, Moon, Globe, ArrowLeft, CalendarClock } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import AlertMessage from "../../components/ui/AlertMessage";
 import {
   getNotificationPreferences,
+  getDeleteAccountEligibility,
   updateNotificationPreferences,
 } from '../../services/authApi';
 
@@ -44,6 +45,8 @@ export default function Settings() {
   const promotionalPreferenceRequestRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [deleteEligibility, setDeleteEligibility] = useState(null);
+  const [isLoadingDeleteEligibility, setIsLoadingDeleteEligibility] = useState(true);
 
   const displayPromotionalEmails = promotionalEmails === true;
   const promotionalEmailStatus = displayPromotionalEmails ? 'On' : 'Off';
@@ -70,6 +73,35 @@ export default function Settings() {
     };
 
     loadNotificationPreferences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
+  useEffect(() => {
+    if (!user?.token) return;
+
+    let isMounted = true;
+
+    const loadDeleteEligibility = async () => {
+      try {
+        const response = await getDeleteAccountEligibility(user.token);
+        if (isMounted) {
+          setDeleteEligibility(response.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDeleteError(error.response?.data?.message || 'Unable to check account deletion eligibility.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDeleteEligibility(false);
+        }
+      }
+    };
+
+    loadDeleteEligibility();
 
     return () => {
       isMounted = false;
@@ -203,6 +235,17 @@ export default function Settings() {
 
   const sectionCard = `rounded-2xl border bg-bg-card p-5 sm:p-6 md:p-8`;
   const borderStyle = { borderColor: 'var(--color-border)' };
+  const deleteEligibleAt = deleteEligibility?.eligibleAt
+    ? new Date(deleteEligibility.eligibleAt)
+    : null;
+  const formattedDeleteEligibleAt = deleteEligibleAt && !Number.isNaN(deleteEligibleAt.getTime())
+    ? deleteEligibleAt.toLocaleDateString(undefined, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '';
+  const canDeleteAccount = deleteEligibility?.eligible === true;
 
   return (
     <PageLayout
@@ -350,12 +393,43 @@ export default function Settings() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowDeleteModal(true)}
-                className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white"
+                onClick={() => canDeleteAccount && setShowDeleteModal(true)}
+                disabled={isLoadingDeleteEligibility || !canDeleteAccount}
+                className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 disabled:hover:bg-stone-100 disabled:hover:text-stone-400"
               >
-                Delete Account
+                {isLoadingDeleteEligibility ? 'Checking eligibility...' : 'Delete Account'}
               </button>
             </div>
+
+            {!isLoadingDeleteEligibility && deleteEligibility && !canDeleteAccount && (
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div>
+                  {deleteEligibility.blockReason === 'active-orders' ? (
+                    <>
+                      <p className="text-sm font-bold text-amber-800">
+                        Account deletion is unavailable while an order is active
+                      </p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
+                        You currently have {deleteEligibility.activeOrderCount} order{deleteEligibility.activeOrderCount === 1 ? '' : 's'} being prepared or delivered. Please wait until every order is delivered or cancelled.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-amber-800">
+                        Account deletion is locked for 30 days
+                      </p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
+                        You can delete this account on {formattedDeleteEligibleAt}.
+                        {deleteEligibility.remainingDays > 0
+                          ? ` ${deleteEligibility.remainingDays} day${deleteEligibility.remainingDays === 1 ? '' : 's'} remaining.`
+                          : ''}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </div>

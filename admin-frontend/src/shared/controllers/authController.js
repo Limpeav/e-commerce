@@ -10,6 +10,10 @@ export const AuthController = {
     return modelResponse(await adminService.verifyLogin(challenge));
   },
 
+  async logout() {
+    return modelResponse(await adminService.logout());
+  },
+
   async getCurrentUser() {
     return modelResponse(await adminService.getCurrentAdmin());
   },

@@ -282,11 +282,14 @@ const AdminOrders = ({ renderDelivery }) => {
 
         // Search by order ID or user email
         if (searchTerm) {
+            const normalizedSearchTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(
                 (order) =>
-                    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    order._id.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.user?.email?.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.user?.name?.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.shippingAddress?.fullName?.toLowerCase().includes(normalizedSearchTerm) ||
+                    (!order.user && "deleted customer account deleted".includes(normalizedSearchTerm))
             );
         }
 
@@ -1019,12 +1022,25 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900">
-                                                            {order.user?.name || "N/A"}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            {order.user?.email || "N/A"}
-                                                        </div>
+                                                        {order.user ? (
+                                                            <>
+                                                                <div className="text-sm text-gray-900">
+                                                                    {order.user.name || "Customer"}
+                                                                </div>
+                                                                <div className="text-sm text-gray-500">
+                                                                    {order.user.email || "Email unavailable"}
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="text-sm font-semibold text-gray-700">
+                                                                    Deleted Customer
+                                                                </div>
+                                                                <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500">
+                                                                    Account deleted
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {new Date(order.createdAt).toLocaleDateString()}

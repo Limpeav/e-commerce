@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 
 export const PORTAL_TOKEN_ISSUER = "ecommerce-backend";
 export const PORTAL_TOKEN_AUDIENCE = "ecommerce-admin-portal";
-export const PORTAL_TOKEN_TTL = "15m";
 export const PORTAL_CHALLENGE_TTL = "5m";
 
 export const normalizeEmail = (email = "") =>
@@ -45,8 +44,14 @@ export const validateCustomerPassword = (password = "") => {
   };
 };
 
-export const createPortalSessionToken = (user) =>
-  jwt.sign(
+export const createPortalSessionToken = (user) => {
+  const options = {
+    algorithm: "HS256",
+    issuer: PORTAL_TOKEN_ISSUER,
+    audience: PORTAL_TOKEN_AUDIENCE,
+  };
+
+  return jwt.sign(
     {
       id: user._id.toString(),
       role: user.role,
@@ -54,13 +59,9 @@ export const createPortalSessionToken = (user) =>
       type: "portal-session",
     },
     process.env.JWT_SECRET,
-    {
-      algorithm: "HS256",
-      expiresIn: PORTAL_TOKEN_TTL,
-      issuer: PORTAL_TOKEN_ISSUER,
-      audience: PORTAL_TOKEN_AUDIENCE,
-    }
+    options
   );
+};
 
 export const createPortalChallengeToken = (user, challengeId) =>
   jwt.sign(

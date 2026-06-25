@@ -79,6 +79,79 @@ export const getUserById = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Update staff account information
+// @route   PUT /api/admin/users/:id
+// @access  Private/Admin
+export const updateStaffLogin = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id).select("+tokenVersion");
+
+    if (!user) {
+        return res.status(404).json({ message: "Staff user not found" });
+    }
+
+    if (!["seller", "delivery"].includes(user.role)) {
+        return res.status(400).json({ message: "Only staff accounts can be edited here" });
+    }
+
+    const name = req.body.name?.trim();
+    const email = normalizeEmail(req.body.email);
+    const phone = req.body.phone?.trim();
+    const role = req.body.role;
+    const password = String(req.body.password || "");
+
+    if (!name || !email) {
+        return res.status(400).json({ message: "Name and email are required" });
+    }
+
+    if (!["seller", "delivery"].includes(role)) {
+        return res.status(400).json({ message: "Role must be seller or delivery" });
+    }
+
+    if (password) {
+        const passwordCheck = validatePortalPassword(password);
+        if (!passwordCheck.valid) {
+            return res.status(400).json({ message: passwordCheck.message });
+        }
+    }
+
+    const duplicateEmail = await User.exists({
+        email,
+        _id: { $ne: user._id },
+    });
+    if (duplicateEmail) {
+        return res.status(409).json({ message: "A user with this email already exists" });
+    }
+
+    const loginIdentityChanged =
+        user.email !== email || user.role !== role || Boolean(password);
+    user.name = name;
+    user.email = email;
+    user.phone = phone || undefined;
+    user.role = role;
+    if (password) {
+        user.password = password;
+    }
+
+    if (loginIdentityChanged) {
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
+    }
+
+    const updatedUser = await user.save();
+    emitDomainChanged("users", "updated", {
+        userId: updatedUser._id,
+        role: updatedUser.role,
+    });
+
+    return res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+    });
+});
+
 // @desc    Update user role
 // @route   PUT /api/admin/users/:id/role
 // @access  Private/Admin

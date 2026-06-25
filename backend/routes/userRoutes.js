@@ -14,6 +14,7 @@ import {
   updateNotificationPreferences,
   startPhoneVerification,
   verifyPhone,
+  getDeleteEligibility,
   requestDeleteOtp,
   deleteAccount,
 } from "../controllers/userController.js";
@@ -52,6 +53,7 @@ router.get("/notification-preferences", protect, getNotificationPreferences);
 router.put("/notification-preferences", protect, updateNotificationPreferences);
 router.post("/start-phone-verification", protect, otpLimiter, startPhoneVerification);
 router.post("/verify-phone", protect, otpLimiter, verifyPhone);
+router.get("/delete-eligibility", protect, getDeleteEligibility);
 router.post("/request-delete-otp", protect, otpLimiter, requestDeleteOtp);
 router.post("/delete-account", protect, otpLimiter, deleteAccount);
 

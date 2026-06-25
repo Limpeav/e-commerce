@@ -5,6 +5,7 @@ export const adminService = {
   // Authentication
   login: (credentials) => api.post("/admin/login", credentials),
   verifyLogin: (challenge) => api.post("/admin/login/verify", challenge),
+  logout: () => api.post("/admin/logout"),
   getCurrentAdmin: () => api.get("/admin/me"),
 
   // Dashboard
@@ -37,6 +38,7 @@ export const adminService = {
   // Users
   getUsers: () => api.get("/admin/users"),
   createStaffLogin: (userData) => api.post("/admin/users", userData),
+  updateStaffLogin: (userId, userData) => api.put(`/admin/users/${userId}`, userData),
   getUserStats: () => api.get("/admin/users/stats"),
   updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
   deleteUser: (userId) => api.delete(`/admin/users/${userId}`),

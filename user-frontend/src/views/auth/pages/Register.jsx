@@ -16,6 +16,7 @@ import {
 } from "../../../utils/cambodiaPhone";
 import { motion as Motion } from "framer-motion";
 import BrandLogo from "../../../components/common/BrandLogo";
+import PremiumCheckbox from "../../../components/ui/PremiumCheckbox";
 import {
   User,
   Mail,
@@ -40,14 +41,21 @@ const validateStrongPassword = (password = "") =>
   && /[^A-Za-z0-9]/.test(password);
 
 const generateStrongPassword = () => {
-  const required = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!@#$%&*?"];
-  const allCharacters = required.join("");
+  const requiredGroups = [
+    "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    "abcdefghijkmnopqrstuvwxyz",
+    "23456789",
+    "!@#$%&*?",
+  ];
+  const allCharacters = requiredGroups.join("");
   const randomIndex = (length) => {
     const values = new Uint32Array(1);
     window.crypto.getRandomValues(values);
     return values[0] % length;
   };
-  const characters = required.map((group) => group[randomIndex(group.length)]);
+  const characters = requiredGroups.map(
+    (group) => group[randomIndex(group.length)]
+  );
 
   while (characters.length < 14) {
     characters.push(allCharacters[randomIndex(allCharacters.length)]);
@@ -55,7 +63,10 @@ const generateStrongPassword = () => {
 
   for (let index = characters.length - 1; index > 0; index -= 1) {
     const swapIndex = randomIndex(index + 1);
-    [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
+    [characters[index], characters[swapIndex]] = [
+      characters[swapIndex],
+      characters[index],
+    ];
   }
 
   return characters.join("");
@@ -67,10 +78,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordChoice, setPasswordChoice] = useState("own");
   const [showPasswordChoice, setShowPasswordChoice] = useState(false);
-  const [googleUser, setGoogleUser] = useState(null);
-  const [showGoogleConfirm, setShowGoogleConfirm] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
   const [successMessage, setSuccessMessage] = useState("");
@@ -310,37 +318,13 @@ const Register = () => {
     );
   };
 
-  const startGoogleSignUp = useGoogleLogin({
-    scope: "openid profile email",
-    onSuccess: async (tokenResponse) => {
-      const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const profile = await profileRes.json();
-      setGoogleUser({ accessToken: tokenResponse.access_token, picture: profile.picture, name: profile.name, email: profile.email });
-      setShowGoogleConfirm(true);
-    },
-    onError: () => {
-      setError(t("registerPage.errors.googleFailed"));
-      setLoading(false);
-    },
-  });
-
-  const handleGoogleSignUp = () => {
-    setError("");
-    startGoogleSignUp();
-  };
-
-  // Continue with Google sign up after confirmation
-  const handleGoogleContinue = async () => {
-    if (!googleUser) return;
-    
+  const completeGoogleSignUp = async (accessToken) => {
     try {
       setLoading(true);
       setError("");
 
       const authData = await authService.loginWithGoogle({
-        accessToken: googleUser.accessToken,
+        accessToken,
       });
       const data = authData.user;
 
@@ -370,9 +354,28 @@ const Register = () => {
     }
   };
 
-  const handleGoogleCancel = () => {
-    setGoogleUser(null);
-    setShowGoogleConfirm(false);
+  const startGoogleSignUp = useGoogleLogin({
+    scope: "openid profile email",
+    onSuccess: ({ access_token: accessToken }) => {
+      completeGoogleSignUp(accessToken);
+    },
+    onError: () => {
+      setError(t("registerPage.errors.googleFailed"));
+      setLoading(false);
+    },
+    onNonOAuthError: () => {
+      setLoading(false);
+    },
+  });
+
+  const handleGoogleSignUp = () => {
+    setError("");
+    startGoogleSignUp();
+  };
+
+  const closePasswordValidator = () => {
+    setShowPasswordChoice(false);
+    setError("");
   };
 
   const useSuggestedPassword = () => {
@@ -380,20 +383,46 @@ const Register = () => {
       ...currentForm,
       password: generateStrongPassword(),
     }));
-    setPasswordChoice("suggested");
     setShowPassword(true);
-    setShowPasswordChoice(false);
     setError("");
   };
 
-  const useOwnPassword = () => {
-    setPasswordChoice("own");
-    setForm((currentForm) => ({ ...currentForm, password: "" }));
-    setShowPassword(false);
-    setShowPasswordChoice(false);
-    setError("");
-    setTimeout(() => document.getElementById("register-password")?.focus(), 0);
-  };
+  const passwordRules = [
+    {
+      label: t("registerPage.passwordRules.upperAndLower"),
+      valid: /[a-z]/.test(form.password || "") && /[A-Z]/.test(form.password || ""),
+    },
+    {
+      label: t("registerPage.passwordRules.number"),
+      valid: /\d/.test(form.password || ""),
+    },
+    {
+      label: t("registerPage.passwordRules.special"),
+      valid: /[^A-Za-z0-9]/.test(form.password || ""),
+    },
+    {
+      label: t("registerPage.passwordRules.length"),
+      valid: (form.password || "").length >= 10,
+    },
+  ];
+  const passedPasswordRules = passwordRules.filter((rule) => rule.valid).length;
+  const passwordStrength = passedPasswordRules === 4
+    ? {
+        label: t("registerPage.passwordStrength.strong"),
+        barClassName: "bg-emerald-500",
+        textClassName: "text-emerald-600 dark:text-emerald-400",
+      }
+    : passedPasswordRules >= 2
+      ? {
+          label: t("registerPage.passwordStrength.medium"),
+          barClassName: "bg-amber-400",
+          textClassName: "text-amber-600 dark:text-amber-400",
+        }
+      : {
+          label: t("registerPage.passwordStrength.weak"),
+          barClassName: "bg-rose-400",
+          textClassName: "text-rose-600 dark:text-rose-400",
+        };
 
   const inputClassName =
     "peer h-12 w-full rounded-xl border-2 border-stone-200 bg-white font-bold leading-none text-text-main outline-none transition-all duration-300 ease-out focus:border-primary focus:shadow-[0_0_0_4px_rgba(122,150,126,0.14),0_12px_30px_rgba(122,150,126,0.22)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
@@ -764,7 +793,6 @@ const Register = () => {
                   value={form.password || ""}
                   onClick={() => setShowPasswordChoice(true)}
                   onChange={(e) => {
-                    setPasswordChoice("own");
                     setForm({ ...form, password: e.target.value });
                   }}
                   required
@@ -793,14 +821,13 @@ const Register = () => {
 
             {/* Terms and Conditions */}
             <div className="col-span-full rounded-xl border border-primary/10 bg-primary/5 p-2.5 dark:border-primary/20 dark:bg-primary/10 sm:p-3">
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="h-5 w-5 shrink-0 rounded border-2 border-stone-300 text-primary accent-primary focus:ring-2 focus:ring-primary"
-                />
-                <span className="text-[11px] font-semibold leading-relaxed text-text-muted dark:text-slate-300 sm:text-xs">
+              <PremiumCheckbox
+                id="agree-to-terms"
+                checked={agreedToTerms}
+                onChange={setAgreedToTerms}
+                className="w-full"
+                labelClassName="text-[11px] font-semibold leading-relaxed text-text-muted dark:text-slate-300 sm:text-xs"
+              >
                   {t("registerPage.agreePrefix")}{" "}
                   <a
                     href="/terms"
@@ -815,8 +842,7 @@ const Register = () => {
                   >
                     {t("registerPage.privacyPolicy")}
                   </a>
-                </span>
-              </label>
+              </PremiumCheckbox>
             </div>
 
             {/* Submit Button */}
@@ -910,7 +936,7 @@ const Register = () => {
           <button
             type="button"
             aria-label="Close password options"
-            onClick={() => setShowPasswordChoice(false)}
+            onClick={closePasswordValidator}
             className="absolute inset-0 cursor-default bg-stone-950/35 backdrop-blur-sm"
           />
           <Motion.div
@@ -919,121 +945,123 @@ const Register = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="password-choice-title"
-            className="relative w-full max-w-md rounded-[1.75rem] border border-white/80 bg-white/95 p-5 shadow-[0_30px_90px_-30px_rgba(45,49,46,0.55)] backdrop-blur-2xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-7"
+            aria-labelledby="password-validator-title"
+            className="relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_30px_90px_-30px_rgba(45,49,46,0.55)] backdrop-blur-2xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-8"
           >
             <button
               type="button"
-              onClick={() => setShowPasswordChoice(false)}
+              onClick={closePasswordValidator}
               aria-label="Close password options"
               className="absolute right-4 top-4 rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-primary dark:hover:bg-slate-800"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <div className="pr-9 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Lock className="h-6 w-6" />
-              </div>
-              <h2 id="password-choice-title" className="font-display text-2xl font-black text-text-main dark:text-slate-100">
-                {t("registerPage.passwordChoiceTitle")}
+            <div className="pr-8">
+              <h2 id="password-validator-title" className="font-display text-2xl font-black text-text-main dark:text-slate-100 sm:text-3xl">
+                {t("registerPage.passwordValidatorTitle")}
               </h2>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-text-muted dark:text-slate-300">
-                {t("registerPage.strongPasswordRequirement")}
+              <p className="mt-2 text-sm font-medium leading-relaxed text-text-muted dark:text-slate-300">
+                {t("registerPage.passwordValidatorSubtitle")}
               </p>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2.5">
-              <button
-                type="button"
-                onClick={useSuggestedPassword}
-                className={`whitespace-nowrap rounded-xl border-2 px-3.5 py-2.5 text-xs font-black transition-all ${
-                  passwordChoice === "suggested"
-                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
-                    : "border-primary/25 bg-white text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 dark:bg-slate-950"
-                }`}
-              >
-                {t("registerPage.useSuggestedPassword")}
-              </button>
-              <button
-                type="button"
-                onClick={useOwnPassword}
-                className={`whitespace-nowrap rounded-xl border-2 px-3.5 py-2.5 text-xs font-black transition-all ${
-                  passwordChoice === "own"
-                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
-                    : "border-primary/25 bg-white text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 dark:bg-slate-950"
-                }`}
-              >
-                {t("registerPage.useOwnPassword")}
-              </button>
-            </div>
-          </Motion.div>
-        </div>
-      )}
-
-      {/* Google Account Confirmation Modal */}
-      {showGoogleConfirm && googleUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={handleGoogleCancel}
-          />
-          <Motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="relative w-full max-w-sm p-6 rounded-2xl shadow-2xl bg-white"
-          >
-            <div className="text-center">
-              {googleUser.picture && (
-                <img
-                  src={googleUser.picture}
-                  alt={googleUser.name || t("registerPage.googleUserAlt")}
-                  className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+            <div className="mt-6">
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="password-validator-input" className="text-sm font-black text-primary">
+                  {t("registerPage.password")}
+                </label>
+                <button
+                  type="button"
+                  onClick={useSuggestedPassword}
+                  className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-black text-primary transition-colors hover:bg-primary hover:text-white dark:bg-primary/15"
+                >
+                  {t("registerPage.useSuggestedPassword")}
+                </button>
+              </div>
+              <div className="relative mt-2">
+                <input
+                  id="password-validator-input"
+                  autoFocus
+                  type={showPassword ? "text" : "password"}
+                  value={form.password || ""}
+                  onChange={(event) => {
+                    setForm((currentForm) => ({
+                      ...currentForm,
+                      password: event.target.value,
+                    }));
+                    setError("");
+                  }}
+                  autoComplete="new-password"
+                  className="h-12 w-full border-0 border-b-2 border-primary bg-transparent pr-12 text-lg font-bold text-text-main outline-none dark:text-slate-50"
                 />
-              )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-primary transition-colors hover:bg-primary/10"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
 
-              <h3 className="text-xl font-bold mb-1 text-gray-900">
-                {t("registerPage.googleConfirmTitle")}
-              </h3>
-              
-              <p className="text-sm mb-6 text-gray-500">
-                {t("registerPage.googleConfirmDescription")}
-              </p>
-              
-              <div className="flex items-center justify-center gap-3 p-3 rounded-xl mb-6 bg-gray-100">
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">
-                    {t("registerPage.googleSelectedAccount")}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {t("registerPage.googleChooseAnother")}
-                  </p>
-                </div>
+            <div className="mt-6 rounded-[1.5rem] bg-stone-100/90 p-4 dark:bg-slate-800/75 sm:p-5">
+              <div className="h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-slate-700">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${passwordStrength.barClassName}`}
+                  style={{ width: `${Math.max((passedPasswordRules / passwordRules.length) * 100, form.password ? 12 : 0)}%` }}
+                />
               </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleGoogleCancel}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none bg-gray-100 text-gray-900 hover:bg-gray-200 transition-all"
-                >
-                  {t("registerPage.cancel")}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGoogleContinue}
-                  disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold appearance-none border border-transparent bg-[var(--color-primary)] text-white shadow-sm shadow-black/10 transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ color: "#FFFFFF" }}
-                >
-                  {loading && <Loader className="w-4 h-4 animate-spin" />}
-                  {t("registerPage.continue")}
-                </button>
+
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <span className="text-sm font-bold text-text-muted dark:text-slate-300">
+                  {t("registerPage.passwordStrength.label")}
+                </span>
+                <span className={`text-sm font-black ${passwordStrength.textClassName}`}>
+                  {passwordStrength.label}
+                </span>
               </div>
+
+              <ul className="mt-4 space-y-3">
+                {passwordRules.map((rule) => (
+                  <li
+                    key={rule.label}
+                    className={`flex items-center gap-3 text-sm font-bold transition-colors ${
+                      rule.valid
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-stone-400 dark:text-slate-500"
+                    }`}
+                  >
+                    <CheckCircle
+                      className={`h-5 w-5 shrink-0 ${
+                        rule.valid ? "fill-emerald-500 text-white dark:text-slate-900" : ""
+                      }`}
+                    />
+                    <span>{rule.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                disabled={!validateStrongPassword(form.password)}
+                onClick={closePasswordValidator}
+                className={`flex h-12 w-full items-center justify-center rounded-xl text-sm font-black uppercase tracking-[0.18em] transition-all ${
+                  validateStrongPassword(form.password)
+                    ? "bg-primary text-white shadow-lg shadow-primary/25 hover:-translate-y-0.5 hover:bg-primary-dark"
+                    : "cursor-not-allowed bg-stone-200 text-stone-400 dark:bg-slate-800 dark:text-slate-500"
+                }`}
+              >
+                {t("registerPage.continue")}
+              </button>
             </div>
           </Motion.div>
         </div>
       )}
+
     </div>
   );
 };

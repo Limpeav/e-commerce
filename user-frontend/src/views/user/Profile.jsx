@@ -12,6 +12,7 @@ import {
   Shield,
   Settings,
   ChevronRight,
+  CheckCircle,
 } from "lucide-react";
 import axios from "axios";
 import { motion as Motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,45 @@ import {
 
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
+
+const validateStrongPassword = (password = "") =>
+  password.length >= 10
+  && /[a-z]/.test(password)
+  && /[A-Z]/.test(password)
+  && /\d/.test(password)
+  && /[^A-Za-z0-9]/.test(password);
+
+const generateStrongPassword = () => {
+  const requiredGroups = [
+    "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    "abcdefghijkmnopqrstuvwxyz",
+    "23456789",
+    "!@#$%&*?",
+  ];
+  const allCharacters = requiredGroups.join("");
+  const randomIndex = (length) => {
+    const values = new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    return values[0] % length;
+  };
+  const characters = requiredGroups.map(
+    (group) => group[randomIndex(group.length)]
+  );
+
+  while (characters.length < 14) {
+    characters.push(allCharacters[randomIndex(allCharacters.length)]);
+  }
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    [characters[index], characters[swapIndex]] = [
+      characters[swapIndex],
+      characters[index],
+    ];
+  }
+
+  return characters.join("");
+};
 
 const toLocalPhoneDigits = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");
@@ -184,6 +224,7 @@ const Profile = () => {
   };
 
   const resetSecurityForm = () => {
+    setShowPassword(false);
     setSecurityStep("email");
     setSecurityCode("");
     setSecurityResetToken("");
@@ -285,8 +326,8 @@ const Profile = () => {
         throw new Error(t("profile.passwordsDoNotMatch"));
       }
 
-      if (formData.newPassword.length < 6) {
-        throw new Error(t("profile.passwordTooShort"));
+      if (!validateStrongPassword(formData.newPassword)) {
+        throw new Error(t("profile.strongPasswordRequired"));
       }
 
       await resetPassword({
@@ -303,6 +344,54 @@ const Profile = () => {
       setLoading(false);
     }
   };
+
+  const useSuggestedSecurityPassword = () => {
+    const suggestedPassword = generateStrongPassword();
+    setFormData((current) => ({
+      ...current,
+      newPassword: suggestedPassword,
+      confirmPassword: suggestedPassword,
+    }));
+    setShowPassword(true);
+    setError("");
+  };
+
+  const securityPasswordRules = [
+    {
+      label: t("registerPage.passwordRules.upperAndLower"),
+      valid: /[a-z]/.test(formData.newPassword) && /[A-Z]/.test(formData.newPassword),
+    },
+    {
+      label: t("registerPage.passwordRules.number"),
+      valid: /\d/.test(formData.newPassword),
+    },
+    {
+      label: t("registerPage.passwordRules.special"),
+      valid: /[^A-Za-z0-9]/.test(formData.newPassword),
+    },
+    {
+      label: t("registerPage.passwordRules.length"),
+      valid: formData.newPassword.length >= 10,
+    },
+  ];
+  const passedSecurityPasswordRules = securityPasswordRules.filter((rule) => rule.valid).length;
+  const securityPasswordStrength = passedSecurityPasswordRules === 4
+    ? {
+        label: t("registerPage.passwordStrength.strong"),
+        barClassName: "bg-emerald-500",
+        textClassName: "text-emerald-600 dark:text-emerald-400",
+      }
+    : passedSecurityPasswordRules >= 2
+      ? {
+          label: t("registerPage.passwordStrength.medium"),
+          barClassName: "bg-amber-400",
+          textClassName: "text-amber-600 dark:text-amber-400",
+        }
+      : {
+          label: t("registerPage.passwordStrength.weak"),
+          barClassName: "bg-rose-400",
+          textClassName: "text-rose-600 dark:text-rose-400",
+        };
 
   if (!user) {
     return (
@@ -625,45 +714,130 @@ const Profile = () => {
                   )}
 
                   {securityStep === "password" && (
-                    <form onSubmit={handleSecurityPasswordReset} className="space-y-6">
-                      <div className="space-y-5">
-                        <div className="group">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.newPassword")}</label>
-                          <div className="relative">
-                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
-                              <Lock className="h-5 w-5" />
-                            </div>
-                            <input type={showPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} onChange={handleInputChange}
-                              className={`block w-full pl-11 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
-                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                              }`}
-                              placeholder={t("profile.enterNewPassword")}
-                            />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${isDark ? "text-slate-500 hover:text-emerald-300" : "text-stone-400 hover:text-emerald-600"}`}>
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
+                    <form onSubmit={handleSecurityPasswordReset} className="mx-auto w-full max-w-3xl space-y-6 text-left">
+                      <div>
+                        <h2 className={`font-display text-2xl font-black sm:text-3xl ${isDark ? "text-slate-100" : "text-stone-800"}`}>
+                          {t("registerPage.passwordValidatorTitle")}
+                        </h2>
+                        <p className={`mt-2 text-sm font-medium leading-relaxed ${isDark ? "text-slate-300" : "text-stone-500"}`}>
+                          {t("registerPage.passwordValidatorSubtitle")}
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <label htmlFor="security-new-password" className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                            {t("profile.newPassword")}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={useSuggestedSecurityPassword}
+                            className="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-emerald-700 sm:w-auto"
+                          >
+                            {t("registerPage.useSuggestedPassword")}
+                          </button>
                         </div>
 
-                        <div className="group">
-                          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? "text-slate-400" : "text-stone-500"}`}>{t("profile.confirmNewPassword")}</label>
-                          <div className="relative">
-                            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${isDark ? "text-slate-500 group-focus-within:text-emerald-300" : "text-stone-400 group-focus-within:text-emerald-500"}`}>
-                              <Lock className="h-5 w-5" />
-                            </div>
-                            <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange}
-                              className={`block w-full pl-11 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium ${
-                                isDark ? "bg-slate-950 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-stone-50 border-stone-200 focus:bg-white text-stone-800"
-                              }`}
-                              placeholder={t("profile.confirmNewPasswordPlaceholder")}
-                            />
-                          </div>
+                        <div className="relative mt-2">
+                          <input
+                            id="security-new-password"
+                            autoFocus
+                            type={showPassword ? "text" : "password"}
+                            name="newPassword"
+                            value={formData.newPassword}
+                            onChange={handleInputChange}
+                            autoComplete="new-password"
+                            className={`h-14 w-full border-0 border-b-2 border-emerald-500 bg-transparent pr-12 text-lg font-bold outline-none sm:text-xl ${
+                              isDark ? "text-slate-50" : "text-stone-800"
+                            }`}
+                            placeholder={t("profile.enterNewPassword")}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((visible) => !visible)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-emerald-600 transition-colors hover:bg-emerald-500/10 dark:text-emerald-400"
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 pt-8 sm:flex-row sm:justify-center">
-                        <button type="submit" disabled={loading || !formData.newPassword || !formData.confirmPassword} className="text-white w-full sm:w-auto py-4 sm:px-12 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 disabled:opacity-60">
-                          {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> : <Shield className="w-5 h-5" />}
+                      <div className={`rounded-[1.5rem] p-4 sm:p-6 ${isDark ? "bg-slate-800/75" : "bg-stone-100/90"}`}>
+                        <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-slate-700" : "bg-stone-200"}`}>
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${securityPasswordStrength.barClassName}`}
+                            style={{ width: `${Math.max((passedSecurityPasswordRules / securityPasswordRules.length) * 100, formData.newPassword ? 12 : 0)}%` }}
+                          />
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                          <span className={`text-sm font-bold ${isDark ? "text-slate-300" : "text-stone-500"}`}>
+                            {t("registerPage.passwordStrength.label")}
+                          </span>
+                          <span className={`text-sm font-black ${securityPasswordStrength.textClassName}`}>
+                            {securityPasswordStrength.label}
+                          </span>
+                        </div>
+
+                        <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                          {securityPasswordRules.map((rule) => (
+                            <li
+                              key={rule.label}
+                              className={`flex items-center gap-3 text-sm font-bold transition-colors ${
+                                rule.valid
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : isDark ? "text-slate-500" : "text-stone-400"
+                              }`}
+                            >
+                              <CheckCircle
+                                className={`h-5 w-5 shrink-0 ${
+                                  rule.valid ? "fill-emerald-500 text-white dark:text-slate-900" : ""
+                                }`}
+                              />
+                              <span>{rule.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="group">
+                        <label htmlFor="security-confirm-password" className={`mb-2 block text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-stone-500"}`}>
+                          {t("profile.confirmNewPassword")}
+                        </label>
+                        <div className="relative">
+                          <div className={`pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 ${isDark ? "text-slate-500" : "text-stone-400"}`}>
+                            <Lock className="h-5 w-5" />
+                          </div>
+                          <input
+                            id="security-confirm-password"
+                            type={showPassword ? "text" : "password"}
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleInputChange}
+                            autoComplete="new-password"
+                            className={`block w-full rounded-xl border py-4 pl-11 pr-4 font-medium transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 ${
+                              isDark
+                                ? "border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500"
+                                : "border-stone-200 bg-stone-50 text-stone-800 focus:bg-white"
+                            }`}
+                            placeholder={t("profile.confirmNewPasswordPlaceholder")}
+                          />
+                        </div>
+                        {formData.confirmPassword && formData.newPassword !== formData.confirmPassword && (
+                          <p className="mt-2 text-sm font-bold text-rose-500">
+                            {t("profile.passwordsDoNotMatch")}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-center">
+                        <button
+                          type="submit"
+                          disabled={loading || !validateStrongPassword(formData.newPassword) || formData.newPassword !== formData.confirmPassword}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-4 font-bold text-white transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-12"
+                        >
+                          {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Shield className="h-5 w-5" />}
                           {loading ? t("profile.updatingSecurity") : t("profile.updatePassword")}
                         </button>
                         <button type="button" onClick={resetSecurityForm} className={`w-full rounded-xl border py-4 font-bold transition-all active:scale-95 sm:w-auto sm:px-8 ${
@@ -681,6 +855,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };

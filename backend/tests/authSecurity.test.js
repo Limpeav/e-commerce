@@ -1,12 +1,37 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import jwt from "jsonwebtoken";
 import {
+  createPortalSessionToken,
   hashLoginCode,
   normalizeEmail,
   safeEqual,
   validateCustomerPassword,
   validatePortalPassword,
 } from "../utils/authSecurity.js";
+
+test("portal sessions persist until explicit revocation", () => {
+  const previousSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
+
+  try {
+    const adminToken = createPortalSessionToken({
+      _id: "507f1f77bcf86cd799439011",
+      role: "admin",
+      tokenVersion: 0,
+    });
+    const sellerToken = createPortalSessionToken({
+      _id: "507f1f77bcf86cd799439012",
+      role: "seller",
+      tokenVersion: 0,
+    });
+
+    assert.equal(jwt.decode(adminToken).exp, undefined);
+    assert.equal(jwt.decode(sellerToken).exp, undefined);
+  } finally {
+    process.env.JWT_SECRET = previousSecret;
+  }
+});
 
 test("portal password policy rejects weak passwords", () => {
   assert.equal(validatePortalPassword("admin123").valid, false);

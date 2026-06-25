@@ -888,12 +888,35 @@ const OrderDetails = () => {
                                     Customer
                                 </h2>
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)] text-lg font-bold text-white">
-                                        {(customerName || "N").charAt(0).toUpperCase()}
+                                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
+                                        order.user
+                                            ? "bg-[var(--color-primary)] text-white"
+                                            : "bg-gray-100 text-gray-500"
+                                    }`}>
+                                        {order.user
+                                            ? (order.user.name || customerName || "C").charAt(0).toUpperCase()
+                                            : "D"}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="truncate font-bold text-[var(--color-text-main)]">{order.user?.name || customerName}</p>
-                                        <p className="truncate text-sm text-[var(--color-text-muted)]">{order.user?.email || "N/A"}</p>
+                                        {order.user ? (
+                                            <>
+                                                <p className="truncate font-bold text-[var(--color-text-main)]">
+                                                    {order.user.name || customerName}
+                                                </p>
+                                                <p className="truncate text-sm text-[var(--color-text-muted)]">
+                                                    {order.user.email || "Email unavailable"}
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="truncate font-bold text-[var(--color-text-main)]">
+                                                    Deleted Customer
+                                                </p>
+                                                <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500">
+                                                    Account deleted
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </section>

@@ -14,6 +14,10 @@ export const UserController = {
     return modelResponse(await adminService.createStaffLogin(payload));
   },
 
+  async updateStaff(id, payload) {
+    return modelResponse(await adminService.updateStaffLogin(id, payload));
+  },
+
   async updateRole(id, role) {
     return modelResponse(await adminService.updateUserRole(id, role));
   },

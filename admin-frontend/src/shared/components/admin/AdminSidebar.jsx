@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
 import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
-import { OrderController } from '../../controllers'
+import { AuthController, OrderController } from '../../controllers'
 import {
   LayoutDashboard,
   Package,
@@ -48,20 +48,18 @@ const AdminSidebar = () => {
     if (!Array.isArray(orders)) return 0
 
     return orders.filter((order) => {
+      // A null populated user means the customer account was deleted.
+      if (!order?.user) {
+        return false
+      }
+
       const orderStatus = normalizeStatus(order?.orderStatus)
-      const paymentStatus = normalizeStatus(order?.paymentStatus)
 
       if (isDelivery && !['processing', 'shipped'].includes(orderStatus)) {
         return false
       }
 
-      const isFinishedOrder = orderStatus === 'delivered' || orderStatus === 'cancelled'
-      const isSettledPayment =
-        paymentStatus === 'paid' ||
-        paymentStatus === 'refunded' ||
-        paymentStatus === 'failed'
-
-      return !isFinishedOrder || !isSettledPayment
+      return orderStatus !== 'delivered' && orderStatus !== 'cancelled'
     }).length
   }, [isDelivery, normalizeStatus])
 
@@ -82,7 +80,7 @@ const AdminSidebar = () => {
     }
 
     loadOrderCount()
-    const unsubscribeRealtime = subscribeRealtimeDomains(['orders'], loadOrderCount)
+    const unsubscribeRealtime = subscribeRealtimeDomains(['orders', 'users'], loadOrderCount)
     window.addEventListener('admin-orders-updated', loadOrderCount)
 
     return () => {
@@ -143,12 +141,18 @@ const AdminSidebar = () => {
     }
   ].filter((item) => !item.hidden && (!item.adminOnly || adminUser?.role === 'admin'))
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to logout?')) return
 
     const loginPath = getPortalLoginPath(adminUser)
-    clearAdminSession()
-    navigate(loginPath)
+    try {
+      await AuthController.logout()
+    } catch (error) {
+      console.error('Portal logout request failed:', error)
+    } finally {
+      clearAdminSession()
+      navigate(loginPath, { replace: true })
+    }
   }
 
   return (

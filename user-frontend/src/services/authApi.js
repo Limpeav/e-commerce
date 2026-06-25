@@ -35,6 +35,11 @@ export const updateNotificationPreferences = (token, data) =>
     data,
     { headers: { Authorization: `Bearer ${token}` } }
   );
+export const getDeleteAccountEligibility = (token) =>
+  API.get(
+    "/delete-eligibility",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 export const startPhoneVerification = (token, phone) =>
   API.post(
     "/start-phone-verification",
