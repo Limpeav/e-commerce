@@ -171,7 +171,7 @@ const StaffLogin = () => {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 py-3 pl-10 pr-4 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-transparent py-3 pl-10 pr-4 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                   placeholder={portal.roles.includes("seller") ? "seller@company.com" : "delivery@company.com"}
                   required
                 />
@@ -188,7 +188,7 @@ const StaffLogin = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 py-3 pl-10 pr-10 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-transparent py-3 pl-10 pr-10 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                   placeholder="••••••••"
                   required
                 />

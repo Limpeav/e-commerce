@@ -71,6 +71,7 @@ export default function Navbar() {
   const accountDropdownRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
+  const isHomeActive = location.pathname === "/" || location.pathname === "/customer";
 
   const refreshActiveOrderAlert = useCallback(async () => {
     try {
@@ -205,7 +206,7 @@ export default function Navbar() {
               <div className="flex items-center gap-1 mr-4">
                 <Link
                   to="/customer"
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isActive("/customer")
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${isHomeActive
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                     }`}
@@ -480,7 +481,7 @@ export default function Navbar() {
                     key={item.to}
                     to={item.to}
                     onClick={() => setShowMobileMenu(false)}
-                    className={`flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${isActive(item.to)
+                    className={`flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${(item.to === "/customer" ? isHomeActive : isActive(item.to))
                       ? "bg-primary/10 text-primary"
                       : `${mutedTextClassName} hover:bg-primary/10 hover:text-primary`
                       }`}

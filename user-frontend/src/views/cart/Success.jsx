@@ -21,10 +21,13 @@ export default function OrderSuccess() {
   const [isDark] = useDarkMode();
   const reduceMotion = useReducedMotion();
   const stateOrderId = location.state?.orderId;
+  const paymentMethod = location.state?.paymentMethod;
   const queryOrderId = new URLSearchParams(location.search).get("orderId");
   const storedOrderId =
     typeof window !== "undefined" ? localStorage.getItem("latestOrderId") : null;
   const orderId = stateOrderId || queryOrderId || storedOrderId;
+  const shouldShowCancelNotice =
+    !paymentMethod || paymentMethod === "Cash on Delivery";
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -139,24 +142,26 @@ export default function OrderSuccess() {
           </p>
         </Motion.div>
 
-        <Motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: reduceMotion ? 0 : 0.56, duration: 0.4 }}
-          className={`relative z-10 mx-auto mb-6 flex w-full max-w-sm items-start gap-3 rounded-2xl border p-4 text-left sm:mb-8 ${
-            isDark
-              ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
-              : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
-        >
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-          <div>
-            <p className="text-sm font-black">{t("checkout.cancelNoticeTitle")}</p>
-            <p className={`mt-1 text-xs font-semibold leading-relaxed ${isDark ? "text-amber-100/80" : "text-amber-800"}`}>
-              {t("checkout.cancelNoticeMessage")}
-            </p>
-          </div>
-        </Motion.div>
+        {shouldShowCancelNotice && (
+          <Motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduceMotion ? 0 : 0.56, duration: 0.4 }}
+            className={`relative z-10 mx-auto mb-6 flex w-full max-w-sm items-start gap-3 rounded-2xl border p-4 text-left sm:mb-8 ${
+              isDark
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div>
+              <p className="text-sm font-black">{t("checkout.cancelNoticeTitle")}</p>
+              <p className={`mt-1 text-xs font-semibold leading-relaxed ${isDark ? "text-amber-100/80" : "text-amber-800"}`}>
+                {t("checkout.cancelNoticeMessage")}
+              </p>
+            </div>
+          </Motion.div>
+        )}
 
         <Motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 14 }}

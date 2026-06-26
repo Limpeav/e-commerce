@@ -96,7 +96,7 @@ export const useBakongPayment = (orderId, navigate) => {
       localStorage.setItem("latestOrderId", orderId);
       navigate("/customer/cart/success", {
         replace: true,
-        state: { orderId },
+        state: { orderId, paymentMethod: "BAKONG_KHQR" },
       });
     }, 3000);
 
