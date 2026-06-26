@@ -20,6 +20,7 @@ export const userLazyComponents = {
   Contact: () => import("../views/user/Contact"),
   KnowledgeBase: () => import("../views/user/KnowledgeBase"),
   Location: () => import("../views/user/Location"),
+  RealtimeTranslate: () => import("../views/user/RealtimeTranslate"),
   BakongPayment: () => import("../views/payment/BakongPayment"),
 
   // Auth routes
@@ -84,6 +85,7 @@ export const additionalRoutes = [
   { path: "/contact", component: "Contact" },
   { path: "/knowledge-base", component: "KnowledgeBase" },
   { path: "/location", component: "Location" },
+  { path: "/translate", component: "RealtimeTranslate" },
   { path: "*", component: "NotFound" },
 ];
 

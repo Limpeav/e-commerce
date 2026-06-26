@@ -3,8 +3,11 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import Order from "../models/orderModel.js";
+import { translatePlainText } from "../controllers/translationController.js";
 
 let ioInstance = null;
+const TRANSLATION_RATE_LIMIT = 20;
+const TRANSLATION_RATE_WINDOW_MS = 60 * 1000;
 
 const normalizeOrigins = (origins) => {
   if (!origins || origins === true) {
@@ -78,6 +81,8 @@ export const initializeSocket = (httpServer, corsOrigins) => {
 
   ioInstance.on("connection", (socket) => {
     const userId = socket.user._id?.toString() || null;
+    let translationRequestTimestamps = [];
+
     if (userId) {
       socket.join(`user:${userId}`);
     }
@@ -98,6 +103,46 @@ export const initializeSocket = (httpServer, corsOrigins) => {
       socket.emit("language:changed", payload);
       if (userId) {
         socket.to(`user:${userId}`).emit("language:changed", payload);
+      }
+    });
+
+    socket.on("translation:request", async (payload = {}, respond) => {
+      const sendResponse = typeof respond === "function" ? respond : () => {};
+      const now = Date.now();
+      translationRequestTimestamps = translationRequestTimestamps.filter(
+        (timestamp) => now - timestamp < TRANSLATION_RATE_WINDOW_MS
+      );
+
+      if (translationRequestTimestamps.length >= TRANSLATION_RATE_LIMIT) {
+        sendResponse({
+          ok: false,
+          statusCode: 429,
+          message: "Too many translation requests. Please wait a minute and try again.",
+        });
+        return;
+      }
+
+      translationRequestTimestamps.push(now);
+
+      try {
+        const result = await translatePlainText(payload);
+        sendResponse({
+          ok: true,
+          ...result,
+          translatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        const message =
+          error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          error.message ||
+          "Translation failed";
+
+        sendResponse({
+          ok: false,
+          statusCode: error.statusCode || error.response?.status || 502,
+          message,
+        });
       }
     });
 

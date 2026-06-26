@@ -89,7 +89,6 @@ export default function Footer() {
             <ul className="space-y-3 sm:space-y-3.5">
               {[
                 { name: t('footer.aboutUs'), to: '/about' },
-                { name: t('footer.location'), to: '/location' },
                 { name: t('footer.privacyPolicy'), to: '/privacy' },
                 { name: t('footer.termsOfService'), to: '/terms' },
               ].map((link) => (

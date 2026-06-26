@@ -1,13 +1,40 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useLanguage } from "../../context/useLanguage";
-import { staticTextTranslations } from "../../i18n/translations";
+import { staticTextTranslations, translations } from "../../i18n/translations";
 
 const textNodeOriginals = new WeakMap();
 const ATTRIBUTE_NAMES = ["placeholder", "aria-label", "title"];
 
 const normalizeText = (value = "") => value.replace(/\s+/g, " ").trim();
 const hasDigit = (value = "") => /\d/.test(value);
+const hasInterpolation = (value = "") => /\{\{.+?\}\}/.test(value);
+const collectStructuredTranslations = (englishNode, khmerNode, dictionary = {}) => {
+  if (typeof englishNode === "string" && typeof khmerNode === "string") {
+    const englishText = normalizeText(englishNode);
+    const khmerText = normalizeText(khmerNode);
+
+    if (englishText && khmerText && !hasInterpolation(englishText) && !hasInterpolation(khmerText)) {
+      dictionary[englishText] = khmerText;
+    }
+
+    return dictionary;
+  }
+
+  if (!englishNode || !khmerNode || typeof englishNode !== "object" || typeof khmerNode !== "object") {
+    return dictionary;
+  }
+
+  Object.keys(englishNode).forEach((key) => {
+    collectStructuredTranslations(englishNode[key], khmerNode[key], dictionary);
+  });
+
+  return dictionary;
+};
+const buildTranslationDictionary = () => ({
+  ...collectStructuredTranslations(translations.en, translations.kh),
+  ...(staticTextTranslations.kh || {}),
+});
 const buildReverseDictionary = (dictionary) =>
   Object.entries(dictionary).reduce((reverseDictionary, [englishText, khmerText]) => {
     reverseDictionary[normalizeText(khmerText)] = englishText;
@@ -125,11 +152,9 @@ export default function StaticTextTranslator({ disabled = false }) {
   const location = useLocation();
 
   useEffect(() => {
-    // English is already the source language. Avoid observing and rescanning the
-    // entire DOM unless Khmer translation is actually required.
-    if (disabled || language !== "kh") return undefined;
+    if (disabled || !["en", "kh"].includes(language)) return undefined;
 
-    const dictionary = staticTextTranslations.kh || {};
+    const dictionary = buildTranslationDictionary();
     const reverseDictionary = buildReverseDictionary(dictionary);
     let animationFrame = 0;
 

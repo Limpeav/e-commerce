@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import i18n from "../i18n";
 import { translations } from "../i18n/translations";
 import { LanguageContext } from "./language-context";
+import {
+  publishLanguageChange,
+  subscribeRealtimeEvent,
+} from "../services/realtime";
 
 const STORAGE_KEY = "language";
 const DEFAULT_LANGUAGE = "en";
@@ -31,7 +35,7 @@ const getInitialLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language] = useState(getInitialLanguage);
+  const [language, setLanguageState] = useState(getInitialLanguage);
 
   useEffect(() => {
     const effectiveLanguage = getEffectiveLanguage(language);
@@ -42,6 +46,27 @@ export const LanguageProvider = ({ children }) => {
     window.localStorage.setItem(STORAGE_KEY, language);
   }, [language]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeRealtimeEvent("language:changed", (payload) => {
+      const normalizedLanguage = normalizeLanguage(payload?.language);
+
+      if (!translations[normalizedLanguage]) {
+        return;
+      }
+
+      setLanguageState((currentLanguage) => {
+        if (currentLanguage === normalizedLanguage) {
+          return currentLanguage;
+        }
+
+        window.localStorage.setItem(STORAGE_KEY, normalizedLanguage);
+        return normalizedLanguage;
+      });
+    });
+
+    return unsubscribe;
+  }, []);
+
   const setLanguage = useCallback((nextLanguage) => {
     const normalizedLanguage = normalizeLanguage(nextLanguage);
 
@@ -50,7 +75,8 @@ export const LanguageProvider = ({ children }) => {
     }
 
     window.localStorage.setItem(STORAGE_KEY, normalizedLanguage);
-    window.location.reload();
+    setLanguageState(normalizedLanguage);
+    publishLanguageChange(normalizedLanguage);
   }, [language]);
 
   const t = useCallback(

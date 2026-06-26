@@ -56,6 +56,39 @@ export const publishLanguageChange = (language) => {
   socket.emit("language:change", normalizedLanguage);
 };
 
+export const translateTextRealtime = ({
+  text,
+  targetLanguage = "km",
+  sourceLanguage = "auto",
+  timeoutMs = 35000,
+} = {}) =>
+  new Promise((resolve, reject) => {
+    const socket = getRealtimeSocket();
+
+    if (!socket) {
+      reject(new Error("Realtime socket is not available"));
+      return;
+    }
+
+    socket.timeout(timeoutMs).emit(
+      "translation:request",
+      { text, targetLanguage, sourceLanguage },
+      (error, response) => {
+        if (error) {
+          reject(new Error("Translation request timed out"));
+          return;
+        }
+
+        if (!response?.ok) {
+          reject(new Error(response?.message || "Translation failed"));
+          return;
+        }
+
+        resolve(response);
+      }
+    );
+  });
+
 export const subscribeRealtimeDomains = (domains, handler, { debounceMs = 150 } = {}) => {
   const socket = getRealtimeSocket();
   if (!socket || !Array.isArray(domains) || domains.length === 0) {
