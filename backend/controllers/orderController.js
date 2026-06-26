@@ -651,9 +651,16 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
             if (
                 nextStatus === "Cancelled" &&
+                (order.isPaid || order.paymentStatus === "Paid")
+            ) {
+                res.status(400);
+                throw new Error("Paid orders cannot be cancelled");
+            }
+
+            if (
+                nextStatus === "Cancelled" &&
                 previousStatus !== "Cancelled" &&
-                order.stockReduced &&
-                !order.stockRestored
+                (order.stockReserved || (order.stockReduced && !order.stockRestored))
             ) {
                 await restoreOrderStockIfNeeded(order, session);
             }
@@ -1037,6 +1044,11 @@ export const deleteOrder = asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
+        if (order.isPaid || order.paymentStatus === "Paid") {
+            res.status(400);
+            throw new Error("Paid orders cannot be removed");
+        }
+
         const userId = order.user;
         await order.deleteOne();
         emitDomainChanged(

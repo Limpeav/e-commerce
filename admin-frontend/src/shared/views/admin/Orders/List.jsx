@@ -5,7 +5,6 @@ import {
     ChevronDown,
     CheckCircle,
     Package,
-    Trash2,
     Search,
     Filter,
     Eye,
@@ -296,14 +295,27 @@ const AdminOrders = ({ renderDelivery }) => {
         setFilteredOrders(filtered);
     };
 
-    const handleDeleteOrder = async (id) => {
-        if (window.confirm("Are you sure you want to delete this order?")) {
+    const isOrderPaid = (order) =>
+        order?.isPaid === true || order?.paymentStatus === "Paid";
+
+    const canAdminCancelOrder = (order) => {
+        const status = normalizeOrderStatus(order?.orderStatus);
+        return !isOrderPaid(order) && !["Cancelled", "Delivered"].includes(status);
+    };
+
+    const handleCancelOrder = async (order) => {
+        if (!canAdminCancelOrder(order)) {
+            alert("Only unpaid active orders can be cancelled.");
+            return;
+        }
+
+        if (window.confirm("Cancel this unpaid order?")) {
             try {
-                await OrderController.delete(id);
+                await OrderController.updateStatus(order._id, "Cancelled");
                 window.dispatchEvent(new Event("admin-orders-updated"));
                 fetchOrders();
             } catch (err) {
-                alert(err.response?.data?.message || "Failed to delete order");
+                alert(err.response?.data?.message || "Failed to cancel order");
             }
         }
     };
@@ -1108,16 +1120,16 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                 >
                                                                     View Details
                                                                 </button>
-                                                            ) : adminUser?.role === "admin" ? (
+                                                            ) : adminUser?.role === "admin" && canAdminCancelOrder(order) ? (
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        handleDeleteOrder(order._id);
+                                                                        handleCancelOrder(order);
                                                                     }}
-                                                                    className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
-                                                                    title="Delete Order"
+                                                                    className="inline-flex items-center rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 hover:text-red-900"
+                                                                    title="Cancel unpaid order"
                                                                 >
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                    Cancel order
                                                                 </button>
                                                             ) : null}
                                                         </div>

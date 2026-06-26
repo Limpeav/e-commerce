@@ -662,9 +662,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       applyDetectedLocation,
       handleLocationError,
       {
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         timeout: 12000,
-        maximumAge: 300000,
+        maximumAge: 0,
       }
     );
   };

@@ -21,7 +21,7 @@ const CHECKOUT_LOCATION_STORAGE_KEY = "checkoutDeliveryLocation";
 const getSavedCheckoutLocation = () => {
   try {
     const savedLocation = JSON.parse(
-      localStorage.getItem(CHECKOUT_LOCATION_STORAGE_KEY) || "null"
+      sessionStorage.getItem(CHECKOUT_LOCATION_STORAGE_KEY) || "null"
     );
 
     if (
@@ -37,7 +37,7 @@ const getSavedCheckoutLocation = () => {
       };
     }
   } catch {
-    localStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
+    sessionStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
   }
 
   return null;
@@ -90,6 +90,10 @@ const Checkout = () => {
   }, [validCartItems.length, navigate, orderPlaced]);
 
   useEffect(() => {
+    localStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
+  }, []);
+
+  useEffect(() => {
     if (
       !Number.isFinite(shippingAddress.latitude)
       || !Number.isFinite(shippingAddress.longitude)
@@ -97,7 +101,7 @@ const Checkout = () => {
       return;
     }
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       CHECKOUT_LOCATION_STORAGE_KEY,
       JSON.stringify({
         street: shippingAddress.street,
@@ -296,6 +300,8 @@ const Checkout = () => {
 
     const nextOrderId = result.data._id;
     checkoutCompletedRef.current = true;
+    localStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
+    sessionStorage.removeItem(CHECKOUT_LOCATION_STORAGE_KEY);
     setOrderId(nextOrderId);
 
     if (paymentMethod === "BAKONG_KHQR") {

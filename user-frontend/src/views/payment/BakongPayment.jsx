@@ -598,13 +598,15 @@ export default function BakongPayment() {
                     type="button"
                     onClick={handleCancel}
                     disabled={cancelling}
-                    className={`flex min-h-11 items-center justify-center rounded-xl border px-3 text-xs font-bold transition-colors disabled:opacity-60 sm:min-h-12 sm:text-sm ${
+                    className={`group flex min-h-11 items-center justify-center rounded-xl border px-3 text-xs font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-400/40 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60 sm:min-h-12 sm:text-sm ${
                       isDark
-                        ? "border-[#733d32] bg-[#3a211d] text-[#ffb5a5] hover:bg-[#4a2822]"
-                        : "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
+                        ? "border-[#733d32] bg-[#3a211d] text-[#ffb5a5] hover:border-[#a64a3d] hover:bg-[#582b25] hover:text-[#ffd3ca] hover:shadow-[0_16px_34px_-18px_rgba(255,91,73,0.75)]"
+                        : "border-red-100 bg-red-50 text-red-600 hover:border-red-200 hover:bg-red-600 hover:text-white hover:shadow-[0_16px_34px_-18px_rgba(220,38,38,0.85)]"
                     }`}
                   >
-                    {cancelling ? t("bakongPayment.cancelling") : t("bakongPayment.cancelPayment")}
+                    <span className="transition-transform duration-200 group-hover:scale-[1.02]">
+                      {cancelling ? t("bakongPayment.cancelling") : t("bakongPayment.cancelPayment")}
+                    </span>
                   </button>
                 </div>
 
