@@ -13,6 +13,7 @@ import {
     Phone,
     Printer,
     LogOut,
+    Loader2,
 } from "lucide-react";
 import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
@@ -72,6 +73,9 @@ const AdminOrders = ({ renderDelivery }) => {
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const [receiptNotice, setReceiptNotice] = useState("");
+    const [deliveryBusyLabel, setDeliveryBusyLabel] = useState("");
+    const [deliveryNavigatingOrderId, setDeliveryNavigatingOrderId] = useState("");
+    const [deliveryMapOrderId, setDeliveryMapOrderId] = useState("");
     const receiptNoticeTimeoutRef = useRef(null);
     const fetchOrders = useCallback(async ({ silent = false } = {}) => {
         try {
@@ -320,7 +324,20 @@ const AdminOrders = ({ renderDelivery }) => {
         }
     };
 
+    const clearDeliveryBusySoon = (delay = 900) => {
+        window.setTimeout(() => {
+            setDeliveryBusyLabel("");
+            setDeliveryNavigatingOrderId("");
+            setDeliveryMapOrderId("");
+        }, delay);
+    };
+
     const handleRowNavigation = (orderId) => {
+        if (isDelivery) {
+            setDeliveryNavigatingOrderId(orderId);
+            setDeliveryBusyLabel("Opening order details...");
+        }
+
         navigate(getPortalOrderDetailsPath(orderId, adminUser), {
             state: isDelivery ? { fromDeliveryOrders: true } : undefined,
         });
@@ -546,15 +563,24 @@ const AdminOrders = ({ renderDelivery }) => {
         return `https://www.google.com/maps/search/?api=1&query=${shippingAddress.latitude},${shippingAddress.longitude}`;
     };
 
-    const handleOpenGoogleMaps = (shippingAddress = {}) => {
+    const handleOpenGoogleMaps = (shippingAddress = {}, orderId = "") => {
         const { latitude, longitude } = shippingAddress;
 
         if (!latitude || !longitude) {
             return;
         }
 
+        if (isDelivery) {
+            setDeliveryMapOrderId(orderId);
+            setDeliveryBusyLabel("Opening map...");
+        }
+
         const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
         window.open(url, "_blank");
+
+        if (isDelivery) {
+            clearDeliveryBusySoon();
+        }
     };
 
     const handleDeliveryLogout = () => {
@@ -563,6 +589,7 @@ const AdminOrders = ({ renderDelivery }) => {
         }
 
         const loginPath = getPortalLoginPath(adminUser);
+        setDeliveryBusyLabel("Logging out...");
         disconnectRealtime();
         clearAdminSession("delivery");
         sessionStorage.removeItem(DELIVERY_ORDERS_CACHE_KEY);
@@ -573,30 +600,21 @@ const AdminOrders = ({ renderDelivery }) => {
     const deliveryOrders = orders.filter((order) =>
         DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
     );
+    const todayDateKey = getOrderDateKey(new Date().toISOString());
+    const todayDeliveryOrders = deliveryOrders.filter(
+        (order) => getOrderDateKey(order.createdAt) === todayDateKey
+    );
     const deliveryStats = [
         {
             label: "Processing",
-            value: deliveryOrders.filter((order) =>
+            value: todayDeliveryOrders.filter((order) =>
                 normalizeOrderStatus(order.orderStatus) === "Processing"
             ).length,
             className: "bg-blue-50 text-blue-800",
         },
         {
-            label: "Cash",
-            value: formatCurrency(
-                deliveryOrders
-                    .filter((order) =>
-                        order.paymentMethod === "Cash on Delivery" &&
-                        order.paymentStatus === "Paid" &&
-                        normalizeOrderStatus(order.orderStatus) !== "Cancelled"
-                    )
-                    .reduce((acc, order) => acc + Number(order.totalPrice || 0), 0)
-            ),
-            className: "bg-green-50 text-green-800",
-        },
-        {
             label: "Done",
-            value: deliveryOrders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
+            value: todayDeliveryOrders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
             className: "bg-stone-100 text-stone-800",
         },
     ];
@@ -639,6 +657,9 @@ const AdminOrders = ({ renderDelivery }) => {
             handleDeliveryLogout,
             handleOpenGoogleMaps,
             handleRowNavigation,
+            deliveryBusyLabel,
+            deliveryMapOrderId,
+            deliveryNavigatingOrderId,
             normalizeOrderStatus,
             receiptNotice,
             searchTerm,
@@ -652,6 +673,14 @@ const AdminOrders = ({ renderDelivery }) => {
     if (isDelivery) {
         return (
             <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:px-8 lg:pt-8">
+                {deliveryBusyLabel && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 px-6 backdrop-blur-[2px]">
+                        <div className="flex min-h-28 w-full max-w-xs flex-col items-center justify-center gap-3 rounded-2xl bg-white p-6 text-center shadow-2xl">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
+                            <p className="text-sm font-black text-gray-950">{deliveryBusyLabel}</p>
+                        </div>
+                    </div>
+                )}
                 {receiptNotice && (
                     <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
                         {receiptNotice}
@@ -666,14 +695,19 @@ const AdminOrders = ({ renderDelivery }) => {
                         <button
                             type="button"
                             onClick={handleDeliveryLogout}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50"
+                            disabled={Boolean(deliveryBusyLabel)}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-70"
                         >
-                            <LogOut className="h-4 w-4" />
-                            Logout
+                            {deliveryBusyLabel === "Logging out..." ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <LogOut className="h-4 w-4" />
+                            )}
+                            {deliveryBusyLabel === "Logging out..." ? "Logging out..." : "Logout"}
                         </button>
                     </div>
 
-                    <div className="mb-4 grid grid-cols-3 gap-2">
+                    <div className="mb-4 grid grid-cols-2 gap-2">
                         {deliveryStats.map((stat) => (
                             <div key={stat.label} className={`rounded-xl p-3 shadow-sm ${stat.className}`}>
                                 <p className="text-[11px] font-bold uppercase">{stat.label}</p>
@@ -749,7 +783,8 @@ const AdminOrders = ({ renderDelivery }) => {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRowNavigation(order._id)}
-                                                        className="block w-full p-4 text-left"
+                                                        disabled={Boolean(deliveryBusyLabel)}
+                                                        className="block w-full p-4 text-left disabled:cursor-wait disabled:opacity-75"
                                                     >
                                                         <div className="mb-3 flex items-start justify-between gap-3">
                                                             <div className="min-w-0">
@@ -795,11 +830,16 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         {mapUrl ? (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleOpenGoogleMaps(order.shippingAddress)}
-                                                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700"
+                                                                onClick={() => handleOpenGoogleMaps(order.shippingAddress, order._id)}
+                                                                disabled={Boolean(deliveryBusyLabel)}
+                                                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700 disabled:cursor-wait disabled:opacity-70"
                                                             >
-                                                                <Navigation className="h-5 w-5" />
-                                                                View Map
+                                                                {deliveryMapOrderId === order._id ? (
+                                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                                ) : (
+                                                                    <Navigation className="h-5 w-5" />
+                                                                )}
+                                                                {deliveryMapOrderId === order._id ? "Opening..." : "View Map"}
                                                             </button>
                                                         ) : (
                                                             <div className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-gray-400">
@@ -810,10 +850,15 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRowNavigation(order._id)}
-                                                            className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950"
+                                                            disabled={Boolean(deliveryBusyLabel)}
+                                                            className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950 disabled:cursor-wait disabled:opacity-70"
                                                         >
-                                                            <Eye className="h-5 w-5" />
-                                                            View Details
+                                                            {deliveryNavigatingOrderId === order._id ? (
+                                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                            ) : (
+                                                                <Eye className="h-5 w-5" />
+                                                            )}
+                                                            {deliveryNavigatingOrderId === order._id ? "Opening..." : "View Details"}
                                                         </button>
                                                     </div>
                                                 </article>

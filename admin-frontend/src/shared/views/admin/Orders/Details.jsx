@@ -16,6 +16,7 @@ import {
     Navigation,
     Phone,
     Printer,
+    Loader2,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
@@ -412,6 +413,14 @@ const OrderDetails = () => {
     const phoneHref = order.shippingAddress?.phone
         ? `tel:${String(order.shippingAddress.phone).replace(/\s/g, "")}`
         : "";
+    const deliveryBusyMessage =
+        isDelivery && uploadingProof
+            ? "Uploading delivery proof..."
+            : isDelivery && updating
+                ? "Saving delivery update..."
+                : isDelivery && sendingReceipt
+                    ? "Sending receipt..."
+                    : "";
     const summaryRows = [
         ["Order ID", `#${displayOrderId}`],
         ["Customer Name", customerName],
@@ -542,6 +551,11 @@ const OrderDetails = () => {
                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
                                     {label}
                                 </span>
+                            ) : updating ? (
+                                <span className="flex items-center justify-center">
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                                    Updating...
+                                </span>
                             ) : requiresDeliveryProof ? (
                                 "Photo Required"
                             ) : (
@@ -611,6 +625,17 @@ const OrderDetails = () => {
 
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
+            {deliveryBusyMessage && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 px-6 backdrop-blur-[2px]">
+                    <div className="flex min-h-28 w-full max-w-xs flex-col items-center justify-center gap-3 rounded-2xl bg-white p-6 text-center shadow-2xl">
+                        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
+                        <p className="text-sm font-black text-[var(--color-text-main)]">
+                            {deliveryBusyMessage}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {receiptNotice && (
                 <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
                     {receiptNotice}
@@ -965,6 +990,11 @@ const OrderDetails = () => {
                                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
                                                     {paymentStatus}
                                                 </span>
+                                            ) : updating ? (
+                                                <span className="flex items-center justify-center">
+                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                                                    Updating...
+                                                </span>
                                             ) : (
                                                 `Mark as ${paymentStatus}`
                                             )}
@@ -1047,7 +1077,11 @@ const OrderDetails = () => {
                                         ? "cursor-wait bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                         : "cursor-pointer bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                 }`}>
-                                    <Camera className="h-5 w-5" />
+                                    {uploadingProof ? (
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                    ) : (
+                                        <Camera className="h-5 w-5" />
+                                    )}
                                     {uploadingProof ? "Uploading..." : order.deliveryProof?.imageUrl ? "Retake Photo" : "Take a Photo"}
                                     <input
                                         type="file"
@@ -1134,8 +1168,12 @@ const OrderDetails = () => {
                                 ? "bg-gray-100 text-gray-400"
                                 : "bg-gray-950 text-white"
                         }`}>
-                            <Camera className="h-5 w-5" />
-                            Photo
+                            {uploadingProof ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <Camera className="h-5 w-5" />
+                            )}
+                            {uploadingProof ? "Uploading" : "Photo"}
                             <input
                                 type="file"
                                 accept="image/*"
@@ -1166,8 +1204,12 @@ const OrderDetails = () => {
                                     : "bg-green-600 text-white"
                             }`}
                         >
-                            <CheckCircle className="h-5 w-5" />
-                            {order.deliveryProof?.imageUrl ? "Done" : "Photo First"}
+                            {updating ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <CheckCircle className="h-5 w-5" />
+                            )}
+                            {updating ? "Saving..." : order.deliveryProof?.imageUrl ? "Done" : "Photo First"}
                         </button>
                     </div>
                 </div>

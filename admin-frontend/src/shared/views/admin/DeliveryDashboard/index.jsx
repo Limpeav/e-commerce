@@ -2,6 +2,7 @@ import {
   ChevronDown,
   Eye,
   Filter,
+  Loader2,
   LogOut,
   MapPin,
   Navigation,
@@ -29,6 +30,9 @@ const DeliveryDashboardView = ({ dashboard }) => {
     handleDeliveryLogout,
     handleOpenGoogleMaps,
     handleRowNavigation,
+    deliveryBusyLabel,
+    deliveryMapOrderId,
+    deliveryNavigatingOrderId,
     normalizeOrderStatus,
     receiptNotice,
     searchTerm,
@@ -40,6 +44,15 @@ const DeliveryDashboardView = ({ dashboard }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:px-8 lg:pt-8">
+      {deliveryBusyLabel && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 px-6 backdrop-blur-[2px]">
+          <div className="flex min-h-28 w-full max-w-xs flex-col items-center justify-center gap-3 rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
+            <p className="text-sm font-black text-gray-950">{deliveryBusyLabel}</p>
+          </div>
+        </div>
+      )}
+
       {receiptNotice && (
         <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:left-auto sm:right-6 sm:text-lg">
           {receiptNotice}
@@ -57,14 +70,19 @@ const DeliveryDashboardView = ({ dashboard }) => {
           <button
             type="button"
             onClick={handleDeliveryLogout}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50"
+            disabled={Boolean(deliveryBusyLabel)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-70"
           >
-            <LogOut className="h-4 w-4" />
-            Logout
+            {deliveryBusyLabel === "Logging out..." ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+            {deliveryBusyLabel === "Logging out..." ? "Logging out..." : "Logout"}
           </button>
         </header>
 
-        <section className="mb-4 grid grid-cols-3 gap-2">
+        <section className="mb-4 grid grid-cols-2 gap-2">
           {deliveryStats.map((stat) => (
             <div
               key={stat.label}
@@ -153,7 +171,8 @@ const DeliveryDashboardView = ({ dashboard }) => {
                           <button
                             type="button"
                             onClick={() => handleRowNavigation(order._id)}
-                            className="block w-full p-4 text-left"
+                            disabled={Boolean(deliveryBusyLabel)}
+                            className="block w-full p-4 text-left disabled:cursor-wait disabled:opacity-75"
                           >
                             <div className="mb-3 flex items-start justify-between gap-3">
                               <div className="min-w-0">
@@ -218,12 +237,17 @@ const DeliveryDashboardView = ({ dashboard }) => {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  handleOpenGoogleMaps(order.shippingAddress)
+                                  handleOpenGoogleMaps(order.shippingAddress, order._id)
                                 }
-                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700"
+                                disabled={Boolean(deliveryBusyLabel)}
+                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700 disabled:cursor-wait disabled:opacity-70"
                               >
-                                <Navigation className="h-5 w-5" />
-                                View Map
+                                {deliveryMapOrderId === order._id ? (
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                  <Navigation className="h-5 w-5" />
+                                )}
+                                {deliveryMapOrderId === order._id ? "Opening..." : "View Map"}
                               </button>
                             ) : (
                               <div className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-gray-400">
@@ -234,10 +258,15 @@ const DeliveryDashboardView = ({ dashboard }) => {
                             <button
                               type="button"
                               onClick={() => handleRowNavigation(order._id)}
-                              className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950"
+                              disabled={Boolean(deliveryBusyLabel)}
+                              className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950 disabled:cursor-wait disabled:opacity-70"
                             >
-                              <Eye className="h-5 w-5" />
-                              View Details
+                              {deliveryNavigatingOrderId === order._id ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                              {deliveryNavigatingOrderId === order._id ? "Opening..." : "View Details"}
                             </button>
                           </div>
                         </article>
