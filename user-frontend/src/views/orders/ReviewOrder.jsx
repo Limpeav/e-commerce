@@ -110,10 +110,10 @@ export default function ReviewOrder() {
         const productId = String(getProductId(item));
         const existingReview = getUserReviewForItem(item, user);
 
-        if (existingReview && !next[productId]) {
+        if (!next[productId]) {
           next[productId] = {
-            rating: Number(existingReview.rating) || 0,
-            comment: existingReview.comment || "",
+            rating: existingReview ? Number(existingReview.rating) || 5 : 5,
+            comment: existingReview?.comment || "",
           };
         }
       });

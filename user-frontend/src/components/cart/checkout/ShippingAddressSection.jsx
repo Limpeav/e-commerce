@@ -89,6 +89,9 @@ const ShippingAddressSection = ({
           <input
             type="text"
             name="street"
+            autoComplete="new-password"
+            aria-autocomplete="none"
+            data-form-type="other"
             value={shippingAddress.street}
             onChange={onInputChange}
             placeholder={t("checkout.streetPlaceholder")}
