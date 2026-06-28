@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import axios from "axios";
-import { isGeminiConfigured, translateTextWithGemini } from "../utils/geminiTranslation.js";
+import { isAzureTranslatorConfigured, translateTextWithAzure } from "../utils/azureTranslation.js";
 
 const GOOGLE_TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single";
 const SUPPORTED_LANGUAGES = {
@@ -67,25 +67,19 @@ export const translatePlainText = async ({
     throw createTranslationError("Text must be 5000 characters or fewer", 400);
   }
 
-  const targetLanguageName = SUPPORTED_LANGUAGES[normalizedTargetLanguage];
-  const sourceInstruction =
-    normalizedSourceLanguage === "auto"
-      ? "Detect the source language automatically."
-      : `The source language is ${SUPPORTED_LANGUAGES[normalizedSourceLanguage] || normalizedSourceLanguage}.`;
-
   let translatedText = "";
   let primaryError = null;
 
-  if (isGeminiConfigured()) {
+  if (isAzureTranslatorConfigured()) {
     try {
-      translatedText = await translateTextWithGemini({
+      translatedText = await translateTextWithAzure({
         text: text.trim(),
-        targetLanguageName,
-        sourceInstruction,
+        targetLanguage: normalizedTargetLanguage,
+        sourceLanguage: normalizedSourceLanguage,
       });
     } catch (error) {
       primaryError = error;
-      console.warn("Gemini plain-text translation failed:", error.message);
+      console.warn("Azure plain-text translation failed:", error.message);
     }
   }
 

@@ -20,7 +20,10 @@ import {
 } from "../utils/sendTelegramMessage.js";
 import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
 import { validateProductSize } from "../utils/productOptions.js";
-import { getAvailableStock } from "../utils/productInventory.js";
+import {
+    adjustProductInventory,
+    getAvailableStock,
+} from "../utils/productInventory.js";
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
@@ -48,10 +51,11 @@ const restoreOrderStockIfNeeded = async (order, session) => {
             const product = await Product.findById(item.product).session(session);
 
             if (product) {
-                product.reservedStock = Math.max(
-                    0,
-                    Number(product.reservedStock || 0) - Number(item.quantity || 0)
-                );
+                adjustProductInventory(product, {
+                    size: item.size,
+                    quantity: item.quantity,
+                    action: "release",
+                });
                 await product.save({ session });
             }
         }
@@ -67,7 +71,11 @@ const restoreOrderStockIfNeeded = async (order, session) => {
         const product = await Product.findById(item.product).session(session);
 
         if (product) {
-            product.stock += item.quantity;
+            adjustProductInventory(product, {
+                size: item.size,
+                quantity: item.quantity,
+                action: "restore",
+            });
             product.totalSold = Math.max(
                 0,
                 Number(product.totalSold || 0) - Number(item.quantity || 0)
@@ -281,13 +289,21 @@ export const createOrder = asyncHandler(async (req, res) => {
                 const productMap = new Map(
                     products.map((product) => [product._id.toString(), product])
                 );
-                const requestedQuantityByProduct = new Map();
+                const requestedQuantityByProductSize = new Map();
 
                 for (const item of orderItems) {
                     const productId = String(item.product);
-                    requestedQuantityByProduct.set(
-                        productId,
-                        Number(requestedQuantityByProduct.get(productId) || 0) + Number(item.quantity || 0)
+                    const size = String(item.size || "").trim().toUpperCase();
+                    const inventoryKey = `${productId}::${size}`;
+                    requestedQuantityByProductSize.set(
+                        inventoryKey,
+                        {
+                            productId,
+                            size,
+                            quantity:
+                                Number(requestedQuantityByProductSize.get(inventoryKey)?.quantity || 0) +
+                                Number(item.quantity || 0),
+                        }
                     );
                 }
 
@@ -303,8 +319,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                         throw createHttpError(400, `${product.title}: ${sizeError}`);
                     }
 
-                    const requestedQuantity = requestedQuantityByProduct.get(String(item.product));
-                    const availableStock = getAvailableStock(product);
+                    const size = String(item.size || "").trim().toUpperCase();
+                    const requestedQuantity = requestedQuantityByProductSize.get(
+                        `${String(item.product)}::${size}`
+                    )?.quantity || 0;
+                    const availableStock = getAvailableStock(product, size);
                     if (availableStock < requestedQuantity) {
                         throw createHttpError(
                             409,
@@ -317,7 +336,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                     for (const item of orderItems) {
                         const product = productMap.get(String(item.product));
                         const previousStock = product.stock;
-                        product.stock -= item.quantity;
+                        adjustProductInventory(product, {
+                            size: item.size,
+                            quantity: item.quantity,
+                            action: "reduce",
+                        });
                         product.totalSold = Math.max(
                             0,
                             Number(product.totalSold || 0) + Number(item.quantity || 0)
@@ -328,7 +351,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                         if (
                             shouldSendLowStockAlert({
                                 previousStock,
-                                currentStock: product.stock,
+                                currentStock: getAvailableStock(product),
                                 lowStockAlertSent: product.lowStockAlertSent,
                             })
                         ) {
@@ -336,16 +359,19 @@ export const createOrder = asyncHandler(async (req, res) => {
                                 productId: product._id,
                                 title: product.title,
                                 category: product.category,
-                                stock: product.stock,
+                                stock: getAvailableStock(product),
                                 imageUrl: product.image,
                             });
                         }
                     }
                 } else {
-                    for (const [productId, quantity] of requestedQuantityByProduct) {
+                    for (const { productId, size, quantity } of requestedQuantityByProductSize.values()) {
                         const product = productMap.get(productId);
-                        product.reservedStock =
-                            Number(product.reservedStock || 0) + quantity;
+                        adjustProductInventory(product, {
+                            size,
+                            quantity,
+                            action: "reserve",
+                        });
                         await product.save({ session });
                     }
                 }

@@ -5,8 +5,12 @@ export const adminService = {
   // Authentication
   login: (credentials) => api.post("/admin/login", credentials),
   verifyLogin: (challenge) => api.post("/admin/login/verify", challenge),
+  forgotPassword: (payload) => api.post("/admin/forgot-password", payload),
+  verifyResetCode: (payload) => api.post("/admin/forgot-password/verify", payload),
+  resetPassword: (payload) => api.post("/admin/reset-password", payload),
   logout: () => api.post("/admin/logout"),
   getCurrentAdmin: () => api.get("/admin/me"),
+  updateCurrentAdmin: (payload) => api.put("/admin/me", payload),
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
@@ -45,7 +49,7 @@ export const adminService = {
 
   // Orders
   // Product methods
-  getProducts: () => api.get("/products"),
+  getProducts: (params) => api.get("/products", { params }),
   getProductById: (id) => api.get(`/products/${id}`),
   createProduct: (productData) => {
     return api.post("/products", productData);

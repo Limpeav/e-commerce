@@ -4,6 +4,7 @@ import {
   normalizeSelectedSize,
   validateProductSize,
 } from "../utils/productOptions.js";
+import { getAvailableStock } from "../utils/productInventory.js";
 
 const sameCartLine = (item, productId, size = "") =>
   item.product.toString() === productId && String(item.size || "") === String(size || "");
@@ -59,6 +60,16 @@ export const addToCart = async (req, res) => {
   const itemIndex = cart.items.findIndex((item) =>
     sameCartLine(item, productId, normalizedSize)
   );
+  const requestedQuantity =
+    Number(quantity || 1) +
+    (itemIndex > -1 ? Number(cart.items[itemIndex].quantity || 0) : 0);
+  const availableStock = getAvailableStock(product, normalizedSize);
+
+  if (availableStock < requestedQuantity) {
+    return res.status(409).json({
+      message: `This item only has ${availableStock} left, but ${requestedQuantity} were requested. Please update your cart and try again.`,
+    });
+  }
 
   if (itemIndex > -1) {
     cart.items[itemIndex].quantity += Number(quantity || 1);
@@ -104,6 +115,18 @@ export const updateCartQuantity = async (req, res) => {
   const item = cart.items.find((i) => sameCartLine(i, productId, normalizedSize));
 
   if (!item) return res.status(404).json({ message: "Item not found" });
+
+  const product = await Product.findById(productId);
+  if (!product) return res.status(404).json({ message: "Product not found" });
+
+  const requestedQuantity = Number(quantity || 1);
+  const availableStock = getAvailableStock(product, normalizedSize);
+
+  if (availableStock < requestedQuantity) {
+    return res.status(409).json({
+      message: `This item only has ${availableStock} left, but ${requestedQuantity} were requested. Please update your cart and try again.`,
+    });
+  }
 
   item.quantity = quantity;
   await cart.save();

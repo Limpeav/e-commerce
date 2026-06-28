@@ -4,7 +4,7 @@ import PageLayout from "../../components/ui/PageLayout";
 import SectionHeader from "../../components/ui/SectionHeader";
 import ContentBox from "../../components/ui/ContentBox";
 import { useLanguage } from "../../context/useLanguage";
-import { useToast } from "../../context/ToastContext";
+import { useToast } from "../../context/useToast";
 import { submitContactSupport } from "../../services/supportService";
 
 export default function Contact() {

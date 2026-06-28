@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useToast } from "./ToastContext";
+import { useToast } from "./useToast";
 import { WishlistController } from "../controllers/wishlistController.js";
 import { useAuth } from "./useAuth";
 import { WishlistContext } from "./wishlist-context";

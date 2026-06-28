@@ -23,6 +23,7 @@ const ChangeBadge = ({ value }) => {
 export const MetricCard = ({
   title,
   value,
+  secondaryValue,
   change,
   note,
   icon,
@@ -44,6 +45,11 @@ export const MetricCard = ({
           <p className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-main)]">
             {value}
           </p>
+          {secondaryValue ? (
+            <p className="mt-1 text-sm font-extrabold text-[#527258]">
+              {secondaryValue}
+            </p>
+          ) : null}
         </div>
         <div className={`rounded-xl p-2.5 ${tones[tone]}`}>
           <MetricIcon className="h-5 w-5" />

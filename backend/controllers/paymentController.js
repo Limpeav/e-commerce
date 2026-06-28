@@ -14,7 +14,10 @@ import {
     emitOrderCreated,
 } from "../realtime/socket.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
-import { getAvailableStock } from "../utils/productInventory.js";
+import {
+    adjustProductInventory,
+    getAvailableStock,
+} from "../utils/productInventory.js";
 import {
     sendOrderTelegramAlert,
     sendPaymentTelegramAlert,
@@ -219,10 +222,11 @@ const restoreCancelledOrder = async (order, session) => {
             const product = await Product.findById(item.product).session(session);
 
             if (product) {
-                product.reservedStock = Math.max(
-                    0,
-                    Number(product.reservedStock || 0) - Number(item.quantity || 0)
-                );
+                adjustProductInventory(product, {
+                    size: item.size,
+                    quantity: item.quantity,
+                    action: "release",
+                });
                 await product.save({ session });
             }
         }
@@ -239,7 +243,11 @@ const restoreCancelledOrder = async (order, session) => {
             const product = await Product.findById(item.product).session(session);
 
             if (product) {
-                product.stock += Number(item.quantity || 0);
+                adjustProductInventory(product, {
+                    size: item.size,
+                    quantity: item.quantity,
+                    action: "restore",
+                });
                 product.totalSold = Math.max(
                     0,
                     Number(product.totalSold || 0) - Number(item.quantity || 0)
@@ -415,23 +423,30 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
         return [];
     }
 
-    const quantityByProduct = new Map();
+    const quantityByProductSize = new Map();
     for (const item of order.orderItems) {
         const productId = String(item.product?._id || item.product);
-        quantityByProduct.set(
-            productId,
-            Number(quantityByProduct.get(productId) || 0)
-                + Number(item.quantity || 0)
+        const size = String(item.size || "").trim().toUpperCase();
+        const inventoryKey = `${productId}::${size}`;
+        quantityByProductSize.set(
+            inventoryKey,
+            {
+                productId,
+                size,
+                quantity:
+                    Number(quantityByProductSize.get(inventoryKey)?.quantity || 0)
+                    + Number(item.quantity || 0),
+            }
         );
     }
 
-    const productIds = [...quantityByProduct.keys()];
+    const productIds = [...new Set([...quantityByProductSize.values()].map((item) => item.productId))];
     const products = await Product.find({ _id: { $in: productIds } }).session(session);
     const productById = new Map(
         products.map((product) => [product._id.toString(), product])
     );
 
-    for (const [productId, quantity] of quantityByProduct) {
+    for (const { productId, size, quantity } of quantityByProductSize.values()) {
         const product = productById.get(productId);
         if (!product) {
             throw Object.assign(
@@ -441,16 +456,18 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
         }
 
         const availableStock = order.stockReserved
-            ? Math.max(
-                0,
-                Number(product.stock || 0)
-                    - (
-                        product.hasProductIssue
-                            ? Number(product.issueQuantity || 0)
-                            : 0
-                    )
+            ? getAvailableStock(
+                {
+                    ...product.toObject(),
+                    reservedStock: 0,
+                    sizeStocks: product.sizeStocks?.map((entry) => ({
+                        ...(typeof entry.toObject === "function" ? entry.toObject() : entry),
+                        reservedStock: 0,
+                    })),
+                },
+                size
             )
-            : getAvailableStock(product);
+            : getAvailableStock(product, size);
         if (availableStock < quantity) {
             throw Object.assign(
                 new Error(
@@ -461,15 +478,20 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
         }
     }
 
-    for (const [productId, quantity] of quantityByProduct) {
+    for (const { productId, size, quantity } of quantityByProductSize.values()) {
         const product = productById.get(productId);
         if (order.stockReserved) {
-            product.reservedStock = Math.max(
-                0,
-                Number(product.reservedStock || 0) - quantity
-            );
+            adjustProductInventory(product, {
+                size,
+                quantity,
+                action: "release",
+            });
         }
-        product.stock -= quantity;
+        adjustProductInventory(product, {
+            size,
+            quantity,
+            action: "reduce",
+        });
         product.totalSold = Math.max(
             0,
             Number(product.totalSold || 0) + quantity

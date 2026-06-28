@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Lock, ShoppingCart } from "lucide-react";
 import { useLanguage } from "../../context/useLanguage";
-import { useToast } from "../../context/ToastContext";
+import { useToast } from "../../context/useToast";
 import { useDarkMode } from "../../hooks";
-import { getProductSizes, isClothingProduct } from "../../utils/productOptions";
+import {
+  getAvailableStockForSize,
+  getProductSizes,
+  isClothingProduct,
+} from "../../utils/productOptions";
 
 const ProductPurchaseActions = ({
   product,
@@ -30,20 +34,30 @@ const ProductPurchaseActions = ({
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {sizeOptions.map((size) => {
               const isSelected = selectedSize === size;
+              const availableForSize = getAvailableStockForSize(product, size);
+              const isUnavailable = availableForSize <= 0;
 
               return (
                 <button
                   key={size}
                   type="button"
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => {
+                    if (!isUnavailable) setSelectedSize(size);
+                  }}
+                  disabled={isUnavailable}
                   className={`h-11 rounded-xl border text-sm font-black transition-all active:scale-95 ${
                     isSelected
                       ? "border-primary bg-primary text-white shadow-md"
+                      : isUnavailable
+                        ? isDark
+                          ? "cursor-not-allowed border-slate-800 bg-slate-950 text-slate-600 line-through"
+                          : "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400 line-through"
                       : isDark
                         ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-primary"
                         : "border-stone-200 bg-white text-stone-700 hover:border-primary"
                   }`}
                   aria-pressed={isSelected}
+                  title={isUnavailable ? "Out of stock" : `${availableForSize} available`}
                 >
                   {size}
                 </button>

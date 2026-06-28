@@ -1,6 +1,7 @@
+import crypto from "crypto";
 import User from "../models/userModel.js";
 import { PORTAL_ROLES } from "../constants/roles.js";
-import { sendPortalLoginCode } from "../utils/sendEmail.js";
+import { sendPasswordResetCode, sendPortalLoginCode } from "../utils/sendEmail.js";
 import {
   createPortalChallengeToken,
   createPortalSessionToken,
@@ -20,10 +21,30 @@ const serializePortalUser = (user, token) => ({
   _id: user._id,
   name: user.name,
   email: user.email,
+  phone: user.phone,
   role: user.role,
   token,
   expiresIn: null,
 });
+
+const STAFF_ROLES = ["seller", "delivery"];
+
+const serializePortalProfile = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  role: user.role,
+});
+
+const maskEmail = (email) =>
+  String(email).replace(
+    /^(.{2})(.*)(@.*)$/,
+    (_, start, middle, domain) => start + "*".repeat(middle.length) + domain
+  );
+
+const hashResetValue = (value) =>
+  crypto.createHash("sha256").update(String(value)).digest("hex");
 
 export const registerAdmin = async (req, res) => {
   try {
@@ -185,13 +206,191 @@ export const verifyAdminLogin = async (req, res) => {
 };
 
 export const getAdminProfile = async (req, res) => {
-  res.json({
-    _id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    phone: req.user.phone,
-    role: req.user.role,
-  });
+  res.json(serializePortalProfile(req.user));
+};
+
+export const updatePortalProfile = async (req, res) => {
+  try {
+    if (!STAFF_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: "Staff profile access only" });
+    }
+
+    const name = req.body.name?.trim();
+    const email = normalizeEmail(req.body.email);
+    const phone = req.body.phone?.trim() || "";
+
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required" });
+    }
+
+    const existingEmailUser = await User.findOne({
+      email,
+      _id: { $ne: req.user._id },
+    });
+
+    if (existingEmailUser) {
+      return res.status(409).json({ message: "Email is already in use" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || !STAFF_ROLES.includes(user.role)) {
+      return res.status(404).json({ message: "Staff account not found" });
+    }
+
+    user.name = name;
+    user.email = email;
+    user.phone = phone;
+    await user.save({ validateModifiedOnly: true });
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: serializePortalProfile(user),
+    });
+  } catch (error) {
+    console.error("Portal profile update error:", error);
+    return res.status(500).json({ message: "Unable to update profile" });
+  }
+};
+
+export const forgotPortalPassword = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const requestedRole = req.body.role;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    const roleAllowed =
+      user &&
+      STAFF_ROLES.includes(user.role) &&
+      (!requestedRole || user.role === requestedRole);
+
+    if (!roleAllowed) {
+      return res.json({
+        message: "If a staff account exists for that email, a reset code has been sent.",
+      });
+    }
+
+    const resetCode = crypto.randomInt(100000, 1000000).toString();
+
+    await User.updateOne(
+      { _id: user._id },
+      {
+        resetPasswordToken: hashResetValue(resetCode),
+        resetPasswordExpires: Date.now() + 10 * 60 * 1000,
+      }
+    );
+
+    try {
+      await sendPasswordResetCode(user.email, user.name, resetCode);
+    } catch (emailError) {
+      console.error("Portal password reset email error:", emailError);
+      return res.status(503).json({
+        message: "Unable to send reset code at the moment. Please try again later.",
+      });
+    }
+
+    return res.json({
+      message: "We sent a code to your email",
+      maskedEmail: maskEmail(user.email),
+      email: user.email,
+    });
+  } catch (error) {
+    console.error("Portal forgot password error:", error);
+    return res.status(500).json({ message: "Failed to process password reset request" });
+  }
+};
+
+export const verifyPortalResetCode = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const code = req.body.code?.toString().trim();
+    const requestedRole = req.body.role;
+
+    if (!email || !/^\d{6}$/.test(code || "")) {
+      return res.status(400).json({ message: "Email and six-digit code are required" });
+    }
+
+    if (requestedRole && !STAFF_ROLES.includes(requestedRole)) {
+      return res.status(400).json({ message: "Invalid staff role" });
+    }
+
+    const query = {
+      email,
+      role: { $in: STAFF_ROLES },
+      resetPasswordToken: hashResetValue(code),
+      resetPasswordExpires: { $gt: Date.now() },
+    };
+
+    if (requestedRole) {
+      query.role = requestedRole;
+    }
+
+    const user = await User.findOne(query);
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired code. Please try again." });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    await User.updateOne(
+      { _id: user._id },
+      {
+        resetPasswordToken: hashResetValue(resetToken),
+        resetPasswordExpires: Date.now() + 15 * 60 * 1000,
+      }
+    );
+
+    return res.json({
+      message: "Code verified successfully",
+      resetToken,
+    });
+  } catch (error) {
+    console.error("Portal reset code verification error:", error);
+    return res.status(500).json({ message: "Failed to verify code" });
+  }
+};
+
+export const resetPortalPassword = async (req, res) => {
+  try {
+    const token = req.body.token?.toString().trim();
+    const password = req.body.password;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required" });
+    }
+
+    const passwordCheck = validatePortalPassword(password);
+    if (!passwordCheck.valid) {
+      return res.status(400).json({ message: passwordCheck.message });
+    }
+
+    const user = await User.findOne({
+      role: { $in: STAFF_ROLES },
+      resetPasswordToken: hashResetValue(token),
+      resetPasswordExpires: { $gt: Date.now() },
+    }).select("+tokenVersion");
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token. Please start over.",
+      });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    return res.json({
+      message: "Password reset successfully. You can now log in with your new password.",
+    });
+  } catch (error) {
+    console.error("Portal reset password error:", error);
+    return res.status(500).json({ message: "Unable to reset password" });
+  }
 };
 
 export const logoutPortalSession = async (req, res) => {

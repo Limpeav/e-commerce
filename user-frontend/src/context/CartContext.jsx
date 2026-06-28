@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { useToast } from "./ToastContext";
+import { useToast } from "./useToast";
 import { CartController } from "../controllers/cartController.js";
 import { useAuth } from "./useAuth";
 import { CartContext } from "./cart-context";
@@ -21,6 +21,9 @@ const normalizeCartSize = (size = "") => String(size || "").trim().toUpperCase()
 
 const isSameCartItem = (item, productId, size = "") =>
   item.product?._id === productId && normalizeCartSize(item.size) === normalizeCartSize(size);
+
+const hasNumericStock = (product) =>
+  product?.stock !== undefined && product?.stock !== null && Number.isFinite(Number(product.stock));
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
@@ -67,13 +70,32 @@ export const CartProvider = ({ children }) => {
 
   // Add to cart
   const addToCart = async (product, quantity = 1, options = {}) => {
+    const productLabel = product?.title || product?.name || "This product";
+
     if (!canUseCustomerCart) {
       info(t("cart.loginRequiredTitle"), t("cart.loginRequiredMessage"));
       return;
     }
 
+    const requestedQuantity = Number(quantity || 1);
+    const existingQuantity = cart
+      .filter((item) => isSameCartItem(item, product?._id, options.size))
+      .reduce((total, item) => total + Number(item.quantity || 0), 0);
+    const totalRequested = existingQuantity + requestedQuantity;
+
+    if (hasNumericStock(product) && Number(product.stock) < totalRequested) {
+      toastError(
+        t("cart.actionFailedTitle"),
+        t("cart.stockLimitMessage", {
+          available: Number(product.stock),
+          requested: totalRequested,
+        }),
+        { duration: 60000 }
+      );
+      return;
+    }
+
     try {
-      const productLabel = product?.title || product?.name || "This product";
       const result = await withGlobalLoading(
         () => CartController.addToCart(product, quantity, options),
         "cart-add"

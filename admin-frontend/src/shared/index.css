@@ -65,6 +65,11 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.admin-date-input::-webkit-calendar-picker-indicator {
+    filter: brightness(0);
+    opacity: 1;
+}
+
 /* Use a familiar neutral-blue highlight instead of the warm page palette. */
 ::selection {
     background-color: #2563EB;

@@ -5,9 +5,9 @@ import User from "../models/userModel.js";
 import Order from "../models/orderModel.js";
 import {
   containsThaiScript,
-  isGeminiConfigured,
-  translateTextWithGemini,
-} from "../utils/geminiTranslation.js";
+  isAzureTranslatorConfigured,
+  translateTextWithAzure,
+} from "../utils/azureTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendStorePromotionEmail } from "../utils/sendEmail.js";
 import {
@@ -19,7 +19,11 @@ import { emitDomainChanged } from "../realtime/socket.js";
 import {
   parseProductExpiryDate,
 } from "../utils/productExpiry.js";
-import { getAvailableStock } from "../utils/productInventory.js";
+import {
+  getAvailableStock,
+  parseSizeStocksPayload,
+  syncTotalStockFromSizes,
+} from "../utils/productInventory.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -48,6 +52,17 @@ const parseOptionalNumber = (value) => {
 
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
+
+const buildSizeStockData = (value) => {
+  const sizeStocks = parseSizeStocksPayload(value);
+  const sizes = sizeStocks.map((entry) => entry.size);
+  const stock = sizeStocks.reduce(
+    (total, entry) => total + Number(entry.stock || 0),
+    0
+  );
+
+  return { sizeStocks, sizes, stock };
+};
 
 const PROMOTIONAL_EMAIL_CONCURRENCY = Math.max(
   1,
@@ -122,8 +137,8 @@ const notifyPromotionalEmailSubscribers = async ({
   };
 };
 
-let geminiTranslationUnavailable = false;
-let geminiTranslationWarningLogged = false;
+let azureTranslationUnavailable = false;
+let azureTranslationWarningLogged = false;
 let fallbackTranslationWarningLogged = false;
 const translationHttpsAgent = new https.Agent({ keepAlive: false });
 
@@ -159,13 +174,12 @@ const translateToKhmer = async (text = "") => {
     return "";
   }
 
-  if (isGeminiConfigured() && !geminiTranslationUnavailable) {
+  if (isAzureTranslatorConfigured() && !azureTranslationUnavailable) {
     try {
-      const translatedText = await translateTextWithGemini({
+      const translatedText = await translateTextWithAzure({
         text: trimmedText,
-        targetLanguageName: "Khmer (Cambodian), using Khmer script only",
-        systemInstruction:
-          "You are a precise ecommerce translation engine. Translate only the user-provided text into Khmer, the Cambodian language. Use Khmer Unicode script only, Unicode range U+1780-U+17FF. Never use Thai script, Unicode range U+0E00-U+0E7F, and never use Lao script. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Do not add explanations.",
+        targetLanguage: "km",
+        sourceLanguage: "auto",
       });
 
       if (translatedText && !containsThaiScript(translatedText)) {
@@ -173,15 +187,15 @@ const translateToKhmer = async (text = "") => {
       }
 
       if (containsThaiScript(translatedText)) {
-        throw new Error("Gemini returned Thai script instead of Khmer script");
+        throw new Error("Azure Translator returned Thai script instead of Khmer script");
       }
     } catch (error) {
-      if (!geminiTranslationWarningLogged) {
-        console.warn("Gemini product Khmer translation failed:", error.message);
-        geminiTranslationWarningLogged = true;
+      if (!azureTranslationWarningLogged) {
+        console.warn("Azure product Khmer translation failed:", error.message);
+        azureTranslationWarningLogged = true;
       }
       if (error.response?.status === 429) {
-        geminiTranslationUnavailable = true;
+        azureTranslationUnavailable = true;
       }
     }
   }
@@ -229,7 +243,20 @@ const applyAutoKhmerTranslation = async (productData, existingProduct = {}) => {
   };
 };
 
-const attachSalesMetrics = async (products) => {
+const parseSalesDateBoundary = (value, endOfDay = false) => {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    date.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  }
+
+  return date;
+};
+
+const attachSalesMetrics = async (products, options = {}) => {
   const productDocs = Array.isArray(products) ? products : [products];
   const productIds = productDocs.map((product) => product._id);
 
@@ -237,12 +264,23 @@ const attachSalesMetrics = async (products) => {
     return products;
   }
 
+  const orderMatch = {
+    paymentStatus: "Paid",
+    orderStatus: { $ne: "Cancelled" },
+    "orderItems.product": { $in: productIds },
+  };
+  const salesStartDate = parseSalesDateBoundary(options.salesStartDate);
+  const salesEndDate = parseSalesDateBoundary(options.salesEndDate, true);
+
+  if (salesStartDate || salesEndDate) {
+    orderMatch.createdAt = {};
+    if (salesStartDate) orderMatch.createdAt.$gte = salesStartDate;
+    if (salesEndDate) orderMatch.createdAt.$lte = salesEndDate;
+  }
+
   const salesTotals = await Order.aggregate([
     {
-      $match: {
-        orderStatus: { $ne: "Cancelled" },
-        "orderItems.product": { $in: productIds },
-      },
+      $match: orderMatch,
     },
     { $unwind: "$orderItems" },
     {
@@ -254,18 +292,31 @@ const attachSalesMetrics = async (products) => {
       $group: {
         _id: "$orderItems.product",
         sold: { $sum: "$orderItems.quantity" },
+        revenue: {
+          $sum: {
+            $multiply: ["$orderItems.quantity", "$orderItems.price"],
+          },
+        },
       },
     },
   ]);
 
-  const soldByProductId = new Map(
-    salesTotals.map((item) => [item._id.toString(), Number(item.sold || 0)])
+  const salesByProductId = new Map(
+    salesTotals.map((item) => [
+      item._id.toString(),
+      {
+        sold: Number(item.sold || 0),
+        revenue: Number(item.revenue || 0),
+      },
+    ])
   );
 
   const withMetrics = productDocs.map((product) => {
     const productData =
       typeof product.toObject === "function" ? product.toObject() : product;
-    const sold = soldByProductId.get(productData._id.toString()) || Number(productData.totalSold || 0);
+    const paidSales = salesByProductId.get(productData._id.toString());
+    const sold = paidSales?.sold || 0;
+    const paidRevenue = paidSales?.revenue || 0;
 
     return {
       ...productData,
@@ -273,6 +324,7 @@ const attachSalesMetrics = async (products) => {
       availableStock: getAvailableStock(productData),
       sold,
       totalSold: sold,
+      paidRevenue,
       isBestSeller: false,
     };
   });
@@ -285,6 +337,8 @@ const attachSalesMetrics = async (products) => {
     const categoryKey = normalizeProductCategory(product.category).toLowerCase();
     const currentBest = bestByCategory.get(categoryKey);
     const soldDelta = Number(product.sold || 0) - Number(currentBest?.sold || 0);
+    const revenueDelta =
+      Number(product.paidRevenue || 0) - Number(currentBest?.paidRevenue || 0);
     const ratingDelta = Number(product.rating || 0) - Number(currentBest?.rating || 0);
     const createdDelta =
       new Date(product.createdAt || 0).getTime() -
@@ -292,7 +346,9 @@ const attachSalesMetrics = async (products) => {
 
     const isBetterTieBreak =
       soldDelta === 0 &&
-      (ratingDelta > 0 || (ratingDelta === 0 && createdDelta > 0));
+      (revenueDelta > 0 ||
+        (revenueDelta === 0 &&
+          (ratingDelta > 0 || (ratingDelta === 0 && createdDelta > 0))));
 
     if (!currentBest || soldDelta > 0 || isBetterTieBreak) {
       bestByCategory.set(categoryKey, product);
@@ -389,7 +445,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
   const discountPrice = data.discountPrice?.trim()
     ? Number.parseFloat(data.discountPrice)
     : null;
-  const stock = data.stock?.trim() ? Number.parseInt(data.stock, 10) : 0;
+  const sizeStockData = buildSizeStockData(data.sizeStocks);
+  const stock = sizeStockData.sizeStocks.length > 0
+    ? sizeStockData.stock
+    : data.stock?.trim() ? Number.parseInt(data.stock, 10) : 0;
   const isNewArrival = parseBoolean(data.isNewArrival);
   const hasProductIssue = parseBoolean(data.hasProductIssue);
   const issueQuantity = data.issueQuantity?.trim()
@@ -450,6 +509,8 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     description,
     descriptionKm,
     stock,
+    sizes: sizeStockData.sizes,
+    sizeStocks: sizeStockData.sizeStocks,
     image,
     isNewArrival,
     hasProductIssue,
@@ -467,6 +528,7 @@ export const createProduct = async (req, res) => {
       category,
       description,
       stock,
+      sizeStocks,
       isNewArrival,
       hasProductIssue,
       issueQuantity,
@@ -489,13 +551,20 @@ export const createProduct = async (req, res) => {
       return res.status(400).json({ message: "Product image is required" });
     }
 
+    const sizeStockData = buildSizeStockData(sizeStocks);
+    const submittedStock = sizeStockData.sizeStocks.length > 0
+      ? sizeStockData.stock
+      : Math.max(0, Number.parseInt(stock, 10) || 0);
+
     const productData = await applyAutoKhmerTranslation({
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
       category: normalizedCategory,
       description,
-      stock,
+      stock: submittedStock,
+      sizes: sizeStockData.sizes,
+      sizeStocks: sizeStockData.sizeStocks,
       isNewArrival: parseBoolean(isNewArrival),
       hasProductIssue: parseBoolean(hasProductIssue),
       issueQuantity: parseBoolean(hasProductIssue)
@@ -506,6 +575,7 @@ export const createProduct = async (req, res) => {
     });
 
     const product = new Product(productData);
+    syncTotalStockFromSizes(product);
 
     syncLowStockAlertFlag(product);
     const saved = await product.save();
@@ -582,7 +652,10 @@ export const getProducts = async (req, res) => {
       .sort({ createdAt: -1, _id: -1 })
       .lean();
     products = products.map((p) => ({ ...p, expiryDate: p.expiryDate || null }));
-    const productsWithMetrics = await attachSalesMetrics(products);
+    const productsWithMetrics = await attachSalesMetrics(products, {
+      salesStartDate: isAdmin ? req.query.salesStartDate : null,
+      salesEndDate: isAdmin ? req.query.salesEndDate : null,
+    });
     res.json(
       isAdmin
         ? productsWithMetrics
@@ -962,7 +1035,10 @@ export const updateProduct = async (req, res) => {
     const requestedIssueQuantity = hasProductIssue
       ? Number.parseInt(req.body.issueQuantity, 10)
       : 0;
-    const submittedStock = Number.parseInt(req.body.stock, 10);
+    const sizeStockData = buildSizeStockData(req.body.sizeStocks);
+    const submittedStock = sizeStockData.sizeStocks.length > 0
+      ? sizeStockData.stock
+      : Number.parseInt(req.body.stock, 10);
 
     if (
       !Number.isInteger(requestedIssueQuantity) ||
@@ -993,6 +1069,8 @@ export const updateProduct = async (req, res) => {
         category: normalizedCategory,
         description: req.body.description,
         stock: submittedStock,
+        sizes: sizeStockData.sizes,
+        sizeStocks: sizeStockData.sizeStocks,
         isNewArrival: parseBoolean(req.body.isNewArrival),
         hasProductIssue,
         issueQuantity: requestedIssueQuantity,
@@ -1009,10 +1087,13 @@ export const updateProduct = async (req, res) => {
     product.description = translatedProductData.description;
     product.descriptionKm = translatedProductData.descriptionKm;
     product.stock = translatedProductData.stock;
+    product.sizes = translatedProductData.sizes || [];
+    product.sizeStocks = translatedProductData.sizeStocks || [];
     product.isNewArrival = translatedProductData.isNewArrival;
     product.hasProductIssue = translatedProductData.hasProductIssue;
     product.issueQuantity = translatedProductData.issueQuantity;
     product.expiryDate = translatedProductData.expiryDate;
+    syncTotalStockFromSizes(product);
 
     // 🔥 update image ONLY if new one uploaded
     if (req.file) {

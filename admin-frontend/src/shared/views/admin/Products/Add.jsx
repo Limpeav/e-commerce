@@ -11,6 +11,11 @@ import {
   productSupportsExpiry,
 } from "../../../utils/productExpiry";
 import {
+  buildDefaultSizeStocks,
+  getSizeStocksTotal,
+  isSizedProduct,
+} from "../../../utils/productOptions";
+import {
   ArrowLeft,
   Upload,
   Package,
@@ -35,6 +40,7 @@ const emptyProductForm = {
   stock: "",
   isNewArrival: false,
   expiryDate: "",
+  sizeStocks: [],
 };
 
 const AddProduct = () => {
@@ -61,6 +67,10 @@ const AddProduct = () => {
       setForm((currentForm) => ({
         ...currentForm,
         category: value,
+        sizeStocks: buildDefaultSizeStocks(value, currentForm.sizeStocks),
+        stock: buildDefaultSizeStocks(value, currentForm.sizeStocks).length > 0
+          ? String(getSizeStocksTotal(buildDefaultSizeStocks(value, currentForm.sizeStocks)))
+          : currentForm.stock,
         expiryDate: productSupportsExpiry(value)
           ? currentForm.expiryDate
           : "",
@@ -77,6 +87,22 @@ const AddProduct = () => {
     } else {
       setForm((currentForm) => ({ ...currentForm, [name]: value }));
     }
+  };
+
+  const handleSizeStockChange = (size, value) => {
+    if (value !== "" && !/^\d+$/.test(value)) return;
+
+    setForm((currentForm) => {
+      const nextSizeStocks = currentForm.sizeStocks.map((entry) =>
+        entry.size === size ? { ...entry, stock: value } : entry
+      );
+
+      return {
+        ...currentForm,
+        sizeStocks: nextSizeStocks,
+        stock: String(getSizeStocksTotal(nextSizeStocks)),
+      };
+    });
   };
 
   const handleImageChange = async (e) => {
@@ -357,9 +383,9 @@ const AddProduct = () => {
               </div>
 
               {/* Stock */}
-              <div>
+              <div className={isSizedProduct(form) ? "md:col-span-2" : ""}>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Stock Quantity *
+                    {isSizedProduct(form) ? "Total Stock Quantity" : "Stock Quantity *"}
                   </label>
                 <div className="relative">
                   <Boxes className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -369,11 +395,40 @@ const AddProduct = () => {
                     placeholder="0"
                     value={form.stock}
                     onChange={handleChange}
+                    readOnly={isSizedProduct(form)}
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                     required
                   />
                 </div>
               </div>
+
+              {isSizedProduct(form) && (
+                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-gray-900">Size Inventory</p>
+                    <p className="mt-1 text-xs font-medium text-gray-600">
+                      Enter how many units are available for each size.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {form.sizeStocks.map((entry) => (
+                      <label key={entry.size} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <span className="block text-xs font-bold text-gray-600">{entry.size}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={entry.stock}
+                          onChange={(event) => handleSizeStockChange(entry.size, event.target.value)}
+                          className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                          placeholder="0"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* New Arrival */}
               <div className="md:col-span-2">

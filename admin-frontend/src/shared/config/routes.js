@@ -2,6 +2,7 @@
 export const adminLazyComponents = {
   AdminLogin: () => import("../views/auth/pages/AdminLogin"),
   StaffLogin: () => import("../views/auth/pages/StaffLogin"),
+  StaffForgotPassword: () => import("../views/auth/pages/StaffForgotPassword"),
   AdminDashboard: () => import("../views/admin/Dashboard"),
   AdminProductsList: () => import("../views/admin/Products/List"),
   AdminProductsAdd: () => import("../views/admin/Products/Add"),
@@ -24,6 +25,7 @@ export const adminLazyComponents = {
   SellerDashboard: () => import("../views/admin/SellerDashboard"),
   SellerPaymentQueue: () => import("../views/admin/PaymentQueue"),
   DeliveryDashboard: () => import("../views/admin/DeliveryDashboard"),
+  StaffAccount: () => import("../views/admin/StaffAccount"),
 };
 
 export const adminRoutes = [
@@ -49,8 +51,10 @@ export const adminRoutes = [
   { path: "/seller/orders/:id", component: "AdminOrderDetails", allowedRoles: ["seller"] },
   { path: "/seller/payment-queue", component: "SellerPaymentQueue", allowedRoles: ["seller"] },
   { path: "/seller/cash-report", component: "AdminCashReport", allowedRoles: ["seller"] },
+  { path: "/seller/account", component: "StaffAccount", allowedRoles: ["seller"] },
   { path: "/delivery/orders", component: "DeliveryDashboard", allowedRoles: ["delivery"] },
   { path: "/delivery/orders/:id", component: "AdminOrderDetails", allowedRoles: ["delivery"] },
+  { path: "/delivery/account", component: "StaffAccount", allowedRoles: ["delivery"] },
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/staff", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/reports", component: "AdminReports", allowedRoles: ["admin"] },

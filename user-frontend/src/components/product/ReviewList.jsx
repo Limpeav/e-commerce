@@ -36,10 +36,22 @@ const ReviewList = ({ reviews }) => {
                       </div>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-0.5 sm:gap-1 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-100/50"}`}>
+                  <div
+                    className={`flex items-center gap-0.5 sm:gap-1 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${isDark ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-100/50"}`}
+                    aria-label={`${rating} out of 5 stars`}
+                  >
                     <span className="mr-1 text-xs font-black text-amber-600">{rating}</span>
-                    {Array.from({ length: rating }).map((_, index) => (
-                      <Star key={index} className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-500" />
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                          star <= rating
+                            ? "fill-amber-400 text-amber-500"
+                            : isDark
+                              ? "fill-transparent text-slate-600"
+                              : "fill-transparent text-amber-200"
+                        }`}
+                      />
                     ))}
                   </div>
                 </div>

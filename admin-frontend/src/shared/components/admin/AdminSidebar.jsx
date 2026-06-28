@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
-import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
+import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
 import { AuthController, OrderController } from '../../controllers'
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   ReceiptText,
   WalletCards,
   Truck,
+  User,
   X,
 } from 'lucide-react'
 import { subscribeRealtimeDomains } from '../../services/realtime'
@@ -33,6 +34,7 @@ const AdminSidebar = () => {
   const ordersPath = getPortalOrdersPath(adminUser)
   const cashReportPath = getPortalCashReportPath(adminUser)
   const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
+  const accountPath = getPortalAccountPath(adminUser)
   const isOrderDetail = /^\/(?:admin|seller|delivery)\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
@@ -132,6 +134,12 @@ const AdminSidebar = () => {
       name: 'Cash Report',
       icon: ReceiptText,
       hidden: adminUser?.role === 'delivery',
+    },
+    {
+      path: accountPath,
+      name: 'My Info',
+      icon: User,
+      hidden: adminUser?.role === 'admin',
     },
     {
       path: '/admin/staff',
@@ -283,7 +291,7 @@ const AdminSidebar = () => {
 
       {isDelivery && !isOrderDetail && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
+          <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
             <Link
               to={ordersPath}
               className={`relative flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
@@ -299,6 +307,17 @@ const AdminSidebar = () => {
                   {orderCount > 99 ? '99+' : orderCount}
                 </span>
               )}
+            </Link>
+            <Link
+              to={accountPath}
+              className={`flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                location.pathname === accountPath
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
+            >
+              <User className="h-5 w-5" />
+              Account
             </Link>
             <button
               type="button"

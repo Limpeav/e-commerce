@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   ChevronDown,
   Eye,
@@ -9,6 +10,7 @@ import {
   Package,
   Phone,
   Search,
+  User,
 } from "lucide-react";
 import OrdersList from "../Orders/List";
 
@@ -67,19 +69,28 @@ const DeliveryDashboardView = ({ dashboard }) => {
               Today&apos;s Runs
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={handleDeliveryLogout}
-            disabled={Boolean(deliveryBusyLabel)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-70"
-          >
-            {deliveryBusyLabel === "Logging out..." ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            {deliveryBusyLabel === "Logging out..." ? "Logging out..." : "Logout"}
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/delivery/account"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+            >
+              <User className="h-4 w-4" />
+              Account
+            </Link>
+            <button
+              type="button"
+              onClick={handleDeliveryLogout}
+              disabled={Boolean(deliveryBusyLabel)}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-70"
+            >
+              {deliveryBusyLabel === "Logging out..." ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              {deliveryBusyLabel === "Logging out..." ? "Logging out..." : "Logout"}
+            </button>
+          </div>
         </header>
 
         <section className="mb-4 grid grid-cols-2 gap-2">

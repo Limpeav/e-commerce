@@ -34,6 +34,7 @@ import {
   exportDashboardSummary,
   formatMoney as money,
   formatNumber as number,
+  formatRiel as riel,
 } from "./dashboardFormatters";
 import {
   EmptyState,
@@ -444,6 +445,7 @@ const DashboardPage = ({
           <MetricCard
             title="Net revenue"
             value={money(analytics.revenue)}
+            secondaryValue={riel(analytics.revenue)}
             change={period === "all" ? null : analytics.changes.revenue}
             note={period === "all" ? "paid orders" : "vs previous period"}
             icon={DollarSign}
@@ -489,6 +491,7 @@ const DashboardPage = ({
                   Period total
                 </p>
                 <p className="text-lg font-black text-[#4f6954]">{money(analytics.revenue)}</p>
+                <p className="text-xs font-extrabold text-[#66806b]">{riel(analytics.revenue)}</p>
               </div>
             </div>
             <RevenueChart data={analytics.dailyRevenue} />

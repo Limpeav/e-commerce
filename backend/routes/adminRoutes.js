@@ -11,8 +11,12 @@ import {
     registerAdmin,
     loginAdmin,
     verifyAdminLogin,
+    forgotPortalPassword,
     getAdminProfile,
     logoutPortalSession,
+    resetPortalPassword,
+    updatePortalProfile,
+    verifyPortalResetCode,
 } from "../controllers/adminAuthController.js";
 import {
     createStaffLogin,
@@ -42,13 +46,23 @@ const adminMfaLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
+const adminResetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 8,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
 router.post("/login/verify", adminMfaLimiter, verifyAdminLogin);
+router.post("/forgot-password", adminResetLimiter, forgotPortalPassword);
+router.post("/forgot-password/verify", adminResetLimiter, verifyPortalResetCode);
+router.post("/reset-password", adminResetLimiter, resetPortalPassword);
 router.post("/logout", protect, portalAccess, logoutPortalSession);
 router.get("/me", protect, portalAccess, getAdminProfile);
+router.put("/me", protect, portalAccess, updatePortalProfile);
 
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);

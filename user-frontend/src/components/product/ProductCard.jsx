@@ -33,6 +33,7 @@ const ProductCard = ({
   const { language, t } = useLanguage();
   const localizedProduct = getLocalizedProductText(product, language);
   const navigate = useNavigate();
+  const roundedRating = Math.min(5, Math.max(0, Math.round(Number(product.rating) || 0)));
 
   const openProductDetails = () => {
     navigate(`/products/${product._id}`);
@@ -157,8 +158,22 @@ const ProductCard = ({
           <span className="max-w-[6.5rem] truncate text-[9px] font-bold uppercase tracking-wider text-primary sm:max-w-none sm:text-[10px] sm:tracking-[0.2em]">
             {product.category ? translateCategory(product.category, t) : t('product.essentials')}
           </span>
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          <div
+            className={`flex items-center gap-0.5 rounded-lg px-2 py-1 ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}
+            aria-label={`${typeof product.rating === 'number' ? product.rating.toFixed(1) : '0.0'} out of 5 stars`}
+          >
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${
+                  star <= roundedRating
+                    ? 'fill-amber-400 text-amber-400'
+                    : isDark
+                      ? 'fill-transparent text-slate-600'
+                      : 'fill-transparent text-stone-300'
+                }`}
+              />
+            ))}
             <span className={`text-[10px] font-bold ${isDark ? 'text-slate-300' : 'text-stone-600'}`}>
               {typeof product.rating === 'number' ? product.rating.toFixed(1) : '0.0'}
             </span>

@@ -18,6 +18,28 @@ const reviewSchema = mongoose.Schema(
   }
 );
 
+const sizeStockSchema = mongoose.Schema(
+  {
+    size: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+    },
+    stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    reservedStock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false }
+);
+
 const productSchema = mongoose.Schema(
   {
     title: {
@@ -64,6 +86,10 @@ const productSchema = mongoose.Schema(
     },
     sizes: {
       type: [String],
+      default: [],
+    },
+    sizeStocks: {
+      type: [sizeStockSchema],
       default: [],
     },
     totalSold: {
@@ -118,6 +144,7 @@ productSchema.index({ category: 1, stock: 1, createdAt: -1 });
 productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
 productSchema.index({ hasProductIssue: 1, createdAt: -1 });
 productSchema.index({ totalSold: -1, rating: -1 });
+productSchema.index({ "sizeStocks.size": 1 });
 
 const Product = mongoose.model("Product", productSchema);
 

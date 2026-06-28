@@ -37,6 +37,17 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     category: normalizeProductCategory(form.category),
     description: form.description,
     stock: form.stock,
+    sizeStocks: JSON.stringify(
+      Array.isArray(form.sizeStocks)
+        ? form.sizeStocks
+            .filter((entry) => String(entry.size || "").trim())
+            .map((entry) => ({
+              size: String(entry.size || "").trim().toUpperCase(),
+              stock: Math.max(0, Number.parseInt(entry.stock, 10) || 0),
+              reservedStock: Math.max(0, Number.parseInt(entry.reservedStock, 10) || 0),
+            }))
+        : []
+    ),
     isNewArrival: Boolean(form.isNewArrival),
     hasProductIssue: Boolean(form.hasProductIssue),
     issueQuantity: form.hasProductIssue ? form.issueQuantity || 0 : 0,

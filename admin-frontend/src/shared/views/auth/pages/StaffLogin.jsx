@@ -29,6 +29,7 @@ const getLoginPortal = (pathname) => {
       description: "Sign in with your delivery account",
       error: "This login is only for delivery accounts.",
       footer: "Delivery Access",
+      forgotPath: "/delivery/forgot-password",
     };
   }
 
@@ -39,6 +40,7 @@ const getLoginPortal = (pathname) => {
       description: "Sign in with your seller account",
       error: "This login is only for seller accounts.",
       footer: "Seller Access",
+      forgotPath: "/seller/forgot-password",
     };
   }
 
@@ -48,6 +50,7 @@ const getLoginPortal = (pathname) => {
     description: "Sign in with your seller or delivery account",
     error: "This login is only for seller and delivery accounts.",
     footer: "Seller And Delivery Access",
+    forgotPath: "/seller/forgot-password",
   };
 };
 
@@ -65,7 +68,7 @@ const StaffLogin = () => {
   const portal = useMemo(() => getLoginPortal(location.pathname), [location.pathname]);
 
   useEffect(() => {
-    setIsVisible(true);
+    const animationFrame = requestAnimationFrame(() => setIsVisible(true));
 
     const validateExistingStaffSession = async () => {
       if (!hasStoredAdminSession()) {
@@ -88,6 +91,8 @@ const StaffLogin = () => {
     };
 
     validateExistingStaffSession();
+
+    return () => cancelAnimationFrame(animationFrame);
   }, [navigate, portal.roles]);
 
   const submitHandler = async (event) => {
@@ -198,6 +203,15 @@ const StaffLogin = () => {
                   className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate(portal.forgotPath)}
+                  className="text-sm font-semibold text-[var(--color-primary-dark)] transition-colors hover:text-[var(--color-primary)] hover:underline"
+                >
+                  Forgot password?
                 </button>
               </div>
             </div>}

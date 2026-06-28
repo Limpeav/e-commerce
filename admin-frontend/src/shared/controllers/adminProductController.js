@@ -1,9 +1,9 @@
 import { adminService } from "../services/adminService";
 
 export class AdminProductController {
-  static async getProducts() {
+  static async getProducts(params) {
     try {
-      const response = await adminService.getProducts();
+      const response = await adminService.getProducts(params);
       return { success: true, data: response.data || [] };
     } catch (error) {
       return {

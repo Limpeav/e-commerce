@@ -27,6 +27,15 @@ export const isPromotionalProduct = (product) =>
 export const getProductSoldCount = (product) =>
   Number(product?.sold || product?.totalSold || 0);
 
+export const getProductPaidRevenue = (product) => {
+  const explicitRevenue = Number(product?.paidRevenue ?? product?.revenue);
+  if (Number.isFinite(explicitRevenue) && explicitRevenue > 0) {
+    return explicitRevenue;
+  }
+
+  return getProductSoldCount(product) * Number(product?.discountPrice || product?.price || 0);
+};
+
 export const getAvailableStock = (product) => {
   const providedAvailableStock = Number(product?.availableStock);
   if (Number.isFinite(providedAvailableStock)) {
@@ -49,6 +58,9 @@ const compareBestSellerRank = (candidate, currentBest) => {
   const soldDelta = getProductSoldCount(candidate) - getProductSoldCount(currentBest);
   if (soldDelta !== 0) return soldDelta;
 
+  const revenueDelta = getProductPaidRevenue(candidate) - getProductPaidRevenue(currentBest);
+  if (revenueDelta !== 0) return revenueDelta;
+
   const ratingDelta = Number(candidate?.rating || 0) - Number(currentBest?.rating || 0);
   if (ratingDelta !== 0) return ratingDelta;
 
@@ -69,9 +81,7 @@ export const getBestSellerProductsByCategory = (products = []) => {
     }
   });
 
-  return [...bestByCategory.values()].sort(
-    (a, b) => getProductSoldCount(b) - getProductSoldCount(a)
-  );
+  return [...bestByCategory.values()].sort((a, b) => compareBestSellerRank(b, a));
 };
 
 export const isLowStockProduct = (product) =>

@@ -26,7 +26,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { supportedLanguages } from "../../i18n/translations";
-import { useToast } from "../../context/ToastContext";
+import { useToast } from "../../context/useToast";
 import {
   CUSTOMER_ORDER_CREATED_EVENT,
   getMyOrders,

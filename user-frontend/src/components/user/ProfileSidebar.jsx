@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../context/useToast';
 
 const ProfileSidebar = ({ activeTab = 'edit', onTabChange = () => {}, variant = 'desktop' }) => {
     const { logout } = useAuth();

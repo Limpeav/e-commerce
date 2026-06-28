@@ -180,6 +180,18 @@ export const getPortalPaymentQueuePath = (admin = getStoredAdminUser()) => {
   return "/admin/orders";
 };
 
+export const getPortalAccountPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "delivery") {
+    return "/delivery/account";
+  }
+
+  if (admin?.role === "seller") {
+    return "/seller/account";
+  }
+
+  return "/admin";
+};
+
 export const getStoredAdmin = () => {
   return getStoredAdminUser();
 };

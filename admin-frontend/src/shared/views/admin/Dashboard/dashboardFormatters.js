@@ -1,3 +1,5 @@
+import { config } from "../../../config";
+
 export const DASHBOARD_PERIODS = [
   { value: "7", label: "Last 7 days" },
   { value: "30", label: "Last 30 days" },
@@ -21,6 +23,12 @@ export const formatMoney = (value, compact = false) =>
     maximumFractionDigits: compact ? 1 : 2,
   }).format(Number(value) || 0);
 
+export const formatRiel = (value, compact = false) =>
+  `៛${new Intl.NumberFormat("en-US", {
+    notation: compact ? "compact" : "standard",
+    maximumFractionDigits: 0,
+  }).format((Number(value) || 0) * config.USD_TO_KHR_RATE)} KHR`;
+
 export const formatNumber = (value) =>
   new Intl.NumberFormat("en-US").format(Number(value) || 0);
 
@@ -29,6 +37,7 @@ export const exportDashboardSummary = ({ analytics, period }) => {
     ["Metric", "Value"],
     ["Period", DASHBOARD_PERIODS.find((item) => item.value === period)?.label],
     ["Revenue", analytics.revenue.toFixed(2)],
+    ["Revenue KHR", Math.round(analytics.revenue * config.USD_TO_KHR_RATE)],
     ["Orders", analytics.currentOrders.length],
     ["Average order value", analytics.aov.toFixed(2)],
     ["Units sold", analytics.units],

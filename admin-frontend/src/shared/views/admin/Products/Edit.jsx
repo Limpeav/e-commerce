@@ -13,6 +13,12 @@ import {
   productSupportsExpiry,
 } from "../../../utils/productExpiry";
 import {
+  buildDefaultSizeStocks,
+  getSizeStocksTotal,
+  isSizedProduct,
+  normalizeSizeStocksForForm,
+} from "../../../utils/productOptions";
+import {
   ArrowLeft,
   Upload,
   Package,
@@ -58,6 +64,7 @@ const EditProduct = () => {
     issueQuantity: "",
     expiryDate: "",
     currentImage: "",
+    sizeStocks: [],
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -110,6 +117,7 @@ const EditProduct = () => {
           category: normalizeProductCategory(data.category),
           description: data.description || "",
           stock: data.stock || "",
+          sizeStocks: normalizeSizeStocksForForm(data.sizeStocks, data.category),
           isNewArrival: parseBooleanValue(data.isNewArrival),
           hasProductIssue,
           issueQuantity: data.issueQuantity || (hasProductIssue ? "1" : ""),
@@ -145,6 +153,10 @@ const EditProduct = () => {
       setForm((currentForm) => ({
         ...currentForm,
         category: value,
+        sizeStocks: buildDefaultSizeStocks(value, currentForm.sizeStocks),
+        stock: buildDefaultSizeStocks(value, currentForm.sizeStocks).length > 0
+          ? String(getSizeStocksTotal(buildDefaultSizeStocks(value, currentForm.sizeStocks)))
+          : currentForm.stock,
         expiryDate: productSupportsExpiry(value)
           ? currentForm.expiryDate
           : "",
@@ -166,6 +178,24 @@ const EditProduct = () => {
     } else {
       setForm((currentForm) => ({ ...currentForm, [name]: value }));
     }
+  };
+
+  const handleSizeStockChange = (size, value) => {
+    if (value !== "" && !/^\d+$/.test(value)) return;
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => {
+      const nextSizeStocks = currentForm.sizeStocks.map((entry) =>
+        entry.size === size ? { ...entry, stock: value } : entry
+      );
+
+      return {
+        ...currentForm,
+        sizeStocks: nextSizeStocks,
+        stock: String(getSizeStocksTotal(nextSizeStocks)),
+      };
+    });
   };
 
   const handleImageChange = async (e) => {
@@ -267,6 +297,11 @@ const EditProduct = () => {
         ),
         issueQuantity:
           updatedProduct.issueQuantity ?? currentForm.issueQuantity,
+        stock: updatedProduct.stock ?? currentForm.stock,
+        sizeStocks: normalizeSizeStocksForForm(
+          updatedProduct.sizeStocks ?? currentForm.sizeStocks,
+          updatedProduct.category ?? currentForm.category
+        ),
       }));
       setImagePreview(updatedImage || imagePreview);
       setSuccessMessage(
@@ -518,11 +553,45 @@ const EditProduct = () => {
                     placeholder="Enter available stock"
                     value={form.stock}
                     onChange={handleChange}
+                    readOnly={isSizedProduct(form)}
                     required
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
+
+              {isSizedProduct(form) && (
+                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-gray-900">Size Inventory</p>
+                    <p className="mt-1 text-xs font-medium text-gray-600">
+                      Update the available quantity for each size.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {form.sizeStocks.map((entry) => (
+                      <label key={entry.size} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <span className="block text-xs font-bold text-gray-600">{entry.size}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={entry.stock}
+                          onChange={(event) => handleSizeStockChange(entry.size, event.target.value)}
+                          className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                          placeholder="0"
+                        />
+                        {Number(entry.reservedStock || 0) > 0 && (
+                          <span className="mt-1 block text-[11px] font-semibold text-blue-600">
+                            {entry.reservedStock} reserved
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Inventory / Product Issues */}
               <div className="md:col-span-2">

@@ -44,6 +44,12 @@ export const isClothingProduct = (product = {}) =>
 export const getProductSizes = (product = {}) => {
   if (!isClothingProduct(product)) return [];
 
+  const sizeStockSizes = Array.isArray(product.sizeStocks)
+    ? product.sizeStocks.map((entry) => String(entry.size || "").trim()).filter(Boolean)
+    : [];
+
+  if (sizeStockSizes.length > 0) return sizeStockSizes;
+
   const customSizes = Array.isArray(product.sizes)
     ? product.sizes.map((size) => String(size).trim()).filter(Boolean)
     : [];
@@ -51,6 +57,22 @@ export const getProductSizes = (product = {}) => {
   if (customSizes.length > 0) return customSizes;
 
   return isShoeProduct(product) ? BABY_SHOE_SIZES : BABY_CLOTHING_SIZES;
+};
+
+export const getAvailableStockForSize = (product = {}, size = "") => {
+  const normalizedSize = String(size || "").trim().toUpperCase();
+  const sizeStock = Array.isArray(product.sizeStocks)
+    ? product.sizeStocks.find(
+        (entry) => String(entry.size || "").trim().toUpperCase() === normalizedSize
+      )
+    : null;
+
+  if (!sizeStock) return Number(product.stock || 0);
+
+  return Math.max(
+    0,
+    Number(sizeStock.stock || 0) - Number(sizeStock.reservedStock || 0)
+  );
 };
 
 export const getCartItemKey = (item = {}) => {

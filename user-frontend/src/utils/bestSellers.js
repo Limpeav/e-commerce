@@ -1,11 +1,23 @@
 const getSoldCount = (product) => Number(product?.sold || product?.totalSold || 0);
 
+const getPaidRevenue = (product) => {
+  const explicitRevenue = Number(product?.paidRevenue ?? product?.revenue);
+  if (Number.isFinite(explicitRevenue) && explicitRevenue > 0) {
+    return explicitRevenue;
+  }
+
+  return getSoldCount(product) * Number(product?.discountPrice || product?.price || 0);
+};
+
 const getCategoryKey = (product) =>
   String(product?.category || "uncategorized").trim().toLowerCase();
 
 const compareBestSellerRank = (candidate, currentBest) => {
   const soldDelta = getSoldCount(candidate) - getSoldCount(currentBest);
   if (soldDelta !== 0) return soldDelta;
+
+  const revenueDelta = getPaidRevenue(candidate) - getPaidRevenue(currentBest);
+  if (revenueDelta !== 0) return revenueDelta;
 
   const ratingDelta = Number(candidate?.rating || 0) - Number(currentBest?.rating || 0);
   if (ratingDelta !== 0) return ratingDelta;
@@ -28,9 +40,6 @@ export const getBestSellersByCategory = (products = []) => {
   });
 
   return [...bestByCategory.values()].sort((a, b) => {
-    const soldDelta = getSoldCount(b) - getSoldCount(a);
-    if (soldDelta !== 0) return soldDelta;
-
-    return Number(b?.rating || 0) - Number(a?.rating || 0);
+    return compareBestSellerRank(b, a);
   });
 };

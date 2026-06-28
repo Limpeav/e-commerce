@@ -18,8 +18,10 @@ const publicPortalRoutes = [
   { path: "/admin/login", component: "AdminLogin" },
   { path: "/seller", component: "StaffLogin" },
   { path: "/seller/login", component: "StaffLogin" },
+  { path: "/seller/forgot-password", component: "StaffForgotPassword" },
   { path: "/delivery", component: "StaffLogin" },
   { path: "/delivery/login", component: "StaffLogin" },
+  { path: "/delivery/forgot-password", component: "StaffForgotPassword" },
 ];
 
 const publicPortalPaths = new Set(publicPortalRoutes.map((route) => route.path));

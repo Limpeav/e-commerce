@@ -1,17 +1,17 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { CheckCircle2, Info, AlertCircle, X } from "lucide-react";
-
-const ToastContext = createContext();
+import { ToastContext } from "./toast-context";
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((title, message, type = "info", options = {}) => {
     const id = Date.now();
+    const duration = Number(options.duration ?? 3000);
     setToasts((prev) => [...prev, { id, title, message, type, onClick: options.onClick }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, duration);
   }, []);
 
   const dismissToast = useCallback((id) => {
@@ -99,13 +99,3 @@ export const ToastProvider = ({ children }) => {
     </ToastContext.Provider>
   );
 };
-
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-  return context;
-};
-
-export default ToastContext;

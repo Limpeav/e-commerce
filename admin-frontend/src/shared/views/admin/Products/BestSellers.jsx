@@ -1,12 +1,24 @@
 import { TrendingUp } from "lucide-react";
 import {
   getBestSellerProductsByCategory,
+  getProductPaidRevenue,
   getProductSoldCount,
 } from "../../../utils/adminProducts";
 import ProductSubsetPage from "./ProductSubsetPage";
 
 const sortBySales = (products) =>
-  [...products].sort((a, b) => getProductSoldCount(b) - getProductSoldCount(a));
+  [...products].sort((a, b) => {
+    const soldDelta = getProductSoldCount(b) - getProductSoldCount(a);
+    if (soldDelta !== 0) return soldDelta;
+
+    const revenueDelta = getProductPaidRevenue(b) - getProductPaidRevenue(a);
+    if (revenueDelta !== 0) return revenueDelta;
+
+    const ratingDelta = Number(b?.rating || 0) - Number(a?.rating || 0);
+    if (ratingDelta !== 0) return ratingDelta;
+
+    return new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0);
+  });
 
 const BestSellerProducts = () => (
   <ProductSubsetPage

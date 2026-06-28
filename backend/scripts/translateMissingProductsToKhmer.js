@@ -4,9 +4,9 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import {
   containsThaiScript,
-  isGeminiConfigured,
-  translateTextWithGemini,
-} from "../utils/geminiTranslation.js";
+  isAzureTranslatorConfigured,
+  translateTextWithAzure,
+} from "../utils/azureTranslation.js";
 
 dotenv.config();
 
@@ -43,16 +43,6 @@ const sleep = (milliseconds) =>
   new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
   });
-
-const parseJsonResponse = (text = "") => {
-  const cleanedText = text
-    .trim()
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/i, "")
-    .trim();
-
-  return JSON.parse(cleanedText);
-};
 
 const translateTextWithGoogle = async (text = "") => {
   const trimmedText = String(text || "").trim();
@@ -94,21 +84,22 @@ const translateProductTextToKhmer = async (product, { googleOnly = false } = {})
     return translateProductTextWithGoogle(product);
   }
 
-  const responseText = await translateTextWithGemini({
-    text: JSON.stringify({
-      title: product.title || "",
-      description: product.description || "",
+  const translatedProduct = {
+    titleKm: await translateTextWithAzure({
+      text: product.title || "",
+      targetLanguage: "km",
+      sourceLanguage: "auto",
     }),
-    targetLanguageName: "Khmer (Cambodian), using Khmer script only",
-    systemInstruction:
-      "You are a precise ecommerce translation engine. Translate the JSON values into Khmer, the Cambodian language. Use Khmer Unicode script only, Unicode range U+1780-U+17FF. Never use Thai script, Unicode range U+0E00-U+0E7F, and never use Lao script. Preserve product names, prices, measurements, brand names, URLs, emojis, and formatting. Return only valid JSON with keys titleKm and descriptionKm. Do not add explanations.",
-  });
-
-  const translatedProduct = parseJsonResponse(responseText);
+    descriptionKm: await translateTextWithAzure({
+      text: product.description || "",
+      targetLanguage: "km",
+      sourceLanguage: "auto",
+    }),
+  };
   const translatedText = `${translatedProduct.titleKm || ""}\n${translatedProduct.descriptionKm || ""}`;
 
   if (containsThaiScript(translatedText)) {
-    const error = new Error("Gemini returned Thai script instead of Khmer script");
+    const error = new Error("Azure Translator returned Thai script instead of Khmer script");
     error.retryableTranslation = true;
     throw error;
   }
@@ -131,7 +122,7 @@ const translateProductTextWithRetry = async (product, options = {}, maxRetries =
       }
 
       console.warn(
-        `Gemini temporarily unavailable for ${product._id}. Retrying in ${
+        `Azure Translator temporarily unavailable for ${product._id}. Retrying in ${
           retryDelay / 1000
         }s (${attempt}/${maxRetries - 1})...`
       );
@@ -147,8 +138,8 @@ const run = async () => {
     throw new Error("MONGO_URI is not configured");
   }
 
-  if (!isGeminiConfigured()) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  if (!shouldUseGoogleOnly() && !isAzureTranslatorConfigured()) {
+    throw new Error("AZURE_TRANSLATOR_KEY is not configured");
   }
 
   await mongoose.connect(process.env.MONGO_URI);
@@ -200,7 +191,7 @@ const run = async () => {
       thaiOnly
         ? "with Thai-script Khmer fields"
         : forceTranslate
-        ? "to translate with Gemini"
+        ? "to translate with Azure Translator"
         : "with missing Khmer text"
     }.`
   );
