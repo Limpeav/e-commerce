@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import "../config/env.js";
 import axios from "axios";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
@@ -7,8 +7,6 @@ import {
   isAzureTranslatorConfigured,
   translateTextWithAzure,
 } from "../utils/azureTranslation.js";
-
-dotenv.config();
 
 const parseLimit = () => {
   const limitArgument = process.argv.find((argument) => argument.startsWith("--limit="));

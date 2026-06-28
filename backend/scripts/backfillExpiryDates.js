@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
-import dotenv from "dotenv";
-
-dotenv.config();
+import "../config/env.js";
 
 const CATEGORIES = ["Milk", "Bath & Skin"];
 

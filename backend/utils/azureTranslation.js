@@ -19,7 +19,24 @@ const normalizeAzureLanguageCode = (language = "") => {
 
 export const containsThaiScript = (text = "") => THAI_SCRIPT_PATTERN.test(String(text || ""));
 
-export const isAzureTranslatorConfigured = () => Boolean(process.env.AZURE_TRANSLATOR_KEY);
+export const isAzureTranslatorConfigured = () =>
+  Boolean(String(process.env.AZURE_TRANSLATOR_KEY || "").trim());
+
+const normalizeAzureEndpoint = () => {
+  const configuredEndpoint = String(process.env.AZURE_TRANSLATOR_ENDPOINT || "").trim();
+  const configuredRegion = String(process.env.AZURE_TRANSLATOR_REGION || "").trim();
+  const endpoint = configuredEndpoint || (
+    /^https?:\/\//i.test(configuredRegion) ? configuredRegion : DEFAULT_AZURE_TRANSLATOR_ENDPOINT
+  );
+
+  return endpoint.replace(/\/+$/, "");
+};
+
+const getAzureTranslatorRegion = () => {
+  const configuredRegion = String(process.env.AZURE_TRANSLATOR_REGION || "").trim();
+
+  return /^https?:\/\//i.test(configuredRegion) ? "" : configuredRegion;
+};
 
 export const translateTextWithAzure = async ({
   text,
@@ -36,9 +53,8 @@ export const translateTextWithAzure = async ({
     throw new Error("Azure Translator key is not configured");
   }
 
-  const endpoint = String(
-    process.env.AZURE_TRANSLATOR_ENDPOINT || DEFAULT_AZURE_TRANSLATOR_ENDPOINT
-  ).replace(/\/+$/, "");
+  const endpoint = normalizeAzureEndpoint();
+  const region = getAzureTranslatorRegion();
   const normalizedSourceLanguage = normalizeAzureLanguageCode(sourceLanguage);
   const normalizedTargetLanguage = normalizeAzureLanguageCode(targetLanguage);
   const params = {
@@ -51,12 +67,12 @@ export const translateTextWithAzure = async ({
   }
 
   const headers = {
-    "Ocp-Apim-Subscription-Key": process.env.AZURE_TRANSLATOR_KEY,
+    "Ocp-Apim-Subscription-Key": String(process.env.AZURE_TRANSLATOR_KEY || "").trim(),
     "Content-Type": "application/json; charset=UTF-8",
   };
 
-  if (process.env.AZURE_TRANSLATOR_REGION) {
-    headers["Ocp-Apim-Subscription-Region"] = process.env.AZURE_TRANSLATOR_REGION;
+  if (region) {
+    headers["Ocp-Apim-Subscription-Region"] = region;
   }
 
   const response = await axios.post(

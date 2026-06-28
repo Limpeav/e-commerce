@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
+import "./config/env.js";
 import mongoose from "mongoose";
 import User from "./models/userModel.js";
 import { validatePortalPassword } from "./utils/authSecurity.js";
-
-dotenv.config();
 
 const ADMIN_EMAIL = "thesisplus2026@gmail.com";
 

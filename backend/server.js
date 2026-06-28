@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "./config/env.js";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -30,7 +30,6 @@ import {
   stopBakongReconciliation,
 } from "./services/bakongReconciliationService.js";
 
-dotenv.config();
 assertSecurityConfig();
 
 const { errors: bakongConfigErrors } = assertBakongConfig();

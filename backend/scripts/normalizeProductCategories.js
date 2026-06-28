@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
+import "../config/env.js";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import { normalizeProductCategory } from "../utils/productCategories.js";
-
-dotenv.config();
 
 const run = async () => {
   if (!process.env.MONGO_URI) {

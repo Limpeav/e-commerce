@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "admin:bootstrap": "node createAdmin.js",
     "normalize:categories": "node scripts/normalizeProductCategories.js",
-    "backfill:expiry": "node scripts/backfillExpiryDates.js"
+    "backfill:expiry": "node scripts/backfillExpiryDates.js",
+    "translate:khmer": "node scripts/translateMissingProductsToKhmer.js"
   },
   "keywords": [],
   "author": "",
