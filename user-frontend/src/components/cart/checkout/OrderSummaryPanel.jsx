@@ -2,6 +2,7 @@ import { Loader, Lock, Package } from "lucide-react";
 import { getEffectiveCartProductPrice } from "../../../utils/checkout";
 import { useLanguage } from "../../../context/useLanguage";
 import { getLocalizedProductText } from "../../../utils/productLocalization";
+import { getProductImageForColor } from "../../../utils/productOptions";
 
 const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }) => {
   const { language, t } = useLanguage();
@@ -22,12 +23,12 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
 
           return (
           <div
-            key={`${item.product._id}:${item.size || "standard"}`}
+            key={`${item.product._id}:${item.size || "standard"}:${item.color || "default"}`}
             className={`flex items-center gap-4 p-3 rounded-2xl border group ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}
           >
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 p-1.5 border ${isDark ? "bg-slate-900 border-slate-700" : "bg-white border-stone-100"}`}>
               <img
-                src={item.product.image}
+                src={getProductImageForColor(item.product, item.color)}
                 alt={localizedProduct.title}
                 loading="lazy"
                 decoding="async"
@@ -45,6 +46,11 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
                 {item.size && (
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>
                     Size: {item.size}
+                  </span>
+                )}
+                {item.color && (
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-text-muted"}`}>
+                    Color: {item.color}
                   </span>
                 )}
               </div>

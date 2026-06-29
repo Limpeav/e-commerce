@@ -17,7 +17,7 @@ const NewArrivalProducts = () => (
     accent="purple"
     badge="New arrivals"
     countLabel="New arrivals"
-    description="Products manually marked as new arrivals by admin."
+    description="Products added within the last 30 days."
     filterProduct={isNewArrivalProduct}
     icon={Sparkles}
     loadingMessage="Loading new arrival products..."

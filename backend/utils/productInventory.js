@@ -1,22 +1,27 @@
-import { normalizeSelectedSize } from "./productOptions.js";
+import {
+  normalizeSelectedColor,
+  normalizeSelectedSize,
+} from "./productOptions.js";
 
 export const normalizeSizeStocks = (sizeStocks = []) => {
-  const bySize = new Map();
+  const byVariant = new Map();
 
   if (!Array.isArray(sizeStocks)) return [];
 
   sizeStocks.forEach((entry) => {
     const size = normalizeSelectedSize(entry?.size);
+    const color = normalizeSelectedColor(entry?.color);
     if (!size) return;
 
-    bySize.set(size, {
+    byVariant.set(`${size}::${color.toLowerCase()}`, {
       size,
+      color,
       stock: Math.max(0, Number.parseInt(entry?.stock, 10) || 0),
       reservedStock: Math.max(0, Number.parseInt(entry?.reservedStock, 10) || 0),
     });
   });
 
-  return [...bySize.values()];
+  return [...byVariant.values()];
 };
 
 export const parseSizeStocksPayload = (value) => {
@@ -34,13 +39,28 @@ export const parseSizeStocksPayload = (value) => {
 export const hasSizeStock = (product = {}) =>
   Array.isArray(product?.sizeStocks) && product.sizeStocks.length > 0;
 
-const findSizeStock = (product, size) => {
+const findSizeStock = (product, size, color = "") => {
   const normalizedSize = normalizeSelectedSize(size);
+  const normalizedColor = normalizeSelectedColor(color).toLowerCase();
   if (!normalizedSize || !hasSizeStock(product)) return null;
 
-  return product.sizeStocks.find(
-    (entry) => normalizeSelectedSize(entry?.size) === normalizedSize
-  ) || null;
+  const exactMatch = product.sizeStocks.find(
+    (entry) =>
+      normalizeSelectedSize(entry?.size) === normalizedSize &&
+      normalizeSelectedColor(entry?.color).toLowerCase() === normalizedColor
+  );
+
+  if (exactMatch) return exactMatch;
+
+  if (normalizedColor) return null;
+
+  return (
+    product.sizeStocks.find(
+      (entry) =>
+        normalizeSelectedSize(entry?.size) === normalizedSize &&
+        !normalizeSelectedColor(entry?.color)
+    ) || null
+  );
 };
 
 export const getTotalSizeStock = (product = {}) =>
@@ -64,8 +84,8 @@ export const syncTotalStockFromSizes = (product) => {
   return product;
 };
 
-export const getAvailableStock = (product, size = "") => {
-  const sizeStock = findSizeStock(product, size);
+export const getAvailableStock = (product, size = "", color = "") => {
+  const sizeStock = findSizeStock(product, size, color);
 
   if (sizeStock) {
     return Math.max(
@@ -89,9 +109,9 @@ export const getAvailableStock = (product, size = "") => {
   );
 };
 
-export const adjustProductInventory = (product, { size = "", quantity = 0, action }) => {
+export const adjustProductInventory = (product, { size = "", color = "", quantity = 0, action }) => {
   const amount = Math.max(0, Number(quantity || 0));
-  const sizeStock = findSizeStock(product, size);
+  const sizeStock = findSizeStock(product, size, color);
 
   if (sizeStock) {
     if (action === "reduce") {

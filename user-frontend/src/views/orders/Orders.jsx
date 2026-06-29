@@ -423,6 +423,11 @@ const Orders = () => {
                                     Size: {item.size}
                                   </span>
                                 )}
+                                {item.color && (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
+                                    Color: {item.color}
+                                  </span>
+                                )}
                                 <span className="text-xs font-bold text-primary">
                                   {formatCurrency(item.price)}
                                 </span>

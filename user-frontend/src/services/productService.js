@@ -21,6 +21,24 @@ export const productService = {
     }
   },
 
+  getPersonalizedRecommendations: async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        return { data: { source: "none", products: [] } };
+      }
+
+      const response = await axios.get(`${API_URL}/recommendations/personalized`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to fetch recommendations");
+    }
+  },
+
   // Get product by ID
   getProductById: async (id) => {
     try {

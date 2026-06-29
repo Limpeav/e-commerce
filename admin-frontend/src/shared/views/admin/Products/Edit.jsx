@@ -9,7 +9,10 @@ import AlertMessage from "../../../components/ui/AlertMessage";
 import { useLanguage } from "../../../context/useLanguage";
 import {
   buildProductRequestData,
+  formatProductColorList,
   getExpiryDateInputValue,
+  parseProductColorList,
+  PRODUCT_COLOR_OPTIONS,
   productSupportsExpiry,
 } from "../../../utils/productExpiry";
 import {
@@ -26,7 +29,6 @@ import {
   Tag,
   FileText,
   Boxes,
-  Check,
   Sparkles,
   Save,
   Trash2,
@@ -59,6 +61,8 @@ const EditProduct = () => {
     image: null,
     imageUrl: "",
     stock: "",
+    colors: "",
+    colorImages: {},
     isNewArrival: false,
     hasProductIssue: false,
     issueQuantity: "",
@@ -70,6 +74,7 @@ const EditProduct = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [backgroundRemoving, setBackgroundRemoving] = useState(false);
+  const [colorImageUploading, setColorImageUploading] = useState({});
   const [backgroundRemovalMessage, setBackgroundRemovalMessage] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
@@ -109,6 +114,18 @@ const EditProduct = () => {
         const res = await ProductController.getById(id);
         const data = res.data;
         const hasProductIssue = parseBooleanValue(data.hasProductIssue);
+        const colors = Array.isArray(data.colors) ? data.colors : [];
+        const colorImages = {};
+        colors.forEach((color) => {
+          const colorImage = Array.isArray(data.colorImages)
+            ? data.colorImages.find(
+                (entry) =>
+                  String(entry.color || "").trim().toLowerCase() ===
+                  String(color || "").trim().toLowerCase()
+              )
+            : null;
+          colorImages[color] = colorImage?.image || "";
+        });
 
         setForm({
           title: data.title || "",
@@ -117,7 +134,9 @@ const EditProduct = () => {
           category: normalizeProductCategory(data.category),
           description: data.description || "",
           stock: data.stock || "",
-          sizeStocks: normalizeSizeStocksForForm(data.sizeStocks, data.category),
+          colors: colors.join(", "),
+          colorImages,
+          sizeStocks: normalizeSizeStocksForForm(data.sizeStocks, data.category, colors),
           isNewArrival: parseBooleanValue(data.isNewArrival),
           hasProductIssue,
           issueQuantity: data.issueQuantity || (hasProductIssue ? "1" : ""),
@@ -153,14 +172,43 @@ const EditProduct = () => {
       setForm((currentForm) => ({
         ...currentForm,
         category: value,
-        sizeStocks: buildDefaultSizeStocks(value, currentForm.sizeStocks),
-        stock: buildDefaultSizeStocks(value, currentForm.sizeStocks).length > 0
-          ? String(getSizeStocksTotal(buildDefaultSizeStocks(value, currentForm.sizeStocks)))
+        sizeStocks: buildDefaultSizeStocks(
+          value,
+          currentForm.sizeStocks,
+          parseProductColorList(currentForm.colors)
+        ),
+        stock: buildDefaultSizeStocks(
+          value,
+          currentForm.sizeStocks,
+          parseProductColorList(currentForm.colors)
+        ).length > 0
+          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
+              value,
+              currentForm.sizeStocks,
+              parseProductColorList(currentForm.colors)
+            )))
           : currentForm.stock,
         expiryDate: productSupportsExpiry(value)
           ? currentForm.expiryDate
           : "",
       }));
+      return;
+    }
+
+    if (name === "colors") {
+      setForm((currentForm) => {
+        const nextColors = parseProductColorList(value);
+        const nextColorImages = {};
+        nextColors.forEach((color) => {
+          nextColorImages[color] = currentForm.colorImages?.[color] || "";
+        });
+
+        return {
+          ...currentForm,
+          colors: value,
+          colorImages: nextColorImages,
+        };
+      });
       return;
     }
 
@@ -180,14 +228,16 @@ const EditProduct = () => {
     }
   };
 
-  const handleSizeStockChange = (size, value) => {
+  const handleSizeStockChange = (size, color, value) => {
     if (value !== "" && !/^\d+$/.test(value)) return;
 
     setSuccessMessage("");
     setErrorMessage("");
     setForm((currentForm) => {
       const nextSizeStocks = currentForm.sizeStocks.map((entry) =>
-        entry.size === size ? { ...entry, stock: value } : entry
+        entry.size === size && String(entry.color || "") === String(color || "")
+          ? { ...entry, stock: value }
+          : entry
       );
 
       return {
@@ -197,6 +247,121 @@ const EditProduct = () => {
       };
     });
   };
+
+  const handleColorImageChange = (color, value) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => ({
+      ...currentForm,
+      colorImages: {
+        ...currentForm.colorImages,
+        [color]: value,
+      },
+    }));
+  };
+
+  const handleColorImageUpload = async (color, file) => {
+    if (!file) return;
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    const uploadData = new FormData();
+    uploadData.append("image", file);
+    uploadData.append("removeBackground", "true");
+
+    try {
+      setColorImageUploading((current) => ({ ...current, [color]: true }));
+      const response = await ProductController.uploadImage(uploadData);
+      const processedImageUrl = response.data?.imageUrl;
+
+      if (!processedImageUrl) {
+        throw new Error("The uploaded image URL was not returned");
+      }
+
+      handleColorImageChange(color, processedImageUrl);
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          error.message ||
+          `Could not upload the image for ${color}.`
+      );
+    } finally {
+      setColorImageUploading((current) => ({ ...current, [color]: false }));
+    }
+  };
+
+  const handleRemoveColorImage = (color) => {
+    handleColorImageChange(color, "");
+  };
+
+  const handleAddColor = (color) => {
+    if (!color) return;
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => {
+      const currentColors = parseProductColorList(currentForm.colors);
+      if (currentColors.some((currentColor) => currentColor.toLowerCase() === color.toLowerCase())) {
+        return currentForm;
+      }
+
+      return {
+        ...currentForm,
+        colors: formatProductColorList([...currentColors, color]),
+        sizeStocks: buildDefaultSizeStocks(
+          currentForm.category,
+          currentForm.sizeStocks,
+          [...currentColors, color]
+        ),
+        stock: isSizedProduct(currentForm)
+          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
+              currentForm.category,
+              currentForm.sizeStocks,
+              [...currentColors, color]
+            )))
+          : currentForm.stock,
+        colorImages: {
+          ...currentForm.colorImages,
+          [color]: currentForm.colorImages?.[color] || "",
+        },
+      };
+    });
+  };
+
+  const handleRemoveColor = (color) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => {
+      const nextColors = parseProductColorList(currentForm.colors).filter(
+        (currentColor) => currentColor.toLowerCase() !== color.toLowerCase()
+      );
+      const nextColorImages = { ...currentForm.colorImages };
+      delete nextColorImages[color];
+
+      return {
+        ...currentForm,
+        colors: formatProductColorList(nextColors),
+        sizeStocks: buildDefaultSizeStocks(
+          currentForm.category,
+          currentForm.sizeStocks,
+          nextColors
+        ),
+        stock: isSizedProduct(currentForm)
+          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
+              currentForm.category,
+              currentForm.sizeStocks,
+              nextColors
+            )))
+          : currentForm.stock,
+        colorImages: nextColorImages,
+      };
+    });
+  };
+
+  const colorOptions = parseProductColorList(form.colors);
+  const availableColorOptions = PRODUCT_COLOR_OPTIONS.filter(
+    (color) => !colorOptions.some((selectedColor) => selectedColor.toLowerCase() === color.toLowerCase())
+  );
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -298,9 +463,28 @@ const EditProduct = () => {
         issueQuantity:
           updatedProduct.issueQuantity ?? currentForm.issueQuantity,
         stock: updatedProduct.stock ?? currentForm.stock,
+        colors: Array.isArray(updatedProduct.colors)
+          ? updatedProduct.colors.join(", ")
+          : currentForm.colors,
+        colorImages: Array.isArray(updatedProduct.colors)
+          ? updatedProduct.colors.reduce((nextColorImages, color) => {
+              const colorImage = Array.isArray(updatedProduct.colorImages)
+                ? updatedProduct.colorImages.find(
+                    (entry) =>
+                      String(entry.color || "").trim().toLowerCase() ===
+                      String(color || "").trim().toLowerCase()
+                  )
+                : null;
+              return {
+                ...nextColorImages,
+                [color]: colorImage?.image || "",
+              };
+            }, {})
+          : currentForm.colorImages,
         sizeStocks: normalizeSizeStocksForForm(
           updatedProduct.sizeStocks ?? currentForm.sizeStocks,
-          updatedProduct.category ?? currentForm.category
+          updatedProduct.category ?? currentForm.category,
+          updatedProduct.colors ?? parseProductColorList(currentForm.colors)
         ),
       }));
       setImagePreview(updatedImage || imagePreview);
@@ -533,52 +717,159 @@ const EditProduct = () => {
                 )}
               </div>
 
-              {/* Available Stock */}
               <div className="md:col-span-2">
-                <label
-                  htmlFor="product-stock-quantity"
-                  className="mb-3 block text-sm font-semibold text-gray-700"
-                >
-                  Total Stock Quantity
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Product Colors
+                  <span className="text-xs text-gray-500 ml-2">(Optional)</span>
                 </label>
                 <div className="relative">
-                  <Boxes className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                  <input
-                    id="product-stock-quantity"
-                    name="stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    inputMode="numeric"
-                    placeholder="Enter available stock"
-                    value={form.stock}
-                    onChange={handleChange}
-                    readOnly={isSizedProduct(form)}
-                    required
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
-                  />
+                  <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <select
+                    value=""
+                    onChange={(event) => {
+                      handleAddColor(event.target.value);
+                      event.target.value = "";
+                    }}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900"
+                  >
+                    <option value="">Select a color</option>
+                    {availableColorOptions.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                {colorOptions.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {colorOptions.map((color) => (
+                      <span
+                        key={color}
+                        className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700"
+                      >
+                        {color}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveColor(color)}
+                          className="rounded-full p-0.5 text-blue-500 hover:bg-blue-100 hover:text-blue-800"
+                          aria-label={`Remove ${color}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 text-xs font-medium text-gray-500">
+                  Select one or more colors. Customers must choose one color when colors are set.
+                </p>
               </div>
+
+              {colorOptions.length > 0 && (
+                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-gray-900">Color Images</p>
+                    <p className="mt-1 text-xs font-medium text-gray-600">
+                      Upload an image for each color. Empty colors use the main product image.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {colorOptions.map((color) => (
+                      <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <span className="block text-xs font-bold text-gray-600">{color}</span>
+                            <p className="mt-1 text-xs font-medium text-gray-500">
+                              {form.colorImages[color] ? "Custom image uploaded" : "Uses main image until uploaded"}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {form.colorImages[color] && (
+                              <img
+                                src={form.colorImages[color]}
+                                alt={`${color} preview`}
+                                className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                              />
+                            )}
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+                              <Upload className="h-4 w-4" />
+                              <span>{colorImageUploading[color] ? "Uploading..." : form.colorImages[color] ? "Replace" : "Upload"}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={Boolean(colorImageUploading[color])}
+                                onChange={(event) => handleColorImageUpload(color, event.target.files?.[0])}
+                                className="hidden"
+                              />
+                            </label>
+                            {form.colorImages[color] && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveColorImage(color)}
+                                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!isSizedProduct(form) && (
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="product-stock-quantity"
+                    className="mb-3 block text-sm font-semibold text-gray-700"
+                  >
+                    Stock Quantity
+                  </label>
+                  <div className="relative">
+                    <Boxes className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="product-stock-quantity"
+                      name="stock"
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      placeholder="Enter available stock"
+                      value={form.stock}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {isSizedProduct(form) && (
                 <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
                   <div className="mb-4">
-                    <p className="text-sm font-bold text-gray-900">Size Inventory</p>
+                    <p className="text-sm font-bold text-gray-900">Size + Color Inventory</p>
                     <p className="mt-1 text-xs font-medium text-gray-600">
-                      Update the available quantity for each size.
+                      Update stock for each size and selected color combination.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {form.sizeStocks.map((entry) => (
-                      <label key={entry.size} className="rounded-lg border border-gray-200 bg-white p-3">
-                        <span className="block text-xs font-bold text-gray-600">{entry.size}</span>
+                      <label
+                        key={`${entry.size}-${entry.color || "default"}`}
+                        className="rounded-lg border border-gray-200 bg-white p-3"
+                      >
+                        <span className="block text-xs font-bold text-gray-600">
+                          {entry.color ? `${entry.size} / ${entry.color}` : entry.size}
+                        </span>
                         <input
                           type="number"
                           min="0"
                           step="1"
                           inputMode="numeric"
                           value={entry.stock}
-                          onChange={(event) => handleSizeStockChange(entry.size, event.target.value)}
+                          onChange={(event) => handleSizeStockChange(entry.size, entry.color, event.target.value)}
                           className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                           placeholder="0"
                         />
@@ -589,6 +880,34 @@ const EditProduct = () => {
                         )}
                       </label>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {isSizedProduct(form) && (
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="product-stock-quantity"
+                    className="mb-3 block text-sm font-semibold text-gray-700"
+                  >
+                    Total Stock Quantity
+                  </label>
+                  <div className="relative">
+                    <Boxes className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="product-stock-quantity"
+                      name="stock"
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      placeholder="Enter available stock"
+                      value={form.stock}
+                      onChange={handleChange}
+                      readOnly
+                      required
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
               )}
@@ -691,33 +1010,6 @@ const EditProduct = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* New Arrival */}
-              <div className="md:col-span-2">
-                <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50">
-                  <span className="relative mt-1 flex h-5 w-5 shrink-0 items-center justify-center">
-                    <input
-                      name="isNewArrival"
-                      type="checkbox"
-                      checked={form.isNewArrival}
-                      onChange={handleChange}
-                      className="h-5 w-5 cursor-pointer rounded border-2 border-gray-300 text-blue-600 accent-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    />
-                    {form.isNewArrival && (
-                      <Check className="pointer-events-none absolute h-3.5 w-3.5 text-white" strokeWidth={3} />
-                    )}
-                  </span>
-                  <span>
-                    <span className="flex items-center text-sm font-semibold text-gray-800">
-                      <Sparkles className="mr-2 h-4 w-4 text-blue-600" />
-                      Show as New Arrival
-                    </span>
-                    <span className="mt-1 block text-sm text-gray-500">
-                      Products marked here appear in the storefront New Arrival section.
-                    </span>
-                  </span>
-                </label>
               </div>
 
               {/* Category */}

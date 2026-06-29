@@ -26,6 +26,11 @@ const sizeStockSchema = mongoose.Schema(
       trim: true,
       uppercase: true,
     },
+    color: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     stock: {
       type: Number,
       default: 0,
@@ -35,6 +40,22 @@ const sizeStockSchema = mongoose.Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+  },
+  { _id: false }
+);
+
+const colorImageSchema = mongoose.Schema(
+  {
+    color: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    image: {
+      type: String,
+      required: true,
+      trim: true,
     },
   },
   { _id: false }
@@ -86,6 +107,14 @@ const productSchema = mongoose.Schema(
     },
     sizes: {
       type: [String],
+      default: [],
+    },
+    colors: {
+      type: [String],
+      default: [],
+    },
+    colorImages: {
+      type: [colorImageSchema],
       default: [],
     },
     sizeStocks: {
@@ -145,6 +174,8 @@ productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
 productSchema.index({ hasProductIssue: 1, createdAt: -1 });
 productSchema.index({ totalSold: -1, rating: -1 });
 productSchema.index({ "sizeStocks.size": 1 });
+productSchema.index({ "sizeStocks.size": 1, "sizeStocks.color": 1 });
+productSchema.index({ colors: 1 });
 
 const Product = mongoose.model("Product", productSchema);
 

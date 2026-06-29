@@ -65,9 +65,7 @@ const isNewArrivalProduct = (product) =>
 
 const getNewArrivals = (products) => {
   const markedNewArrivals = products.filter(isNewArrivalProduct);
-  return sortByNewest(
-    markedNewArrivals.length > 0 ? markedNewArrivals : products
-  ).slice(0, 8);
+  return sortByNewest(markedNewArrivals).slice(0, 8);
 };
 
 export default function ProductCatalog() {

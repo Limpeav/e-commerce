@@ -18,6 +18,7 @@ const orderSchema = new mongoose.Schema(
                 titleKm: { type: String, default: "" },
                 quantity: { type: Number, required: true },
                 size: { type: String, default: "", trim: true, uppercase: true },
+                color: { type: String, default: "", trim: true },
                 image: { type: String, required: true },
                 price: { type: Number, required: true },
             },

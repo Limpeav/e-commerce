@@ -3,6 +3,7 @@ import multer from "multer";
 import {
   getProducts,
   getProductById,
+  getPersonalizedRecommendations,
   updateProduct,
   createProduct,
   createProductReview,
@@ -35,6 +36,7 @@ router.route("/:id/reviews").post(protect, createProductReview);
 
 // READ ALL
 router.get("/", optionalAuth, getProducts);
+router.get("/recommendations/personalized", protect, getPersonalizedRecommendations);
 
 // GENERATE MISSING KHMER TEXT FOR THE PRODUCT LIST
 router.post("/translate-khmer-missing", optionalAuth, translateMissingProductsToKhmer);

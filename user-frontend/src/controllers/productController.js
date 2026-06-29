@@ -47,6 +47,21 @@ export class ProductController {
     }
   }
 
+  static async getPersonalizedRecommendations() {
+    try {
+      const response = await productService.getPersonalizedRecommendations();
+      return {
+        success: true,
+        data: {
+          source: response.data?.source || "none",
+          products: this.normalizeProducts(response.data?.products || []),
+        },
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   static async getProduct(id) {
     try {
       const response = await productService.getProductById(id);

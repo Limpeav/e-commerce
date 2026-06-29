@@ -45,7 +45,13 @@ export const getProductSizes = (product = {}) => {
   if (!isClothingProduct(product)) return [];
 
   const sizeStockSizes = Array.isArray(product.sizeStocks)
-    ? product.sizeStocks.map((entry) => String(entry.size || "").trim()).filter(Boolean)
+    ? [
+        ...new Set(
+          product.sizeStocks
+            .map((entry) => String(entry.size || "").trim())
+            .filter(Boolean)
+        ),
+      ]
     : [];
 
   if (sizeStockSizes.length > 0) return sizeStockSizes;
@@ -59,23 +65,63 @@ export const getProductSizes = (product = {}) => {
   return isShoeProduct(product) ? BABY_SHOE_SIZES : BABY_CLOTHING_SIZES;
 };
 
-export const getAvailableStockForSize = (product = {}, size = "") => {
+export const getAvailableStockForSize = (product = {}, size = "", color = "") => {
   const normalizedSize = String(size || "").trim().toUpperCase();
-  const sizeStock = Array.isArray(product.sizeStocks)
-    ? product.sizeStocks.find(
+  const normalizedColor = String(color || "").trim().toLowerCase();
+  const matchingSizeStocks = Array.isArray(product.sizeStocks)
+    ? product.sizeStocks.filter(
         (entry) => String(entry.size || "").trim().toUpperCase() === normalizedSize
+      )
+    : [];
+
+  if (normalizedColor) {
+    const sizeStock = matchingSizeStocks.find(
+      (entry) => String(entry.color || "").trim().toLowerCase() === normalizedColor
+    );
+
+    if (!sizeStock) return 0;
+
+    return Math.max(
+      0,
+      Number(sizeStock.stock || 0) - Number(sizeStock.reservedStock || 0)
+    );
+  }
+
+  if (matchingSizeStocks.length === 0) return Number(product.stock || 0);
+
+  return matchingSizeStocks.reduce(
+    (total, entry) =>
+      total +
+      Math.max(
+        0,
+        Number(entry.stock || 0) - Number(entry.reservedStock || 0)
+      ),
+    0
+  );
+};
+
+export const getProductColors = (product = {}) =>
+  Array.isArray(product.colors)
+    ? product.colors.map((color) => String(color || "").trim()).filter(Boolean)
+    : [];
+
+export const productHasColorOptions = (product = {}) =>
+  getProductColors(product).length > 0;
+
+export const getProductImageForColor = (product = {}, color = "") => {
+  const selectedColor = String(color || "").trim().toLowerCase();
+  if (!selectedColor) return product.image || product.images?.[0] || "";
+
+  const colorImage = Array.isArray(product.colorImages)
+    ? product.colorImages.find(
+        (entry) => String(entry.color || "").trim().toLowerCase() === selectedColor
       )
     : null;
 
-  if (!sizeStock) return Number(product.stock || 0);
-
-  return Math.max(
-    0,
-    Number(sizeStock.stock || 0) - Number(sizeStock.reservedStock || 0)
-  );
+  return colorImage?.image || product.image || product.images?.[0] || "";
 };
 
 export const getCartItemKey = (item = {}) => {
   const productId = item.product?._id || item.productId || item._id || "";
-  return `${productId}:${item.size || "standard"}`;
+  return `${productId}:${item.size || "standard"}:${item.color || "default"}`;
 };

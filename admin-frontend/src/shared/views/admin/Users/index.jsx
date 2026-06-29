@@ -5,6 +5,7 @@ import {
     Trash2,
     UserCheck,
     RefreshCw,
+    UserX,
 } from "lucide-react";
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
@@ -24,6 +25,10 @@ const UserManagement = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [refreshing, setRefreshing] = useState(false);
+    const [stats, setStats] = useState({
+        deletedCustomers: 0,
+        deletedCustomersBySource: { self: 0, admin: 0 },
+    });
 
     const customerUsers = useMemo(
         () => users.filter((user) => (user.role || "user") === "user"),
@@ -47,8 +52,18 @@ const UserManagement = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await UserController.getUsers();
-            setUsers(response.data);
+            const [usersResponse, statsResponse] = await Promise.all([
+                UserController.getUsers(),
+                UserController.getStats(),
+            ]);
+            setUsers(usersResponse.data);
+            setStats({
+                deletedCustomers: Number(statsResponse.data?.deletedCustomers || 0),
+                deletedCustomersBySource: {
+                    self: Number(statsResponse.data?.deletedCustomersBySource?.self || 0),
+                    admin: Number(statsResponse.data?.deletedCustomersBySource?.admin || 0),
+                },
+            });
             setLoading(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch users");
@@ -166,12 +181,15 @@ const UserManagement = () => {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Visible Customers</p>
+                                <p className="text-sm text-gray-500">Deleted Accounts</p>
                                 <p className="text-3xl font-bold text-purple-600">
-                                    {filteredUsers.length}
+                                    {stats.deletedCustomers}
+                                </p>
+                                <p className="mt-1 text-xs font-medium text-gray-500">
+                                    Self: {stats.deletedCustomersBySource.self} · Admin: {stats.deletedCustomersBySource.admin}
                                 </p>
                             </div>
-                            <UserCheck className="w-12 h-12 text-purple-500" />
+                            <UserX className="w-12 h-12 text-purple-500" />
                         </div>
                     </div>
                 </div>

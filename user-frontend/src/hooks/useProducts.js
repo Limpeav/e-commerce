@@ -24,11 +24,14 @@ const loadProducts = async () => {
   return productsRequest;
 };
 
-export const useProducts = (language = "en") => {
+export const useProducts = (language = "en", user = null) => {
   const [products, setProducts] = useState(() => cachedProducts);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [recommendationSource, setRecommendationSource] = useState("none");
   const [loading, setLoading] = useState(() => cachedProducts.length === 0);
   const [error, setError] = useState("");
   const [translatingMissingKhmer, setTranslatingMissingKhmer] = useState(false);
+  const userId = user?._id || user?.id || "";
 
   const fetchProducts = useCallback(async ({ silent = false } = {}) => {
       try {
@@ -51,6 +54,29 @@ export const useProducts = (language = "en") => {
       }
   }, []);
 
+  const fetchRecommendations = useCallback(async () => {
+    if (!userId) {
+      setRecommendedProducts([]);
+      setRecommendationSource("none");
+      return;
+    }
+
+    try {
+      const result = await ProductController.getPersonalizedRecommendations();
+      if (result.success) {
+        setRecommendedProducts(result.data?.products || []);
+        setRecommendationSource(result.data?.source || "none");
+      } else {
+        setRecommendedProducts([]);
+        setRecommendationSource("none");
+      }
+    } catch (err) {
+      setRecommendedProducts([]);
+      setRecommendationSource("none");
+      console.error("Error fetching personalized recommendations:", err);
+    }
+  }, [userId]);
+
   useEffect(() => {
     fetchProducts({ silent: cachedProducts.length > 0 });
     const unsubscribeProducts = subscribeRealtimeDomains(
@@ -67,6 +93,21 @@ export const useProducts = (language = "en") => {
       unsubscribeLanguage();
     };
   }, [fetchProducts]);
+
+  useEffect(() => {
+    fetchRecommendations();
+
+    if (!userId) return undefined;
+
+    const unsubscribeProducts = subscribeRealtimeDomains(
+      ["products", "orders"],
+      () => fetchRecommendations()
+    );
+
+    return () => {
+      unsubscribeProducts();
+    };
+  }, [fetchRecommendations, userId]);
 
   useEffect(() => {
     const hasMissingKhmerProducts =
@@ -99,6 +140,8 @@ export const useProducts = (language = "en") => {
 
   return {
     products,
+    recommendedProducts,
+    recommendationSource,
     loading,
     error,
     setProducts,

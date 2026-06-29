@@ -30,6 +30,7 @@ export default function ProductDetail() {
 
   // State
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState("");
 
   // Custom hooks
   const { product, loading, error } = useProductDetail(id, user, language);
@@ -128,6 +129,7 @@ export default function ProductDetail() {
           <div className="min-w-0 space-y-3 sm:space-y-4">
             <ProductImage
               product={product}
+              selectedColor={selectedColor}
               onWishlist={handleWishlist}
               isInWishlist={isInWishlist(product._id)}
             />
@@ -140,6 +142,8 @@ export default function ProductDetail() {
                   onAddToCart={handleAddToCart}
                   onLoginRequired={() => navigate("/login")}
                   user={user}
+                  selectedColor={selectedColor}
+                  onColorChange={setSelectedColor}
                 />
               </div>
             )}
@@ -153,6 +157,8 @@ export default function ProductDetail() {
             onAddToCart={handleAddToCart}
             onLoginRequired={() => navigate("/login")}
             user={user}
+            selectedColor={selectedColor}
+            onColorChange={setSelectedColor}
             showPurchaseActions={!showPurchaseActionsUnderImage}
             showPurchaseActionsOnMobile={showPurchaseActionsUnderImage}
           />

@@ -17,6 +17,8 @@ const ProductInfo = ({
   onAddToCart,
   onLoginRequired,
   user,
+  selectedColor,
+  onColorChange,
   showPurchaseActions = true,
   showPurchaseActionsOnMobile = false,
 }) => {
@@ -159,6 +161,8 @@ const ProductInfo = ({
           onAddToCart={onAddToCart}
           onLoginRequired={onLoginRequired}
           user={user}
+          selectedColor={selectedColor}
+          onColorChange={onColorChange}
         />
       )}
 
@@ -171,6 +175,8 @@ const ProductInfo = ({
             onAddToCart={onAddToCart}
             onLoginRequired={onLoginRequired}
             user={user}
+            selectedColor={selectedColor}
+            onColorChange={onColorChange}
           />
         </div>
       )}

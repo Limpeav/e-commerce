@@ -22,6 +22,7 @@ import {
     sendOrderTelegramAlert,
     sendPaymentTelegramAlert,
 } from "../utils/sendTelegramMessage.js";
+import { normalizeSelectedColor } from "../utils/productOptions.js";
 import axios from "axios";
 import { getBakongConfig } from "../config/bakong.js";
 
@@ -224,6 +225,7 @@ const restoreCancelledOrder = async (order, session) => {
             if (product) {
                 adjustProductInventory(product, {
                     size: item.size,
+                    color: item.color,
                     quantity: item.quantity,
                     action: "release",
                 });
@@ -245,6 +247,7 @@ const restoreCancelledOrder = async (order, session) => {
             if (product) {
                 adjustProductInventory(product, {
                     size: item.size,
+                    color: item.color,
                     quantity: item.quantity,
                     action: "restore",
                 });
@@ -427,12 +430,14 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
     for (const item of order.orderItems) {
         const productId = String(item.product?._id || item.product);
         const size = String(item.size || "").trim().toUpperCase();
-        const inventoryKey = `${productId}::${size}`;
+        const color = normalizeSelectedColor(item.color);
+        const inventoryKey = `${productId}::${size}::${color.toLowerCase()}`;
         quantityByProductSize.set(
             inventoryKey,
             {
                 productId,
                 size,
+                color,
                 quantity:
                     Number(quantityByProductSize.get(inventoryKey)?.quantity || 0)
                     + Number(item.quantity || 0),
@@ -446,7 +451,7 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
         products.map((product) => [product._id.toString(), product])
     );
 
-    for (const { productId, size, quantity } of quantityByProductSize.values()) {
+    for (const { productId, size, color, quantity } of quantityByProductSize.values()) {
         const product = productById.get(productId);
         if (!product) {
             throw Object.assign(
@@ -465,9 +470,10 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
                         reservedStock: 0,
                     })),
                 },
-                size
+                size,
+                color
             )
-            : getAvailableStock(product, size);
+            : getAvailableStock(product, size, color);
         if (availableStock < quantity) {
             throw Object.assign(
                 new Error(
@@ -478,17 +484,19 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
         }
     }
 
-    for (const { productId, size, quantity } of quantityByProductSize.values()) {
+    for (const { productId, size, color, quantity } of quantityByProductSize.values()) {
         const product = productById.get(productId);
         if (order.stockReserved) {
             adjustProductInventory(product, {
                 size,
+                color,
                 quantity,
                 action: "release",
             });
         }
         adjustProductInventory(product, {
             size,
+            color,
             quantity,
             action: "reduce",
         });

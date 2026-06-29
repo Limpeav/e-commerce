@@ -1,9 +1,11 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import Product from "../models/Product.js";
+import DeletedAccountLog from "../models/deletedAccountLogModel.js";
 import { USER_ROLES } from "../constants/roles.js";
 import { emitDomainChanged } from "../realtime/socket.js";
 import { normalizeEmail, validatePortalPassword } from "../utils/authSecurity.js";
+import { recordDeletedAccount } from "../utils/accountDeletionLog.js";
 
 const STAFF_LOGIN_ROLES = ["seller", "delivery", "admin"];
 
@@ -237,6 +239,11 @@ export const deleteUser = asyncHandler(async (req, res) => {
             await product.save();
         }
 
+        await recordDeletedAccount({
+            user,
+            deletedBy: "admin",
+            deletedByUser: req.user?._id,
+        });
         await user.deleteOne();
         emitDomainChanged("users", "deleted", { userId: user._id });
         if (productsToUpdate.length) {
@@ -261,6 +268,24 @@ export const getUserStats = asyncHandler(async (req, res) => {
     const sellerUsers = await User.countDocuments({ role: "seller" });
     const deliveryUsers = await User.countDocuments({ role: "delivery" });
     const regularUsers = await User.countDocuments({ role: "user" });
+    const deletedCustomerStats = await DeletedAccountLog.aggregate([
+        { $match: { role: "user" } },
+        {
+            $group: {
+                _id: "$deletedBy",
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+    const deletedCustomersBySource = deletedCustomerStats.reduce(
+        (counts, item) => ({
+            ...counts,
+            [item._id]: Number(item.count || 0),
+        }),
+        { self: 0, admin: 0 }
+    );
+    const deletedCustomers =
+        deletedCustomersBySource.self + deletedCustomersBySource.admin;
 
     // Get recent users (last 5)
     const recentUsers = await User.find({})
@@ -275,6 +300,8 @@ export const getUserStats = asyncHandler(async (req, res) => {
         staffUsers: sellerUsers,
         deliveryUsers,
         regularUsers,
+        deletedCustomers,
+        deletedCustomersBySource,
         recentUsers,
     });
 });

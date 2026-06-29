@@ -39,31 +39,46 @@ export const getDefaultSizesForCategory = (category = "") => {
   return [];
 };
 
-export const buildDefaultSizeStocks = (category = "", currentSizeStocks = []) => {
-  const currentBySize = new Map(
-    currentSizeStocks.map((entry) => [String(entry.size || "").toUpperCase(), entry])
-  );
+const normalizeColor = (color = "") => String(color || "").trim();
 
-  return getDefaultSizesForCategory(category).map((size) => {
-    const existing = currentBySize.get(size.toUpperCase());
-    return {
-      size,
-      stock: existing?.stock ?? "",
-      reservedStock: existing?.reservedStock ?? 0,
-    };
+const getSizeStockKey = (size = "", color = "") =>
+  `${String(size || "").trim().toUpperCase()}::${normalizeColor(color).toLowerCase()}`;
+
+export const buildDefaultSizeStocks = (category = "", currentSizeStocks = [], colors = []) => {
+  const currentBySize = new Map(
+    currentSizeStocks.map((entry) => [
+      getSizeStockKey(entry.size, entry.color),
+      entry,
+    ])
+  );
+  const selectedColors = colors.map(normalizeColor).filter(Boolean);
+
+  return getDefaultSizesForCategory(category).flatMap((size) => {
+    const variantColors = selectedColors.length > 0 ? selectedColors : [""];
+
+    return variantColors.map((color) => {
+      const existing = currentBySize.get(getSizeStockKey(size, color));
+      return {
+        size,
+        color,
+        stock: existing?.stock ?? "",
+        reservedStock: existing?.reservedStock ?? 0,
+      };
+    });
   });
 };
 
-export const normalizeSizeStocksForForm = (sizeStocks = [], category = "") => {
+export const normalizeSizeStocksForForm = (sizeStocks = [], category = "", colors = []) => {
   if (Array.isArray(sizeStocks) && sizeStocks.length > 0) {
     return sizeStocks.map((entry) => ({
       size: String(entry.size || "").trim().toUpperCase(),
+      color: normalizeColor(entry.color),
       stock: entry.stock ?? "",
       reservedStock: Number(entry.reservedStock || 0),
     }));
   }
 
-  return buildDefaultSizeStocks(category);
+  return buildDefaultSizeStocks(category, [], colors);
 };
 
 export const getSizeStocksTotal = (sizeStocks = []) =>

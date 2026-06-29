@@ -3,6 +3,19 @@ export const ORDER_REQUEST_TIMEOUT_MS = 10000;
 export const SHIPPING_PRICE = 0;
 export const TAX_RATE = 0.08;
 
+const getProductImageForColor = (product = {}, color = "") => {
+  const selectedColor = String(color || "").trim().toLowerCase();
+  if (!selectedColor) return product.image || product.images?.[0] || "";
+
+  const colorImage = Array.isArray(product.colorImages)
+    ? product.colorImages.find(
+        (entry) => String(entry.color || "").trim().toLowerCase() === selectedColor
+      )
+    : null;
+
+  return colorImage?.image || product.image || product.images?.[0] || "";
+};
+
 export const displayValue = (value, fallback) => value || fallback;
 
 export const toLocalPhoneDigits = (phone = "") => {
@@ -88,7 +101,8 @@ export const buildOrderPayload = ({
     titleKm: item.product.titleKm || "",
     quantity: item.quantity,
     size: item.size || "",
-    image: item.product.image,
+    color: item.color || "",
+    image: getProductImageForColor(item.product, item.color),
     price: getEffectiveCartProductPrice(item.product),
   })),
   shippingAddress: {

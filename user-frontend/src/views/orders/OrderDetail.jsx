@@ -322,6 +322,7 @@ const OrderDetail = () => {
                 <p className="text-sm text-text-muted">
                   {t("orderDetail.qty")} {item.quantity} · {formatCurrency(item.price)}
                   {item.size ? ` · ${t("orderDetail.size")} ${item.size}` : ""}
+                  {item.color ? ` · Color ${item.color}` : ""}
                 </p>
               </div>
               <div className="font-semibold text-text-main">

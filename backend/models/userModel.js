@@ -29,9 +29,21 @@ const userSchema = mongoose.Schema(
     notificationPreferences: {
       promotionalEmails: { type: Boolean, default: true },
     },
+    viewedProducts: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        viewedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
+
+userSchema.index({ _id: 1, "viewedProducts.viewedAt": -1 });
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password") || !this.password) {

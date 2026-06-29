@@ -1,9 +1,12 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { getProductImageForColor } from '../../utils/productOptions';
 
-const ProductImage = ({ product, onWishlist, isInWishlist }) => {
+const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
+  const imageSrc = getProductImageForColor(product, selectedColor);
+
   return (
     <div className="relative font-sans">
       <div className={`sticky top-22 overflow-hidden rounded-[1.75rem] border p-2 transition-all duration-300 sm:rounded-[2rem] sm:p-3 lg:p-4 ${
@@ -15,7 +18,7 @@ const ProductImage = ({ product, onWishlist, isInWishlist }) => {
           isDark ? "bg-slate-800" : "bg-[#f1ebe5]"
         }`}>
           <img
-            src={product.image}
+            src={imageSrc}
             alt={product.title}
             decoding="async"
             fetchPriority="high"

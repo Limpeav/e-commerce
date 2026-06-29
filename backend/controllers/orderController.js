@@ -19,7 +19,12 @@ import {
     sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
 import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
-import { validateProductSize } from "../utils/productOptions.js";
+import {
+    normalizeSelectedColor,
+    getProductImageForColor,
+    validateProductColor,
+    validateProductSize,
+} from "../utils/productOptions.js";
 import {
     adjustProductInventory,
     getAvailableStock,
@@ -53,6 +58,7 @@ const restoreOrderStockIfNeeded = async (order, session) => {
             if (product) {
                 adjustProductInventory(product, {
                     size: item.size,
+                    color: item.color,
                     quantity: item.quantity,
                     action: "release",
                 });
@@ -73,6 +79,7 @@ const restoreOrderStockIfNeeded = async (order, session) => {
         if (product) {
             adjustProductInventory(product, {
                 size: item.size,
+                color: item.color,
                 quantity: item.quantity,
                 action: "restore",
             });
@@ -224,6 +231,7 @@ const dispatchOrderAlerts = ({
 const getOrderItemMergeKey = (item = {}) => [
     String(item.product || ""),
     String(item.size || "").trim().toUpperCase(),
+    normalizeSelectedColor(item.color).toLowerCase(),
     Number(item.price || 0).toFixed(2),
 ].join("::");
 
@@ -294,14 +302,16 @@ export const createOrder = asyncHandler(async (req, res) => {
                 for (const item of orderItems) {
                     const productId = String(item.product);
                     const size = String(item.size || "").trim().toUpperCase();
+                    const color = normalizeSelectedColor(item.color);
                     const inventoryKey = `${productId}::${size}`;
                     requestedQuantityByProductSize.set(
-                        inventoryKey,
+                        `${inventoryKey}::${color.toLowerCase()}`,
                         {
                             productId,
                             size,
+                            color,
                             quantity:
-                                Number(requestedQuantityByProductSize.get(inventoryKey)?.quantity || 0) +
+                                Number(requestedQuantityByProductSize.get(`${inventoryKey}::${color.toLowerCase()}`)?.quantity || 0) +
                                 Number(item.quantity || 0),
                         }
                     );
@@ -318,12 +328,19 @@ export const createOrder = asyncHandler(async (req, res) => {
                     if (sizeError) {
                         throw createHttpError(400, `${product.title}: ${sizeError}`);
                     }
+                    const colorError = validateProductColor(product, item.color);
+                    if (colorError) {
+                        throw createHttpError(400, `${product.title}: ${colorError}`);
+                    }
+                    item.color = normalizeSelectedColor(item.color);
+                    item.image = getProductImageForColor(product, item.color);
 
                     const size = String(item.size || "").trim().toUpperCase();
+                    const color = normalizeSelectedColor(item.color);
                     const requestedQuantity = requestedQuantityByProductSize.get(
-                        `${String(item.product)}::${size}`
+                        `${String(item.product)}::${size}::${color.toLowerCase()}`
                     )?.quantity || 0;
-                    const availableStock = getAvailableStock(product, size);
+                    const availableStock = getAvailableStock(product, size, color);
                     if (availableStock < requestedQuantity) {
                         throw createHttpError(
                             409,
@@ -338,6 +355,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                         const previousStock = product.stock;
                         adjustProductInventory(product, {
                             size: item.size,
+                            color: item.color,
                             quantity: item.quantity,
                             action: "reduce",
                         });
@@ -365,10 +383,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                         }
                     }
                 } else {
-                    for (const { productId, size, quantity } of requestedQuantityByProductSize.values()) {
+                    for (const { productId, size, color, quantity } of requestedQuantityByProductSize.values()) {
                         const product = productMap.get(productId);
                         adjustProductInventory(product, {
                             size,
+                            color,
                             quantity,
                             action: "reserve",
                         });

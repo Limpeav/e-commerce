@@ -770,6 +770,7 @@ const OrderDetails = () => {
                                                 <p className="mt-1 text-sm text-[var(--color-text-muted)]">
                                                     Quantity {item.quantity} · {formatCurrency(item.price)} each
                                                     {item.size ? ` · Size ${item.size}` : ""}
+                                                    {item.color ? ` · Color ${item.color}` : ""}
                                                 </p>
                                             </div>
                                             <div className="col-span-2 flex items-center justify-between rounded-lg bg-[var(--color-surface-soft)] px-4 py-3 sm:col-span-1 sm:block sm:self-center sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">

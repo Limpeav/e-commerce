@@ -14,17 +14,31 @@ export const cartService = {
   },
 
   async addToCart(productId, quantity = 1, options = {}) {
-    const data = await addItemToCart({ productId, quantity, size: options.size || "" });
+    const data = await addItemToCart({
+      productId,
+      quantity,
+      size: options.size || "",
+      color: options.color || "",
+    });
     return { data: CartModel.fromApi(data) };
   },
 
   async updateQuantity(productId, quantity, options = {}) {
-    const data = await updateCartItemQuantity(productId, quantity, options.size || "");
+    const data = await updateCartItemQuantity(
+      productId,
+      quantity,
+      options.size || "",
+      options.color || ""
+    );
     return { data: CartModel.fromApi(data) };
   },
 
   async removeFromCart(productId, options = {}) {
-    const data = await removeItemFromCart(productId, options.size || "");
+    const data = await removeItemFromCart(
+      productId,
+      options.size || "",
+      options.color || ""
+    );
     return { data: CartModel.fromApi(data) };
   },
 

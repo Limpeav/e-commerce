@@ -24,6 +24,10 @@ import {
   parseSizeStocksPayload,
   syncTotalStockFromSizes,
 } from "../utils/productInventory.js";
+import {
+  parseProductColorImagesPayload,
+  parseProductColorsPayload,
+} from "../utils/productOptions.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -53,9 +57,80 @@ const parseOptionalNumber = (value) => {
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
 
+const NEW_ARRIVAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const PERSONALIZED_RECOMMENDATION_LIMIT = 8;
+const RECENT_PRODUCT_VIEW_LIMIT = 50;
+
+const isProductWithinNewArrivalWindow = (product = {}) => {
+  const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
+  if (!Number.isFinite(createdAt) || createdAt <= 0) return false;
+
+  return Date.now() - createdAt < NEW_ARRIVAL_WINDOW_MS;
+};
+
+const applyNewArrivalWindow = (product = {}) => ({
+  ...product,
+  isNewArrival: isProductWithinNewArrivalWindow(product),
+});
+
+const prepareShopperProducts = async (products = []) => {
+  const productsWithMetrics = await attachSalesMetrics(
+    products.map((product) =>
+      applyNewArrivalWindow({
+        ...(typeof product.toObject === "function" ? product.toObject() : product),
+        expiryDate: product.expiryDate || null,
+      })
+    )
+  );
+
+  return productsWithMetrics
+    .filter((product) => product.availableStock > 0)
+    .map((product) => ({
+      ...product,
+      stock: product.availableStock,
+    }));
+};
+
+const sortProductsByIdPriority = (products = [], priorityIds = []) => {
+  const priorityById = new Map(
+    priorityIds.map((productId, index) => [String(productId), index])
+  );
+
+  return [...products].sort((a, b) => {
+    const aPriority = priorityById.get(String(a._id)) ?? Number.MAX_SAFE_INTEGER;
+    const bPriority = priorityById.get(String(b._id)) ?? Number.MAX_SAFE_INTEGER;
+
+    if (aPriority !== bPriority) return aPriority - bPriority;
+
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+};
+
+const recordProductView = async ({ user, productId }) => {
+  if (!user?._id || user.role === "admin") return;
+
+  await User.updateOne(
+    { _id: user._id },
+    { $pull: { viewedProducts: { product: productId } } }
+  );
+
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $push: {
+        viewedProducts: {
+          $each: [{ product: productId, viewedAt: new Date() }],
+          $position: 0,
+          $slice: RECENT_PRODUCT_VIEW_LIMIT,
+        },
+      },
+    }
+  );
+};
+
 const buildSizeStockData = (value) => {
   const sizeStocks = parseSizeStocksPayload(value);
-  const sizes = sizeStocks.map((entry) => entry.size);
+  const sizes = [...new Set(sizeStocks.map((entry) => entry.size))];
   const stock = sizeStocks.reduce(
     (total, entry) => total + Number(entry.stock || 0),
     0
@@ -445,6 +520,8 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
   const discountPrice = data.discountPrice?.trim()
     ? Number.parseFloat(data.discountPrice)
     : null;
+  const colors = parseProductColorsPayload(data.colors);
+  const colorImages = parseProductColorImagesPayload(data.colorImages, colors);
   const sizeStockData = buildSizeStockData(data.sizeStocks);
   const stock = sizeStockData.sizeStocks.length > 0
     ? sizeStockData.stock
@@ -510,6 +587,8 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     descriptionKm,
     stock,
     sizes: sizeStockData.sizes,
+    colors,
+    colorImages,
     sizeStocks: sizeStockData.sizeStocks,
     image,
     isNewArrival,
@@ -529,7 +608,8 @@ export const createProduct = async (req, res) => {
       description,
       stock,
       sizeStocks,
-      isNewArrival,
+      colors,
+      colorImages,
       hasProductIssue,
       issueQuantity,
       expiryDate,
@@ -552,6 +632,7 @@ export const createProduct = async (req, res) => {
     }
 
     const sizeStockData = buildSizeStockData(sizeStocks);
+    const parsedColors = parseProductColorsPayload(colors);
     const submittedStock = sizeStockData.sizeStocks.length > 0
       ? sizeStockData.stock
       : Math.max(0, Number.parseInt(stock, 10) || 0);
@@ -564,8 +645,10 @@ export const createProduct = async (req, res) => {
       description,
       stock: submittedStock,
       sizes: sizeStockData.sizes,
+      colors: parsedColors,
+      colorImages: parseProductColorImagesPayload(colorImages, parsedColors),
       sizeStocks: sizeStockData.sizeStocks,
-      isNewArrival: parseBoolean(isNewArrival),
+      isNewArrival: true,
       hasProductIssue: parseBoolean(hasProductIssue),
       issueQuantity: parseBoolean(hasProductIssue)
         ? Math.max(0, Number.parseInt(issueQuantity, 10) || 0)
@@ -651,7 +734,9 @@ export const getProducts = async (req, res) => {
     let products = await Product.find(filters)
       .sort({ createdAt: -1, _id: -1 })
       .lean();
-    products = products.map((p) => ({ ...p, expiryDate: p.expiryDate || null }));
+    products = products.map((p) =>
+      applyNewArrivalWindow({ ...p, expiryDate: p.expiryDate || null })
+    );
     const productsWithMetrics = await attachSalesMetrics(products, {
       salesStartDate: isAdmin ? req.query.salesStartDate : null,
       salesEndDate: isAdmin ? req.query.salesEndDate : null,
@@ -668,6 +753,77 @@ export const getProducts = async (req, res) => {
     );
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getPersonalizedRecommendations = async (req, res) => {
+  try {
+    const purchasedProductStats = await Order.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+          paymentStatus: "Paid",
+          orderStatus: { $ne: "Cancelled" },
+        },
+      },
+      { $unwind: "$orderItems" },
+      {
+        $group: {
+          _id: "$orderItems.product",
+          quantity: { $sum: "$orderItems.quantity" },
+          latestPurchasedAt: { $max: "$createdAt" },
+        },
+      },
+      {
+        $sort: {
+          latestPurchasedAt: -1,
+          quantity: -1,
+        },
+      },
+      { $limit: PERSONALIZED_RECOMMENDATION_LIMIT },
+    ]);
+
+    const purchasedProductIds = purchasedProductStats
+      .map((item) => item._id)
+      .filter(Boolean);
+
+    if (purchasedProductIds.length > 0) {
+      const purchasedProducts = await Product.find({
+        _id: { $in: purchasedProductIds },
+        stock: { $gt: 0 },
+      }).lean();
+      const preparedProducts = await prepareShopperProducts(purchasedProducts);
+
+      return res.json({
+        source: "orders",
+        products: sortProductsByIdPriority(preparedProducts, purchasedProductIds),
+      });
+    }
+
+    const currentUser = await User.findById(req.user._id)
+      .select("viewedProducts")
+      .lean();
+    const viewedProductIds = (currentUser?.viewedProducts || [])
+      .map((view) => view.product)
+      .filter(Boolean)
+      .slice(0, PERSONALIZED_RECOMMENDATION_LIMIT);
+
+    if (viewedProductIds.length === 0) {
+      return res.json({ source: "views", products: [] });
+    }
+
+    const viewedProducts = await Product.find({
+      _id: { $in: viewedProductIds },
+      stock: { $gt: 0 },
+    }).lean();
+    const preparedProducts = await prepareShopperProducts(viewedProducts);
+
+    return res.json({
+      source: "views",
+      products: sortProductsByIdPriority(preparedProducts, viewedProductIds),
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -895,6 +1051,14 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    if (!isAdmin && req.user?._id) {
+      try {
+        await recordProductView({ user: req.user, productId: product._id });
+      } catch (viewError) {
+        console.error("Failed to record product view:", viewError.message);
+      }
+    }
+
     // Filter out reviews from deleted users and update user names
     const validReviews = [];
     let alreadyReviewed = false;
@@ -961,7 +1125,7 @@ export const getProductById = async (req, res) => {
       console.log(`Product updated: ${validReviews.length} reviews remaining`);
     }
 
-    const productData = product.toObject();
+    const productData = applyNewArrivalWindow(product.toObject());
     productData.alreadyReviewed = alreadyReviewed;
 
     const productWithMetrics = await attachSalesMetrics(productData);
@@ -1004,7 +1168,7 @@ export const translateProductToKhmer = async (req, res) => {
       { users: true }
     );
 
-    const productData = product.toObject();
+    const productData = applyNewArrivalWindow(product.toObject());
     res.json(await attachSalesMetrics(productData));
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -1036,6 +1200,8 @@ export const updateProduct = async (req, res) => {
       ? Number.parseInt(req.body.issueQuantity, 10)
       : 0;
     const sizeStockData = buildSizeStockData(req.body.sizeStocks);
+    const colors = parseProductColorsPayload(req.body.colors);
+    const colorImages = parseProductColorImagesPayload(req.body.colorImages, colors);
     const submittedStock = sizeStockData.sizeStocks.length > 0
       ? sizeStockData.stock
       : Number.parseInt(req.body.stock, 10);
@@ -1070,6 +1236,8 @@ export const updateProduct = async (req, res) => {
         description: req.body.description,
         stock: submittedStock,
         sizes: sizeStockData.sizes,
+        colors,
+        colorImages,
         sizeStocks: sizeStockData.sizeStocks,
         isNewArrival: parseBoolean(req.body.isNewArrival),
         hasProductIssue,
@@ -1088,6 +1256,8 @@ export const updateProduct = async (req, res) => {
     product.descriptionKm = translatedProductData.descriptionKm;
     product.stock = translatedProductData.stock;
     product.sizes = translatedProductData.sizes || [];
+    product.colors = translatedProductData.colors || [];
+    product.colorImages = translatedProductData.colorImages || [];
     product.sizeStocks = translatedProductData.sizeStocks || [];
     product.isNewArrival = translatedProductData.isNewArrival;
     product.hasProductIssue = translatedProductData.hasProductIssue;
@@ -1105,7 +1275,7 @@ export const updateProduct = async (req, res) => {
     syncLowStockAlertFlag(product);
     await product.save();
     emitDomainChanged("products", "updated", { productId: product._id }, { users: true });
-    res.json(product);
+    res.json(applyNewArrivalWindow(product.toObject()));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

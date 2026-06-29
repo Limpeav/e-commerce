@@ -9,7 +9,7 @@ import { CartContext } from "./cart-context";
 import { useDarkMode } from "../hooks";
 import { useLanguage } from "./useLanguage";
 import { getEffectiveCartProductPrice, getValidCartItems } from "../utils/checkout";
-import { getCartItemKey } from "../utils/productOptions";
+import { getCartItemKey, getProductImageForColor } from "../utils/productOptions";
 import { withGlobalLoading } from "../services/loadingIndicator";
 
 const isPortalRoute = (pathname = "") =>
@@ -18,9 +18,12 @@ const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/delivery");
 
 const normalizeCartSize = (size = "") => String(size || "").trim().toUpperCase();
+const normalizeCartColor = (color = "") => String(color || "").trim().toLowerCase();
 
-const isSameCartItem = (item, productId, size = "") =>
-  item.product?._id === productId && normalizeCartSize(item.size) === normalizeCartSize(size);
+const isSameCartItem = (item, productId, size = "", color = "") =>
+  item.product?._id === productId &&
+  normalizeCartSize(item.size) === normalizeCartSize(size) &&
+  normalizeCartColor(item.color) === normalizeCartColor(color);
 
 const hasNumericStock = (product) =>
   product?.stock !== undefined && product?.stock !== null && Number.isFinite(Number(product.stock));
@@ -79,7 +82,7 @@ export const CartProvider = ({ children }) => {
 
     const requestedQuantity = Number(quantity || 1);
     const existingQuantity = cart
-      .filter((item) => isSameCartItem(item, product?._id, options.size))
+      .filter((item) => isSameCartItem(item, product?._id, options.size, options.color))
       .reduce((total, item) => total + Number(item.quantity || 0), 0);
     const totalRequested = existingQuantity + requestedQuantity;
 
@@ -111,7 +114,9 @@ export const CartProvider = ({ children }) => {
         t("cart.addedTitle"),
         t("cart.addedMessage", {
           product: productLabel,
-          size: options.size ? ` (${options.size})` : "",
+          size: [options.size, options.color].filter(Boolean).length
+            ? ` (${[options.size, options.color].filter(Boolean).join(", ")})`
+            : "",
         }),
         { onClick: () => navigate("/customer/cart") }
       );
@@ -128,7 +133,7 @@ export const CartProvider = ({ children }) => {
     const previousCart = cart;
     setCart((currentCart) =>
       currentCart.map((item) =>
-        isSameCartItem(item, productId, options.size)
+        isSameCartItem(item, productId, options.size, options.color)
           ? { ...item, quantity: Number(newQuantity) }
           : item
       )
@@ -377,7 +382,7 @@ const CartPreviewDrawer = ({
                       }`}
                     >
                       <img
-                        src={item.product.image}
+                        src={getProductImageForColor(item.product, item.color)}
                         alt={item.product.title || item.product.name || t("cart.cartProduct")}
                         loading="lazy"
                         decoding="async"
@@ -398,11 +403,16 @@ const CartPreviewDrawer = ({
                           {t("cart.sizeValue", { size: item.size })}
                         </p>
                       )}
+                      {item.color && (
+                        <p className="mt-1 text-xs font-bold uppercase tracking-widest text-text-muted">
+                          Color: {item.color}
+                        </p>
+                      )}
 
                       <div className="mt-2 inline-flex items-center rounded-xl border border-stone-200 dark:border-slate-700 sm:mt-3">
                         <button
                           type="button"
-                          onClick={() => onUpdateQuantity(productId, Math.max(1, item.quantity - 1), { size: item.size })}
+                          onClick={() => onUpdateQuantity(productId, Math.max(1, item.quantity - 1), { size: item.size, color: item.color })}
                           disabled={item.quantity <= 1}
                           className="flex h-8 w-8 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40 sm:h-9 sm:w-9"
                           aria-label={t("cart.decrease")}
@@ -412,7 +422,7 @@ const CartPreviewDrawer = ({
                         <span className="min-w-8 px-2 text-center text-sm font-black text-text-main sm:min-w-9">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => onUpdateQuantity(productId, item.quantity + 1, { size: item.size })}
+                          onClick={() => onUpdateQuantity(productId, item.quantity + 1, { size: item.size, color: item.color })}
                           className="flex h-8 w-8 items-center justify-center text-text-muted transition-colors hover:text-primary sm:h-9 sm:w-9"
                           aria-label={t("cart.increase")}
                         >
@@ -439,7 +449,7 @@ const CartPreviewDrawer = ({
 
                     <button
                       type="button"
-                      onClick={() => onRemove(productId, { size: item.size })}
+                      onClick={() => onRemove(productId, { size: item.size, color: item.color })}
                       className="self-start rounded-full p-1.5 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 sm:p-2"
                       aria-label={t("cart.removeItem")}
                     >

@@ -176,7 +176,14 @@ export default function Home() {
     const animateProducts = navigationType !== "POP" && !prefersReducedMotion;
 
     // Custom hooks
-    const { products, loading, error, refetch } = useProducts(language);
+    const {
+        products,
+        recommendedProducts,
+        recommendationSource,
+        loading,
+        error,
+        refetch,
+    } = useProducts(language, user);
     const {
         searchQuery,
         setSearchQuery,
@@ -258,6 +265,19 @@ export default function Home() {
             return normalizedProducts.length > 0 ? [allProductsSection] : [];
         }
 
+        const shouldShowPersonalizedRecommendations =
+            !searchQuery.trim() && recommendedProducts.length > 0;
+        const personalizedSection = shouldShowPersonalizedRecommendations
+            ? [{
+                title: t("product.recommendedForYou"),
+                description: recommendationSource === "orders"
+                    ? t("product.recommendedFromPurchases")
+                    : t("product.recommendedFromViews"),
+                products: recommendedProducts,
+                layout: "horizontal",
+            }]
+            : [];
+
         const newArrivals = [...normalizedProducts]
             .filter((product) => product.isNewArrival)
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -275,6 +295,7 @@ export default function Home() {
             .slice(0, 8);
 
         return [
+            ...personalizedSection,
             {
                 title: t("product.newArrival"),
                 description: t("product.freshPicks"),
@@ -295,7 +316,7 @@ export default function Home() {
             },
             allProductsSection,
         ].filter((section) => section.products.length > 0);
-    }, [filteredProducts, searchQuery, selectedCategory, t]);
+    }, [filteredProducts, recommendationSource, recommendedProducts, searchQuery, selectedCategory, t]);
 
     if (error) {
         return <ErrorState error={error} onRetry={handleRetry} />;

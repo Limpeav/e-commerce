@@ -3,6 +3,22 @@ import { normalizeProductCategory } from "../constants/productCategories.js";
 const EXPIRY_CATEGORIES = new Set(["Milk", "Bath & Skin"]);
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+export const PRODUCT_COLOR_OPTIONS = [
+  "Black",
+  "White",
+  "Gray",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Pink",
+  "Purple",
+  "Orange",
+  "Brown",
+  "Cream",
+  "Navy",
+];
+
 export const productSupportsExpiry = (category) =>
   EXPIRY_CATEGORIES.has(normalizeProductCategory(category));
 
@@ -29,7 +45,24 @@ export const formatExpiryDate = (value, options = {}) => {
   }).format(date);
 };
 
+export const parseProductColorList = (colors = "") =>
+  String(colors || "")
+    .split(",")
+    .map((color) => color.trim())
+    .filter(Boolean);
+
+export const formatProductColorList = (colors = []) =>
+  colors.map((color) => String(color || "").trim()).filter(Boolean).join(", ");
+
 export const buildProductRequestData = (form, { includeImage = false } = {}) => {
+  const colors = parseProductColorList(form.colors);
+  const colorImageEntries = colors
+    .map((color) => ({
+      color,
+      image: String(form.colorImages?.[color] || "").trim(),
+    }))
+    .filter((entry) => entry.image);
+
   const productData = {
     title: form.title,
     price: form.price,
@@ -37,12 +70,15 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     category: normalizeProductCategory(form.category),
     description: form.description,
     stock: form.stock,
+    colors: JSON.stringify(colors),
+    colorImages: JSON.stringify(colorImageEntries),
     sizeStocks: JSON.stringify(
       Array.isArray(form.sizeStocks)
         ? form.sizeStocks
             .filter((entry) => String(entry.size || "").trim())
             .map((entry) => ({
               size: String(entry.size || "").trim().toUpperCase(),
+              color: String(entry.color || "").trim(),
               stock: Math.max(0, Number.parseInt(entry.stock, 10) || 0),
               reservedStock: Math.max(0, Number.parseInt(entry.reservedStock, 10) || 0),
             }))
