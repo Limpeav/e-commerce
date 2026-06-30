@@ -6,6 +6,7 @@ import {
   hasStoredAdminSession,
   persistAdminSession,
 } from "../../../utils/adminSession.js";
+import Loading from "../../../components/common/Loading.jsx";
 import {
   Mail,
   Lock,
@@ -22,6 +23,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(() => hasStoredAdminSession());
   const [showPassword, setShowPassword] = useState(false);
   const [challengeToken, setChallengeToken] = useState("");
   const [securityCode, setSecurityCode] = useState("");
@@ -30,9 +32,11 @@ const AdminLogin = () => {
 
   useEffect(() => {
     setIsVisible(true);
+    let isMounted = true;
 
     const validateExistingAdminSession = async () => {
       if (!hasStoredAdminSession()) {
+        setCheckingSession(false);
         return;
       }
 
@@ -46,10 +50,18 @@ const AdminLogin = () => {
         clearAdminSession();
       } catch {
         clearAdminSession();
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
       }
     };
 
     validateExistingAdminSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const submitHandler = async (e) => {
@@ -91,6 +103,10 @@ const AdminLogin = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return <Loading message="Loading your portal..." fullScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-base)] flex items-center justify-center p-4 relative overflow-hidden font-sans text-[var(--color-text-main)]">

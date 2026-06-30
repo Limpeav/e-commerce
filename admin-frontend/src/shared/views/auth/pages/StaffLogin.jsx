@@ -8,6 +8,7 @@ import {
   hasStoredAdminSession,
   persistAdminSession,
 } from "../../../utils/adminSession.js";
+import Loading from "../../../components/common/Loading.jsx";
 import {
   AlertCircle,
   Eye,
@@ -59,6 +60,7 @@ const StaffLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(() => hasStoredAdminSession());
   const [showPassword, setShowPassword] = useState(false);
   const [challengeToken, setChallengeToken] = useState("");
   const [securityCode, setSecurityCode] = useState("");
@@ -69,9 +71,11 @@ const StaffLogin = () => {
 
   useEffect(() => {
     const animationFrame = requestAnimationFrame(() => setIsVisible(true));
+    let isMounted = true;
 
     const validateExistingStaffSession = async () => {
       if (!hasStoredAdminSession()) {
+        setCheckingSession(false);
         return;
       }
 
@@ -87,12 +91,19 @@ const StaffLogin = () => {
         clearAdminSession();
       } catch {
         clearAdminSession();
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
       }
     };
 
     validateExistingStaffSession();
 
-    return () => cancelAnimationFrame(animationFrame);
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(animationFrame);
+    };
   }, [navigate, portal.roles]);
 
   const submitHandler = async (event) => {
@@ -133,6 +144,10 @@ const StaffLogin = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return <Loading message="Loading your portal..." fullScreen />;
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-4 font-sans text-[var(--color-text-main)]">

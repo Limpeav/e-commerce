@@ -291,8 +291,7 @@ export default function Home() {
                 const discountA = ((Number(a.price || 0) - Number(a.discountPrice || 0)) / Math.max(Number(a.price || 1), 1)) * 100;
                 const discountB = ((Number(b.price || 0) - Number(b.discountPrice || 0)) / Math.max(Number(b.price || 1), 1)) * 100;
                 return discountB - discountA;
-            })
-            .slice(0, 8);
+            });
 
         return [
             ...personalizedSection,
