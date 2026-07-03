@@ -17,6 +17,7 @@ import {
   buildDefaultSizeStocks,
   getSizeStocksTotal,
   isSizedProduct,
+  productSupportsColorOptions,
 } from "../../../utils/productOptions";
 import {
   ArrowLeft,
@@ -69,7 +70,7 @@ const AddProduct = () => {
 
     if (name === "category") {
       setForm((currentForm) => {
-        const shouldShowColorOptions = isSizedProduct({ category: value });
+        const shouldShowColorOptions = productSupportsColorOptions({ category: value });
         const nextColors = shouldShowColorOptions
           ? parseProductColorList(currentForm.colors)
           : [];
@@ -596,7 +597,7 @@ const AddProduct = () => {
                 </div>
               )}
 
-              {isSizedProduct(form) && (
+              {productSupportsColorOptions(form) && (
                 <>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-3">

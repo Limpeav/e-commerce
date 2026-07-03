@@ -198,7 +198,7 @@ const ProductPurchaseActions = ({
                   disabled={isUnavailable}
                   className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-black transition-all active:scale-95 ${
                     isSelected
-                      ? "border-primary bg-primary text-white shadow-md"
+                      ? "border-[#DBDBDB] bg-[#DBDBDB] text-stone-900 shadow-md"
                       : isUnavailable
                         ? isDark
                           ? "cursor-not-allowed border-slate-800 bg-slate-950 text-slate-600 line-through"

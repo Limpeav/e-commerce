@@ -975,35 +975,35 @@ const AdminOrders = ({ renderDelivery }) => {
             </div>
 
             {/* Orders Table */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm ring-1 ring-black/[0.02]">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full border-separate border-spacing-0">
+                        <thead className="bg-[var(--color-primary-dark)]">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Order ID
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Customer
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Date
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Total
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Payment
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white">
                             {filteredOrders.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-12 text-center">
@@ -1017,33 +1017,33 @@ const AdminOrders = ({ renderDelivery }) => {
 
                                     return (
                                         <Fragment key={group.dateKey}>
-                                            <tr className="bg-gray-50">
-                                                <td colSpan="7" className="px-6 py-3">
+                                            <tr className="bg-[var(--color-surface-soft)]">
+                                                <td colSpan="7" className="border-y border-[var(--color-border)] px-6 py-3">
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleOrderDate(group.dateKey)}
-                                                        className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        className="flex w-full items-center justify-between gap-4 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:border-[var(--color-border)] hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                                                         aria-expanded={isExpanded}
                                                     >
                                                         <span className="flex min-w-0 items-center gap-3">
-                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[var(--color-primary-dark)] shadow-sm ring-1 ring-[var(--color-border)]">
                                                                 <CalendarDays className="h-4 w-4" />
                                                             </span>
                                                             <span className="min-w-0">
-                                                                <span className="block text-sm font-bold text-gray-900">
+                                                                <span className="block text-sm font-bold text-[var(--color-text-main)]">
                                                                     {group.label}
                                                                 </span>
-                                                                <span className="block text-xs text-gray-500">
+                                                                <span className="block text-xs font-medium text-[var(--color-text-muted)]">
                                                                     {group.orders.length} {group.orders.length === 1 ? "order" : "orders"} on this day
                                                                 </span>
                                                             </span>
                                                         </span>
                                                         <span className="flex shrink-0 items-center gap-4">
-                                                            <span className="hidden text-sm font-semibold text-gray-900 sm:inline">
+                                                            <span className="hidden rounded-full bg-white px-3 py-1 text-sm font-bold text-[var(--color-text-main)] shadow-sm ring-1 ring-[var(--color-border)] sm:inline">
                                                                 ${group.total.toFixed(2)}
                                                             </span>
                                                             <ChevronDown
-                                                                className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                                                className={`h-5 w-5 text-[var(--color-primary-dark)] transition-transform ${isExpanded ? "rotate-180" : ""}`}
                                                             />
                                                         </span>
                                                     </button>
@@ -1060,9 +1060,9 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         }
                                                     }}
                                                     tabIndex={0}
-                                                    className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                                    className="cursor-pointer border-l-4 border-l-transparent bg-white transition-colors hover:border-l-[var(--color-secondary)] hover:bg-[var(--color-secondary-light)]/45 focus:border-l-[var(--color-secondary)] focus:bg-[var(--color-secondary-light)]/45 focus:outline-none"
                                                 >
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
                                                         <span className="inline-flex items-center gap-2 text-sm font-mono text-gray-900">
                                                             {order.paymentStatus === "Paid" &&
                                                                 normalizeOrderStatus(order.orderStatus) === "Delivered" &&
@@ -1078,7 +1078,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             <span>#{order._id.slice(-8)}</span>
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
                                                         {order.user ? (
                                                             <>
                                                                 <div className="text-sm text-gray-900">
@@ -1099,13 +1099,13 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             </>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {new Date(order.createdAt).toLocaleDateString()}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                                                         ${order.totalPrice?.toFixed(2) || "0.00"}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
                                                         <span
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentColor(
                                                                 getDisplayPaymentStatus(order)
@@ -1114,7 +1114,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             {getDisplayPaymentStatus(order)}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
                                                         <span
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                                                                 order.orderStatus
@@ -1124,7 +1124,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             {getStatusLabel(order.orderStatus)}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
                                                             {isSeller &&
                                                                 normalizeOrderStatus(order.orderStatus) === "Pending" &&

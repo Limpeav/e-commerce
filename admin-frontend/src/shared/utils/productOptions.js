@@ -32,6 +32,11 @@ export const isSizedProduct = (product = {}) => {
   return category === "Clothing" || category === "Shoes";
 };
 
+export const productSupportsColorOptions = (product = {}) => {
+  const category = normalizeProductCategory(product.category);
+  return isSizedProduct(product) || category === "Furniture";
+};
+
 export const getDefaultSizesForCategory = (category = "") => {
   const normalizedCategory = normalizeProductCategory(category);
   if (normalizedCategory === "Shoes") return BABY_SHOE_SIZES;
