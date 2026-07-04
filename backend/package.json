@@ -4,13 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test 'tests/**/*.test.js'",
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "admin:bootstrap": "node createAdmin.js",
-    "normalize:categories": "node scripts/normalizeProductCategories.js",
-    "backfill:expiry": "node scripts/backfillExpiryDates.js",
-    "translate:khmer": "node scripts/translateMissingProductsToKhmer.js"
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
@@ -41,6 +37,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "supertest": "^7.2.2"
   }
 }

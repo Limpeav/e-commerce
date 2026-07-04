@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
     Camera,
@@ -9,184 +9,54 @@ import {
     CreditCard,
     Calendar,
     DollarSign,
-    Truck,
     CheckCircle,
     ExternalLink,
     Image as ImageIcon,
     Navigation,
     Phone,
     Printer,
-    Loader2,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
-import {
-    getPortalOrdersPath,
-    getStoredAdminUser,
-} from "../../../utils/adminSession";
-import {
-    joinOrderRoom,
-    subscribeRealtimeEvent,
-} from "../../../services/realtime";
+import { getPortalOrdersPath, getStoredAdminUser } from "../../../utils/adminSession";
+import OrderStatusUpdater from "./OrderStatusUpdater";
+import PaymentInfoCard from "./PaymentInfoCard";
 
 const OrderDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [uploadingProof, setUploadingProof] = useState(false);
     const [sendingReceipt, setSendingReceipt] = useState(false);
-    const [receiptNotice, setReceiptNotice] = useState("");
-    const receiptNoticeTimeoutRef = useRef(null);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
     const ordersPath = getPortalOrdersPath(adminUser);
-    const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
-    const returnTo =
-        typeof location.state?.returnTo === "string" &&
-        (location.state.returnTo === "/admin" ||
-            location.state.returnTo.startsWith(ordersPath))
-            ? location.state.returnTo
-            : ordersPath;
 
-    const cacheDeliveryOrder = useCallback((updatedOrder) => {
-        if (!isDelivery || !updatedOrder?._id) {
-            return;
-        }
-
-        try {
-            const cacheKey = "adminDeliveryOrdersCache";
-            const cachedOrders = JSON.parse(sessionStorage.getItem(cacheKey) || "[]");
-            if (!Array.isArray(cachedOrders)) {
-                return;
-            }
-
-            sessionStorage.setItem(
-                cacheKey,
-                JSON.stringify(
-                    cachedOrders.map((cachedOrder) =>
-                        cachedOrder._id === updatedOrder._id
-                            ? {
-                                ...cachedOrder,
-                                ...updatedOrder,
-                                user: updatedOrder.user || cachedOrder.user,
-                            }
-                            : cachedOrder
-                    )
-                )
-            );
-        } catch {
-            // Cache is only a convenience for smoother back navigation.
-        }
-    }, [isDelivery]);
-
-    const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
-        if (!silent) {
-            setLoading(true);
-        }
+    const fetchOrderDetails = useCallback(async () => {
+        setLoading(true);
         const result = await AdminController.getOrderById(id);
 
         if (result.success) {
             setOrder(result.data);
-            cacheDeliveryOrder(result.data);
             setError(null);
         } else {
             setError(result.error || "Failed to fetch order details");
         }
 
-        if (!silent) {
-            setLoading(false);
-        }
-    }, [cacheDeliveryOrder, id]);
+        setLoading(false);
+    }, [id]);
 
     useEffect(() => {
         fetchOrderDetails();
     }, [fetchOrderDetails]);
 
-    useEffect(() => {
-        return () => {
-            if (receiptNoticeTimeoutRef.current) {
-                window.clearTimeout(receiptNoticeTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    useEffect(() => {
-        const patchCurrentOrder = (payload = {}) => {
-            if (payload.orderId && payload.orderId !== id) {
-                return;
-            }
-
-            if (!payload.orderId) {
-                fetchOrderDetails({ silent: true });
-                return;
-            }
-
-            setOrder((currentOrder) => {
-                if (!currentOrder) {
-                    return currentOrder;
-                }
-
-                const updatedOrder = {
-                    ...currentOrder,
-                    ...Object.fromEntries(
-                        Object.entries({
-                            orderStatus: payload.orderStatus,
-                            paymentStatus: payload.paymentStatus,
-                            isPaid: payload.isPaid,
-                            isDelivered: payload.isDelivered,
-                            processedAt: payload.processedAt,
-                            shippedAt: payload.shippedAt,
-                            deliveredAt: payload.deliveredAt,
-                            receiptSent: payload.receiptSent,
-                            orderItems: payload.orderItems,
-                            shippingAddress: payload.shippingAddress,
-                            paymentMethod: payload.paymentMethod,
-                            taxPrice: payload.taxPrice,
-                            shippingPrice: payload.shippingPrice,
-                            totalPrice: payload.totalPrice,
-                            deliveryProof: payload.deliveryProof,
-                            updatedAt: payload.updatedAt,
-                        }).filter(([, value]) => value !== undefined)
-                    ),
-                };
-
-                cacheDeliveryOrder(updatedOrder);
-                return updatedOrder;
-            });
-        };
-
-        const leaveOrderRoom = joinOrderRoom(id);
-        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", patchCurrentOrder);
-        const unsubscribeCreated = subscribeRealtimeEvent("order:created", patchCurrentOrder);
-
-        return () => {
-            leaveOrderRoom();
-            unsubscribeUpdated();
-            unsubscribeCreated();
-        };
-    }, [cacheDeliveryOrder, fetchOrderDetails, id]);
-
-    const handleBackToOrders = () => {
-        if (shouldReturnToDeliveryHistory) {
-            navigate(-1);
-            return;
-        }
-
-        navigate(returnTo);
-    };
-
     const handleStatusUpdate = async (newStatus) => {
-        if (newStatus === "Delivered" && !order?.deliveryProof?.imageUrl) {
-            alert("Please take or upload a delivery proof photo before marking this order as delivered.");
-            return;
-        }
-
         setUpdating(true);
         const result = await AdminController.updateOrderStatus(id, newStatus);
 
@@ -196,16 +66,8 @@ const OrderDetails = () => {
             return;
         }
 
-        setOrder((currentOrder) => {
-            const updatedOrder = {
-                ...currentOrder,
-                ...result.data,
-                user: result.data?.user || currentOrder?.user,
-                orderStatus: result.data?.orderStatus || newStatus,
-            };
-            cacheDeliveryOrder(updatedOrder);
-            return updatedOrder;
-        });
+        await fetchOrderDetails();
+        window.dispatchEvent(new Event("admin-orders-updated"));
         setUpdating(false);
     };
 
@@ -254,7 +116,6 @@ const OrderDetails = () => {
         }
 
         setOrder(result.data);
-        cacheDeliveryOrder(result.data);
         window.dispatchEvent(new Event("admin-orders-updated"));
         setUploadingProof(false);
     };
@@ -265,7 +126,6 @@ const OrderDetails = () => {
             Paid: "bg-green-100 text-green-800 border-green-300",
             Failed: "bg-red-100 text-red-800 border-red-300",
             Refunded: "bg-orange-100 text-orange-800 border-orange-300",
-            Cancelled: "bg-orange-50 text-orange-800 border-orange-200",
         };
         return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
     };
@@ -283,8 +143,7 @@ const OrderDetails = () => {
 
         if (normalized === "pending") return "Pending";
         if (normalized === "processing") return "Processing";
-        // Legacy orders used "Shipped" for the active delivery stage.
-        if (normalized === "shipped") return "Processing";
+        if (normalized === "shipped") return "Shipped";
         if (normalized === "delivered") return "Delivered";
 
         return trimmedStatus;
@@ -293,9 +152,14 @@ const OrderDetails = () => {
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "bg-green-100 text-green-800 border-green-300";
+        }
+
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
             Processing: "bg-blue-100 text-blue-800 border-blue-300",
+            Shipped: "bg-purple-100 text-purple-800 border-purple-300",
             Delivered: "bg-green-100 text-green-800 border-green-300",
             Cancelled: "",
         };
@@ -319,15 +183,15 @@ const OrderDetails = () => {
     const getOrderStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "Confirmed";
+        }
+
         return normalizedStatus;
     };
 
-    const getDisplayPaymentStatus = (currentOrder) =>
-        normalizeOrderStatus(currentOrder?.orderStatus) === "Cancelled"
-            ? "Cancelled"
-            : currentOrder?.paymentStatus || "Pending";
-
-    const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatUSD = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatCurrency = formatUSD;
 
     const getDeliveryFee = (currentOrder) => {
         const storedFee = Number(currentOrder?.shippingPrice || 0);
@@ -336,7 +200,6 @@ const OrderDetails = () => {
 
     const formatAddress = (shippingAddress = {}) =>
         [
-            shippingAddress.street,
             shippingAddress.address,
             shippingAddress.city,
             shippingAddress.postalCode,
@@ -369,7 +232,7 @@ const OrderDetails = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
                     <p className="text-red-800">{error || "Order not found"}</p>
                     <button
-                        onClick={handleBackToOrders}
+                        onClick={() => navigate(ordersPath)}
                         className="mt-4 text-blue-600 hover:text-blue-800"
                     >
                         ← Back to Orders
@@ -391,16 +254,17 @@ const OrderDetails = () => {
     const fullAddress = formatAddress(order.shippingAddress);
     const displayOrderId = order._id.slice(-8);
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
-    const currentProgressStatus = currentOrderStatus;
+    const currentProgressStatus =
+        !isDelivery && currentOrderStatus === "Shipped" ? "Confirmed" : currentOrderStatus;
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
     const orderProgressStatuses = isDelivery
         ? ["Delivered"]
-        : ["Pending", "Processing", "Delivered"];
+        : ["Pending", "Confirmed", "Delivered"];
     const availableOrderActionStatuses = isDelivery
         ? [{ label: "Delivered", value: "Delivered" }]
         : [
             { label: "Pending", value: "Pending" },
-            { label: "Processing", value: "Processing" },
+            { label: "Confirmed", value: "Shipped" },
             { label: "Delivered", value: "Delivered" },
         ];
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid"];
@@ -413,14 +277,6 @@ const OrderDetails = () => {
     const phoneHref = order.shippingAddress?.phone
         ? `tel:${String(order.shippingAddress.phone).replace(/\s/g, "")}`
         : "";
-    const deliveryBusyMessage =
-        isDelivery && uploadingProof
-            ? "Uploading delivery proof..."
-            : isDelivery && updating
-                ? "Saving delivery update..."
-                : isDelivery && sendingReceipt
-                    ? "Sending receipt..."
-                    : "";
     const summaryRows = [
         ["Order ID", `#${displayOrderId}`],
         ["Customer Name", customerName],
@@ -467,14 +323,7 @@ const OrderDetails = () => {
                 await fetchOrderDetails();
             }
             window.dispatchEvent(new Event("admin-orders-updated"));
-            setReceiptNotice("Receipt photo sent to Telegram.");
-            if (receiptNoticeTimeoutRef.current) {
-                window.clearTimeout(receiptNoticeTimeoutRef.current);
-            }
-            receiptNoticeTimeoutRef.current = window.setTimeout(() => {
-                setReceiptNotice("");
-                receiptNoticeTimeoutRef.current = null;
-            }, 3500);
+            alert("Receipt photo sent to Telegram.");
         } catch (sendError) {
             alert(sendError.message || "Failed to send receipt to Telegram");
         } finally {
@@ -482,165 +331,8 @@ const OrderDetails = () => {
         }
     };
 
-    const renderOrderStatusSection = () => (
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                <Truck className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                Update Order Status
-            </h2>
-            <div
-                className={`mb-5 grid gap-2 ${
-                    orderProgressStatuses.length === 2
-                        ? "grid-cols-2"
-                        : orderProgressStatuses.length === 5
-                            ? "grid-cols-5"
-                            : "grid-cols-4"
-                }`}
-            >
-                {orderProgressStatuses.map((status, index) => {
-                    const isActive = currentProgressStatus === status;
-                    const isPast =
-                        orderProgressStatuses.indexOf(currentProgressStatus) >= index &&
-                        currentOrderStatus !== "Cancelled";
-
-                    return (
-                        <div key={status} className="min-w-0">
-                            <div
-                                className={`h-2 rounded-full ${isActive || isPast ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-soft)]"}`}
-                            />
-                            <p className="mt-2 truncate text-center text-[11px] font-bold text-[var(--color-text-muted)]">
-                                {status}
-                            </p>
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-                {availableOrderActionStatuses.map(
-                    ({ label, value }) => {
-                        const isCurrent = currentOrderStatus === value;
-                        const requiresDeliveryProof =
-                            value === "Delivered" && !order.deliveryProof?.imageUrl;
-
-                        return (
-                        <button
-                            key={label}
-                            onClick={() => handleStatusUpdate(value)}
-                            disabled={updating || isCurrent || requiresDeliveryProof}
-                            aria-label={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : requiresDeliveryProof
-                                        ? "Upload a delivery proof photo before marking as delivered"
-                                    : `Mark order as ${label}`
-                            }
-                            title={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : requiresDeliveryProof
-                                        ? "Take or upload a delivery proof photo first"
-                                    : `Mark as ${label}`
-                            }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || requiresDeliveryProof
-                                ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
-                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                }`}
-                        >
-                            {isCurrent ? (
-                                <span className="flex items-center justify-center">
-                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                    {label}
-                                </span>
-                            ) : updating ? (
-                                <span className="flex items-center justify-center">
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-                                    Updating...
-                                </span>
-                            ) : requiresDeliveryProof ? (
-                                "Photo Required"
-                            ) : (
-                                `Mark as ${label}`
-                            )}
-                        </button>
-                        );
-                    }
-                )}
-            </div>
-        </section>
-    );
-
-    const renderSellerConfirmationSection = () => {
-        if (!isSeller || currentOrderStatus !== "Pending") {
-            return null;
-        }
-
-        const receiptWasSent = Boolean(order.receiptSent?.sentAt);
-        const isWaitingForBakongPayment =
-            order.paymentMethod === "BAKONG_KHQR" && order.paymentStatus !== "Paid";
-
-        return (
-            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                <h2 className="mb-2 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                    <CheckCircle className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                    Confirm Order
-                </h2>
-                <p className="mb-4 text-sm font-medium text-[var(--color-text-muted)]">
-                    {isWaitingForBakongPayment
-                        ? "Waiting for the customer's BAKONG payment to be verified."
-                        : receiptWasSent
-                        ? "The receipt was sent. Confirm this order to hand it to delivery."
-                        : "Print and send the receipt before confirming this order."}
-                </p>
-                {isWaitingForBakongPayment ? (
-                    <button
-                        type="button"
-                        disabled
-                        className="inline-flex h-11 w-full cursor-not-allowed items-center justify-center rounded-lg bg-[var(--color-surface-soft)] px-4 font-bold text-[var(--color-text-muted)]"
-                    >
-                        Waiting for Payment
-                    </button>
-                ) : receiptWasSent ? (
-                    <button
-                        type="button"
-                        onClick={() => handleStatusUpdate("Processing")}
-                        disabled={updating}
-                        className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-green-600 px-4 font-bold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {updating ? "Confirming..." : "Confirm Order"}
-                    </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={handleSendReceiptToTelegram}
-                        disabled={sendingReceipt}
-                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 font-bold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <Printer className="h-4 w-4" />
-                        {sendingReceipt ? "Sending..." : "Print Receipt"}
-                    </button>
-                )}
-            </section>
-        );
-    };
-
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
-            {deliveryBusyMessage && (
-                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 px-6 backdrop-blur-[2px]">
-                    <div className="flex min-h-28 w-full max-w-xs flex-col items-center justify-center gap-3 rounded-2xl bg-white p-6 text-center shadow-2xl">
-                        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-                        <p className="text-sm font-black text-[var(--color-text-main)]">
-                            {deliveryBusyMessage}
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {receiptNotice && (
-                <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
-                    {receiptNotice}
-                </div>
-            )}
             {/* Header */}
             <div className={`border-b border-[var(--color-border)] bg-[var(--color-bg-card)] ${
                 isDelivery ? "sticky top-0 z-30 shadow-sm" : ""
@@ -651,7 +343,7 @@ const OrderDetails = () => {
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
-                                onClick={handleBackToOrders}
+                                onClick={() => navigate(ordersPath)}
                                 className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
                                 aria-label="Back to orders"
                             >
@@ -661,13 +353,18 @@ const OrderDetails = () => {
                                 <h1 className="text-2xl font-black leading-tight text-[var(--color-text-main)] sm:text-4xl">
                                     Order #{displayOrderId}
                                 </h1>
+                                {isDelivery && (
+                                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                                        {customerName} · <Price amount={displayedTotal} />
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                             <div
-                                className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
+                                className={`rounded-lg border px-4 py-2 ${getPaymentStatusColor(order.paymentStatus)}`}
                             >
-                                <span className="text-sm font-bold">Payment: {getDisplayPaymentStatus(order)}</span>
+                                <span className="text-sm font-bold">Payment: {order.paymentStatus}</span>
                             </div>
                             <div
                                 className={`rounded-lg border px-4 py-2 ${getStatusColor(order.orderStatus)}`}
@@ -768,15 +465,14 @@ const OrderDetails = () => {
                                             <div className="min-w-0 self-center">
                                                 <h3 className="font-bold leading-snug text-[var(--color-text-main)]">{item.name}</h3>
                                                 <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                                    Quantity {item.quantity} · {formatCurrency(item.price)} each
+                                                    Quantity {item.quantity} · <Price amount={item.price} /> each
                                                     {item.size ? ` · Size ${item.size}` : ""}
-                                                    {item.color ? ` · Color ${item.color}` : ""}
                                                 </p>
                                             </div>
                                             <div className="col-span-2 flex items-center justify-between rounded-lg bg-[var(--color-surface-soft)] px-4 py-3 sm:col-span-1 sm:block sm:self-center sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
                                                 <p className="text-sm font-medium text-[var(--color-text-muted)] sm:hidden">Line total</p>
                                                 <p className="font-bold text-[var(--color-text-main)]">
-                                                    {formatCurrency(item.price * item.quantity)}
+                                                    <Price amount={item.price * item.quantity} />
                                                 </p>
                                             </div>
                                         </div>
@@ -794,9 +490,8 @@ const OrderDetails = () => {
                                 <div className="grid gap-4 text-[var(--color-text-muted)] md:grid-cols-[minmax(0,1fr)_auto]">
                                     <div className="space-y-1 leading-7">
                                         <p className="font-bold text-[var(--color-text-main)]">{order.shippingAddress.fullName}</p>
-                                        {order.shippingAddress.street && <p>{order.shippingAddress.street}</p>}
-                                        {order.shippingAddress.address && <p>{order.shippingAddress.address}</p>}
-                                        {order.shippingAddress.city && <p>{order.shippingAddress.city}</p>}
+                                        <p>{order.shippingAddress.address}</p>
+                                        <p>{order.shippingAddress.city}</p>
                                         {order.shippingAddress.postalCode && (
                                             <p>{order.shippingAddress.postalCode}</p>
                                         )}
@@ -827,34 +522,12 @@ const OrderDetails = () => {
                         )}
 
                         {!isDelivery && (
-                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Payment Information
-                                </h2>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Method</p>
-                                        <p className="mt-1 font-bold text-[var(--color-text-main)]">{order.paymentMethod || "N/A"}</p>
-                                    </div>
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
-                                        <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
-                                        >
-                                            {getDisplayPaymentStatus(order)}
-                                        </span>
-                                    </div>
-                                    {order.isPaid && (
-                                        <div className="rounded-lg bg-[var(--color-surface-soft)] p-4 sm:col-span-2">
-                                            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
-                                            <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                                                {new Date(order.paidAt).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                            <PaymentInfoCard
+                                paymentMethod={order.paymentMethod}
+                                paymentStatus={order.paymentStatus}
+                                isPaid={order.isPaid}
+                                paidAt={order.paidAt}
+                            />
                         )}
 
                         {!isDelivery && (
@@ -885,19 +558,19 @@ const OrderDetails = () => {
                                     <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
                                         <div className="flex justify-between gap-4">
                                             <span>Subtotal:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(subtotal)}</span>
+                                            <Price amount={subtotal} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span>Delivery Fee:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(deliveryFee)}</span>
+                                            <Price amount={deliveryFee} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span>Tax:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
+                                            <Price amount={taxPrice} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
                                             <span>Total:</span>
-                                            <span>{formatCurrency(displayedTotal)}</span>
+                                            <Price amount={displayedTotal} className="text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                     </div>
                                 </div>
@@ -914,47 +587,31 @@ const OrderDetails = () => {
                                     Customer
                                 </h2>
                                 <div className="flex items-center gap-3">
-                                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
-                                        order.user
-                                            ? "bg-[var(--color-primary)] text-white"
-                                            : "bg-gray-100 text-gray-500"
-                                    }`}>
-                                        {order.user
-                                            ? (order.user.name || customerName || "C").charAt(0).toUpperCase()
-                                            : "D"}
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)] text-lg font-bold text-white">
+                                        {(customerName || "N").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
-                                        {order.user ? (
-                                            <>
-                                                <p className="truncate font-bold text-[var(--color-text-main)]">
-                                                    {order.user.name || customerName}
-                                                </p>
-                                                <p className="truncate text-sm text-[var(--color-text-muted)]">
-                                                    {order.user.email || "Email unavailable"}
-                                                </p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="truncate font-bold text-[var(--color-text-main)]">
-                                                    Deleted Customer
-                                                </p>
-                                                <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500">
-                                                    Account deleted
-                                                </span>
-                                            </>
-                                        )}
+                                        <p className="truncate font-bold text-[var(--color-text-main)]">{order.user?.name || customerName}</p>
+                                        <p className="truncate text-sm text-[var(--color-text-muted)]">{order.user?.email || "N/A"}</p>
                                     </div>
                                 </div>
                             </section>
                         )}
 
                         {/* Update Order Status */}
-                        {canManageOrderStatus && !isDelivery && renderOrderStatusSection()}
-                        {renderSellerConfirmationSection()}
+                        {canManageOrderStatus && !isDelivery && (
+                            <OrderStatusUpdater
+                                orderProgressStatuses={orderProgressStatuses}
+                                currentProgressStatus={currentProgressStatus}
+                                currentOrderStatus={currentOrderStatus}
+                                availableOrderActionStatuses={availableOrderActionStatuses}
+                                updating={updating}
+                                onStatusUpdate={handleStatusUpdate}
+                            />
+                        )}
 
                         {/* Update Payment Status */}
-                        {(adminUser?.role === "admin" ||
-                            order.paymentMethod === "Cash on Delivery") && (
+                        {(!isDelivery || order.paymentMethod === "Cash on Delivery") && (
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
                                 <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
@@ -991,11 +648,6 @@ const OrderDetails = () => {
                                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
                                                     {paymentStatus}
                                                 </span>
-                                            ) : updating ? (
-                                                <span className="flex items-center justify-center">
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-                                                    Updating...
-                                                </span>
                                             ) : (
                                                 `Mark as ${paymentStatus}`
                                             )}
@@ -1007,34 +659,13 @@ const OrderDetails = () => {
                         )}
 
                         {isDelivery && (
-                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Payment Information
-                                </h2>
-                                <div className="grid gap-3">
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Method</p>
-                                        <p className="mt-1 font-bold text-[var(--color-text-main)]">{order.paymentMethod || "N/A"}</p>
-                                    </div>
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
-                                        <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
-                                        >
-                                            {getDisplayPaymentStatus(order)}
-                                        </span>
-                                    </div>
-                                    {order.isPaid && (
-                                        <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
-                                            <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                                                {new Date(order.paidAt).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                            <PaymentInfoCard
+                                paymentMethod={order.paymentMethod}
+                                paymentStatus={order.paymentStatus}
+                                isPaid={order.isPaid}
+                                paidAt={order.paidAt}
+                                isDelivery
+                            />
                         )}
 
                         {/* Delivery Proof */}
@@ -1078,11 +709,7 @@ const OrderDetails = () => {
                                         ? "cursor-wait bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                         : "cursor-pointer bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                 }`}>
-                                    {uploadingProof ? (
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                    ) : (
-                                        <Camera className="h-5 w-5" />
-                                    )}
+                                    <Camera className="h-5 w-5" />
                                     {uploadingProof ? "Uploading..." : order.deliveryProof?.imageUrl ? "Retake Photo" : "Take a Photo"}
                                     <input
                                         type="file"
@@ -1169,12 +796,8 @@ const OrderDetails = () => {
                                 ? "bg-gray-100 text-gray-400"
                                 : "bg-gray-950 text-white"
                         }`}>
-                            {uploadingProof ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                                <Camera className="h-5 w-5" />
-                            )}
-                            {uploadingProof ? "Uploading" : "Photo"}
+                            <Camera className="h-5 w-5" />
+                            Photo
                             <input
                                 type="file"
                                 accept="image/*"
@@ -1187,30 +810,15 @@ const OrderDetails = () => {
                         <button
                             type="button"
                             onClick={() => handleStatusUpdate("Delivered")}
-                            disabled={
-                                updating ||
-                                currentOrderStatus === "Delivered" ||
-                                !order.deliveryProof?.imageUrl
-                            }
-                            title={
-                                !order.deliveryProof?.imageUrl
-                                    ? "Take or upload a delivery proof photo first"
-                                    : "Mark order as delivered"
-                            }
+                            disabled={updating || currentOrderStatus === "Delivered"}
                             className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
                                 currentOrderStatus === "Delivered"
                                     ? "bg-green-100 text-green-700"
-                                    : !order.deliveryProof?.imageUrl
-                                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
                                     : "bg-green-600 text-white"
                             }`}
                         >
-                            {updating ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                                <CheckCircle className="h-5 w-5" />
-                            )}
-                            {updating ? "Saving..." : order.deliveryProof?.imageUrl ? "Done" : "Photo First"}
+                            <CheckCircle className="h-5 w-5" />
+                            Done
                         </button>
                     </div>
                 </div>

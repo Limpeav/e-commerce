@@ -24,6 +24,7 @@ import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
+import Price from "../../components/shared/Price";
 import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime";
 import { useDarkMode } from "../../hooks";
 
@@ -320,13 +321,13 @@ const OrderDetail = () => {
                   {getLocalizedOrderItemName(item, language)}
                 </p>
                 <p className="text-sm text-text-muted">
-                  {t("orderDetail.qty")} {item.quantity} · {formatCurrency(item.price)}
+                  {t("orderDetail.qty")} {item.quantity} · <Price amount={item.price} />
                   {item.size ? ` · ${t("orderDetail.size")} ${item.size}` : ""}
                   {item.color ? ` · Color ${item.color}` : ""}
                 </p>
               </div>
               <div className="font-semibold text-text-main">
-                {formatCurrency(item.price * item.quantity)}
+                <Price amount={item.price * item.quantity} />
               </div>
             </div>
           ))}
@@ -407,36 +408,30 @@ const OrderDetail = () => {
           <div className="space-y-2 text-sm text-text-muted">
             <div className="flex justify-between">
               <span>{t("orderDetail.subtotal")}</span>
-              <span className="font-semibold text-text-main">
-                {formatCurrency(
-                  order.totalPrice -
-                  (order.taxPrice || 0) -
-                  (order.shippingPrice || 0)
-                )}
-              </span>
+              <Price
+                amount={order.totalPrice - (order.taxPrice || 0) - (order.shippingPrice || 0)}
+                className="font-semibold text-text-main"
+                usdClassName="text-text-main"
+              />
             </div>
             <div className="flex justify-between">
               <span>{t("orderDetail.shipping")}</span>
               <span className="font-semibold text-text-main">
                 {order.shippingPrice > 0
-                  ? formatCurrency(order.shippingPrice)
+                  ? <Price amount={order.shippingPrice} usdClassName="text-text-main" />
                   : t("orderDetail.free")}
               </span>
             </div>
             {order.taxPrice > 0 && (
               <div className="flex justify-between">
                 <span>{t("orderDetail.tax")}</span>
-                <span className="font-semibold text-text-main">
-                  {formatCurrency(order.taxPrice)}
-                </span>
+                <Price amount={order.taxPrice} className="font-semibold text-text-main" usdClassName="text-text-main" />
               </div>
             )}
             <div className={`h-px my-2 ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`} />
             <div className="flex justify-between text-base">
               <span className="font-semibold text-text-main">{t("orderDetail.total")}</span>
-              <span className="font-bold text-text-main">
-                {formatCurrency(order.totalPrice)}
-              </span>
+              <Price amount={order.totalPrice} className="font-bold text-text-main" usdClassName="text-text-main" />
             </div>
           </div>
         </div>

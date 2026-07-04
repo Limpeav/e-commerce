@@ -10,6 +10,7 @@ import { useDarkMode } from "../hooks";
 import { useLanguage } from "./useLanguage";
 import { getEffectiveCartProductPrice, getValidCartItems } from "../utils/checkout";
 import { getCartItemKey, getProductImageForColor } from "../utils/productOptions";
+import Price from "../components/shared/Price";
 import { withGlobalLoading } from "../services/loadingIndicator";
 
 const isPortalRoute = (pathname = "") =>
@@ -433,17 +434,13 @@ const CartPreviewDrawer = ({
                       <div className="mt-2 space-y-1 sm:mt-3">
                         {hasDiscount && (
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-text-muted line-through">
-                              ${(originalPrice * item.quantity).toFixed(2)}
-                            </span>
+                            <Price amount={originalPrice * item.quantity} showKHR={false} className="text-xs font-bold text-text-muted line-through" />
                             <span className="rounded-full bg-[#FF3B30] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-sm shadow-[#FF3B30]/30">
                               {t("cart.discountOff", { percent: discountPercent })}
                             </span>
                           </div>
                         )}
-                        <p className="text-sm font-black text-primary">
-                          ${(price * item.quantity).toFixed(2)}
-                        </p>
+                        <Price amount={price * item.quantity} className="text-sm font-black text-primary" usdClassName="text-primary" />
                       </div>
                     </div>
 
@@ -474,7 +471,7 @@ const CartPreviewDrawer = ({
             <div className="space-y-2 text-sm sm:space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-text-muted">{t("cart.subtotal")}</span>
-                <span className="font-black text-text-main">${subtotal.toFixed(2)}</span>
+                <Price amount={subtotal} className="font-black text-text-main" usdClassName="text-text-main" />
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-bold text-text-muted">{t("cart.shipping")}</span>
@@ -484,7 +481,7 @@ const CartPreviewDrawer = ({
 
             <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 dark:border-slate-800 sm:mt-5 sm:pt-4">
               <span className="font-display text-lg font-black text-text-main">{t("cart.total")}</span>
-              <span className="font-display text-xl font-black text-text-main">${subtotal.toFixed(2)}</span>
+              <Price amount={subtotal} className="font-display text-xl font-black text-text-main" usdClassName="text-text-main" />
             </div>
 
             <Link

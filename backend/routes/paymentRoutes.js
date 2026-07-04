@@ -9,6 +9,7 @@ import {
     getAllPayments,
     confirmPayment,
 } from "../controllers/paymentController.js";
+import { getExchangeRate } from "../controllers/settingsController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -20,6 +21,7 @@ const paymentWebhookLimiter = rateLimit({
 });
 
 // Public routes
+router.get("/exchange-rate", getExchangeRate);
 router.post("/bakong/verify", paymentWebhookLimiter, verifyBakongPayment);
 
 // Protected routes (User)

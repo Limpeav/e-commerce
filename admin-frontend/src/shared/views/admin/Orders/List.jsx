@@ -1,190 +1,47 @@
-import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Fragment, useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     CalendarDays,
     ChevronDown,
     CheckCircle,
     Package,
+    Trash2,
     Search,
     Filter,
-    Eye,
-    MapPin,
-    Navigation,
-    Phone,
     Printer,
-    LogOut,
-    Loader2,
 } from "lucide-react";
-import { OrderController } from "../../../controllers";
+import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
+import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import {
-    clearAdminSession,
-    getPortalLoginPath,
-    getPortalOrderDetailsPath,
-    getStoredAdminUser,
-} from "../../../utils/adminSession";
-import {
-    disconnectRealtime,
-    subscribeRealtimeDomains,
-    subscribeRealtimeEvent,
-} from "../../../services/realtime";
+  getStatusColor, getStatusStyle, getStatusLabel, getPaymentColor,
+  getOrderDateKey, formatOrderDate, formatUSD, formatPhoneNumber,
+  formatDeliveryAddress, formatFullAddress, getDeliveryFee,
+} from "../../../utils/orderUtils";
+import DeliveryOrderCard from "./DeliveryOrderCard";
 
-const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
-const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
-const DELIVERY_ORDERS_VIEW_STATE_KEY = "adminDeliveryOrdersViewState";
+const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
 
-const readCachedDeliveryOrders = () => {
-    try {
-        const cachedOrders = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_CACHE_KEY) || "[]");
-        return Array.isArray(cachedOrders) ? cachedOrders : [];
-    } catch {
-        return [];
-    }
-};
-
-const readCachedDeliveryViewState = () => {
-    try {
-        const cachedState = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_VIEW_STATE_KEY) || "{}");
-        return cachedState && typeof cachedState === "object" ? cachedState : {};
-    } catch {
-        return {};
-    }
-};
-
-const AdminOrders = ({ renderDelivery }) => {
+const AdminOrders = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [orders, setOrders] = useState([]);
+    const [filteredOrders, setFilteredOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("All");
+    const [expandedOrderDates, setExpandedOrderDates] = useState({});
+    const [confirmingOrderId, setConfirmingOrderId] = useState("");
+    const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
-    const initialDeliveryOrders = isDelivery ? readCachedDeliveryOrders() : [];
-    const initialDeliveryViewState = isDelivery ? readCachedDeliveryViewState() : {};
-    const [orders, setOrders] = useState(initialDeliveryOrders);
-    const [filteredOrders, setFilteredOrders] = useState(initialDeliveryOrders);
-    const [loading, setLoading] = useState(!(isDelivery && initialDeliveryOrders.length > 0));
-    const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
-    const initialStatus = searchParams.get("status") || initialDeliveryViewState.statusFilter || "All";
-    const [statusFilter, setStatusFilter] = useState(initialStatus);
-    const [expandedOrderDates, setExpandedOrderDates] = useState(
-        initialDeliveryViewState.expandedOrderDates || {}
-    );
-    const [confirmingOrderId, setConfirmingOrderId] = useState("");
-    const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
-    const [receiptNotice, setReceiptNotice] = useState("");
-    const [deliveryBusyLabel, setDeliveryBusyLabel] = useState("");
-    const [deliveryNavigatingOrderId, setDeliveryNavigatingOrderId] = useState("");
-    const [deliveryMapOrderId, setDeliveryMapOrderId] = useState("");
-    const receiptNoticeTimeoutRef = useRef(null);
-    const fetchOrders = useCallback(async ({ silent = false } = {}) => {
-        try {
-            if (!silent) {
-                setLoading(true);
-            }
-            const response = await OrderController.getOrders();
-            setOrders(response.data);
-            setFilteredOrders(response.data);
-            if (isDelivery) {
-                sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(response.data));
-            }
-            setLoading(false);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to fetch orders");
-            setLoading(false);
-        }
+
+    useEffect(() => {
+        fetchOrders();
     }, []);
-
-    useEffect(() => {
-        fetchOrders({ silent: isDelivery && initialDeliveryOrders.length > 0 });
-    }, [fetchOrders]);
-
-    useEffect(() => {
-        if (isDelivery) {
-            sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(orders));
-        }
-    }, [isDelivery, orders]);
-
-    useEffect(() => {
-        if (isDelivery) {
-            sessionStorage.setItem(
-                DELIVERY_ORDERS_VIEW_STATE_KEY,
-                JSON.stringify({
-                    searchTerm,
-                    statusFilter,
-                    expandedOrderDates,
-                })
-            );
-        }
-    }, [expandedOrderDates, isDelivery, searchTerm, statusFilter]);
-
-    useEffect(() => {
-        return () => {
-            if (receiptNoticeTimeoutRef.current) {
-                window.clearTimeout(receiptNoticeTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    useEffect(() => {
-        const refreshOrders = () => {
-            fetchOrders({ silent: true });
-        };
-
-        const patchOrderFromRealtime = (payload = {}) => {
-            const orderId = payload.orderId || payload._id;
-
-            if (!orderId) {
-                return;
-            }
-
-            setOrders((currentOrders) =>
-                currentOrders.map((order) =>
-                    order._id === orderId
-                        ? {
-                            ...order,
-                            ...Object.fromEntries(
-                                Object.entries({
-                                    orderStatus: payload.orderStatus,
-                                    paymentStatus: payload.paymentStatus,
-                                    isPaid: payload.isPaid,
-                                    isDelivered: payload.isDelivered,
-                                    processedAt: payload.processedAt,
-                                    shippedAt: payload.shippedAt,
-                                    deliveredAt: payload.deliveredAt,
-                                    receiptSent: payload.receiptSent,
-                                    orderItems: payload.orderItems,
-                                    shippingAddress: payload.shippingAddress,
-                                    paymentMethod: payload.paymentMethod,
-                                    taxPrice: payload.taxPrice,
-                                    shippingPrice: payload.shippingPrice,
-                                    totalPrice: payload.totalPrice,
-                                    deliveryProof: payload.deliveryProof,
-                                    updatedAt: payload.updatedAt,
-                                }).filter(([, value]) => value !== undefined)
-                            ),
-                        }
-                        : order
-                )
-            );
-        };
-
-        const unsubscribeCreated = subscribeRealtimeEvent("order:created", refreshOrders);
-        const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", patchOrderFromRealtime);
-        const unsubscribeOrderChanges = subscribeRealtimeDomains(
-            ["orders"],
-            refreshOrders
-        );
-
-        window.addEventListener("admin-orders-updated", refreshOrders);
-
-        return () => {
-            unsubscribeCreated();
-            unsubscribeUpdated();
-            unsubscribeOrderChanges();
-            window.removeEventListener("admin-orders-updated", refreshOrders);
-        };
-    }, [fetchOrders]);
 
     useEffect(() => {
         filterOrders();
@@ -271,6 +128,19 @@ const AdminOrders = ({ renderDelivery }) => {
         });
     }, [groupedOrders]);
 
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            const response = await adminService.getOrders();
+            setOrders(response.data);
+            setFilteredOrders(response.data);
+            setLoading(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to fetch orders");
+            setLoading(false);
+        }
+    };
+
     const filterOrders = () => {
         let filtered = isDelivery
             ? orders.filter((order) =>
@@ -285,62 +155,31 @@ const AdminOrders = ({ renderDelivery }) => {
 
         // Search by order ID or user email
         if (searchTerm) {
-            const normalizedSearchTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(
                 (order) =>
-                    order._id.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.user?.email?.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.user?.name?.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.shippingAddress?.fullName?.toLowerCase().includes(normalizedSearchTerm) ||
-                    (!order.user && "deleted customer account deleted".includes(normalizedSearchTerm))
+                    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
         setFilteredOrders(filtered);
     };
 
-    const isOrderPaid = (order) =>
-        order?.isPaid === true || order?.paymentStatus === "Paid";
-
-    const canAdminCancelOrder = (order) => {
-        const status = normalizeOrderStatus(order?.orderStatus);
-        return !isOrderPaid(order) && !["Cancelled", "Delivered"].includes(status);
-    };
-
-    const handleCancelOrder = async (order) => {
-        if (!canAdminCancelOrder(order)) {
-            alert("Only unpaid active orders can be cancelled.");
-            return;
-        }
-
-        if (window.confirm("Cancel this unpaid order?")) {
+    const handleDeleteOrder = async (id) => {
+        if (window.confirm("Are you sure you want to delete this order?")) {
             try {
-                await OrderController.updateStatus(order._id, "Cancelled");
+                await adminService.deleteOrder(id);
                 window.dispatchEvent(new Event("admin-orders-updated"));
                 fetchOrders();
             } catch (err) {
-                alert(err.response?.data?.message || "Failed to cancel order");
+                alert(err.response?.data?.message || "Failed to delete order");
             }
         }
     };
 
-    const clearDeliveryBusySoon = (delay = 900) => {
-        window.setTimeout(() => {
-            setDeliveryBusyLabel("");
-            setDeliveryNavigatingOrderId("");
-            setDeliveryMapOrderId("");
-        }, delay);
-    };
-
     const handleRowNavigation = (orderId) => {
-        if (isDelivery) {
-            setDeliveryNavigatingOrderId(orderId);
-            setDeliveryBusyLabel("Opening order details...");
-        }
-
-        navigate(getPortalOrderDetailsPath(orderId, adminUser), {
-            state: isDelivery ? { fromDeliveryOrders: true } : undefined,
-        });
+        navigate(getPortalOrderDetailsPath(orderId, adminUser));
     };
 
     const handleConfirmOrder = async (orderId) => {
@@ -350,21 +189,9 @@ const AdminOrders = ({ renderDelivery }) => {
 
         setConfirmingOrderId(orderId);
         try {
-            const response = await OrderController.updateStatus(orderId, "Processing");
-            const updatedOrder = response.data;
-
-            setOrders((currentOrders) =>
-                currentOrders.map((order) =>
-                    order._id === orderId
-                        ? {
-                            ...order,
-                            ...updatedOrder,
-                            user: updatedOrder?.user || order.user,
-                            orderStatus: updatedOrder?.orderStatus || "Processing",
-                        }
-                        : order
-                )
-            );
+            await adminService.updateOrderStatus(orderId, "Shipped");
+            window.dispatchEvent(new Event("admin-orders-updated"));
+            await fetchOrders();
         } catch (err) {
             alert(err.response?.data?.message || "Failed to confirm order");
             setConfirmingOrderId("");
@@ -400,45 +227,10 @@ const AdminOrders = ({ renderDelivery }) => {
             const formData = new FormData();
             formData.append("receipt", receiptImage, `order-${order._id}-receipt.png`);
 
-            const response = await OrderController.sendReceipt(order._id, formData);
-            const updatedOrder = response.data?.order;
-
-            if (updatedOrder) {
-                setOrders((currentOrders) =>
-                    currentOrders.map((currentOrder) =>
-                        currentOrder._id === updatedOrder._id
-                            ? {
-                                ...currentOrder,
-                                ...updatedOrder,
-                                user: updatedOrder.user || currentOrder.user,
-                            }
-                            : currentOrder
-                    )
-                );
-            } else {
-                setOrders((currentOrders) =>
-                    currentOrders.map((currentOrder) =>
-                        currentOrder._id === order._id
-                            ? {
-                                ...currentOrder,
-                                receiptSent: {
-                                    sentAt: new Date().toISOString(),
-                                    channel: "telegram",
-                                },
-                            }
-                            : currentOrder
-                    )
-                );
-            }
-
-            setReceiptNotice("Receipt photo sent to Telegram. You can now confirm this order.");
-            if (receiptNoticeTimeoutRef.current) {
-                window.clearTimeout(receiptNoticeTimeoutRef.current);
-            }
-            receiptNoticeTimeoutRef.current = window.setTimeout(() => {
-                setReceiptNotice("");
-                receiptNoticeTimeoutRef.current = null;
-            }, 3500);
+            await adminService.sendOrderReceiptToTelegram(order._id, formData);
+            window.dispatchEvent(new Event("admin-orders-updated"));
+            await fetchOrders();
+            alert("Receipt photo sent to Telegram. You can now confirm this order.");
         } catch (err) {
             alert(err.response?.data?.message || err.message || "Failed to send receipt to Telegram");
         } finally {
@@ -466,8 +258,7 @@ const AdminOrders = ({ renderDelivery }) => {
 
         if (normalized === "pending") return "Pending";
         if (normalized === "processing") return "Processing";
-        // Legacy orders used "Shipped" for the active delivery stage.
-        if (normalized === "shipped") return "Processing";
+        if (normalized === "shipped") return "Shipped";
         if (normalized === "delivered") return "Delivered";
 
         return trimmedStatus;
@@ -476,15 +267,24 @@ const AdminOrders = ({ renderDelivery }) => {
     const getStatusLabel = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "Confirmed";
+        }
+
         return normalizedStatus;
     };
 
     const getStatusColor = (status) => {
         const normalizedStatus = normalizeOrderStatus(status);
 
+        if (!isDelivery && normalizedStatus === "Shipped") {
+            return "bg-green-100 text-green-800";
+        }
+
         const colors = {
             Pending: "bg-yellow-100 text-yellow-800",
             Processing: "bg-blue-100 text-blue-800",
+            Shipped: "bg-purple-100 text-purple-800",
             Delivered: "bg-green-100 text-green-800",
             Cancelled: "",
         };
@@ -510,17 +310,12 @@ const AdminOrders = ({ renderDelivery }) => {
             Paid: "bg-green-100 text-green-800",
             Failed: "bg-red-100 text-red-800",
             Refunded: "bg-orange-100 text-orange-800",
-            Cancelled: "bg-orange-50 text-orange-800",
         };
         return colors[status] || "bg-gray-100 text-gray-800";
     };
 
-    const getDisplayPaymentStatus = (order) =>
-        normalizeOrderStatus(order?.orderStatus) === "Cancelled"
-            ? "Cancelled"
-            : order?.paymentStatus || "Pending";
-
-    const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatUSD = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatCurrency = formatUSD;
 
     const formatPhoneNumber = (phone) => {
         if (!phone) return "No phone";
@@ -535,13 +330,12 @@ const AdminOrders = ({ renderDelivery }) => {
     };
 
     const formatDeliveryAddress = (shippingAddress = {}) =>
-        [shippingAddress.street, shippingAddress.address, shippingAddress.city]
+        [shippingAddress.address, shippingAddress.city]
             .filter(Boolean)
             .join(", ") || "Address not set";
 
     const formatFullAddress = (shippingAddress = {}) =>
         [
-            shippingAddress.street,
             shippingAddress.address,
             shippingAddress.city,
             shippingAddress.postalCode,
@@ -563,58 +357,44 @@ const AdminOrders = ({ renderDelivery }) => {
         return `https://www.google.com/maps/search/?api=1&query=${shippingAddress.latitude},${shippingAddress.longitude}`;
     };
 
-    const handleOpenGoogleMaps = (shippingAddress = {}, orderId = "") => {
+    const handleOpenGoogleMaps = (shippingAddress = {}) => {
         const { latitude, longitude } = shippingAddress;
 
         if (!latitude || !longitude) {
             return;
         }
 
-        if (isDelivery) {
-            setDeliveryMapOrderId(orderId);
-            setDeliveryBusyLabel("Opening map...");
-        }
-
         const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
         window.open(url, "_blank");
-
-        if (isDelivery) {
-            clearDeliveryBusySoon();
-        }
-    };
-
-    const handleDeliveryLogout = () => {
-        if (!window.confirm("Are you sure you want to log out?")) {
-            return;
-        }
-
-        const loginPath = getPortalLoginPath(adminUser);
-        setDeliveryBusyLabel("Logging out...");
-        disconnectRealtime();
-        clearAdminSession("delivery");
-        sessionStorage.removeItem(DELIVERY_ORDERS_CACHE_KEY);
-        sessionStorage.removeItem(DELIVERY_ORDERS_VIEW_STATE_KEY);
-        navigate(loginPath, { replace: true });
     };
 
     const deliveryOrders = orders.filter((order) =>
         DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
     );
-    const todayDateKey = getOrderDateKey(new Date().toISOString());
-    const todayDeliveryOrders = deliveryOrders.filter(
-        (order) => getOrderDateKey(order.createdAt) === todayDateKey
-    );
     const deliveryStats = [
         {
-            label: "Processing",
-            value: todayDeliveryOrders.filter((order) =>
-                normalizeOrderStatus(order.orderStatus) === "Processing"
+            label: "Active",
+            value: deliveryOrders.filter((order) =>
+                normalizeOrderStatus(order.orderStatus) === "Shipped"
             ).length,
             className: "bg-blue-50 text-blue-800",
         },
         {
+            label: "Cash",
+            value: formatCurrency(
+                deliveryOrders
+                    .filter((order) =>
+                        order.paymentMethod === "Cash on Delivery" &&
+                        order.paymentStatus === "Paid" &&
+                        normalizeOrderStatus(order.orderStatus) !== "Cancelled"
+                    )
+                    .reduce((acc, order) => acc + Number(order.totalPrice || 0), 0)
+            ),
+            className: "bg-green-50 text-green-800",
+        },
+        {
             label: "Done",
-            value: todayDeliveryOrders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
+            value: deliveryOrders.filter((order) => normalizeOrderStatus(order.orderStatus) === "Delivered").length,
             className: "bg-stone-100 text-stone-800",
         },
     ];
@@ -639,75 +419,21 @@ const AdminOrders = ({ renderDelivery }) => {
         );
     }
 
-    if (isDelivery && renderDelivery) {
-        return renderDelivery({
-            deliveryStats,
-            expandedOrderDates,
-            filteredOrders,
-            formatCurrency,
-            formatDeliveryAddress,
-            formatPhoneNumber,
-            getDisplayPaymentStatus,
-            getMapUrl,
-            getPaymentColor,
-            getStatusColor,
-            getStatusLabel,
-            getStatusStyle,
-            groupedOrders,
-            handleDeliveryLogout,
-            handleOpenGoogleMaps,
-            handleRowNavigation,
-            deliveryBusyLabel,
-            deliveryMapOrderId,
-            deliveryNavigatingOrderId,
-            normalizeOrderStatus,
-            receiptNotice,
-            searchTerm,
-            setSearchTerm,
-            setStatusFilter,
-            statusFilter,
-            toggleOrderDate,
-        });
-    }
-
     if (isDelivery) {
         return (
             <div className="min-h-screen bg-gray-50 px-4 pb-24 pt-20 sm:px-6 lg:px-8 lg:pt-8">
-                {deliveryBusyLabel && (
-                    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/35 px-6 backdrop-blur-[2px]">
-                        <div className="flex min-h-28 w-full max-w-xs flex-col items-center justify-center gap-3 rounded-2xl bg-white p-6 text-center shadow-2xl">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
-                            <p className="text-sm font-black text-gray-950">{deliveryBusyLabel}</p>
-                        </div>
-                    </div>
-                )}
-                {receiptNotice && (
-                    <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
-                        {receiptNotice}
-                    </div>
-                )}
                 <div className="mx-auto max-w-3xl">
                     <div className="mb-5 flex items-end justify-between gap-4">
                         <div>
                             <p className="text-sm font-semibold text-blue-700">Delivery</p>
                             <h1 className="text-2xl font-black text-gray-950">Today&apos;s Runs</h1>
                         </div>
-                        <button
-                            type="button"
-                            onClick={handleDeliveryLogout}
-                            disabled={Boolean(deliveryBusyLabel)}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-black text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-wait disabled:opacity-70"
-                        >
-                            {deliveryBusyLabel === "Logging out..." ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <LogOut className="h-4 w-4" />
-                            )}
-                            {deliveryBusyLabel === "Logging out..." ? "Logging out..." : "Logout"}
-                        </button>
+                        <div className="rounded-full bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-800">
+                            {filteredOrders.length} stops
+                        </div>
                     </div>
 
-                    <div className="mb-4 grid grid-cols-2 gap-2">
+                    <div className="mb-4 grid grid-cols-3 gap-2">
                         {deliveryStats.map((stat) => (
                             <div key={stat.label} className={`rounded-xl p-3 shadow-sm ${stat.className}`}>
                                 <p className="text-[11px] font-bold uppercase">{stat.label}</p>
@@ -736,7 +462,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                     className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option value="All">All status</option>
-                                    <option value="Processing">Processing</option>
+                                    <option value="Shipped">Shipped</option>
                                     <option value="Delivered">Delivered</option>
                                 </select>
                             </div>
@@ -770,100 +496,14 @@ const AdminOrders = ({ renderDelivery }) => {
                                             <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                                         </button>
 
-                                        {isExpanded && group.orders.map((order) => {
-                                            const mapUrl = getMapUrl(order.shippingAddress);
-                                            const phone = order.shippingAddress?.phone;
-                                            const status = normalizeOrderStatus(order.orderStatus);
-
-                                            return (
-                                                <article
-                                                    key={order._id}
-                                                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRowNavigation(order._id)}
-                                                        disabled={Boolean(deliveryBusyLabel)}
-                                                        className="block w-full p-4 text-left disabled:cursor-wait disabled:opacity-75"
-                                                    >
-                                                        <div className="mb-3 flex items-start justify-between gap-3">
-                                                            <div className="min-w-0">
-                                                                <p className="font-mono text-sm font-black text-gray-950">#{order._id.slice(-8)}</p>
-                                                                <p className="mt-1 truncate text-lg font-black text-gray-950">
-                                                                    {order.shippingAddress?.fullName || order.user?.name || "Customer"}
-                                                                </p>
-                                                            </div>
-                                                            <span
-                                                                className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${getStatusColor(order.orderStatus)}`}
-                                                                style={getStatusStyle(order.orderStatus)}
-                                                            >
-                                                                {getStatusLabel(status)}
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="space-y-2 text-sm font-semibold text-gray-600">
-                                                            <p className="flex items-start gap-2">
-                                                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                                                                <span className="line-clamp-2">{formatDeliveryAddress(order.shippingAddress)}</span>
-                                                            </p>
-                                                            <p className="flex items-center gap-2">
-                                                                <Phone className="h-4 w-4 text-gray-400" />
-                                                                {formatPhoneNumber(phone)}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="mt-4 grid grid-cols-2 gap-2">
-                                                            <div className="rounded-xl bg-gray-50 p-3">
-                                                                <p className="text-[11px] font-bold uppercase text-gray-500">Total</p>
-                                                                <p className="text-lg font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
-                                                            </div>
-                                                            <div className="rounded-xl bg-gray-50 p-3">
-                                                                <p className="text-[11px] font-bold uppercase text-gray-500">Payment</p>
-                                                                <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-black ${getPaymentColor(getDisplayPaymentStatus(order))}`}>
-                                                                    {getDisplayPaymentStatus(order)}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-
-                                                    <div className="grid grid-cols-2 border-t border-gray-100">
-                                                        {mapUrl ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleOpenGoogleMaps(order.shippingAddress, order._id)}
-                                                                disabled={Boolean(deliveryBusyLabel)}
-                                                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700 disabled:cursor-wait disabled:opacity-70"
-                                                            >
-                                                                {deliveryMapOrderId === order._id ? (
-                                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                                ) : (
-                                                                    <Navigation className="h-5 w-5" />
-                                                                )}
-                                                                {deliveryMapOrderId === order._id ? "Opening..." : "View Map"}
-                                                            </button>
-                                                        ) : (
-                                                            <div className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-gray-400">
-                                                                <Navigation className="h-5 w-5" />
-                                                                View Map
-                                                            </div>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRowNavigation(order._id)}
-                                                            disabled={Boolean(deliveryBusyLabel)}
-                                                            className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950 disabled:cursor-wait disabled:opacity-70"
-                                                        >
-                                                            {deliveryNavigatingOrderId === order._id ? (
-                                                                <Loader2 className="h-5 w-5 animate-spin" />
-                                                            ) : (
-                                                                <Eye className="h-5 w-5" />
-                                                            )}
-                                                            {deliveryNavigatingOrderId === order._id ? "Opening..." : "View Details"}
-                                                        </button>
-                                                    </div>
-                                                </article>
-                                            );
-                                        })}
+                                        {isExpanded && group.orders.map((order) => (
+                                            <DeliveryOrderCard
+                                                key={order._id}
+                                                order={order}
+                                                onNavigate={handleRowNavigation}
+                                                onOpenMap={handleOpenGoogleMaps}
+                                            />
+                                        ))}
                                     </section>
                                 );
                             })}
@@ -876,11 +516,6 @@ const AdminOrders = ({ renderDelivery }) => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
-            {receiptNotice && (
-                <div className="fixed left-4 right-4 top-5 z-50 mx-auto max-w-xl rounded-2xl bg-gray-950 px-6 py-5 text-center text-base font-black leading-6 text-white shadow-2xl sm:right-6 sm:left-auto sm:text-lg">
-                    {receiptNotice}
-                </div>
-            )}
             {/* Header */}
             <div className="mb-6">
                 <div className="flex items-center justify-between">
@@ -967,6 +602,7 @@ const AdminOrders = ({ renderDelivery }) => {
                             <option value="All">All Status</option>
                             <option value="Pending">Pending</option>
                             <option value="Processing">Processing</option>
+                            <option value="Shipped">{isDelivery ? "Shipped" : "Confirmed"}</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
@@ -975,35 +611,35 @@ const AdminOrders = ({ renderDelivery }) => {
             </div>
 
             {/* Orders Table */}
-            <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm ring-1 ring-black/[0.02]">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full border-separate border-spacing-0">
-                        <thead className="bg-[var(--color-primary-dark)]">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Order ID
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Customer
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Payment
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-white/90">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white">
+                        <tbody className="bg-white divide-y divide-gray-200">
                             {filteredOrders.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-12 text-center">
@@ -1017,33 +653,33 @@ const AdminOrders = ({ renderDelivery }) => {
 
                                     return (
                                         <Fragment key={group.dateKey}>
-                                            <tr className="bg-[var(--color-surface-soft)]">
-                                                <td colSpan="7" className="border-y border-[var(--color-border)] px-6 py-3">
+                                            <tr className="bg-gray-50">
+                                                <td colSpan="7" className="px-6 py-3">
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleOrderDate(group.dateKey)}
-                                                        className="flex w-full items-center justify-between gap-4 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:border-[var(--color-border)] hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                                                        className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                         aria-expanded={isExpanded}
                                                     >
                                                         <span className="flex min-w-0 items-center gap-3">
-                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[var(--color-primary-dark)] shadow-sm ring-1 ring-[var(--color-border)]">
+                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
                                                                 <CalendarDays className="h-4 w-4" />
                                                             </span>
                                                             <span className="min-w-0">
-                                                                <span className="block text-sm font-bold text-[var(--color-text-main)]">
+                                                                <span className="block text-sm font-bold text-gray-900">
                                                                     {group.label}
                                                                 </span>
-                                                                <span className="block text-xs font-medium text-[var(--color-text-muted)]">
+                                                                <span className="block text-xs text-gray-500">
                                                                     {group.orders.length} {group.orders.length === 1 ? "order" : "orders"} on this day
                                                                 </span>
                                                             </span>
                                                         </span>
                                                         <span className="flex shrink-0 items-center gap-4">
-                                                            <span className="hidden rounded-full bg-white px-3 py-1 text-sm font-bold text-[var(--color-text-main)] shadow-sm ring-1 ring-[var(--color-border)] sm:inline">
+                                                            <span className="hidden text-sm font-semibold text-gray-900 sm:inline">
                                                                 ${group.total.toFixed(2)}
                                                             </span>
                                                             <ChevronDown
-                                                                className={`h-5 w-5 text-[var(--color-primary-dark)] transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                                                className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                                                             />
                                                         </span>
                                                     </button>
@@ -1060,9 +696,9 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         }
                                                     }}
                                                     tabIndex={0}
-                                                    className="cursor-pointer border-l-4 border-l-transparent bg-white transition-colors hover:border-l-[var(--color-secondary)] hover:bg-[var(--color-secondary-light)]/45 focus:border-l-[var(--color-secondary)] focus:bg-[var(--color-secondary-light)]/45 focus:outline-none"
+                                                    className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                                                 >
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className="inline-flex items-center gap-2 text-sm font-mono text-gray-900">
                                                             {order.paymentStatus === "Paid" &&
                                                                 normalizeOrderStatus(order.orderStatus) === "Delivered" &&
@@ -1078,43 +714,30 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             <span>#{order._id.slice(-8)}</span>
                                                         </span>
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
-                                                        {order.user ? (
-                                                            <>
-                                                                <div className="text-sm text-gray-900">
-                                                                    {order.user.name || "Customer"}
-                                                                </div>
-                                                                <div className="text-sm text-gray-500">
-                                                                    {order.user.email || "Email unavailable"}
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="text-sm font-semibold text-gray-700">
-                                                                    Deleted Customer
-                                                                </div>
-                                                                <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500">
-                                                                    Account deleted
-                                                                </span>
-                                                            </>
-                                                        )}
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">
+                                                            {order.user?.name || "N/A"}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">
+                                                            {order.user?.email || "N/A"}
+                                                        </div>
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {new Date(order.createdAt).toLocaleDateString()}
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                                                         ${order.totalPrice?.toFixed(2) || "0.00"}
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
                                                         <span
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentColor(
-                                                                getDisplayPaymentStatus(order)
+                                                                order.paymentStatus
                                                             )}`}
                                                         >
-                                                            {getDisplayPaymentStatus(order)}
+                                                            {order.paymentStatus || "Pending"}
                                                         </span>
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
                                                         <span
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                                                                 order.orderStatus
@@ -1124,7 +747,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             {getStatusLabel(order.orderStatus)}
                                                         </span>
                                                     </td>
-                                                    <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
                                                             {isSeller &&
                                                                 normalizeOrderStatus(order.orderStatus) === "Pending" &&
@@ -1161,20 +784,20 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                         handleRowNavigation(order._id);
                                                                     }}
                                                                     className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                                                                    title="View Details"
+                                                                    title="View Delivery"
                                                                 >
-                                                                    View Details
+                                                                    Open
                                                                 </button>
-                                                            ) : adminUser?.role === "admin" && canAdminCancelOrder(order) ? (
+                                                            ) : adminUser?.role === "admin" ? (
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        handleCancelOrder(order);
+                                                                        handleDeleteOrder(order._id);
                                                                     }}
-                                                                    className="inline-flex items-center rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 hover:text-red-900"
-                                                                    title="Cancel unpaid order"
+                                                                    className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
+                                                                    title="Delete Order"
                                                                 >
-                                                                    Cancel order
+                                                                    <Trash2 className="w-4 h-4" />
                                                                 </button>
                                                             ) : null}
                                                         </div>

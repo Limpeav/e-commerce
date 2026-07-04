@@ -7,22 +7,11 @@ import {
     saveCsvBuilderDraft,
     uploadProductImage,
 } from "../controllers/adminController.js";
-import {
-    registerAdmin,
-    loginAdmin,
-    verifyAdminLogin,
-    forgotPortalPassword,
-    getAdminProfile,
-    logoutPortalSession,
-    resetPortalPassword,
-    updatePortalProfile,
-    verifyPortalResetCode,
-} from "../controllers/adminAuthController.js";
+import { registerAdmin, loginAdmin, getAdminProfile } from "../controllers/adminAuthController.js";
 import {
     createStaffLogin,
     getAllUsers,
     getUserById,
-    updateStaffLogin,
     updateUserRole,
     deleteUser,
     getUserStats,
@@ -30,25 +19,17 @@ import {
 import { translateText } from "../controllers/translationController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
-import { createMemoryImageUpload } from "../middleware/upload.js";
+import { createUpload } from "../middleware/upload.js";
+import {
+    getSettings,
+    updateSettings,
+} from "../controllers/settingsController.js";
 
 const router = express.Router();
-const productImageUpload = createMemoryImageUpload();
+const productImageUpload = createUpload("products/csv-builder");
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-const adminMfaLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
     max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-const adminResetLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 8,
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -56,13 +37,7 @@ const adminResetLimiter = rateLimit({
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
-router.post("/login/verify", adminMfaLimiter, verifyAdminLogin);
-router.post("/forgot-password", adminResetLimiter, forgotPortalPassword);
-router.post("/forgot-password/verify", adminResetLimiter, verifyPortalResetCode);
-router.post("/reset-password", adminResetLimiter, resetPortalPassword);
-router.post("/logout", protect, portalAccess, logoutPortalSession);
 router.get("/me", protect, portalAccess, getAdminProfile);
-router.put("/me", protect, portalAccess, updatePortalProfile);
 
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
@@ -83,9 +58,12 @@ router.get("/users", protect, admin, getAllUsers);
 router.post("/users", protect, admin, createStaffLogin);
 router.get("/users/stats", protect, admin, getUserStats); // ← must be before /:id
 router.get("/users/:id", protect, admin, getUserById);
-router.put("/users/:id", protect, admin, updateStaffLogin);
 router.put("/users/:id/role", protect, admin, updateUserRole);
 router.delete("/users/:id", protect, admin, deleteUser);
+
+// Settings
+router.get("/settings", protect, admin, getSettings);
+router.put("/settings", protect, admin, updateSettings);
 
 // Cleanup orphaned reviews
 router.post("/cleanup-reviews", protect, admin, async (req, res) => {

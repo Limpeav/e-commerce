@@ -3,45 +3,13 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
-import { normalizeProductCategory } from "../utils/productCategories.js";
-import cloudinary from "../config/cloudinary.js";
-import {
-  removeImageBackground,
-} from "../utils/backgroundRemoval.js";
-
-const ADMIN_VISIBLE_ORDER_FILTER = {
-  $or: [
-    { paymentMethod: { $ne: "BAKONG_KHQR" } },
-    { paymentStatus: "Paid" },
-  ],
-};
-
-const uploadImageBuffer = (file, folder) =>
-  new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: "image",
-        format: file.mimetype === "image/png" ? "png" : undefined,
-      },
-      (error, result) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(result);
-      }
-    );
-
-    uploadStream.end(file.buffer);
-  });
+import Setting from "../models/Setting.js";
 
 const sanitizeDraftRow = (row = {}) => ({
   title: String(row.title || "").trim(),
   price: String(row.price || "").trim(),
   discountPrice: String(row.discountPrice || "").trim(),
-  category: normalizeProductCategory(row.category),
+  category: String(row.category || "").trim(),
   description: String(row.description || "").trim(),
   stock: String(row.stock || "").trim(),
   image: String(row.image || "").trim(),
@@ -186,7 +154,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
   };
   const timezone = getTimezoneName(timezoneOffset);
 
-  const [orders, summaryData, dailyRows, pendingCashData] = await Promise.all([
+  const [orders, summaryData, dailyRows, pendingCashCount] = await Promise.all([
     normalizedPeriod === "day"
       ? Order.find(paidCashMatch)
           .sort({ paidAt: -1 })
@@ -224,32 +192,17 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
           },
           { $sort: { _id: 1 } },
         ]),
-    Order.aggregate([
-      {
-        $match: {
-          paymentMethod: "Cash on Delivery",
-          paymentStatus: { $ne: "Paid" },
-          orderStatus: { $nin: ["Delivered", "Cancelled"] },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          pendingCashCount: { $sum: 1 },
-          pendingCashAmount: { $sum: "$totalPrice" },
-        },
-      },
-    ]),
+    Order.countDocuments({
+      paymentMethod: "Cash on Delivery",
+      paymentStatus: { $ne: "Paid" },
+      orderStatus: { $nin: ["Delivered", "Cancelled"] },
+    }),
   ]);
 
   const summary = summaryData[0] || {
     totalCash: 0,
     orderCount: 0,
     averageOrderValue: 0,
-  };
-  const pendingCash = pendingCashData[0] || {
-    pendingCashCount: 0,
-    pendingCashAmount: 0,
   };
 
   return {
@@ -264,8 +217,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
       totalCash: Number(summary.totalCash || 0),
       orderCount: Number(summary.orderCount || 0),
       averageOrderValue: Number(summary.averageOrderValue || 0),
-      pendingCashCount: Number(pendingCash.pendingCashCount || 0),
-      pendingCashAmount: Number(pendingCash.pendingCashAmount || 0),
+      pendingCashCount,
     },
     dailyBreakdown:
       normalizedPeriod === "day"
@@ -293,7 +245,6 @@ const buildCashReportCsv = (report) => {
     ["Paid Cash Orders", report.summary.orderCount],
     ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
     ["Pending Cash Orders", report.summary.pendingCashCount],
-    ["Pending Cash Amount", report.summary.pendingCashAmount.toFixed(2)],
     [],
     ...(report.period === "day"
       ? [
@@ -339,21 +290,20 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Get counts
   const usersCount = await User.countDocuments();
   const productsCount = await Product.countDocuments();
-  const ordersCount = await Order.countDocuments(ADMIN_VISIBLE_ORDER_FILTER);
+  const ordersCount = await Order.countDocuments();
   const pendingOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Pending",
   });
   const processingOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
-    orderStatus: { $in: ["Processing", "Shipped"] },
+    orderStatus: "Processing",
+  });
+  const shippedOrdersCount = await Order.countDocuments({
+    orderStatus: "Shipped",
   });
   const deliveredOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Delivered",
   });
   const cancelledOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Cancelled",
   });
 
@@ -362,7 +312,6 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paymentStatus: "Paid",
   });
   const unpaidOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     paymentStatus: { $ne: "Paid" },
   });
   const cashToCollectCount = await Order.countDocuments({
@@ -379,7 +328,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
 
   // Get recent activity (users only – exclude admin actions)
-  const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
+  const recentOrders = await Order.find({})
     .sort({ createdAt: -1 })
     .limit(3)
     .populate("user", "name email role");
@@ -429,6 +378,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Sort by actual timestamp
   recentActivity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  // Get exchange rate
+  const rateSetting = await Setting.findOne({ key: "usd_to_khr_rate" });
+  const exchangeRate = rateSetting ? parseFloat(rateSetting.value) : parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
+
   res.json({
     admin: req.user.name,
     users: usersCount,
@@ -437,11 +390,13 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     revenue: totalRevenue,
     pendingOrders: pendingOrdersCount,
     processingOrders: processingOrdersCount,
+    shippedOrders: shippedOrdersCount,
     deliveredOrders: deliveredOrdersCount,
     cancelledOrders: cancelledOrdersCount,
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
+    exchangeRate,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
 });
@@ -479,29 +434,15 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/uploads/product-image
 // @access  Private/Admin
 export const uploadProductImage = asyncHandler(async (req, res) => {
-  if (!req.file?.buffer) {
+  if (!req.file?.path) {
     res.status(400);
     throw new Error("Image file is required");
   }
 
-  const shouldRemoveBackground =
-    req.body?.removeBackground === "true" ||
-    req.body?.removeBackground === true;
-  const imageFile = shouldRemoveBackground
-    ? await removeImageBackground(req.file)
-    : req.file;
-  const uploadedImage = await uploadImageBuffer(
-    imageFile,
-    "products/admin-uploads"
-  );
-
   res.status(201).json({
-    message: shouldRemoveBackground
-      ? "Background removed and image uploaded successfully"
-      : "Image uploaded successfully",
-    imageUrl: uploadedImage.secure_url,
+    message: "Image uploaded successfully",
+    imageUrl: req.file.path,
     originalName: req.file.originalname,
-    backgroundRemoved: shouldRemoveBackground,
   });
 });
 
