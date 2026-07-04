@@ -30,6 +30,15 @@ const notificationSchema = new mongoose.Schema(
         googleMapsLink: {
             type: String,
         },
+        audience: {
+            type: String,
+            enum: ["admin", "user"],
+            default: "admin",
+        },
+        recipient: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
         isRead: {
             type: Boolean,
             default: false,

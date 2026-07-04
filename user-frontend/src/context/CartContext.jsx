@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
@@ -197,20 +197,23 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const contextValue = useMemo(
+    () => ({
+      cart,
+      loading,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      refreshCart,
+      openCartDrawer: () => setCartDrawerOpen(true),
+      closeCartDrawer: () => setCartDrawerOpen(false),
+    }),
+    [cart, loading, addToCart, removeFromCart, updateQuantity, clearCart, refreshCart]
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        loading,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        refreshCart,
-        openCartDrawer: () => setCartDrawerOpen(true),
-        closeCartDrawer: () => setCartDrawerOpen(false),
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
       <AnimatePresence>
         {cartDrawerOpen && (

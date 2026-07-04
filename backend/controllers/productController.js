@@ -1147,39 +1147,31 @@ export const getProductById = async (req, res) => {
 
     if (product.reviews && product.reviews.length > 0) {
       const User = (await import("../models/userModel.js")).default;
+      const reviewUserIds = [...new Set(product.reviews.map((r) => r.user).filter(Boolean))];
+      const existingUsers = await User.find({ _id: { $in: reviewUserIds } }).lean();
+      const userMap = new Map(existingUsers.map((u) => [u._id.toString(), u]));
 
       for (const review of product.reviews) {
-        try {
-          // Check if user still exists and get current user data
-          const currentUser = await User.findById(review.user);
+        const userId = review.user?.toString();
+        const currentUser = userId ? userMap.get(userId) : null;
 
-          if (currentUser) {
-            // Create review object with current user name
-            const updatedReview = {
-              ...review.toObject(),
-              name: currentUser.name // Use current name from database
-            };
+        if (currentUser) {
+          const updatedReview = {
+            ...review.toObject(),
+            name: currentUser.name,
+          };
 
-            // Check if name has changed
-            if (review.name !== currentUser.name) {
-              hasChanges = true;
-            }
-
-            validReviews.push(updatedReview);
-
-            // Check if current user has already reviewed this product
-            if (req.user && review.user.toString() === req.user._id.toString()) {
-              alreadyReviewed = true;
-            }
-          } else {
-            // User doesn't exist, this review should be removed
+          if (review.name !== currentUser.name) {
             hasChanges = true;
-            console.log(`Removing review from deleted user: ${review.user}`);
           }
-        } catch (error) {
-          // If user doesn't exist, skip this review
+
+          validReviews.push(updatedReview);
+
+          if (req.user && userId === req.user._id.toString()) {
+            alreadyReviewed = true;
+          }
+        } else {
           hasChanges = true;
-          console.log(`Error checking user for review: ${review.user}`, error);
         }
       }
     }

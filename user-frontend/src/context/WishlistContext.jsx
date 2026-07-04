@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useToast } from "./useToast";
 import { WishlistController } from "../controllers/wishlistController.js";
@@ -45,7 +45,7 @@ export const WishlistProvider = ({ children }) => {
   }, [canUseCustomerWishlist]);
 
   // Add to wishlist
-  const addToWishlist = async (product) => {
+  const addToWishlist = useCallback(async (product) => {
     if (!canUseCustomerWishlist) {
       info(t("wishlistAlerts.loginRequired"), t("wishlistAlerts.loginToAdd"));
       return;
@@ -70,10 +70,10 @@ export const WishlistProvider = ({ children }) => {
       console.error("Error adding to wishlist:", error);
       toastError(t("wishlistAlerts.actionFailed"), t("wishlistAlerts.addFailed"));
     }
-  };
+  }, [canUseCustomerWishlist, info, language, success, t, toastError]);
 
   // Remove from wishlist
-  const removeFromWishlist = async (productId) => {
+  const removeFromWishlist = useCallback(async (productId) => {
     if (!canUseCustomerWishlist) return;
 
     try {
@@ -91,15 +91,15 @@ export const WishlistProvider = ({ children }) => {
       console.error("Error removing from wishlist:", error);
       toastError(t("wishlistAlerts.removeFailedTitle"), t("wishlistAlerts.removeFailed"));
     }
-  };
+  }, [canUseCustomerWishlist, info, t, toastError]);
 
   // Check if product is in wishlist
-  const isInWishlist = (id) => {
+  const isInWishlist = useCallback((id) => {
     return WishlistController.isInWishlist(wishlist, id);
-  };
+  }, [wishlist]);
 
   // Toggle wishlist (add if not present, remove if present)
-  const toggleWishlist = async (product) => {
+  const toggleWishlist = useCallback(async (product) => {
     if (!canUseCustomerWishlist) {
       info(t("wishlistAlerts.loginRequired"), t("wishlistAlerts.loginToManage"));
       return;
@@ -110,19 +110,22 @@ export const WishlistProvider = ({ children }) => {
     } else {
       await addToWishlist(product);
     }
-  };
+  }, [canUseCustomerWishlist, info, isInWishlist, removeFromWishlist, addToWishlist, t]);
+
+  const contextValue = useMemo(
+    () => ({
+      wishlist,
+      loading,
+      addToWishlist,
+      removeFromWishlist,
+      isInWishlist,
+      toggleWishlist,
+    }),
+    [wishlist, loading, addToWishlist, removeFromWishlist, isInWishlist, toggleWishlist]
+  );
 
   return (
-    <WishlistContext.Provider
-      value={{
-        wishlist,
-        loading,
-        addToWishlist,
-        removeFromWishlist,
-        isInWishlist,
-        toggleWishlist,
-      }}
-    >
+    <WishlistContext.Provider value={contextValue}>
       {children}
     </WishlistContext.Provider>
   );
