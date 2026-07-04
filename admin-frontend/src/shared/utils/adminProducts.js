@@ -10,6 +10,8 @@ export const INVENTORY_STATE_OPTIONS = [
   { value: "sold-out", label: "Sold Out" },
 ];
 
+const toProductArray = (products) => (Array.isArray(products) ? products : []);
+
 export const getNumericDiscount = (product) => {
   const price = Number(product?.price);
   const discountPrice = Number(product?.discountPrice);
@@ -68,9 +70,10 @@ const compareBestSellerRank = (candidate, currentBest) => {
 };
 
 export const getBestSellerProductsByCategory = (products = []) => {
+  const productList = toProductArray(products);
   const bestByCategory = new Map();
 
-  products.forEach((product) => {
+  productList.forEach((product) => {
     if (getProductSoldCount(product) <= 0) return;
 
     const categoryKey = getBestSellerCategoryKey(product);
@@ -99,7 +102,7 @@ export const isProductIssue = (product) =>
 export const getProductCategories = (products = []) => [
   "all",
   ...new Set(
-    products
+    toProductArray(products)
       .map((product) => normalizeProductCategory(product.category))
       .filter((category) => category && !isRemovedProductCategory(category))
   ),
@@ -114,9 +117,10 @@ export const filterAdminProducts = (
     showPromotionOnly = false,
   } = {}
 ) => {
+  const productList = toProductArray(products);
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  return products.filter((product) => {
+  return productList.filter((product) => {
     const category = normalizeProductCategory(product.category);
     const matchesSearch =
       !normalizedSearch ||
@@ -139,16 +143,20 @@ export const filterAdminProducts = (
   });
 };
 
-export const getProductStats = (products = [], categories = []) => ({
-  totalProducts: products.length,
+export const getProductStats = (products = [], categories = []) => {
+  const productList = toProductArray(products);
+
+  return {
+  totalProducts: productList.length,
   categoryCount: Math.max(categories.length - 1, 0),
-  productIssueCount: products.filter(isProductIssue).length,
-  soldOutCount: products.filter(isOutOfStockProduct).length,
-  totalSoldCount: products.reduce(
+  productIssueCount: productList.filter(isProductIssue).length,
+  soldOutCount: productList.filter(isOutOfStockProduct).length,
+  totalSoldCount: productList.reduce(
     (total, product) => total + getProductSoldCount(product),
     0
   ),
-  promotionCount: products.filter(isPromotionalProduct).length,
-  newArrivalCount: products.filter((product) => product.isNewArrival).length,
-  bestSellerCount: getBestSellerProductsByCategory(products).length,
-});
+  promotionCount: productList.filter(isPromotionalProduct).length,
+  newArrivalCount: productList.filter((product) => product.isNewArrival).length,
+  bestSellerCount: getBestSellerProductsByCategory(productList).length,
+  };
+};

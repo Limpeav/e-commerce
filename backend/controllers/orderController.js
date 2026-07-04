@@ -2,7 +2,6 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/Product.js";
-import Setting from "../models/Setting.js";
 import Notification from "../models/notificationModel.js";
 import {
     emitDomainChanged,
@@ -26,6 +25,7 @@ import {
     validateProductColor,
     validateProductSize,
 } from "../utils/productOptions.js";
+import { getUsdToKhrRate } from "../utils/exchangeRate.js";
 import {
     adjustProductInventory,
     getAvailableStock,
@@ -284,8 +284,7 @@ export const createOrder = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("No order items");
     } else {
-        const rateSetting = await Setting.findOne({ key: "usd_to_khr_rate" });
-        const exchangeRateAtOrder = Number(rateSetting?.value) || 4100;
+        const exchangeRateAtOrder = await getUsdToKhrRate();
 
         const session = await mongoose.startSession();
         const lowStockAlerts = [];

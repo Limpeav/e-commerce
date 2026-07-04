@@ -78,8 +78,9 @@ const ProductList = () => {
 
       if (result.success) {
         const { products: data, total, totalPages: tp } = result.data || {};
-        setProducts(data || []);
-        setTotalProducts(total || 0);
+        const productList = Array.isArray(data) ? data : [];
+        setProducts(productList);
+        setTotalProducts(Number(total ?? productList.length) || productList.length);
         setTotalPages(tp || 1);
         setCurrentPage(page || 1);
         setError("");

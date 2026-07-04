@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const [rateMessage, setRateMessage] = useState({ type: '', text: '' })
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
+  const canManageSettings = adminUser?.role === 'admin'
   const ordersPath = getPortalOrdersPath(adminUser)
 
   useEffect(() => {
@@ -243,7 +244,7 @@ const AdminDashboard = () => {
         )}
 
         {/* Exchange Rate Management */}
-        {!isDelivery && (
+        {canManageSettings && (
           <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -253,7 +254,7 @@ const AdminDashboard = () => {
               <div className="bg-blue-50 px-3 py-1.5 rounded-lg">
                 <span className="text-xs font-bold text-blue-700">1 USD</span>
                 <span className="text-blue-400 mx-1">→</span>
-                <span className="text-xs font-bold text-blue-700">{parseInt(exchangeRate).toLocaleString()} KHR</span>
+                <span className="text-xs font-bold text-blue-700">{Math.round(Number(exchangeRate) || 4100).toLocaleString()} KHR</span>
               </div>
             </div>
             <div className="flex items-end gap-3">
@@ -283,12 +284,14 @@ const AdminDashboard = () => {
                   setSavingRate(true)
                   setRateMessage({ type: '', text: '' })
                   try {
-                    await adminService.updateSettings({ usd_to_khr_rate: rate })
-                    setExchangeRate(rate)
+                    const response = await adminService.updateSettings({ usd_to_khr_rate: rate })
+                    const savedRate = response.data?.exchangeRate || rate
+                    setExchangeRate(savedRate)
+                    setExchangeRateInput(String(savedRate))
                     setRateMessage({ type: 'success', text: 'Exchange rate updated successfully' })
                     setTimeout(() => setRateMessage({ type: '', text: '' }), 3000)
-                  } catch {
-                    setRateMessage({ type: 'error', text: 'Failed to update exchange rate' })
+                  } catch (err) {
+                    setRateMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update exchange rate' })
                   } finally {
                     setSavingRate(false)
                   }

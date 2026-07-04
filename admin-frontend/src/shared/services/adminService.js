@@ -14,6 +14,7 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
+  updateSettings: (settings) => api.put("/admin/settings", settings),
   getDailyCashReport: (date, period = "day") =>
     api.get("/admin/cash-report", {
       params: {

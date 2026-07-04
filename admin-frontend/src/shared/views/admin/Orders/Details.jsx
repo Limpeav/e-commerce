@@ -723,7 +723,16 @@ const OrderDetails = () => {
                             )}
                         </section>
 
-                        {canManageOrderStatus && isDelivery && renderOrderStatusSection()}
+                        {canManageOrderStatus && isDelivery && (
+                            <OrderStatusUpdater
+                                orderProgressStatuses={orderProgressStatuses}
+                                currentProgressStatus={currentProgressStatus}
+                                currentOrderStatus={currentOrderStatus}
+                                availableOrderActionStatuses={availableOrderActionStatuses}
+                                updating={updating}
+                                onStatusUpdate={handleStatusUpdate}
+                            />
+                        )}
 
                         {/* Timeline */}
                         {order.isDelivered && (

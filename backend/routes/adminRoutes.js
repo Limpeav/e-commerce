@@ -6,6 +6,7 @@ import {
     getCsvBuilderDraft,
     saveCsvBuilderDraft,
     uploadProductImage,
+    updateSettings,
 } from "../controllers/adminController.js";
 import {
     registerAdmin,
@@ -66,6 +67,7 @@ router.put("/me", protect, portalAccess, updatePortalProfile);
 
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
+router.put("/settings", protect, admin, updateSettings);
 router.get("/cash-report", protect, portalAccess, getDailyCashReport);
 router.get("/csv-builder-draft", protect, admin, getCsvBuilderDraft);
 router.put("/csv-builder-draft", protect, admin, saveCsvBuilderDraft);

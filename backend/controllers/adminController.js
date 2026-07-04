@@ -8,6 +8,10 @@ import cloudinary from "../config/cloudinary.js";
 import {
   removeImageBackground,
 } from "../utils/backgroundRemoval.js";
+import {
+  getUsdToKhrRate,
+  saveUsdToKhrRate,
+} from "../utils/exchangeRate.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -350,6 +354,8 @@ const buildCashReportCsv = (report) => {
 // @route   GET /api/admin/dashboard
 // @access  Private/Admin
 export const getDashboardData = asyncHandler(async (req, res) => {
+  const exchangeRate = await getUsdToKhrRate();
+
   // Get counts
   const usersCount = await User.countDocuments();
   const productsCount = await Product.countDocuments();
@@ -469,7 +475,30 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
+    exchangeRate,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
+  });
+});
+
+// @desc    Update admin-configurable app settings
+// @route   PUT /api/admin/settings
+// @access  Private/Admin
+export const updateSettings = asyncHandler(async (req, res) => {
+  const hasExchangeRate = Object.prototype.hasOwnProperty.call(
+    req.body || {},
+    "usd_to_khr_rate"
+  );
+
+  if (!hasExchangeRate) {
+    res.status(400);
+    throw new Error("No supported settings provided");
+  }
+
+  const exchangeRate = await saveUsdToKhrRate(req.body.usd_to_khr_rate);
+
+  res.json({
+    message: "Settings updated successfully",
+    exchangeRate,
   });
 });
 
