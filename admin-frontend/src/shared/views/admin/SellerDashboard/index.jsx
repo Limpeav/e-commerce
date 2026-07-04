@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import {
     getPortalCashReportPath,
     getPortalOrderDetailsPath,
@@ -19,11 +20,12 @@ import {
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
-const formatCurrency = (amount) =>
+const formatUSD = (amount) =>
     new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(amount || 0));
+const formatCurrency = formatUSD;
 
 const SellerDashboard = () => {
     const navigate = useNavigate();
@@ -93,7 +95,7 @@ const SellerDashboard = () => {
     const statCards = [
         {
             label: "Cash Today",
-            value: formatCurrency(totalCashToday),
+            value: <Price amount={totalCashToday} />,
             hint: `${paidTodayCount} paid order${paidTodayCount === 1 ? "" : "s"}`,
             icon: WalletCards,
             tone: "text-green-700",
@@ -223,7 +225,7 @@ const SellerDashboard = () => {
                                         </p>
                                     </div>
                                     <div className="text-left sm:text-right">
-                                        <p className="font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
+                                        <Price amount={order.totalPrice} className="font-black text-gray-950" usdClassName="text-gray-950" />
                                         <p className="mt-1 text-xs font-black uppercase text-amber-700">
                                             {order.paymentStatus}
                                         </p>

@@ -9,7 +9,6 @@ import {
     CreditCard,
     Calendar,
     DollarSign,
-    Truck,
     CheckCircle,
     ExternalLink,
     Image as ImageIcon,
@@ -19,8 +18,11 @@ import {
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrdersPath, getStoredAdminUser } from "../../../utils/adminSession";
+import OrderStatusUpdater from "./OrderStatusUpdater";
+import PaymentInfoCard from "./PaymentInfoCard";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -188,7 +190,8 @@ const OrderDetails = () => {
         return normalizedStatus;
     };
 
-    const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatUSD = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatCurrency = formatUSD;
 
     const getDeliveryFee = (currentOrder) => {
         const storedFee = Number(currentOrder?.shippingPrice || 0);
@@ -328,80 +331,6 @@ const OrderDetails = () => {
         }
     };
 
-    const renderOrderStatusSection = () => (
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                <Truck className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                Update Order Status
-            </h2>
-            <div
-                className={`mb-5 grid gap-2 ${
-                    orderProgressStatuses.length === 2
-                        ? "grid-cols-2"
-                        : orderProgressStatuses.length === 5
-                            ? "grid-cols-5"
-                            : "grid-cols-4"
-                }`}
-            >
-                {orderProgressStatuses.map((status, index) => {
-                    const isActive = currentProgressStatus === status;
-                    const isPast =
-                        orderProgressStatuses.indexOf(currentProgressStatus) >= index &&
-                        currentOrderStatus !== "Cancelled";
-
-                    return (
-                        <div key={status} className="min-w-0">
-                            <div
-                                className={`h-2 rounded-full ${isActive || isPast ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-soft)]"}`}
-                            />
-                            <p className="mt-2 truncate text-center text-[11px] font-bold text-[var(--color-text-muted)]">
-                                {status}
-                            </p>
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-                {availableOrderActionStatuses.map(
-                    ({ label, value }) => {
-                        const isCurrent = currentOrderStatus === value;
-
-                        return (
-                        <button
-                            key={label}
-                            onClick={() => handleStatusUpdate(value)}
-                            disabled={updating || isCurrent}
-                            aria-label={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : `Mark order as ${label}`
-                            }
-                            title={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : `Mark as ${label}`
-                            }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent
-                                ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
-                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                }`}
-                        >
-                            {isCurrent ? (
-                                <span className="flex items-center justify-center">
-                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                    {label}
-                                </span>
-                            ) : (
-                                `Mark as ${label}`
-                            )}
-                        </button>
-                        );
-                    }
-                )}
-            </div>
-        </section>
-    );
-
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {/* Header */}
@@ -426,7 +355,7 @@ const OrderDetails = () => {
                                 </h1>
                                 {isDelivery && (
                                     <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                        {customerName} · {formatCurrency(displayedTotal)}
+                                        {customerName} · <Price amount={displayedTotal} />
                                     </p>
                                 )}
                             </div>
@@ -536,14 +465,14 @@ const OrderDetails = () => {
                                             <div className="min-w-0 self-center">
                                                 <h3 className="font-bold leading-snug text-[var(--color-text-main)]">{item.name}</h3>
                                                 <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                                                    Quantity {item.quantity} · {formatCurrency(item.price)} each
+                                                    Quantity {item.quantity} · <Price amount={item.price} /> each
                                                     {item.size ? ` · Size ${item.size}` : ""}
                                                 </p>
                                             </div>
                                             <div className="col-span-2 flex items-center justify-between rounded-lg bg-[var(--color-surface-soft)] px-4 py-3 sm:col-span-1 sm:block sm:self-center sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
                                                 <p className="text-sm font-medium text-[var(--color-text-muted)] sm:hidden">Line total</p>
                                                 <p className="font-bold text-[var(--color-text-main)]">
-                                                    {formatCurrency(item.price * item.quantity)}
+                                                    <Price amount={item.price * item.quantity} />
                                                 </p>
                                             </div>
                                         </div>
@@ -593,34 +522,12 @@ const OrderDetails = () => {
                         )}
 
                         {!isDelivery && (
-                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Payment Information
-                                </h2>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Method</p>
-                                        <p className="mt-1 font-bold text-[var(--color-text-main)]">{order.paymentMethod || "N/A"}</p>
-                                    </div>
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
-                                        <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(order.paymentStatus)}`}
-                                        >
-                                            {order.paymentStatus}
-                                        </span>
-                                    </div>
-                                    {order.isPaid && (
-                                        <div className="rounded-lg bg-[var(--color-surface-soft)] p-4 sm:col-span-2">
-                                            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
-                                            <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                                                {new Date(order.paidAt).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                            <PaymentInfoCard
+                                paymentMethod={order.paymentMethod}
+                                paymentStatus={order.paymentStatus}
+                                isPaid={order.isPaid}
+                                paidAt={order.paidAt}
+                            />
                         )}
 
                         {!isDelivery && (
@@ -651,19 +558,19 @@ const OrderDetails = () => {
                                     <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
                                         <div className="flex justify-between gap-4">
                                             <span>Subtotal:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(subtotal)}</span>
+                                            <Price amount={subtotal} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span>Delivery Fee:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(deliveryFee)}</span>
+                                            <Price amount={deliveryFee} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span>Tax:</span>
-                                            <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
+                                            <Price amount={taxPrice} className="font-bold text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                         <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
                                             <span>Total:</span>
-                                            <span>{formatCurrency(displayedTotal)}</span>
+                                            <Price amount={displayedTotal} className="text-[var(--color-text-main)]" usdClassName="text-[var(--color-text-main)]" />
                                         </div>
                                     </div>
                                 </div>
@@ -692,7 +599,16 @@ const OrderDetails = () => {
                         )}
 
                         {/* Update Order Status */}
-                        {canManageOrderStatus && !isDelivery && renderOrderStatusSection()}
+                        {canManageOrderStatus && !isDelivery && (
+                            <OrderStatusUpdater
+                                orderProgressStatuses={orderProgressStatuses}
+                                currentProgressStatus={currentProgressStatus}
+                                currentOrderStatus={currentOrderStatus}
+                                availableOrderActionStatuses={availableOrderActionStatuses}
+                                updating={updating}
+                                onStatusUpdate={handleStatusUpdate}
+                            />
+                        )}
 
                         {/* Update Payment Status */}
                         {(!isDelivery || order.paymentMethod === "Cash on Delivery") && (
@@ -743,34 +659,13 @@ const OrderDetails = () => {
                         )}
 
                         {isDelivery && (
-                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                    <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                    Payment Information
-                                </h2>
-                                <div className="grid gap-3">
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Method</p>
-                                        <p className="mt-1 font-bold text-[var(--color-text-main)]">{order.paymentMethod || "N/A"}</p>
-                                    </div>
-                                    <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
-                                        <span
-                                            className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(order.paymentStatus)}`}
-                                        >
-                                            {order.paymentStatus}
-                                        </span>
-                                    </div>
-                                    {order.isPaid && (
-                                        <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
-                                            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
-                                            <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                                                {new Date(order.paidAt).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                            <PaymentInfoCard
+                                paymentMethod={order.paymentMethod}
+                                paymentStatus={order.paymentStatus}
+                                isPaid={order.isPaid}
+                                paidAt={order.paidAt}
+                                isDelivery
+                            />
                         )}
 
                         {/* Delivery Proof */}

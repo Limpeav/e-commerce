@@ -20,6 +20,10 @@ import { translateText } from "../controllers/translationController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 import { createUpload } from "../middleware/upload.js";
+import {
+    getSettings,
+    updateSettings,
+} from "../controllers/settingsController.js";
 
 const router = express.Router();
 const productImageUpload = createUpload("products/csv-builder");
@@ -56,6 +60,10 @@ router.get("/users/stats", protect, admin, getUserStats); // ← must be before 
 router.get("/users/:id", protect, admin, getUserById);
 router.put("/users/:id/role", protect, admin, updateUserRole);
 router.delete("/users/:id", protect, admin, deleteUser);
+
+// Settings
+router.get("/settings", protect, admin, getSettings);
+router.put("/settings", protect, admin, updateSettings);
 
 // Cleanup orphaned reviews
 router.post("/cleanup-reviews", protect, admin, async (req, res) => {

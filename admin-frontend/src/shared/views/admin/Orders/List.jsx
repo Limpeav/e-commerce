@@ -8,16 +8,19 @@ import {
     Trash2,
     Search,
     Filter,
-    Eye,
-    MapPin,
-    Navigation,
-    Phone,
     Printer,
 } from "lucide-react";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import {
+  getStatusColor, getStatusStyle, getStatusLabel, getPaymentColor,
+  getOrderDateKey, formatOrderDate, formatUSD, formatPhoneNumber,
+  formatDeliveryAddress, formatFullAddress, getDeliveryFee,
+} from "../../../utils/orderUtils";
+import DeliveryOrderCard from "./DeliveryOrderCard";
 
 const DELIVERY_VISIBLE_STATUSES = ["Shipped", "Delivered"];
 
@@ -311,7 +314,8 @@ const AdminOrders = () => {
         return colors[status] || "bg-gray-100 text-gray-800";
     };
 
-    const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatUSD = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatCurrency = formatUSD;
 
     const formatPhoneNumber = (phone) => {
         if (!phone) return "No phone";
@@ -492,89 +496,14 @@ const AdminOrders = () => {
                                             <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                                         </button>
 
-                                        {isExpanded && group.orders.map((order) => {
-                                            const mapUrl = getMapUrl(order.shippingAddress);
-                                            const phone = order.shippingAddress?.phone;
-                                            const status = normalizeOrderStatus(order.orderStatus);
-
-                                            return (
-                                                <article
-                                                    key={order._id}
-                                                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRowNavigation(order._id)}
-                                                        className="block w-full p-4 text-left"
-                                                    >
-                                                        <div className="mb-3 flex items-start justify-between gap-3">
-                                                            <div className="min-w-0">
-                                                                <p className="font-mono text-sm font-black text-gray-950">#{order._id.slice(-8)}</p>
-                                                                <p className="mt-1 truncate text-lg font-black text-gray-950">
-                                                                    {order.shippingAddress?.fullName || order.user?.name || "Customer"}
-                                                                </p>
-                                                            </div>
-                                                            <span
-                                                                className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${getStatusColor(order.orderStatus)}`}
-                                                                style={getStatusStyle(order.orderStatus)}
-                                                            >
-                                                                {status}
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="space-y-2 text-sm font-semibold text-gray-600">
-                                                            <p className="flex items-start gap-2">
-                                                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                                                                <span className="line-clamp-2">{formatDeliveryAddress(order.shippingAddress)}</span>
-                                                            </p>
-                                                            <p className="flex items-center gap-2">
-                                                                <Phone className="h-4 w-4 text-gray-400" />
-                                                                {formatPhoneNumber(phone)}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="mt-4 grid grid-cols-2 gap-2">
-                                                            <div className="rounded-xl bg-gray-50 p-3">
-                                                                <p className="text-[11px] font-bold uppercase text-gray-500">Total</p>
-                                                                <p className="text-lg font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
-                                                            </div>
-                                                            <div className="rounded-xl bg-gray-50 p-3">
-                                                                <p className="text-[11px] font-bold uppercase text-gray-500">Payment</p>
-                                                                <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-black ${getPaymentColor(order.paymentStatus)}`}>
-                                                                    {order.paymentStatus || "Pending"}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-
-                                                    <div className="grid grid-cols-2 border-t border-gray-100">
-                                                        {mapUrl ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleOpenGoogleMaps(order.shippingAddress)}
-                                                                className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-blue-700"
-                                                            >
-                                                                <Navigation className="h-5 w-5" />
-                                                                View Map
-                                                            </button>
-                                                        ) : (
-                                                            <div className="inline-flex h-14 items-center justify-center gap-2 border-r border-gray-100 text-sm font-black text-gray-400">
-                                                                <Navigation className="h-5 w-5" />
-                                                                View Map
-                                                            </div>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRowNavigation(order._id)}
-                                                            className="inline-flex h-14 items-center justify-center gap-2 text-sm font-black text-gray-950"
-                                                        >
-                                                            <Eye className="h-5 w-5" />
-                                                            Open
-                                                        </button>
-                                                    </div>
-                                                </article>
-                                            );
-                                        })}
+                                        {isExpanded && group.orders.map((order) => (
+                                            <DeliveryOrderCard
+                                                key={order._id}
+                                                order={order}
+                                                onNavigate={handleRowNavigation}
+                                                onOpenMap={handleOpenGoogleMaps}
+                                            />
+                                        ))}
                                     </section>
                                 );
                             })}

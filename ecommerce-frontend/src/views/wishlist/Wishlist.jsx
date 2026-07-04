@@ -6,6 +6,7 @@ import { useDarkMode } from "../../hooks";
 import { isClothingProduct } from "../../utils/productOptions";
 import { useLanguage } from "../../context/useLanguage";
 import { getLocalizedProductText } from "../../utils/productLocalization";
+import Price from "../../components/shared/Price";
 
 export default function Wishlist() {
   const { wishlist, removeFromWishlist } = useWishlist();
@@ -146,9 +147,7 @@ export default function Wishlist() {
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <div className="flex flex-col">
                     <span className="mb-0.5 text-[8px] font-bold uppercase tracking-wide text-text-muted sm:mb-1 sm:text-[10px]">Price</span>
-                    <span className="text-base sm:text-xl font-black text-text-main tracking-tight font-display">
-                      ${product.price ? product.price.toFixed(2) : "0.00"}
-                    </span>
+                    <Price amount={product.price} className="text-base sm:text-xl font-black text-text-main tracking-tight font-display" usdClassName="text-text-main" />
                   </div>
                   <div
                     className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wide sm:px-3 sm:py-1 sm:text-[10px] ${product.stock > 0 ? "bg-primary/10 text-primary" : "bg-secondary/12 text-secondary"}`}

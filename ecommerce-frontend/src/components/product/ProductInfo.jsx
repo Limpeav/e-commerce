@@ -5,6 +5,7 @@ import { getProductSizes, isClothingProduct } from '../../utils/productOptions';
 import { useLanguage } from '../../context/useLanguage';
 import { getLocalizedProductText } from '../../utils/productLocalization';
 import { useToast } from '../../context/ToastContext';
+import Price from '../shared/Price';
 
 const ProductInfo = ({
   product,
@@ -85,20 +86,26 @@ const ProductInfo = ({
       <div className="flex flex-wrap items-end gap-2.5 sm:gap-3">
         {hasDiscount ? (
           <>
-            <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-              ${discountPrice.toFixed(2)}
-            </span>
-            <span className={`mb-1 line-through text-lg font-bold decoration-2 sm:mb-1.5 sm:text-xl ${isDark ? "text-slate-500" : "text-stone-400"}`}>
-              ${price.toFixed(2)}
-            </span>
+            <Price
+              amount={discountPrice}
+              className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}
+              usdClassName={isDark ? "text-white" : "text-stone-900"}
+            />
+            <Price
+              amount={price}
+              showKHR={false}
+              className={`mb-1 line-through text-lg font-bold decoration-2 sm:mb-1.5 sm:text-xl ${isDark ? "text-slate-500" : "text-stone-400"}`}
+            />
             <div className="mb-1.5 rounded-xl bg-rose-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-sm shadow-rose-200 sm:mb-2">
               Save {discountPercent}%
             </div>
           </>
         ) : (
-          <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-            ${price.toFixed(2)}
-          </span>
+          <Price
+            amount={price}
+            className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}
+            usdClassName={isDark ? "text-white" : "text-stone-900"}
+          />
         )}
       </div>
 

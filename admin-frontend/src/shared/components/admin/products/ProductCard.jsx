@@ -5,6 +5,7 @@ import {
   getProductSoldCount,
   isLowStockProduct,
 } from "../../../utils/adminProducts";
+import Price from "../../common/Price";
 
 const ProductCard = ({ product, onEdit, onDelete }) => {
   const price = Number(product.price) || 0;
@@ -55,16 +56,14 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           <div>
             {discountPrice !== null ? (
               <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-gray-900">
-                  ${discountPrice.toFixed(2)}
-                </p>
-                <p className="text-sm text-gray-500 line-through">${price.toFixed(2)}</p>
+                <Price amount={discountPrice} className="text-2xl font-bold text-gray-900" usdClassName="text-gray-900" />
+                <Price amount={price} showKHR={false} className="text-sm text-gray-500 line-through" />
                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
                   {Math.round(((price - discountPrice) / price) * 100)}% OFF
                 </span>
               </div>
             ) : (
-              <p className="text-2xl font-bold text-gray-900">${price.toFixed(2)}</p>
+              <Price amount={price} className="text-2xl font-bold text-gray-900" usdClassName="text-gray-900" />
             )}
             <p className="text-sm text-gray-600">
               Stock:{" "}

@@ -5,6 +5,7 @@ import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { getLocalizedProductText } from '../../utils/productLocalization';
 import { translateCategory } from '../../utils/translationKeys';
+import Price from '../shared/Price';
 
 const CartItem = ({
   item,
@@ -33,9 +34,11 @@ const CartItem = ({
           <Link to={`/products/${item.product._id}`} className="font-bold text-sm sm:text-xl text-text-main hover:text-primary line-clamp-1 transition-colors tracking-tight">
             {localizedProduct.title}
           </Link>
-          <p className="font-bold text-sm sm:text-xl text-text-main ml-2 sm:ml-4 tracking-tight whitespace-nowrap">
-            ${(getEffectivePrice(item.product) * item.quantity).toFixed(2)}
-          </p>
+          <Price
+            amount={getEffectivePrice(item.product) * item.quantity}
+            className="font-bold text-sm sm:text-xl text-text-main ml-2 sm:ml-4 tracking-tight whitespace-nowrap"
+            usdClassName="text-text-main"
+          />
         </div>
 
         <div className={`flex items-center gap-2 mb-2 sm:mb-3 text-[10px] sm:text-xs font-medium ${isDark ? "text-slate-400" : "text-stone-500"}`}>
@@ -60,11 +63,11 @@ const CartItem = ({
           <div className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50 border-stone-100"}`}>
             {item.product.discountPrice && item.product.discountPrice < item.product.price ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-secondary font-bold text-xs sm:text-sm">${item.product.discountPrice.toFixed(2)}</span>
-                <span className="line-through text-stone-400 text-[10px] sm:text-xs">${item.product.price.toFixed(2)}</span>
+                <Price amount={item.product.discountPrice} className="text-secondary font-bold text-xs sm:text-sm" usdClassName="text-secondary" />
+                <Price amount={item.product.price} showKHR={false} className="line-through text-stone-400 text-[10px] sm:text-xs" />
               </div>
             ) : (
-              <span className={`font-medium text-xs sm:text-sm ${isDark ? "text-slate-300" : "text-stone-500"}`}>${item.product.price.toFixed(2)}</span>
+              <Price amount={item.product.price} className={`font-medium text-xs sm:text-sm ${isDark ? "text-slate-300" : "text-stone-500"}`} usdClassName={isDark ? "text-slate-300" : "text-stone-500"} />
             )}
           </div>
 

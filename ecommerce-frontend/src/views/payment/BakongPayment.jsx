@@ -220,7 +220,7 @@ export default function BakongPayment() {
   }
 
   // ── Main Payment Page ─────────────────────────────────────────────────────
-  const exchangeRate = 4100;
+  const exchangeRate = payment?.exchangeRate || 4100;
   const amountKHR = order ? Math.round(order.totalPrice * exchangeRate).toLocaleString() : "—";
 
   return (

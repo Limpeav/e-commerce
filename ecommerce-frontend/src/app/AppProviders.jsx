@@ -7,6 +7,7 @@ import { ToastProvider } from "../context/ToastContext";
 import { CartProvider } from "../context/CartContext";
 import { WishlistProvider } from "../context/WishlistContext";
 import { LanguageProvider } from "../context/LanguageContext";
+import { CurrencyProvider } from "../context/CurrencyContext";
 
 export default function AppProviders({ children }) {
   return (
@@ -18,7 +19,9 @@ export default function AppProviders({ children }) {
               <AuthProvider>
                 <ToastProvider>
                   <CartProvider>
-                    <WishlistProvider>{children}</WishlistProvider>
+                    <WishlistProvider>
+                      <CurrencyProvider>{children}</CurrencyProvider>
+                    </WishlistProvider>
                   </CartProvider>
                 </ToastProvider>
               </AuthProvider>

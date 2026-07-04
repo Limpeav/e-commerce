@@ -9,13 +9,15 @@ import {
 import { AdminController } from "../../../controllers/adminController";
 import { adminService } from "../../../services/adminService";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 
-const formatCurrency = (amount) =>
+const formatUSD = (amount) =>
     new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(amount || 0));
+const formatCurrency = formatUSD;
 
 const PaymentQueue = () => {
     const navigate = useNavigate();
@@ -115,7 +117,7 @@ const PaymentQueue = () => {
                         </div>
                         <div className="rounded-lg border border-green-100 bg-green-50 px-4 py-3">
                             <p className="text-xs font-black uppercase text-green-700">Pending Cash</p>
-                            <p className="mt-1 text-2xl font-black text-green-900">{formatCurrency(queueTotal)}</p>
+                            <Price amount={queueTotal} className="mt-1 text-2xl font-black text-green-900" usdClassName="text-green-900" />
                         </div>
                     </div>
                 </div>
@@ -183,7 +185,7 @@ const PaymentQueue = () => {
                                                 </span>
                                             </td>
                                             <td className="whitespace-nowrap px-5 py-4 text-right font-black text-gray-950">
-                                                {formatCurrency(order.totalPrice)}
+                                                <Price amount={order.totalPrice} usdClassName="text-gray-950" />
                                             </td>
                                             <td className="whitespace-nowrap px-5 py-4">
                                                 <div className="flex justify-end gap-2">

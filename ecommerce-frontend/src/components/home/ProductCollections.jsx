@@ -4,8 +4,7 @@ import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useFlyToCart } from "../../context/FlyToCartContext";
 import { useDarkMode } from "../../hooks";
 import { isClothingProduct } from "../../utils/productOptions";
-
-const formatPrice = (price) => `$${Number(price || 0).toFixed(2)}`;
+import Price from "../shared/Price";
 
 const getPricing = (product) => {
   const price = Number(product.price || 0);
@@ -89,9 +88,9 @@ function CompactProductCard({ product, badge, user, onAddToCart, onWishlistToggl
 
             <div className="flex items-end gap-1">
               {hasDiscount && (
-                <span className="text-[10px] font-medium text-text-muted/70 line-through">{formatPrice(basePrice)}</span>
+                <Price amount={basePrice} showKHR={false} className="text-[10px] font-medium text-text-muted/70 line-through" />
               )}
-              <span className="text-sm font-bold text-text-main md:text-base">{formatPrice(finalPrice)}</span>
+              <Price amount={finalPrice} className="text-sm font-bold text-text-main md:text-base" usdClassName="text-text-main" />
             </div>
           </div>
         </div>

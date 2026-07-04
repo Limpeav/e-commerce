@@ -4,6 +4,7 @@ import { ArrowRight, CreditCard } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { SHIPPING_PRICE, TAX_RATE } from '../../utils/checkout';
+import Price from '../shared/Price';
 
 const OrderSummary = ({ total }) => {
   const [isDark] = useDarkMode();
@@ -20,17 +21,15 @@ const OrderSummary = ({ total }) => {
       <div className="space-y-4 mb-8">
         <div className="flex justify-between text-text-muted font-medium text-sm">
           <span>{t("cart.subtotal")}</span>
-          <span className="text-text-main font-semibold">${total.toFixed(2)}</span>
+          <Price amount={total} className="text-text-main font-semibold" usdClassName="text-text-main" />
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
           <span>{t("cart.shipping")}</span>
-          <span className="text-text-main font-semibold">${SHIPPING_PRICE.toFixed(2)}</span>
+          <Price amount={SHIPPING_PRICE} className="text-text-main font-semibold" usdClassName="text-text-main" />
         </div>
         <div className="flex justify-between text-text-muted font-medium text-sm">
           <span>{t("cart.tax")}</span>
-          <span className="text-text-main font-semibold">
-            ${tax.toFixed(2)}
-          </span>
+          <Price amount={tax} className="text-text-main font-semibold" usdClassName="text-text-main" />
         </div>
 
         <div className={`h-px my-6 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
@@ -38,9 +37,7 @@ const OrderSummary = ({ total }) => {
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
             <span className={`font-medium text-xs mb-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>{t("cart.total")}</span>
-            <span className="text-3xl font-bold text-text-main">
-              ${finalTotal.toFixed(2)}
-            </span>
+            <Price amount={finalTotal} className="text-3xl font-bold text-text-main" usdClassName="text-text-main" />
           </div>
         </div>
       </div>

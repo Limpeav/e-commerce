@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/adminService'
 import Loading from '../../../components/common/Loading'
+import Price from '../../../components/common/Price'
 import { getPortalOrderDetailsPath, getPortalOrdersPath, getStoredAdminUser } from '../../../utils/adminSession'
 
 const AdminDashboard = () => {
@@ -9,6 +10,10 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [exchangeRate, setExchangeRate] = useState(4100)
+  const [exchangeRateInput, setExchangeRateInput] = useState('4100')
+  const [savingRate, setSavingRate] = useState(false)
+  const [rateMessage, setRateMessage] = useState({ type: '', text: '' })
   const adminUser = getStoredAdminUser()
   const isDelivery = adminUser?.role === 'delivery'
   const ordersPath = getPortalOrdersPath(adminUser)
@@ -28,6 +33,10 @@ const AdminDashboard = () => {
       try {
         const response = await adminService.getDashboardStats()
         setStats(response.data)
+        if (response.data.exchangeRate) {
+          setExchangeRate(response.data.exchangeRate)
+          setExchangeRateInput(String(response.data.exchangeRate))
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch dashboard stats')
       } finally {
@@ -37,13 +46,6 @@ const AdminDashboard = () => {
 
     fetchStats()
   }, [isDelivery])
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0)
-  }
 
   const getInitials = (name) => {
     if (!name) return '?'
@@ -143,7 +145,7 @@ const AdminDashboard = () => {
                           #{activity.id.slice(-8)} · {activity.userName || 'Customer'}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-gray-500">
-                          {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · {formatCurrency(activity.amount || 0)}
+                           {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · <Price amount={activity.amount || 0} />
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
@@ -178,7 +180,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Sales</h3>
-                <p className="text-3xl font-bold text-blue-600">{formatCurrency(stats.revenue || 0)}</p>
+                <Price amount={stats.revenue || 0} className="text-3xl font-bold text-blue-600" usdClassName="text-blue-600" />
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">Total Orders</h3>
@@ -231,6 +233,71 @@ const AdminDashboard = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Exchange Rate Management */}
+        {!isDelivery && (
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Exchange Rate</h3>
+                <p className="text-sm text-gray-500 mt-0.5">USD to KHR rate for BAKONG KHQR payments</p>
+              </div>
+              <div className="bg-blue-50 px-3 py-1.5 rounded-lg">
+                <span className="text-xs font-bold text-blue-700">1 USD</span>
+                <span className="text-blue-400 mx-1">→</span>
+                <span className="text-xs font-bold text-blue-700">{parseInt(exchangeRate).toLocaleString()} KHR</span>
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  1 USD = <span className="text-gray-400">?</span> KHR
+                </label>
+                <input
+                  type="number"
+                  value={exchangeRateInput}
+                  onChange={(e) => {
+                    setExchangeRateInput(e.target.value)
+                    setRateMessage({ type: '', text: '' })
+                  }}
+                  min="1"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  placeholder="Enter exchange rate"
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  const rate = parseFloat(exchangeRateInput)
+                  if (!rate || rate <= 0) {
+                    setRateMessage({ type: 'error', text: 'Please enter a valid positive number' })
+                    return
+                  }
+                  setSavingRate(true)
+                  setRateMessage({ type: '', text: '' })
+                  try {
+                    await adminService.updateSettings({ usd_to_khr_rate: rate })
+                    setExchangeRate(rate)
+                    setRateMessage({ type: 'success', text: 'Exchange rate updated successfully' })
+                    setTimeout(() => setRateMessage({ type: '', text: '' }), 3000)
+                  } catch {
+                    setRateMessage({ type: 'error', text: 'Failed to update exchange rate' })
+                  } finally {
+                    setSavingRate(false)
+                  }
+                }}
+                disabled={savingRate}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
+              >
+                {savingRate ? 'Saving...' : 'Update Rate'}
+              </button>
+            </div>
+            {rateMessage.text && (
+              <p className={`mt-2 text-xs font-semibold ${rateMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {rateMessage.text}
+              </p>
+            )}
+          </div>
         )}
 
         <div>
@@ -307,7 +374,7 @@ const AdminDashboard = () => {
                                 <span className="text-gray-400 mx-1">•</span>
                                 <span>{activity.itemsCount || 0} item{activity.itemsCount !== 1 ? 's' : ''}</span>
                                 <span className="text-gray-400 mx-1">•</span>
-                                <span className="font-semibold text-gray-900">{formatCurrency(activity.amount || 0)}</span>
+                                <Price amount={activity.amount || 0} className="font-semibold text-gray-900" usdClassName="text-gray-900" />
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusColor(activity.orderStatus)}`}>

@@ -1,5 +1,6 @@
 import { Loader, Lock, Package } from "lucide-react";
 import { getEffectiveCartProductPrice } from "../../../utils/checkout";
+import Price from "../../shared/Price";
 
 const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
   <div className="lg:col-span-1">
@@ -40,9 +41,11 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
               </div>
             </div>
             <div className="text-right">
-              <p className="font-bold text-text-main text-sm">
-                ${(getEffectiveCartProductPrice(item.product) * item.quantity).toFixed(2)}
-              </p>
+              <Price
+                amount={getEffectiveCartProductPrice(item.product) * item.quantity}
+                className="font-bold text-text-main text-sm"
+                usdClassName="text-text-main"
+              />
             </div>
           </div>
         ))}
@@ -51,26 +54,24 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading }) => (
       <div className={`space-y-3 mb-8 border-t pt-6 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Subtotal</span>
-          <span className="text-text-main font-bold">${totals.subtotal.toFixed(2)}</span>
+          <Price amount={totals.subtotal} className="text-text-main font-bold" usdClassName="text-text-main" />
         </div>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Shipping</span>
           <span className="text-green-600 font-bold">
-            {totals.shippingPrice === 0 ? "Free" : `$${totals.shippingPrice.toFixed(2)}`}
+            {totals.shippingPrice === 0 ? "Free" : <Price amount={totals.shippingPrice} usdClassName="text-green-600" />}
           </span>
         </div>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Tax (8%)</span>
-          <span className="text-text-main font-bold">${totals.taxPrice.toFixed(2)}</span>
+          <Price amount={totals.taxPrice} className="text-text-main font-bold" usdClassName="text-text-main" />
         </div>
 
         <div className={`h-px my-4 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
 
         <div className="flex justify-between items-end">
           <span className="text-text-main font-bold text-lg">Total</span>
-          <span className="text-3xl font-black font-display tracking-tight text-primary">
-            ${totals.totalPrice.toFixed(2)}
-          </span>
+          <Price amount={totals.totalPrice} className="text-3xl font-black font-display tracking-tight text-primary" usdClassName="text-primary" />
         </div>
       </div>
 

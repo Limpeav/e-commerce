@@ -3,6 +3,7 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
+import Setting from "../models/Setting.js";
 
 const sanitizeDraftRow = (row = {}) => ({
   title: String(row.title || "").trim(),
@@ -377,6 +378,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Sort by actual timestamp
   recentActivity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  // Get exchange rate
+  const rateSetting = await Setting.findOne({ key: "usd_to_khr_rate" });
+  const exchangeRate = rateSetting ? parseFloat(rateSetting.value) : parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
+
   res.json({
     admin: req.user.name,
     users: usersCount,
@@ -391,6 +396,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
+    exchangeRate,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
 });

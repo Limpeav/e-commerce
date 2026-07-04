@@ -7,6 +7,7 @@ import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
 import { isClothingProduct } from '../../utils/productOptions';
 import { getLocalizedProductText } from '../../utils/productLocalization';
+import Price from '../shared/Price';
 
 const ProductCard = ({
   product,
@@ -152,12 +153,14 @@ const ProductCard = ({
         {/* Price Row */}
         <div className="mt-auto flex min-h-[3.5rem] items-end justify-between gap-2">
           <div className="flex min-h-[3.25rem] flex-col justify-end">
-            <span className={`h-4 text-xs font-bold line-through ${hasDiscount ? '' : 'invisible'} ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
-              ${price.toFixed(2)}
-            </span>
-            <span className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}>
-              ${finalPrice.toFixed(2)}
-            </span>
+            {hasDiscount && (
+              <Price amount={price} showKHR={false} className={`h-4 text-xs font-bold line-through ${isDark ? 'text-slate-500' : 'text-stone-300'}`} />
+            )}
+            <Price
+              amount={finalPrice}
+              className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}
+              usdClassName={isDark ? 'text-white' : 'text-stone-900'}
+            />
           </div>
 
           {/* Mobile Only: Text Button */}

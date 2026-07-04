@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
+import Setting from "../models/Setting.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
 
@@ -71,8 +72,9 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     const merchantName = process.env.BAKONG_MERCHANT_NAME || "E-Commerce Store";
     const acquiringBank = process.env.BAKONG_ACQUIRING_BANK || "bakong";
 
-    // Convert USD to KHR if needed (1 USD = ~4100 KHR, adjust based on current rate)
-    const exchangeRate = parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
+    // Convert USD to KHR if needed
+    const rateSetting = await Setting.findOne({ key: "usd_to_khr_rate" });
+    const exchangeRate = rateSetting ? parseFloat(rateSetting.value) : parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
     const amountInKHR = Math.round(order.totalPrice * exchangeRate);
 
     // Generate KHQR String (simplified format)
@@ -133,7 +135,9 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
         await payment.save();
     }
 
-    res.status(201).json(payment);
+    const paymentData = payment.toObject();
+    paymentData.exchangeRate = exchangeRate;
+    res.status(201).json(paymentData);
 });
 
 // Helper function to generate KHQR string
