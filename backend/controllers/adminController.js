@@ -428,6 +428,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
         userName: order.user.name || order.user.email,
         userEmail: order.user.email,
         amount: order.totalPrice,
+        exchangeRateAtOrder: order.exchangeRateAtOrder || 4100,
         itemsCount: itemsCount,
         orderStatus: order.orderStatus || "Pending",
         paymentStatus: order.paymentStatus || "Pending",

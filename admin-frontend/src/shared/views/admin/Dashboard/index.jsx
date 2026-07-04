@@ -145,7 +145,7 @@ const AdminDashboard = () => {
                           #{activity.id.slice(-8)} · {activity.userName || 'Customer'}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-gray-500">
-                           {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · <Price amount={activity.amount || 0} />
+                            {activity.itemsCount || 0} item{activity.itemsCount === 1 ? '' : 's'} · <Price amount={activity.amount || 0} exchangeRate={activity.exchangeRateAtOrder} />
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
@@ -381,7 +381,7 @@ const AdminDashboard = () => {
                                 <span className="text-gray-400 mx-1">•</span>
                                 <span>{activity.itemsCount || 0} item{activity.itemsCount !== 1 ? 's' : ''}</span>
                                 <span className="text-gray-400 mx-1">•</span>
-                                <Price amount={activity.amount || 0} className="font-semibold text-gray-900" usdClassName="text-gray-900" />
+                                <Price amount={activity.amount || 0} exchangeRate={activity.exchangeRateAtOrder} className="font-semibold text-gray-900" usdClassName="text-gray-900" />
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusColor(activity.orderStatus)}`}>

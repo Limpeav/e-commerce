@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import {
     clearAdminSession,
@@ -815,7 +816,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         <div className="mt-4 grid grid-cols-2 gap-2">
                                                             <div className="rounded-xl bg-gray-50 p-3">
                                                                 <p className="text-[11px] font-bold uppercase text-gray-500">Total</p>
-                                                                <p className="text-lg font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
+                                                                <Price amount={order.totalPrice} exchangeRate={order.exchangeRateAtOrder} className="text-lg font-black text-gray-950" usdClassName="text-gray-950" />
                                                             </div>
                                                             <div className="rounded-xl bg-gray-50 p-3">
                                                                 <p className="text-[11px] font-bold uppercase text-gray-500">Payment</p>
@@ -1103,7 +1104,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                         {new Date(order.createdAt).toLocaleDateString()}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                                        ${order.totalPrice?.toFixed(2) || "0.00"}
+                                                        <Price amount={order.totalPrice} exchangeRate={order.exchangeRateAtOrder} />
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span
