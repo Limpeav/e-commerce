@@ -176,6 +176,10 @@ productSchema.index({ totalSold: -1, rating: -1 });
 productSchema.index({ "sizeStocks.size": 1 });
 productSchema.index({ "sizeStocks.size": 1, "sizeStocks.color": 1 });
 productSchema.index({ colors: 1 });
+productSchema.index({ title: "text", titleKm: "text" });
+productSchema.index({ price: 1 });
+productSchema.index({ discountPrice: 1 });
+productSchema.index({ createdAt: -1, _id: -1 });
 
 const Product = mongoose.model("Product", productSchema);
 

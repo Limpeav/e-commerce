@@ -136,6 +136,10 @@ const orderSchema = new mongoose.Schema(
             required: true,
             default: false,
         },
+        exchangeRateAtOrder: {
+            type: Number,
+            default: 4100,
+        },
     },
     {
         timestamps: true,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Grid3x3, List } from "lucide-react";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
 import ProductFilters from "../../../components/admin/products/ProductFilters";
@@ -14,38 +15,47 @@ import {
 } from "../../../utils/adminProducts";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
+const PAGE_SIZES = [20, 50, 100];
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "name", label: "Name" },
+  { value: "price-low", label: "Price: Low to High" },
+  { value: "price-high", label: "Price: High to Low" },
+  { value: "best-selling", label: "Best Selling" },
+];
+
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [sendingPromotionEmails, setSendingPromotionEmails] = useState(false);
   const [promotionEmailStatus, setPromotionEmailStatus] = useState("");
   const [promotionEmailStatusType, setPromotionEmailStatusType] = useState("success");
   const [promotionEmailFailures, setPromotionEmailFailures] = useState([]);
+  const [layout, setLayout] = useState("grid");
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchTerm = searchParams.get("search") || "";
   const categoryFilter = searchParams.get("category") || "all";
-  const legacyInventoryState = searchParams.get("outOfStock") === "true"
-    ? "sold-out"
-    : searchParams.get("lowStock") === "true"
-      ? "issues"
-      : "all";
-  const inventoryState = searchParams.get("inventory") || legacyInventoryState;
+  const inventoryState = searchParams.get("inventory") || "all";
+  const sortBy = searchParams.get("sort") || "newest";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
   const updateFilterParam = useCallback(
     (name, value, defaultValue = "") => {
       setSearchParams(
         (currentParams) => {
           const nextParams = new URLSearchParams(currentParams);
-
           if (!value || value === defaultValue) {
             nextParams.delete(name);
           } else {
             nextParams.set(name, value);
           }
-
           return nextParams;
         },
         { replace: true }
@@ -54,19 +64,31 @@ const ProductList = () => {
     [setSearchParams]
   );
 
+  const buildApiParams = useCallback(() => {
+    const params = { page, limit: pageSize, sort: sortBy };
+    if (searchTerm) params.search = searchTerm;
+    if (categoryFilter !== "all") params.category = categoryFilter;
+    if (inventoryState !== "all") params.inventory = inventoryState;
+    return params;
+  }, [page, pageSize, sortBy, searchTerm, categoryFilter, inventoryState]);
+
   const fetchProducts = useCallback(async ({ silent = false } = {}) => {
       if (!silent) setLoading(true);
-      const result = await AdminProductController.getProducts();
+      const result = await AdminProductController.getProducts(buildApiParams());
 
       if (result.success) {
-        setProducts(result.data);
+        const { products: data, total, totalPages: tp } = result.data || {};
+        setProducts(data || []);
+        setTotalProducts(total || 0);
+        setTotalPages(tp || 1);
+        setCurrentPage(page || 1);
         setError("");
       } else {
         setError(result.error);
       }
 
       if (!silent) setLoading(false);
-  }, []);
+  }, [buildApiParams, page]);
 
   useEffect(() => {
     fetchProducts();
@@ -78,15 +100,6 @@ const ProductList = () => {
 
   const categories = useMemo(() => getProductCategories(products), [products]);
   const stats = useMemo(() => getProductStats(products, categories), [products, categories]);
-  const filteredProducts = useMemo(
-    () =>
-      filterAdminProducts(products, {
-        searchTerm,
-        categoryFilter,
-        inventoryState,
-      }),
-    [products, searchTerm, categoryFilter, inventoryState]
-  );
 
   const goToAddProduct = () => navigate("/admin/products/add");
 
@@ -145,6 +158,26 @@ const ProductList = () => {
 
     alert(result.error);
   };
+
+  const handlePageChange = (p) => {
+    updateFilterParam("page", String(p));
+  };
+
+  const handleSortChange = (value) => {
+    updateFilterParam("sort", value, "newest");
+  };
+
+  const handlePageSizeChange = (value) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("pageSize", String(value));
+      next.delete("page");
+      return next;
+    }, { replace: true });
+  };
+
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalProducts);
 
   if (loading) {
     return <Loading message="Loading products..." />;
@@ -208,39 +241,148 @@ const ProductList = () => {
           searchTerm={searchTerm}
           categoryFilter={categoryFilter}
           inventoryState={inventoryState}
-          onSearchChange={(value) => updateFilterParam("search", value)}
-          onCategoryChange={(value) =>
-            updateFilterParam("category", value, "all")
-          }
+          onSearchChange={(value) => {
+            updateFilterParam("search", value);
+            updateFilterParam("page", "");
+          }}
+          onCategoryChange={(value) => {
+            updateFilterParam("category", value, "all");
+            updateFilterParam("page", "");
+          }}
           onInventoryStateChange={(value) => {
             setSearchParams((currentParams) => {
               const nextParams = new URLSearchParams(currentParams);
               nextParams.delete("lowStock");
               nextParams.delete("outOfStock");
-
               if (value === "all") {
                 nextParams.delete("inventory");
               } else {
                 nextParams.set("inventory", value);
               }
-
+              nextParams.delete("page");
               return nextParams;
             }, { replace: true });
           }}
         />
 
-        {filteredProducts.length === 0 ? (
+        {/* Sort, Layout, Page Size Controls */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700"
+            >
+              {PAGE_SIZES.map((s) => (
+                <option key={s} value={s}>{s} per page</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLayout("grid")}
+              className={`p-2 rounded-lg border transition-colors ${layout === "grid" ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:text-gray-700"}`}
+              title="Grid view"
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setLayout("list")}
+              className={`p-2 rounded-lg border transition-colors ${layout === "list" ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:text-gray-700"}`}
+              title="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {products.length === 0 ? (
           <EmptyProductsState
-            hasActiveFilters={
-              Boolean(searchTerm) ||
-              categoryFilter !== "all" ||
-              inventoryState !== "all"
-            }
+            hasActiveFilters={Boolean(searchTerm) || categoryFilter !== "all" || inventoryState !== "all"}
             onAddProduct={goToAddProduct}
           />
+        ) : layout === "list" ? (
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left">
+                <thead className="border-b border-gray-200 bg-gray-50">
+                  <tr className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Price</th>
+                    <th className="px-6 py-4">Sold</th>
+                    <th className="px-6 py-4">Stock</th>
+                    <th className="px-6 py-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {products.map((product) => (
+                    <tr key={product._id} className="transition-colors hover:bg-orange-50/50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={product.image || "https://via.placeholder.com/48"}
+                            alt={product.title}
+                            className="h-12 w-12 rounded-xl border border-gray-200 object-cover"
+                          />
+                          <span className="max-w-xs font-semibold text-gray-900 truncate">{product.title}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{product.category || "-"}</td>
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-gray-900">${(Number(product.discountPrice || product.price) || 0).toFixed(2)}</span>
+                        {product.discountPrice > 0 && (
+                          <span className="ml-2 text-xs text-gray-400 line-through">${Number(product.price || 0).toFixed(2)}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex min-w-10 justify-center rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-amber-700">
+                          {product.sold || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold">
+                        <span className={product.availableStock > 0 ? "text-emerald-700" : "text-red-600"}>
+                          {product.availableStock ?? product.stock ?? 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate(`/admin/products/edit/${product._id}`, {
+                              state: { returnTo: `${location.pathname}${location.search}` },
+                            })}
+                            className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product._id)}
+                            className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
-          <div className="admin-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
@@ -254,6 +396,49 @@ const ProductList = () => {
                 onDelete={handleDelete}
               />
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-semibold text-gray-500">
+              Showing {startItem}–{endItem} of {totalProducts}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const start = Math.max(1, Math.min(currentPage - 3, totalPages - 6));
+                const p = start + i;
+                if (p > totalPages) return null;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => handlePageChange(p)}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
+                      p === currentPage
+                        ? "bg-primary text-white shadow-md"
+                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

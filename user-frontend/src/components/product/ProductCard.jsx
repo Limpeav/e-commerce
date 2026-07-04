@@ -19,7 +19,8 @@ const ProductCard = ({
   isInWishlist,
   user,
   variants,
-  className = ""
+  className = "",
+  layout = "grid"
 }) => {
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
@@ -50,6 +51,60 @@ const ProductCard = ({
 
     onAddToCart(product);
   };
+
+  if (layout === "list") {
+    return (
+      <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center transition-colors hover:bg-opacity-50 cursor-pointer"
+        style={{ backgroundColor: isDark ? "#0f172a" : "#fff" }}
+        onClick={openProductDetails}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter") openProductDetails(); }}
+      >
+        <div className="col-span-5 flex items-center gap-3">
+          <img
+            src={product.image || "https://via.placeholder.com/48"}
+            alt={localizedProduct.title}
+            className="w-12 h-12 rounded-lg object-cover"
+          />
+          <span className={`text-sm font-semibold line-clamp-1 ${isDark ? "text-slate-100" : "text-gray-900"}`}>
+            {localizedProduct.title}
+          </span>
+        </div>
+        <span className={`col-span-2 text-xs font-medium ${isDark ? "text-slate-400" : "text-gray-500"}`}>
+          {product.category || "-"}
+        </span>
+        <div className="col-span-2">
+          {hasDiscount && (
+            <span className={`text-xs line-through mr-2 ${isDark ? "text-slate-600" : "text-gray-400"}`}>
+              ${price.toFixed(2)}
+            </span>
+          )}
+          <span className={`text-sm font-bold ${isDark ? "text-slate-100" : "text-gray-900"}`}>
+            ${finalPrice.toFixed(2)}
+          </span>
+        </div>
+        <div className="col-span-3 flex items-center gap-2">
+          <button
+            onClick={handleAddClick}
+            disabled={outOfStock}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
+          >
+            {outOfStock ? t("product.soldOut") : user ? t("product.add") : t("product.login")}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onWishlistToggle(product); }}
+            className={`p-1.5 rounded-lg border transition-colors ${inWishlist
+              ? "text-indigo-600 border-indigo-200 bg-indigo-50"
+              : `${isDark ? "text-slate-500 border-slate-700 hover:text-indigo-400" : "text-gray-400 border-gray-200 hover:text-indigo-600"}`
+            }`}
+          >
+            <Heart className="w-4 h-4" strokeWidth={2.5} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Motion.article

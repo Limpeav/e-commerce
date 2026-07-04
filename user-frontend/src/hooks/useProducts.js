@@ -16,7 +16,7 @@ let productsRequest = null;
 
 const loadProducts = async () => {
   if (!productsRequest) {
-    productsRequest = ProductController.getProducts().finally(() => {
+    productsRequest = ProductController.getProducts({ limit: "200" }).finally(() => {
       productsRequest = null;
     });
   }
@@ -38,7 +38,7 @@ export const useProducts = (language = "en", user = null) => {
         if (!silent) setLoading(true);
         const result = await loadProducts();
         if (result.success) {
-          cachedProducts = result.data || [];
+          cachedProducts = result.data?.products || result.data || [];
           setProducts(cachedProducts);
           setError("");
         } else if (!silent || cachedProducts.length === 0) {
@@ -145,6 +145,66 @@ export const useProducts = (language = "en", user = null) => {
     loading,
     error,
     setProducts,
+    refetch: fetchProducts,
+  };
+};
+
+export const usePaginatedProducts = (initialParams = {}) => {
+  const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [params, setParams] = useState(initialParams);
+
+  const fetchProducts = useCallback(async (overrideParams) => {
+    setLoading(true);
+    const merged = { ...params, ...overrideParams };
+    const result = await ProductController.getProducts(merged);
+
+    if (result.success) {
+      const { products: data, page: p, totalPages: tp, total: t } = result.data;
+      setProducts(data);
+      setPage(p || 1);
+      setTotalPages(tp || 1);
+      setTotal(t || 0);
+      setError("");
+    } else {
+      setError(result.error || "Failed to fetch products");
+    }
+
+    setLoading(false);
+  }, [params]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const updateParams = useCallback((newParams) => {
+    setParams((prev) => {
+      const next = { ...prev, ...newParams };
+      if (JSON.stringify(next) !== JSON.stringify(prev)) {
+        return next;
+      }
+      return prev;
+    });
+  }, []);
+
+  const goToPage = useCallback((p) => {
+    updateParams({ page: String(p) });
+  }, [updateParams]);
+
+  return {
+    products,
+    page,
+    totalPages,
+    total,
+    loading,
+    error,
+    params,
+    setParams: updateParams,
+    goToPage,
     refetch: fetchProducts,
   };
 };

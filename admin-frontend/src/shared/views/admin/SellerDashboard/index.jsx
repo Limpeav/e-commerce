@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DashboardController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import Price from "../../../components/common/Price";
 import {
     getPortalCashReportPath,
     getPortalOrderDetailsPath,
@@ -20,11 +21,12 @@ import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
-const formatCurrency = (amount) =>
+const formatUSD = (amount) =>
     new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(amount || 0));
+const formatCurrency = formatUSD;
 
 const SellerDashboard = () => {
     const navigate = useNavigate();
@@ -82,7 +84,7 @@ const SellerDashboard = () => {
     const statCards = [
         {
             label: "Cash Today",
-            value: formatCurrency(totalCashToday),
+            value: <Price amount={totalCashToday} />,
             hint: `${paidTodayCount} paid order${paidTodayCount === 1 ? "" : "s"}`,
             icon: WalletCards,
             tone: "text-green-700",
@@ -168,18 +170,18 @@ const SellerDashboard = () => {
                     })}
                 </div>
 
-                <section className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
-                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4">
+                <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm ring-1 ring-black/[0.02]">
+                    <div className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] bg-[var(--color-primary-dark)] px-5 py-4">
                         <div>
-                            <h2 className="text-lg font-black text-gray-950">Needs Confirmation</h2>
-                            <p className="mt-1 text-sm font-medium text-gray-500">
+                            <h2 className="text-lg font-black text-white">Needs Confirmation</h2>
+                            <p className="mt-1 text-sm font-medium text-white/75">
                                 New orders waiting for receipt printing and seller confirmation.
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={() => navigate("/seller/orders?status=Pending")}
-                            className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)]"
+                            className="inline-flex items-center gap-2 rounded-lg bg-white/12 px-3 py-2 text-sm font-black text-white transition-colors hover:bg-white/20"
                         >
                             View all
                             <ArrowRight className="h-4 w-4" />
@@ -195,24 +197,32 @@ const SellerDashboard = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-gray-100">
+                        <div className="bg-white">
                             {pendingConfirmationOrders.map((order) => (
                                 <button
                                     key={order._id}
                                     type="button"
                                     onClick={() => navigate(getPortalOrderDetailsPath(order._id, adminUser))}
-                                    className="flex w-full flex-col gap-3 px-5 py-4 text-left hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                                    className="flex w-full flex-col gap-3 border-b border-[var(--color-border)] border-l-4 border-l-transparent px-5 py-4 text-left transition-colors hover:border-l-[var(--color-secondary)] hover:bg-[var(--color-secondary-light)]/45 focus:border-l-[var(--color-secondary)] focus:bg-[var(--color-secondary-light)]/45 focus:outline-none sm:flex-row sm:items-center sm:justify-between"
                                 >
-                                    <div>
-                                        <p className="font-black text-gray-950">
-                                            #{order._id.slice(-8)} · {order.shippingAddress?.fullName || order.user?.name || "Customer"}
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-mono text-sm font-black text-gray-950">
+                                                #{order._id.slice(-8)}
+                                            </span>
+                                            <span className="rounded-full bg-[var(--color-surface-soft)] px-2.5 py-1 text-xs font-black text-[var(--color-primary-dark)]">
+                                                {order.orderStatus}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 truncate font-black text-gray-950">
+                                            {order.shippingAddress?.fullName || order.user?.name || "Customer"}
                                         </p>
                                         <p className="mt-1 text-sm font-semibold text-gray-500">
-                                            {order.shippingAddress?.phone || "No phone"} · {order.orderStatus}
+                                            {order.shippingAddress?.phone || "No phone"}
                                         </p>
                                     </div>
                                     <div className="text-left sm:text-right">
-                                        <p className="font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
+                                        <Price amount={order.totalPrice} exchangeRate={order.exchangeRateAtOrder} className="font-black text-gray-950" usdClassName="text-gray-950" />
                                         <p className="mt-1 text-xs font-black uppercase text-amber-700">
                                             {order.paymentMethod === "BAKONG_KHQR"
                                                 ? `BAKONG · ${order.paymentStatus}`

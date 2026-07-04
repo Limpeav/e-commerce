@@ -727,30 +727,111 @@ export const sendStorePromotionEmailBlast = async (req, res) => {
   }
 };
 
+const SORT_MAP = {
+  newest: { createdAt: -1, _id: -1 },
+  "price-low": { price: 1, _id: -1 },
+  "price-high": { price: -1, _id: -1 },
+  name: { title: 1, _id: -1 },
+  "best-selling": { totalSold: -1, _id: -1 },
+};
+
+const INVENTORY_FILTERS = {
+  issues: { hasProductIssue: true, issueQuantity: { $gt: 0 } },
+  "sold-out": { stock: { $lte: 0 } },
+};
+
+const buildProductQuery = (req) => {
+  const isAdmin = req.user?.role === "admin";
+  const {
+    page,
+    limit = "50",
+    search,
+    category,
+    sort = "newest",
+    inventory,
+    salesStartDate,
+    salesEndDate,
+  } = req.query;
+
+  const paginate = page !== undefined && page !== null && page !== "";
+  const pageNum = paginate ? Math.max(1, parseInt(page, 10) || 1) : 1;
+  const limitNum = paginate ? Math.min(100, Math.max(1, parseInt(limit, 10) || 50)) : 0;
+  const skip = paginate ? (pageNum - 1) * limitNum : 0;
+
+  const filters = {};
+
+  if (!isAdmin) {
+    filters.stock = { $gt: 0 };
+  }
+
+  const normalizedCategory = category && category !== "all"
+    ? normalizeProductCategory(category)
+    : null;
+  if (normalizedCategory) {
+    filters.category = normalizedCategory;
+  }
+
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    const escaped = trimmedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filters.$or = [
+      { title: { $regex: escaped, $options: "i" } },
+      { titleKm: { $regex: escaped, $options: "i" } },
+    ];
+  }
+
+  if (isAdmin && inventory && INVENTORY_FILTERS[inventory]) {
+    Object.assign(filters, INVENTORY_FILTERS[inventory]);
+  }
+
+  const sortOption = SORT_MAP[sort] || SORT_MAP.newest;
+
+  const salesParams = {};
+  if (isAdmin) {
+    const start = parseSalesDateBoundary(salesStartDate);
+    const end = parseSalesDateBoundary(salesEndDate, true);
+    if (start) salesParams.salesStartDate = start;
+    if (end) salesParams.salesEndDate = end;
+  }
+
+  return { filters, sort: sortOption, skip, limit: limitNum, page: pageNum, salesParams, isAdmin, paginate };
+};
+
 export const getProducts = async (req, res) => {
   try {
-    const isAdmin = req.user?.role === "admin";
-    const filters = isAdmin ? {} : { stock: { $gt: 0 } };
-    let products = await Product.find(filters)
-      .sort({ createdAt: -1, _id: -1 })
-      .lean();
-    products = products.map((p) =>
+    const { filters, sort, skip, limit: limitNum, page: pageNum, salesParams, isAdmin, paginate } = buildProductQuery(req);
+
+    const query = Product.find(filters).sort(sort).lean();
+    if (paginate) {
+      query.skip(skip).limit(limitNum);
+    }
+
+    const [total, products] = await Promise.all([
+      Product.countDocuments(filters),
+      query,
+    ]);
+
+    const withNewArrival = products.map((p) =>
       applyNewArrivalWindow({ ...p, expiryDate: p.expiryDate || null })
     );
-    const productsWithMetrics = await attachSalesMetrics(products, {
-      salesStartDate: isAdmin ? req.query.salesStartDate : null,
-      salesEndDate: isAdmin ? req.query.salesEndDate : null,
-    });
-    res.json(
-      isAdmin
-        ? productsWithMetrics
-        : productsWithMetrics
-            .filter((product) => product.availableStock > 0)
-            .map((product) => ({
-              ...product,
-              stock: product.availableStock,
-            }))
-    );
+
+    const withMetrics = await attachSalesMetrics(withNewArrival, salesParams);
+
+    const result = isAdmin
+      ? withMetrics
+      : withMetrics
+          .filter((product) => product.availableStock > 0)
+          .map((product) => ({
+            ...product,
+            stock: product.availableStock,
+          }));
+
+    if (paginate) {
+      const totalPages = Math.ceil(total / limitNum);
+      res.json({ products: result, page: pageNum, totalPages, total });
+    } else {
+      res.json({ products: result, total });
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

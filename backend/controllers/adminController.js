@@ -136,6 +136,7 @@ const buildDailyBreakdown = (start, end, rows, timezoneOffsetMinutes = 0) => {
       {
         date: row._id,
         totalCash: Number(row.totalCash || 0),
+        totalCashKHR: Number(row.totalCashKHR || 0),
         orderCount: Number(row.orderCount || 0),
         averageOrderValue: Number(row.averageOrderValue || 0),
       },
@@ -150,6 +151,7 @@ const buildDailyBreakdown = (start, end, rows, timezoneOffsetMinutes = 0) => {
       rowsByDate.get(date) || {
         date,
         totalCash: 0,
+        totalCashKHR: 0,
         orderCount: 0,
         averageOrderValue: 0,
       }
@@ -199,6 +201,11 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
         $group: {
           _id: null,
           totalCash: { $sum: "$totalPrice" },
+          totalCashKHR: {
+            $sum: {
+              $multiply: ["$totalPrice", { $ifNull: ["$exchangeRateAtOrder", 4100] }],
+            },
+          },
           orderCount: { $sum: 1 },
           averageOrderValue: { $avg: "$totalPrice" },
         },
@@ -218,6 +225,11 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
                 },
               },
               totalCash: { $sum: "$totalPrice" },
+              totalCashKHR: {
+                $sum: {
+                  $multiply: ["$totalPrice", { $ifNull: ["$exchangeRateAtOrder", 4100] }],
+                },
+              },
               orderCount: { $sum: 1 },
               averageOrderValue: { $avg: "$totalPrice" },
             },
@@ -262,6 +274,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
     },
     summary: {
       totalCash: Number(summary.totalCash || 0),
+      totalCashKHR: Number(summary.totalCashKHR || 0),
       orderCount: Number(summary.orderCount || 0),
       averageOrderValue: Number(summary.averageOrderValue || 0),
       pendingCashCount: Number(pendingCash.pendingCashCount || 0),
@@ -281,6 +294,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
       orderStatus: order.orderStatus,
       paidAt: order.paidAt,
       totalPrice: Number(order.totalPrice || 0),
+      exchangeRateAtOrder: Number(order.exchangeRateAtOrder || 4100),
     })),
   };
 };
@@ -371,12 +385,23 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     orderStatus: { $nin: ["Delivered", "Cancelled"] },
   });
 
-  // Calculate total revenue from paid orders
+  // Calculate total revenue from paid orders (USD + KHR using stored per-order rate)
   const revenueData = await Order.aggregate([
     { $match: { paymentStatus: "Paid" } },
-    { $group: { _id: null, totalRevenue: { $sum: "$totalPrice" } } },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: "$totalPrice" },
+        totalRevenueKHR: {
+          $sum: {
+            $multiply: ["$totalPrice", { $ifNull: ["$exchangeRateAtOrder", 4100] }],
+          },
+        },
+      },
+    },
   ]);
   const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+  const totalRevenueKHR = revenueData.length > 0 ? revenueData[0].totalRevenueKHR : 0;
 
   // Get recent activity (users only – exclude admin actions)
   const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
@@ -435,6 +460,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     products: productsCount,
     orders: ordersCount,
     revenue: totalRevenue,
+    revenueKHR: totalRevenueKHR,
     pendingOrders: pendingOrdersCount,
     processingOrders: processingOrdersCount,
     deliveredOrders: deliveredOrdersCount,

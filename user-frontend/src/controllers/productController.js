@@ -37,11 +37,21 @@ export class ProductController {
     );
   }
 
-  static async getProducts() {
+  static async getProducts(params = {}) {
     try {
-      const response = await productService.getAllProducts();
-      const products = this.normalizeProducts(response.data || []);
-      return { success: true, data: this.sortByNewest(products) };
+      const response = await productService.getAllProducts(params);
+      const body = response.data || {};
+      const rawProducts = body.products || [];
+      const products = this.normalizeProducts(rawProducts);
+      return {
+        success: true,
+        data: {
+          products: this.sortByNewest(products),
+          page: body.page ?? 1,
+          totalPages: body.totalPages ?? 1,
+          total: body.total ?? rawProducts.length,
+        },
+      };
     } catch (error) {
       return { success: false, error: error.message };
     }

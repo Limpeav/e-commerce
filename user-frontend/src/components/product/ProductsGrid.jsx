@@ -28,7 +28,8 @@ const ProductsGrid = ({
   user,
   searchQuery,
   selectedCategory,
-  onClearFilters
+  onClearFilters,
+  layout = "grid"
 }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
@@ -36,25 +37,51 @@ const ProductsGrid = ({
   return (
     <AnimatePresence mode="wait">
       {filteredProducts.length > 0 ? (
-        <Motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          key={selectedCategory + searchQuery}
-          className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-x-8 md:gap-y-16"
-        >
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product._id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onWishlistToggle={onWishlistToggle}
-              isInWishlist={isInWishlist}
-              user={user}
-              variants={item}
-            />
-          ))}
-        </Motion.div>
+        layout === "list" ? (
+          <div className="divide-y rounded-2xl border overflow-hidden transition-colors duration-300"
+            style={{ borderColor: isDark ? "#1e293b" : "#e7e5e4", backgroundColor: isDark ? "#0f172a" : "#fff" }}
+          >
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-bold uppercase tracking-wide transition-colors duration-300"
+              style={{ color: isDark ? "#94a3b8" : "#78716c", backgroundColor: isDark ? "#1e293b" : "#fafaf9", borderBottom: `1px solid ${isDark ? "#1e293b" : "#e7e5e4"}` }}
+            >
+              <span className="col-span-5">{t("product.product") || "Product"}</span>
+              <span className="col-span-2">{t("product.category") || "Category"}</span>
+              <span className="col-span-2">{t("product.price") || "Price"}</span>
+              <span className="col-span-3">{t("product.actions") || "Actions"}</span>
+            </div>
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onAddToCart={onAddToCart}
+                onWishlistToggle={onWishlistToggle}
+                isInWishlist={isInWishlist}
+                user={user}
+                layout="list"
+              />
+            ))}
+          </div>
+        ) : (
+          <Motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            key={selectedCategory + searchQuery}
+            className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-x-8 md:gap-y-16"
+          >
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onAddToCart={onAddToCart}
+                onWishlistToggle={onWishlistToggle}
+                isInWishlist={isInWishlist}
+                user={user}
+                variants={item}
+              />
+            ))}
+          </Motion.div>
+        )
       ) : (
         <Motion.div
           initial={{ opacity: 0, scale: 0.9 }}

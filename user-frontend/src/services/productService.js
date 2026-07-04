@@ -11,10 +11,10 @@ const getAuthToken = () => {
 };
 
 export const productService = {
-  // Get all products
-  getAllProducts: async () => {
+  // Get all products (with optional pagination / search / filter params)
+  getAllProducts: async (params = {}) => {
     try {
-      const response = await axios.get(API_URL);
+      const response = await axios.get(API_URL, { params });
       return { data: response.data };
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to fetch products");

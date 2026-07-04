@@ -120,7 +120,7 @@ const ProductSubsetPage = ({
       const result = await AdminProductController.getProducts(salesDateParams);
 
       if (result.success) {
-        setProducts(result.data);
+        setProducts(result.data?.products || result.data || []);
         setError("");
       } else {
         setError(result.error);
