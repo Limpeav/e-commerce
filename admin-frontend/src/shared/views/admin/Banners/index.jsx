@@ -1,17 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
-
-const emptyForm = {
-  title: "",
-  alt: "",
-  sortOrder: "0",
-  image: null,
-};
+import { BannerController } from "../../../controllers";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 export default function AdminBanners() {
   const [banners, setBanners] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,25 +16,29 @@ export default function AdminBanners() {
     [banners]
   );
 
-  const loadBanners = async () => {
+  const loadBanners = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
-      const response = await adminService.getBanners();
+      if (!silent) setLoading(true);
+      const response = await BannerController.getAll();
       setBanners(response.data || []);
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to load banners");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadBanners();
-  }, []);
+    return subscribeRealtimeDomains(
+      ["banners"],
+      () => loadBanners({ silent: true })
+    );
+  }, [loadBanners]);
 
   const handleImageChange = (event) => {
     const file = event.target.files?.[0] || null;
-    setForm((current) => ({ ...current, image: file }));
+    setImage(file);
 
     if (!file) {
       setImagePreview(null);
@@ -55,21 +53,18 @@ export default function AdminBanners() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.image) {
+    if (!image) {
       alert("Please choose a banner image");
       return;
     }
 
     const formData = new FormData();
-    formData.append("title", form.title);
-    formData.append("alt", form.alt);
-    formData.append("sortOrder", form.sortOrder || "0");
-    formData.append("image", form.image);
+    formData.append("image", image);
 
     try {
       setSaving(true);
-      await adminService.createBanner(formData);
-      setForm(emptyForm);
+      await BannerController.create(formData);
+      setImage(null);
       setImagePreview(null);
       await loadBanners();
     } catch (error) {
@@ -81,14 +76,11 @@ export default function AdminBanners() {
 
   const handleToggleActive = async (banner) => {
     const formData = new FormData();
-    formData.append("title", banner.title || "");
-    formData.append("alt", banner.alt || "");
-    formData.append("sortOrder", String(banner.sortOrder || 0));
     formData.append("isActive", String(!banner.isActive));
 
     try {
       setUpdatingId(banner._id);
-      await adminService.updateBanner(banner._id, formData);
+      await BannerController.update(banner._id, formData);
       await loadBanners();
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to update banner");
@@ -105,7 +97,7 @@ export default function AdminBanners() {
 
     try {
       setUpdatingId(bannerId);
-      await adminService.deleteBanner(bannerId);
+      await BannerController.delete(bannerId);
       await loadBanners();
     } catch (error) {
       alert(error.response?.data?.message || error.message || "Failed to delete banner");
@@ -152,41 +144,9 @@ export default function AdminBanners() {
               <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
             </label>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Title</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                placeholder="Spring campaign"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Alt Text</label>
-              <input
-                type="text"
-                value={form.alt}
-                onChange={(event) => setForm((current) => ({ ...current, alt: event.target.value }))}
-                className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                placeholder="Homepage hero banner"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Sort Order</label>
-              <input
-                type="number"
-                value={form.sortOrder}
-                onChange={(event) => setForm((current) => ({ ...current, sortOrder: event.target.value }))}
-                className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-blue-500"
-              />
-            </div>
-
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !image}
               className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Upload Banner"}
@@ -219,20 +179,44 @@ export default function AdminBanners() {
 
                 return (
                   <article key={banner._id} className="overflow-hidden rounded-3xl border border-gray-100 bg-gray-50">
-                    <img src={banner.image} alt={banner.alt || banner.title || "Banner"} className="h-52 w-full object-cover" />
+                    <img src={banner.image} alt="Promotional banner" className="h-52 w-full object-cover" />
 
                     <div className="space-y-4 p-4">
-                      <div className="flex items-start justify-between gap-3">
+                      <div
+                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
+                          banner.isActive
+                            ? "border-emerald-200 bg-emerald-50"
+                            : "border-gray-300 bg-gray-100"
+                        }`}
+                      >
                         <div>
-                          <h3 className="font-semibold text-gray-900">{banner.title || "Untitled banner"}</h3>
-                          <p className="mt-1 text-sm text-gray-500">{banner.alt || "No alt text provided"}</p>
+                          <p className={`text-sm font-bold ${banner.isActive ? "text-emerald-900" : "text-gray-900"}`}>
+                            {banner.isActive ? "Active" : "Hidden"}
+                          </p>
+                          <p className={`text-xs font-medium ${banner.isActive ? "text-emerald-700" : "text-gray-600"}`}>
+                            {banner.isActive ? "Visible on the storefront" : "Not visible on the storefront"}
+                          </p>
                         </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${banner.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"}`}>
-                          {banner.isActive ? "Active" : "Hidden"}
-                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={banner.isActive}
+                          aria-label={`${banner.isActive ? "Hide" : "Show"} banner`}
+                          onClick={() => handleToggleActive(banner)}
+                          disabled={isBusy}
+                          className={`relative h-7 w-12 shrink-0 rounded-full border-2 transition ${
+                            banner.isActive
+                              ? "border-emerald-700 bg-emerald-600"
+                              : "border-gray-500 bg-gray-400"
+                          } disabled:cursor-not-allowed disabled:opacity-60`}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                              banner.isActive ? "left-5" : "left-0.5"
+                            }`}
+                          />
+                        </button>
                       </div>
-
-                      <div className="text-xs text-gray-500">Sort order: {banner.sortOrder || 0}</div>
 
                       <div className="flex gap-3">
                         <button
@@ -242,7 +226,7 @@ export default function AdminBanners() {
                           className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium text-gray-700 transition hover:border-blue-500 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
                         >
                           {banner.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          {banner.isActive ? "Hide" : "Show"}
+                          {banner.isActive ? "Hide Banner" : "Show Banner"}
                         </button>
                         <button
                           type="button"

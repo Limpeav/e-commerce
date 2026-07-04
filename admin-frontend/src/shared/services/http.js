@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getStoredAdminToken } from "../utils/adminSession";
 
 const normalizeApiBaseUrl = (rawUrl) => {
   const trimmed = (rawUrl || "/api").trim();
@@ -30,7 +31,7 @@ export const getStoredUser = () => {
 
 export const getUserToken = () => getStoredUser()?.token || null;
 
-export const getAdminToken = () => localStorage.getItem("adminToken");
+export const getAdminToken = () => getStoredAdminToken();
 
 export const getPreferredToken = () => getAdminToken() || getUserToken();
 

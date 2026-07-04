@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon-green.png?v=2" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-green.png?v=2" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta id="theme-color" name="theme-color" content="#FCF9F5" />
+  <meta id="apple-status-bar-style" name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Cherish Baby Store</title>
+  <meta name="description" content="Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door." />
+  <meta property="og:title" content="Cherish Baby Store" />
+  <meta property="og:description" content="Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Cherish Baby Store" />
+  <meta property="og:image" content="https://cherishbabykhstore.store/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cherish Baby Store" />
+  <meta name="twitter:description" content="Shop the best baby and kids products at Cherish Baby Store. Discover curated essentials, toys, clothing, and more — delivered to your door." />
+  <meta name="twitter:image" content="https://cherishbabykhstore.store/logo.png" />
+  <script>
+    (function () {
+      const storedTheme = localStorage.getItem("theme");
+      const isDark = storedTheme === "dark";
+      const themeColor = isDark ? "#1A1C1B" : "#FCF9F5";
+      document.documentElement.classList.toggle("dark", isDark);
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+      document.querySelector("#theme-color")?.setAttribute("content", themeColor);
+      document
+        .querySelector("#apple-status-bar-style")
+        ?.setAttribute("content", isDark ? "black" : "default");
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

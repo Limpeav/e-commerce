@@ -106,19 +106,19 @@ Based on your system context diagram, we have successfully implemented the compl
 ## 📁 **New Files Created**
 
 ### Backend (6 files)
-1. `/ecommerce-backend/models/paymentModel.js` - Payment transaction model
-2. `/ecommerce-backend/controllers/paymentController.js` - Payment logic
-3. `/ecommerce-backend/routes/paymentRoutes.js` - Payment API routes
-4. `/ecommerce-backend/.env` - Updated with BAKONG config
+1. `/backend/models/paymentModel.js` - Payment transaction model
+2. `/backend/controllers/paymentController.js` - Payment logic
+3. `/backend/routes/paymentRoutes.js` - Payment API routes
+4. `/backend/.env` - Updated with BAKONG config
 5. `/BAKONG_PAYMENT_GUIDE.md` - Complete integration guide
-6. Updated: `/ecommerce-backend/models/orderModel.js`
-7. Updated: `/ecommerce-backend/server.js`
+6. Updated: `/backend/models/orderModel.js`
+7. Updated: `/backend/server.js`
 
 ### Frontend (4 files)
-1. `/ecommerce-frontend/src/views/payment/BakongPayment.jsx` - Payment page
-2. `/ecommerce-frontend/src/services/paymentService.js` - API client
-3. Updated: `/ecommerce-frontend/src/config/routes.js`
-4. Updated: `/ecommerce-frontend/src/views/cart/Checkout.jsx`
+1. `/user-frontend/src/views/payment/BakongPayment.jsx` - Payment page
+2. `/user-frontend/src/services/paymentService.js` - API client
+3. Updated: `/user-frontend/src/config/routes.js`
+4. Updated: `/user-frontend/src/views/cart/Checkout.jsx`
 
 ### Documentation
 1. `/BAKONG_PAYMENT_GUIDE.md` - Comprehensive setup guide
@@ -140,7 +140,7 @@ npm install qrcode  # For generating KHQR QR codes
 ## ⚙️ **Configuration Required**
 
 ### Backend Environment Variables
-Added to `/ecommerce-backend/.env`:
+Added to `/backend/.env`:
 
 ```bash
 # BAKONG KHQR Payment Configuration
@@ -211,13 +211,13 @@ PUT    /api/payments/:paymentId/confirm       - Manual confirm (admin)
 
 ### 1. Start Backend
 ```bash
-cd ecommerce-backend
+cd backend
 npm run dev
 ```
 
 ### 2. Start Frontend
 ```bash
-cd ecommerce-frontend
+cd user-frontend
 npm run dev
 ```
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { adminService } from "../../../services/adminService.js";
+import { AuthController } from "../../../controllers";
 import {
   clearAdminSession,
   getPortalDashboardPath,
@@ -8,6 +8,7 @@ import {
   hasStoredAdminSession,
   persistAdminSession,
 } from "../../../utils/adminSession.js";
+import Loading from "../../../components/common/Loading.jsx";
 import {
   AlertCircle,
   Eye,
@@ -29,6 +30,7 @@ const getLoginPortal = (pathname) => {
       description: "Sign in with your delivery account",
       error: "This login is only for delivery accounts.",
       footer: "Delivery Access",
+      forgotPath: "/delivery/forgot-password",
     };
   }
 
@@ -39,6 +41,7 @@ const getLoginPortal = (pathname) => {
       description: "Sign in with your seller account",
       error: "This login is only for seller accounts.",
       footer: "Seller Access",
+      forgotPath: "/seller/forgot-password",
     };
   }
 
@@ -48,6 +51,7 @@ const getLoginPortal = (pathname) => {
     description: "Sign in with your seller or delivery account",
     error: "This login is only for seller and delivery accounts.",
     footer: "Seller And Delivery Access",
+    forgotPath: "/seller/forgot-password",
   };
 };
 
@@ -56,22 +60,27 @@ const StaffLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(() => hasStoredAdminSession());
   const [showPassword, setShowPassword] = useState(false);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [securityCode, setSecurityCode] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const portal = useMemo(() => getLoginPortal(location.pathname), [location.pathname]);
 
   useEffect(() => {
-    setIsVisible(true);
+    const animationFrame = requestAnimationFrame(() => setIsVisible(true));
+    let isMounted = true;
 
     const validateExistingStaffSession = async () => {
       if (!hasStoredAdminSession()) {
+        setCheckingSession(false);
         return;
       }
 
       try {
-        const response = await adminService.getCurrentAdmin();
+        const response = await AuthController.getCurrentUser();
         const sessionUser = response.data || getStoredAdminUser();
 
         if (portal.roles.includes(sessionUser?.role)) {
@@ -82,10 +91,19 @@ const StaffLogin = () => {
         clearAdminSession();
       } catch {
         clearAdminSession();
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
       }
     };
 
     validateExistingStaffSession();
+
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(animationFrame);
+    };
   }, [navigate, portal.roles]);
 
   const submitHandler = async (event) => {
@@ -94,10 +112,18 @@ const StaffLogin = () => {
     setLoading(true);
 
     try {
-      const response = await adminService.login({ email, password });
+      const response = challengeToken
+        ? await AuthController.verifyLogin({ challengeToken, code: securityCode })
+        : await AuthController.login({ email, password });
       const data = response.data || response;
 
-      if (!data || !data.token) {
+      if (data?.mfaRequired && data.challengeToken) {
+        setChallengeToken(data.challengeToken);
+        setPassword("");
+        return;
+      }
+
+      if (!data?.token) {
         throw new Error("Invalid response from server");
       }
 
@@ -118,6 +144,10 @@ const StaffLogin = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return <Loading message="Loading your portal..." fullScreen />;
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-bg-base)] p-4 font-sans text-[var(--color-text-main)]">
@@ -151,7 +181,7 @@ const StaffLogin = () => {
               </div>
             )}
 
-            <div className="space-y-1.5">
+            {!challengeToken && <div className="space-y-1.5">
               <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">Email Address</label>
               <div className="relative group">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] transition-colors group-focus-within:text-[var(--color-primary)]">
@@ -161,14 +191,14 @@ const StaffLogin = () => {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 py-3 pl-10 pr-4 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-transparent py-3 pl-10 pr-4 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                   placeholder={portal.roles.includes("seller") ? "seller@company.com" : "delivery@company.com"}
                   required
                 />
               </div>
-            </div>
+            </div>}
 
-            <div className="space-y-1.5">
+            {!challengeToken && <div className="space-y-1.5">
               <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">Password</label>
               <div className="relative group">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] transition-colors group-focus-within:text-[var(--color-primary)]">
@@ -178,7 +208,7 @@ const StaffLogin = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 py-3 pl-10 pr-10 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-transparent py-3 pl-10 pr-10 text-[var(--color-text-main)] shadow-sm transition-all placeholder:text-stone-400 focus:border-[var(--color-primary)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                   placeholder="••••••••"
                   required
                 />
@@ -190,7 +220,47 @@ const StaffLogin = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-            </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate(portal.forgotPath)}
+                  className="text-sm font-semibold text-[var(--color-primary-dark)] transition-colors hover:text-[var(--color-primary)] hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </div>}
+
+            {challengeToken && (
+              <div className="space-y-1.5">
+                <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">
+                  Email security code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={securityCode}
+                  onChange={(event) => setSecurityCode(event.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 px-4 py-3 text-center text-xl font-bold tracking-[0.35em] focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                  placeholder="000000"
+                  required
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChallengeToken("");
+                    setSecurityCode("");
+                    setError("");
+                  }}
+                  className="text-sm text-[var(--color-primary-dark)] hover:underline"
+                >
+                  Use a different account
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -204,21 +274,13 @@ const StaffLogin = () => {
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>{challengeToken ? "Verify Code" : "Sign In"}</span>
                   <LogIn className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="flex items-center justify-center border-t border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 px-8 py-5">
-            <a
-              href="/login"
-              className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
-            >
-              Back to Customer Login
-            </a>
-          </div>
         </div>
 
         <div className="mt-8 text-center">

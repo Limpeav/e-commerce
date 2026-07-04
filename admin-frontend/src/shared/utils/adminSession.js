@@ -13,8 +13,10 @@ const getSessionKeys = (role = getPortalRoleFromPath()) => ({
   user: role,
 });
 
-const parseStoredUser = (key) => {
-  const adminStr = localStorage.getItem(key);
+const getStorageForRole = () => localStorage;
+
+const parseStoredUser = (storage, key) => {
+  const adminStr = storage.getItem(key);
   if (!adminStr || adminStr === "undefined") return null;
   try {
     return JSON.parse(adminStr);
@@ -24,7 +26,13 @@ const parseStoredUser = (key) => {
 };
 
 const getLegacyUserForRole = (role) => {
-  const user = parseStoredUser(LEGACY_ADMIN_KEY);
+  const rawUser = localStorage.getItem(LEGACY_ADMIN_KEY);
+  let user = null;
+  try {
+    user = rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    user = null;
+  }
   return user?.role === role ? user : null;
 };
 
@@ -32,12 +40,44 @@ export const getActivePortalRole = () => getPortalRoleFromPath();
 
 export const getStoredAdminToken = (role = getPortalRoleFromPath()) => {
   const { token } = getSessionKeys(role);
-  return localStorage.getItem(token) || (getLegacyUserForRole(role) ? localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY) : null);
+  const storage = getStorageForRole(role);
+  const storedToken = storage.getItem(token);
+
+  if (storedToken) {
+    return storedToken;
+  }
+
+  // Migrate portal sessions created before persistent login was enabled.
+  const sessionToken = sessionStorage.getItem(token);
+  if (sessionToken) {
+    localStorage.setItem(token, sessionToken);
+    sessionStorage.removeItem(token);
+    return sessionToken;
+  }
+
+  return getLegacyUserForRole(role)
+    ? localStorage.getItem(LEGACY_ADMIN_TOKEN_KEY)
+    : null;
 };
 
 export const getStoredAdminUser = (role = getPortalRoleFromPath()) => {
   const { user } = getSessionKeys(role);
-  return parseStoredUser(user) || getLegacyUserForRole(role);
+  const storage = getStorageForRole(role);
+  const storedUser = parseStoredUser(storage, user);
+
+  if (storedUser) {
+    return storedUser;
+  }
+
+  // Migrate the matching portal profile along with its token.
+  const sessionUser = parseStoredUser(sessionStorage, user);
+  if (sessionUser) {
+    localStorage.setItem(user, JSON.stringify(sessionUser));
+    sessionStorage.removeItem(user);
+    return sessionUser;
+  }
+
+  return getLegacyUserForRole(role);
 };
 
 export const hasStoredAdminSession = (role = getPortalRoleFromPath()) => {
@@ -47,13 +87,20 @@ export const hasStoredAdminSession = (role = getPortalRoleFromPath()) => {
 export const setAdminSession = (token, admin) => {
   const role = admin?.role && PORTAL_ROLES.includes(admin.role) ? admin.role : getPortalRoleFromPath();
   const { token: tokenKey, user: userKey } = getSessionKeys(role);
+  const storage = getStorageForRole(role);
 
-  localStorage.setItem(tokenKey, token);
+  storage.setItem(tokenKey, token);
   if (admin) {
-    localStorage.setItem(userKey, JSON.stringify(admin));
+    storage.setItem(userKey, JSON.stringify(admin));
   } else {
-    localStorage.removeItem(userKey);
+    storage.removeItem(userKey);
   }
+  sessionStorage.removeItem(tokenKey);
+  sessionStorage.removeItem(userKey);
+
+  // Remove only the obsolete camelCase key. The snake_case token and
+  // "admin" profile keys are also the active persistent admin session keys.
+  localStorage.removeItem("adminToken");
 };
 
 export const persistAdminSession = (token, admin) => {
@@ -62,6 +109,8 @@ export const persistAdminSession = (token, admin) => {
 
 export const clearAdminSession = (role = getPortalRoleFromPath()) => {
   const { token, user } = getSessionKeys(role);
+  sessionStorage.removeItem(token);
+  sessionStorage.removeItem(user);
   localStorage.removeItem(token);
   localStorage.removeItem(user);
 
@@ -129,6 +178,18 @@ export const getPortalPaymentQueuePath = (admin = getStoredAdminUser()) => {
   }
 
   return "/admin/orders";
+};
+
+export const getPortalAccountPath = (admin = getStoredAdminUser()) => {
+  if (admin?.role === "delivery") {
+    return "/delivery/account";
+  }
+
+  if (admin?.role === "seller") {
+    return "/seller/account";
+  }
+
+  return "/admin";
 };
 
 export const getStoredAdmin = () => {

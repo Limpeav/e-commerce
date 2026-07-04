@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     CheckCircle,
@@ -7,10 +7,11 @@ import {
     WalletCards,
 } from "lucide-react";
 import { AdminController } from "../../../controllers/adminController";
-import { adminService } from "../../../services/adminService";
+import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import Price from "../../../components/common/Price";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const formatUSD = (amount) =>
     new Intl.NumberFormat("en-US", {
@@ -28,22 +29,26 @@ const PaymentQueue = () => {
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async ({ silent = false } = {}) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             setError("");
-            const response = await adminService.getOrders();
+            const response = await OrderController.getOrders();
             setOrders(response.data || []);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to load payment queue");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         loadOrders();
-    }, []);
+        return subscribeRealtimeDomains(
+            ["orders"],
+            () => loadOrders({ silent: true })
+        );
+    }, [loadOrders]);
 
     const queuedOrders = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();

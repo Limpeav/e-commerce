@@ -1,0 +1,897 @@
+@import url('https://fonts.googleapis.com/css2?family=Alice&family=Kantumruy+Pro:wght@300;400;500;600;700;800;900&family=Koh+Santepheap:wght@300;400;700;900&family=Lato:wght@300;400;700;900&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    /* Fonts */
+    --font-sans: "Lato", system-ui, -apple-system, sans-serif;
+    --font-display: "Alice", Georgia, serif;
+
+    /* Warm Botanical Palette */
+    --color-primary: #7A967E;
+    --color-primary-light: #8DAA91;
+    --color-primary-dark: #5F7A63;
+    --color-secondary: #E6BAA3;
+    --color-secondary-light: #FAF0EB;
+    --color-bg-base: #FCF9F5;
+    --color-bg-card: #FFFFFF;
+    --color-surface-soft: #F1ECE6;
+    --color-text-main: #2D312E;
+    --color-text-muted: #727871;
+    --color-border: #EAE3DB;
+}
+
+:root {
+    --color-primary: #7A967E;
+    --color-primary-light: #8DAA91;
+    --color-primary-dark: #5F7A63;
+    --color-secondary: #E6BAA3;
+    --color-secondary-light: #FAF0EB;
+    --color-bg-base: #FCF9F5;
+    --color-bg-card: #FFFFFF;
+    --color-surface-soft: #F1ECE6;
+    --color-text-main: #2D312E;
+    --color-text-muted: #727871;
+    --color-border: #EAE3DB;
+}
+
+/* Responsive Typography Base */
+html {
+    font-size: 14px;
+    /* Mobile base */
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 640px) {
+    html {
+        font-size: 15px;
+        /* Tablet / Large Phone */
+    }
+}
+
+@media (min-width: 1024px) {
+    html {
+        font-size: 16px;
+        /* Desktop / Laptop */
+    }
+}
+
+/* Base Styles */
+body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-base);
+    color: var(--color-text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html:lang(kh) body {
+    font-family: "Kantumruy Pro", var(--font-sans);
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+html:lang(kh) h1,
+html:lang(kh) h2,
+html:lang(kh) h3,
+html:lang(kh) h4,
+html:lang(kh) h5,
+html:lang(kh) h6,
+html:lang(kh) .font-display {
+    font-family: "Koh Santepheap", "Kantumruy Pro", var(--font-sans);
+    line-height: 1.45;
+}
+
+html:lang(kh) h1,
+html:lang(kh) h2,
+html:lang(kh) h3 {
+    font-size-adjust: 0.52;
+}
+
+html:lang(kh) [class*="tracking-"] {
+    letter-spacing: 0 !important;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+@media (max-height: 700px) and (min-width: 1024px) {
+    .register-brand-logo {
+        margin-bottom: 1rem;
+    }
+
+    .register-brand-title {
+        font-size: 2rem;
+    }
+
+    .register-brand-copy {
+        margin-top: 0.75rem;
+        line-height: 1.35rem;
+    }
+
+    .register-benefits {
+        gap: 0.5rem;
+    }
+
+    .register-heading {
+        margin-bottom: 0.5rem;
+    }
+
+    .register-form {
+        row-gap: 0.5rem;
+    }
+
+    .register-security {
+        display: none;
+    }
+}
+
+@media (max-height: 620px) and (min-width: 1024px) {
+    .register-benefits {
+        display: none;
+    }
+
+    .register-brand {
+        justify-content: center;
+    }
+}
+
+html.dark body {
+    background:
+        radial-gradient(circle at top, rgba(167, 199, 173, 0.14), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(212, 163, 139, 0.12), transparent 28%),
+        linear-gradient(180deg, #171918 0%, #1A1C1B 100%);
+    color: #F1F2F1;
+}
+
+html.dark {
+    --color-primary: #00C853;
+    --color-primary-light: #23E06B;
+    --color-primary-dark: #00A844;
+    --color-secondary: #E6BAA3;
+    --color-secondary-light: #F1D2C2;
+    --color-bg-base: #1A1C1B;
+    --color-bg-card: #232624;
+    --color-text-main: #F1F2F1;
+    --color-text-muted: #A3A8A2;
+    --color-border: #383D39;
+    --color-surface-soft: #2D312E;
+}
+
+html.dark .text-text-main {
+    color: #F1F2F1 !important;
+}
+
+html.dark .text-text-muted {
+    color: #A3A8A2 !important;
+}
+
+html.dark .ring-white {
+    --tw-ring-color: #1A1C1B !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    15% {
+        transform: translateX(-4px) rotate(-1deg);
+    }
+
+    30% {
+        transform: translateX(4px) rotate(1deg);
+    }
+
+    45% {
+        transform: translateX(-2px);
+    }
+
+    60% {
+        transform: translateX(2px);
+    }
+
+    75% {
+        transform: translateX(-1px);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.login-slide-button {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.login-slide-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 42%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, var(--color-primary-light) 76%, white 24%),
+        color-mix(in srgb, var(--color-secondary) 38%, var(--color-primary-light)),
+        transparent
+    );
+    opacity: 0;
+    transform: translateX(-160%) skewX(-18deg);
+    pointer-events: none;
+}
+
+.login-slide-button:hover:not(:disabled)::before {
+    opacity: 0.48;
+    animation: login-button-slide 1.35s ease-in-out infinite;
+}
+
+@keyframes login-button-slide {
+    from {
+        transform: translateX(-160%) skewX(-18deg);
+    }
+
+    to {
+        transform: translateX(340%) skewX(-18deg);
+    }
+}
+
+/* Moving verification border. The card's existing colors remain untouched. */
+@property --otp-electric-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+.otp-electric-frame {
+    --otp-electric-color: var(--color-primary);
+    --otp-electric-angle: 0deg;
+    position: relative;
+    isolation: isolate;
+}
+
+.otp-electric-frame::before,
+.otp-electric-frame::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    z-index: -1;
+    padding: 3px;
+    border-radius: calc(2.5rem + 3px);
+    background: conic-gradient(
+        from var(--otp-electric-angle),
+        transparent 0deg 300deg,
+        color-mix(in srgb, var(--otp-electric-color) 22%, transparent) 312deg,
+        var(--otp-electric-color) 334deg,
+        color-mix(in srgb, var(--otp-electric-color) 45%, transparent) 350deg,
+        transparent 360deg
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: otp-electric-orbit 3.2s linear infinite;
+    transition: background 180ms ease, filter 180ms ease;
+    pointer-events: none;
+}
+
+.otp-electric-frame::after {
+    inset: -4px;
+    padding: 4px;
+    filter: blur(5px);
+    opacity: 0.28;
+}
+
+.otp-electric-frame--error {
+    --otp-electric-color: #dc2626;
+}
+
+.otp-embossed-card {
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(in srgb, white 94%, var(--color-primary) 6%),
+            color-mix(in srgb, white 98%, var(--color-surface-soft) 2%)
+        );
+    box-shadow:
+        22px 22px 45px rgba(71, 77, 72, 0.16),
+        -16px -16px 35px rgba(255, 255, 255, 0.9),
+        inset 1px 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.otp-embossed-panel {
+    box-shadow:
+        inset 7px 7px 14px rgba(93, 103, 95, 0.08),
+        inset -7px -7px 14px rgba(255, 255, 255, 0.9);
+}
+
+.otp-embossed-icon {
+    box-shadow:
+        7px 7px 14px rgba(93, 103, 95, 0.12),
+        -7px -7px 14px rgba(255, 255, 255, 0.9);
+}
+
+.otp-embossed-input {
+    caret-color: var(--otp-electric-color);
+    box-shadow:
+        inset 7px 7px 12px rgba(82, 90, 84, 0.14),
+        inset -7px -7px 12px rgba(255, 255, 255, 0.92);
+}
+
+.otp-embossed-input:focus {
+    border-color: var(--otp-electric-color);
+    box-shadow:
+        inset 5px 5px 10px rgba(82, 90, 84, 0.12),
+        inset -5px -5px 10px rgba(255, 255, 255, 0.94),
+        0 0 0 4px color-mix(in srgb, var(--otp-electric-color) 13%, transparent),
+        0 0 18px color-mix(in srgb, var(--otp-electric-color) 28%, transparent);
+}
+
+.otp-electric-frame--error .otp-embossed-input {
+    border-color: color-mix(in srgb, #dc2626 70%, white);
+}
+
+.otp-embossed-button {
+    box-shadow:
+        9px 9px 18px rgba(73, 81, 75, 0.16),
+        -7px -7px 16px rgba(255, 255, 255, 0.82);
+}
+
+.otp-embossed-button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+    box-shadow:
+        inset 5px 5px 10px rgba(73, 81, 75, 0.14),
+        inset -5px -5px 10px rgba(255, 255, 255, 0.3);
+}
+
+.forgot-password-error-slot {
+    min-height: 3.25rem;
+    margin-bottom: 0.65rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.forgot-password-error-slot--visible {
+    opacity: 1;
+    visibility: visible;
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.forgot-password-error-message {
+    min-height: 3.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #fecaca;
+    border-radius: 1rem;
+    background: #fef2f2;
+    box-shadow: 0 10px 24px rgba(127, 29, 29, 0.1);
+}
+
+html.dark .forgot-password-error-message {
+    border-color: rgba(248, 113, 113, 0.42);
+    background: #3b1f22;
+}
+
+html.dark .forgot-password-error-message p {
+    color: #fecaca;
+}
+
+html.dark .forgot-password-error-message svg {
+    color: #f87171;
+}
+
+.forgot-password-success {
+    animation: forgot-password-success-enter 550ms
+        cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.forgot-password-success-panel {
+    animation: forgot-password-success-glow 1.8s ease-in-out infinite alternate;
+}
+
+.forgot-password-success-icon {
+    animation: forgot-password-success-pop 650ms
+        cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.forgot-password-success-check {
+    animation: forgot-password-success-check 600ms ease-out 260ms both;
+}
+
+.forgot-password-success-copy {
+    animation: fadeIn 500ms ease-out 280ms both;
+}
+
+.forgot-password-success-progress span {
+    width: 100%;
+    transform-origin: left;
+    animation: forgot-password-success-countdown 3s linear both;
+}
+
+html.dark .forgot-password-success-panel {
+    border-color: rgba(34, 197, 94, 0.38);
+    background: rgba(20, 83, 45, 0.22);
+}
+
+html.dark .forgot-password-success-panel h3 {
+    color: #86efac;
+}
+
+html.dark .forgot-password-success-panel p {
+    color: #bbf7d0;
+}
+
+@keyframes forgot-password-success-enter {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes forgot-password-success-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.35) rotate(-18deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+@keyframes forgot-password-success-check {
+    from {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 80;
+    }
+
+    to {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes forgot-password-success-glow {
+    from {
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    }
+
+    to {
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.14);
+    }
+}
+
+@keyframes forgot-password-success-countdown {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+html.dark .otp-electric-frame::before,
+html.dark .otp-electric-frame::after {
+    opacity: 0.85;
+}
+
+html.dark .otp-electric-frame::after {
+    opacity: 0.22;
+}
+
+html.dark .otp-embossed-card {
+    background: linear-gradient(145deg, #252925, #202321);
+    box-shadow:
+        20px 20px 40px rgba(0, 0, 0, 0.34),
+        -10px -10px 24px rgba(62, 69, 63, 0.28),
+        inset 1px 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html.dark .otp-embossed-panel,
+html.dark .otp-embossed-input {
+    box-shadow:
+        inset 7px 7px 14px rgba(0, 0, 0, 0.32),
+        inset -6px -6px 12px rgba(70, 78, 71, 0.22);
+}
+
+html.dark .otp-embossed-icon,
+html.dark .otp-embossed-button {
+    box-shadow:
+        8px 8px 16px rgba(0, 0, 0, 0.3),
+        -6px -6px 14px rgba(70, 78, 71, 0.2);
+}
+
+@media (max-width: 390px) {
+    .forgot-password-card {
+        padding: 1rem;
+    }
+
+    .otp-embossed-input {
+        width: 2.65rem;
+        height: 3.25rem;
+        font-size: 1.125rem;
+    }
+
+    .forgot-password-error-slot,
+    .forgot-password-error-message {
+        min-height: 2.75rem;
+    }
+
+    .forgot-password-error-message {
+        align-items: center;
+        padding: 0.6rem 0.75rem;
+        border-radius: 1rem;
+    }
+
+    .forgot-password-error-message p {
+        font-size: 0.8rem;
+        line-height: 1.2rem;
+    }
+}
+
+@media (max-height: 760px) {
+    .forgot-password-heading {
+        margin-bottom: 0.65rem;
+    }
+
+    .forgot-password-heading-icon {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .forgot-password-title {
+        font-size: 1.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .forgot-password-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .forgot-password-page .forgot-password-card {
+        padding: 1rem 1.25rem;
+    }
+
+    .forgot-password-error-slot {
+        min-height: 2.65rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .forgot-password-error-message {
+        min-height: 2.65rem;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .forgot-password-page .forgot-password-card form {
+        gap: 0.75rem;
+    }
+
+    .forgot-password-page .otp-embossed-panel {
+        padding: 0.75rem;
+    }
+
+    .forgot-password-page .otp-embossed-panel .otp-embossed-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .forgot-password-page .otp-embossed-input {
+        height: 3rem;
+    }
+}
+
+@media (max-height: 650px) {
+    .forgot-password-heading {
+        display: none;
+    }
+
+    .forgot-password-steps {
+        margin-bottom: 0.45rem;
+    }
+
+    .forgot-password-page .forgot-password-card {
+        padding: 0.8rem 1rem;
+    }
+}
+
+@keyframes otp-electric-orbit {
+    to {
+        --otp-electric-angle: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .otp-electric-frame::before,
+    .otp-electric-frame::after,
+    .forgot-password-success,
+    .forgot-password-success-panel,
+    .forgot-password-success-icon,
+    .forgot-password-success-check,
+    .forgot-password-success-copy,
+    .forgot-password-success-progress span {
+        animation: none;
+    }
+}
+
+/* Global Interactive Pointers */
+button,
+[role="button"],
+a,
+input[type="submit"],
+input[type="button"],
+select {
+    cursor: pointer;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #D6D3D1;
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #A8A29E;
+}
+
+/* No scrollbar utility for horizontal scroll areas */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Safe area for notched phones (iPhone X+) */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Palette compatibility overrides for legacy utility classes used across the app */
+:root {
+    --status-success-bg: color-mix(in srgb, var(--color-primary) 14%, white);
+    --status-success-text: var(--color-primary-dark);
+    --status-danger-bg: color-mix(in srgb, var(--color-secondary) 18%, white);
+    --status-danger-text: #9c6b55;
+    --status-info-bg: color-mix(in srgb, var(--color-primary-light) 18%, white);
+    --status-info-text: var(--color-primary-dark);
+    --overlay-soft: rgba(45, 49, 46, 0.18);
+}
+
+html.dark {
+    --status-success-bg: color-mix(in srgb, var(--color-primary) 22%, transparent);
+    --status-success-text: var(--color-primary-light);
+    --status-danger-bg: color-mix(in srgb, var(--color-secondary) 20%, transparent);
+    --status-danger-text: var(--color-secondary);
+    --status-info-bg: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
+    --status-info-text: var(--color-primary-light);
+    --overlay-soft: rgba(0, 0, 0, 0.32);
+}
+
+:is(.bg-bg-base) {
+    background-color: var(--color-bg-base) !important;
+}
+
+:is(.bg-bg-card) {
+    background-color: var(--color-bg-card) !important;
+}
+
+:is(.bg-white, .focus\:bg-white:focus) {
+    background-color: var(--color-bg-card) !important;
+}
+
+:is(.bg-stone-50, .bg-stone-50\/50, .bg-gray-50, .bg-blue-50, .bg-indigo-50, .bg-indigo-100, .bg-blue-100, .bg-green-100, .bg-emerald-100, .bg-orange-100) {
+    background-color: var(--color-surface-soft) !important;
+}
+
+:is(.bg-stone-100, .bg-gray-100, .bg-gray-200) {
+    background-color: color-mix(in srgb, var(--color-surface-soft) 72%, var(--color-bg-card)) !important;
+}
+
+:is(.text-text-main) {
+    color: var(--color-text-main) !important;
+}
+
+:is(.text-text-muted) {
+    color: var(--color-text-muted) !important;
+}
+
+:is(.text-stone-300, .text-stone-400, .text-stone-500, .text-stone-600, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-slate-300, .text-slate-400, .text-slate-500, .text-blue-300) {
+    color: var(--color-text-muted) !important;
+}
+
+:is(.text-stone-800, .text-stone-900, .text-gray-900, .text-slate-700) {
+    color: var(--color-text-main) !important;
+}
+
+:is(.border-stone-100, .border-stone-200, .border-gray-100, .border-gray-200, .border-gray-300, .border-blue-200, .border-blue-300, .border-green-200, .border-emerald-500\/20) {
+    border-color: var(--color-border) !important;
+}
+
+:is(.ring-white) {
+    --tw-ring-color: var(--color-bg-card) !important;
+}
+
+:is(.text-indigo-500, .text-indigo-600, .text-blue-600, .text-blue-700, .text-cyan-400, .text-cyan-500, .text-green-600, .text-emerald-300, .text-emerald-700) {
+    color: var(--color-primary) !important;
+}
+
+:is(.bg-blue-600, .bg-blue-700, .bg-indigo-600, .bg-green-600, .bg-green-700, .bg-emerald-500\/10, .bg-emerald-100) {
+    background-color: var(--color-primary) !important;
+}
+
+:is(.border-blue-500, .border-blue-600, .border-indigo-600, .border-cyan-400, .border-green-100) {
+    border-color: var(--color-primary) !important;
+}
+
+:is(.focus\:ring-blue-500:focus, .focus\:border-blue-500:focus, .hover\:border-blue-500:hover, .hover\:text-blue-600:hover, .hover\:text-blue-700:hover) {
+    color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    --tw-ring-color: color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
+}
+
+:is(.bg-red-50, .bg-red-100, .bg-red-500\/10, .bg-red-500\/20, .bg-rose-500, .bg-orange-500, .bg-orange-600) {
+    background-color: var(--color-secondary) !important;
+}
+
+:is(.text-red-500, .text-red-600, .text-red-700, .text-red-800, .text-rose-500, .text-orange-600) {
+    color: #ffffff !important;
+}
+
+:is(.border-red-500, .border-red-600) {
+    border-color: var(--color-secondary) !important;
+}
+
+:is(.hover\:bg-red-50:hover, .hover\:bg-red-100:hover) {
+    background-color: color-mix(in srgb, var(--color-secondary) 16%, var(--color-bg-card)) !important;
+}
+
+:is(.bg-gradient-to-r, .bg-gradient-to-br) {
+    --tw-gradient-from: var(--color-primary) var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: color-mix(in srgb, var(--color-secondary) 70%, transparent) var(--tw-gradient-to-position) !important;
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from), var(--tw-gradient-to)) !important;
+}
+
+:is(.from-blue-600, .from-blue-700, .from-indigo-600, .from-green-600, .from-red-500, .from-red-600, .from-gray-800, .from-orange-500) {
+    --tw-gradient-from: var(--color-primary) var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: color-mix(in srgb, var(--color-primary) 0%, transparent) var(--tw-gradient-to-position) !important;
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from), var(--tw-gradient-to)) !important;
+}
+
+:is(.via-blue-100, .via-cyan-400\/10) {
+    --tw-gradient-via: color-mix(in srgb, var(--color-primary-light) 20%, transparent) var(--tw-gradient-via-position) !important;
+    --tw-gradient-via-stops: var(--tw-gradient-position), var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important;
+}
+
+:is(.to-blue-700, .to-blue-800, .to-green-700, .to-red-600, .to-red-700, .to-gray-900, .to-orange-600, .to-purple-600) {
+    --tw-gradient-to: var(--color-secondary) var(--tw-gradient-to-position) !important;
+}
+
+html.dark :is(.bg-slate-950, .bg-slate-950\/85, .bg-slate-950\/95) {
+    background-color: var(--color-bg-base) !important;
+}
+
+html.dark :is(.bg-slate-900, .bg-slate-900\/60, .bg-slate-900\/80, .bg-slate-900\/85, .bg-slate-900\/90) {
+    background-color: var(--color-bg-card) !important;
+}
+
+html.dark :is(.bg-slate-800, .bg-slate-800\/70, .bg-slate-800\/80, .bg-slate-800\/90, .bg-slate-700\/50) {
+    background-color: var(--color-surface-soft) !important;
+}
+
+html.dark :is(.border-slate-600, .border-slate-700, .border-slate-800) {
+    border-color: var(--color-border) !important;
+}
+
+html.dark :is(.text-slate-50, .text-slate-100, .text-white) {
+    color: var(--color-text-main) !important;
+}
+
+html.dark :is(.text-slate-300, .text-slate-400, .text-slate-500, .text-gray-300, .text-blue-300) {
+    color: var(--color-text-muted) !important;
+}
+
+html.dark :is(.bg-black\/10, .bg-black\/30, .bg-black\/60) {
+    background-color: var(--overlay-soft) !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.bg-primary, .bg-primary\/10, .bg-primary\/15, .bg-primary\/20, .bg-green-500, .bg-green-600, .bg-blue-600, .bg-text-main) {
+    background-color: #00C853 !important;
+    color: #07130B !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.hover\:bg-primary:hover, .hover\:bg-primary-dark:hover, .hover\:bg-primary\/15:hover, .hover\:bg-primary\/20:hover, .hover\:bg-green-400:hover, .hover\:bg-green-700:hover, .hover\:bg-blue-700:hover) {
+    background-color: #23E06B !important;
+    color: #07130B !important;
+}
+
+html.dark :is(button, a, [role="button"], input[type="submit"], input[type="button"]):is(.bg-primary, .bg-primary\/10, .bg-primary\/15, .bg-primary\/20, .bg-green-500, .bg-green-600, .bg-blue-600, .bg-text-main) :is(svg, span) {
+    color: currentColor !important;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+
+    button,
+    a,
+    [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+    }
+}

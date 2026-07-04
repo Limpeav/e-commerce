@@ -13,7 +13,7 @@ This document summarizes the updates made to the e-commerce platform to enhance 
 - **Visual Feedback**: Loading spinners show when location is being detected
 
 ### Files Modified
-- `/ecommerce-frontend/src/components/GoogleMapPicker.jsx`
+- `/user-frontend/src/components/GoogleMapPicker.jsx`
 
 ### Changes Made
 1. Added `Locate` icon import from lucide-react
@@ -42,13 +42,13 @@ This document summarizes the updates made to the e-commerce platform to enhance 
   - Country field
 
 ### Files Modified
-1. `/ecommerce-frontend/src/views/cart/Checkout.jsx`
+1. `/user-frontend/src/views/cart/Checkout.jsx`
    - Removed `postalCode` and `country` from state initialization
    - Removed validation checks for these fields
    - Removed UI input fields
    - Updated Google Maps address string to exclude country
 
-2. `/ecommerce-backend/models/orderModel.js`
+2. `/backend/models/orderModel.js`
    - Made `postalCode` optional (`required: false`)
    - Made `country` optional (`required: false`)
 
@@ -80,7 +80,7 @@ The notification system was not working for admin users because:
 Updated the notification API service to check both token storage locations:
 
 ### Files Modified
-- `/ecommerce-frontend/src/services/notificationApi.js`
+- `/user-frontend/src/services/notificationApi.js`
 
 ### Changes Made
 Modified `getAuthToken()` function to:

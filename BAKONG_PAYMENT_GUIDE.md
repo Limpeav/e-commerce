@@ -62,7 +62,7 @@ API client for payment operations
 #### 2. BAKONG Payment Page (`/views/payment/BakongPayment.jsx`)
 - QR code display
 - Real-time payment status checking
-- Countdown timer (30 minutes)
+- Countdown timer (5 minutes)
 - Payment instructions
 - Auto-redirect on success
 
@@ -77,22 +77,32 @@ API client for payment operations
 
 ### Environment Variables (Backend `.env`)
 
-Add these to your `/ecommerce-backend/.env`:
+Add these to your `/backend/.env`:
 
 ```bash
 # BAKONG KHQR Payment Configuration
-BAKONG_MERCHANT_ID=MERCHANT001
-BAKONG_MERCHANT_NAME=E-Commerce Store
-BAKONG_ACQUIRING_BANK=bakong
+BAKONG_ENABLED=true
+BAKONG_ACCOUNT_TYPE=INDIVIDUAL
+BAKONG_ACCOUNT_ID=your-account@your-bank
+BAKONG_ACCOUNT_USERNAME=Your Account Name
+BAKONG_MERCHANT_CITY=Phnom Penh
+BAKONG_PHONE_NUMBER=85512345678
+BAKONG_TOKEN=your-bakong-api-token
+BAKONG_API_URL=https://api-bakong.nbc.gov.kh
 USD_TO_KHR_RATE=4100
+BAKONG_RECONCILIATION_INTERVAL_MS=15000
+BAKONG_RECONCILIATION_BATCH_SIZE=25
 ```
 
 ### Important Notes:
 
-1. **Merchant ID**: Replace `MERCHANT001` with your actual BAKONG merchant ID
-2. **Merchant Name**: Your registered business name
-3. **Acquiring Bank**: Your bank identifier (usually "bakong")
-4. **Exchange Rate**: Current USD to KHR conversion rate (update regularly)
+1. **Account type**: Use `INDIVIDUAL` for a normal Bakong account. This is the default.
+2. **Account ID**: Use the Bakong account ID that should receive the payment.
+3. **API token**: Required for automatic payment confirmation through Bakong's transaction API.
+4. **Merchant accounts**: Set `BAKONG_ACCOUNT_TYPE=MERCHANT` and provide the real `BAKONG_MERCHANT_ID` and `BAKONG_ACQUIRING_BANK` issued by the acquiring bank. Placeholder values are rejected.
+5. **Exchange rate**: Keep the USD-to-KHR conversion rate current.
+6. **Production startup**: The backend refuses to start with Bakong enabled when required production credentials are missing.
+7. **Render**: Enter every `sync: false` Bakong value in the Render service environment. Never commit tokens to Git.
 
 ---
 
@@ -100,7 +110,7 @@ USD_TO_KHR_RATE=4100
 
 ### Backend
 ```bash
-cd ecommerce-backend
+cd backend
 npm install qrcode
 ```
 
@@ -140,8 +150,10 @@ No additional dependencies needed (uses existing axios, react, react-router-dom)
 
 2. **Payment Verification**:
    - Frontend polls payment status every 5 seconds
-   - Backend webhook endpoint for BAKONG callbacks
+   - Backend independently reconciles pending payments every 15 seconds
+   - Optional signed webhook endpoint for callbacks
    - Automatic order update on successful payment
+   - Expired unpaid orders are cancelled and reserved stock is restored
 
 ---
 
@@ -151,15 +163,13 @@ No additional dependencies needed (uses existing axios, react, react-router-dom)
 - ✅ JWT authentication for all protected routes
 - ✅ User authorization checks
 - ✅ Admin-only routes for payment management
-- ✅ Payment expiration (30 minutes)
+- ✅ Payment expiration (5 minutes)
 - ✅ Transaction ID tracking
-
-### To Implement (Production):
-- [ ] Webhook signature verification
-- [ ] HTTPS enforcement
-- [ ] IP whitelisting for webhooks
-- [ ] Rate limiting on payment endpoints
-- [ ] Encryption for sensitive data
+- ✅ Webhook HMAC signature verification
+- ✅ Rate limiting
+- ✅ Production HTTPS API validation
+- ✅ Server-side payment reconciliation
+- ✅ Transactional payment/order completion
 
 ---
 
@@ -179,7 +189,7 @@ No additional dependencies needed (uses existing axios, react, react-router-dom)
 - **Pending** → Initial state after QR generation
 - **Completed** → Payment successful
 - **Failed** → Payment failed
-- **Expired** → QR code expired (30 min)
+- **Expired** → QR code expired (5 min)
 - **Cancelled** → User cancelled payment
 
 ---
@@ -200,19 +210,9 @@ curl -X GET http://localhost:4000/api/payments/PAYMENT_ID/status \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-### 3. Simulate Webhook (Development)
-```bash
-curl -X POST http://localhost:4000/api/payments/bakong/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "transactionId": "TXN123456",
-    "ackId": "ACK789",
-    "status": "SUCCESS",
-    "responseCode": "00",
-    "payerName": "Test User",
-    "payerAccount": "012345678"
-  }'
-```
+The webhook route rejects unsigned requests. Use the server-side Open API
+reconciliation flow for normal operation unless your payment provider gives
+you a callback contract and shared signing secret.
 
 ---
 
@@ -225,27 +225,11 @@ curl -X POST http://localhost:4000/api/payments/bakong/verify \
 4. Test expiration handling
 
 ### For Production:
-1. **Get BAKONG Credentials**:
-   - Register as a merchant with NBC BAKONG
-   - Obtain Merchant ID and API credentials
-   - Configure webhook URL
-
-2. **Update Configuration**:
-   - Replace placeholder merchant ID
-   - Set correct merchant name
-   - Configure production webhook URL
-   - Update exchange rate API integration
-
-3. **Implement Official SDK**:
-   - Replace simplified KHQR generation with official BAKONG SDK
-   - Implement proper webhook signature verification
-   - Add error handling for BAKONG API failures
-
-4. **Security Enhancements**:
-   - Enable HTTPS
-   - Configure CORS properly
-   - Implement webhook IP whitelisting
-   - Add comprehensive logging
+1. Enter the real account ID and production API token in Render.
+2. Deploy and confirm the startup log says Bakong reconciliation is enabled.
+3. Make one low-value real payment and verify both Payment and Order become paid.
+4. Let one test QR expire and verify the order is cancelled and stock is restored.
+5. Use a registered merchant account when the business receives merchant credentials.
 
 ---
 

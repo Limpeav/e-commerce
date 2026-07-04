@@ -5,9 +5,11 @@ import {
     Trash2,
     UserCheck,
     RefreshCw,
+    UserX,
 } from "lucide-react";
-import { adminService } from "../../../services/adminService";
+import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const roleMeta = {
     user: {
@@ -22,8 +24,11 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [stats, setStats] = useState({});
     const [refreshing, setRefreshing] = useState(false);
+    const [stats, setStats] = useState({
+        deletedCustomers: 0,
+        deletedCustomersBySource: { self: 0, admin: 0 },
+    });
 
     const customerUsers = useMemo(
         () => users.filter((user) => (user.role || "user") === "user"),
@@ -47,8 +52,18 @@ const UserManagement = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await adminService.getUsers();
-            setUsers(response.data);
+            const [usersResponse, statsResponse] = await Promise.all([
+                UserController.getUsers(),
+                UserController.getStats(),
+            ]);
+            setUsers(usersResponse.data);
+            setStats({
+                deletedCustomers: Number(statsResponse.data?.deletedCustomers || 0),
+                deletedCustomersBySource: {
+                    self: Number(statsResponse.data?.deletedCustomersBySource?.self || 0),
+                    admin: Number(statsResponse.data?.deletedCustomersBySource?.admin || 0),
+                },
+            });
             setLoading(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch users");
@@ -56,31 +71,19 @@ const UserManagement = () => {
         }
     }, []);
 
-    const fetchStats = useCallback(async () => {
-        try {
-            const response = await adminService.getUserStats();
-            setStats(response.data);
-        } catch (err) {
-            console.error("Failed to fetch user stats", err);
-        }
-    }, []);
-
     const refresh = useCallback(async (showSpinner = false) => {
         if (showSpinner) setRefreshing(true);
-        await Promise.all([fetchUsers(), fetchStats()]);
+        await fetchUsers();
         if (showSpinner) setRefreshing(false);
-    }, [fetchStats, fetchUsers]);
+    }, [fetchUsers]);
 
     useEffect(() => {
         queueMicrotask(() => {
             fetchUsers();
-            fetchStats();
         });
 
-        // Auto-refresh every 30 seconds so new registrations appear automatically
-        const interval = setInterval(() => refresh(false), 30000);
-        return () => clearInterval(interval);
-    }, [fetchStats, fetchUsers, refresh]);
+        return subscribeRealtimeDomains(["users", "reviews"], () => refresh(false));
+    }, [fetchUsers, refresh]);
 
     const renderRoleBadge = (role = "user") => {
         const meta = roleMeta[role] || roleMeta.user;
@@ -101,9 +104,8 @@ const UserManagement = () => {
             )
         ) {
             try {
-                await adminService.deleteUser(userId);
+                await UserController.delete(userId);
                 await fetchUsers();
-                await fetchStats();
             } catch (err) {
                 alert(err.response?.data?.message || "Failed to delete user");
             }
@@ -179,12 +181,15 @@ const UserManagement = () => {
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500">Visible Customers</p>
+                                <p className="text-sm text-gray-500">Deleted Accounts</p>
                                 <p className="text-3xl font-bold text-purple-600">
-                                    {filteredUsers.length}
+                                    {stats.deletedCustomers}
+                                </p>
+                                <p className="mt-1 text-xs font-medium text-gray-500">
+                                    Self: {stats.deletedCustomersBySource.self} · Admin: {stats.deletedCustomersBySource.admin}
                                 </p>
                             </div>
-                            <UserCheck className="w-12 h-12 text-purple-500" />
+                            <UserX className="w-12 h-12 text-purple-500" />
                         </div>
                     </div>
                 </div>
@@ -280,39 +285,6 @@ const UserManagement = () => {
                     </div>
                 </div>
 
-                {/* Recent Users */}
-                {stats.recentUsers?.filter((user) => (user.role || "user") === "user").length > 0 && (
-                    <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            Recently Joined Customers
-                        </h2>
-                        <div className="space-y-3">
-                            {stats.recentUsers.filter((user) => (user.role || "user") === "user").map((user) => (
-                                <div
-                                    key={user._id}
-                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span className="text-blue-600 font-semibold text-sm">
-                                                {user.name?.charAt(0).toUpperCase() || "U"}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {user.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">{user.email}</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                                        {new Date(user.createdAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

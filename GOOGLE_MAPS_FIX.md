@@ -46,7 +46,7 @@ Wrapped map initialization in try-catch block for better error feedback
 
 ## Changes Summary
 
-**File**: `/ecommerce-frontend/src/components/GoogleMapPicker.jsx`
+**File**: `/user-frontend/src/components/GoogleMapPicker.jsx`
 
 **Modified**:
 1. Added `isGoogleMapsLoaded` and `isMapLoading` state

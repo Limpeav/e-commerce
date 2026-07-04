@@ -24,7 +24,7 @@ This guide will help you set up Google OAuth authentication for your ecommerce w
 
 ## Step 2: Configure Environment Variables
 
-### Frontend (.env file in `ecommerce-frontend/`)
+### Frontend (.env file in `user-frontend/`)
 
 Create or update your `.env` file:
 
@@ -32,7 +32,7 @@ Create or update your `.env` file:
 VITE_GOOGLE_CLIENT_ID=your-google-client-id-here.apps.googleusercontent.com
 ```
 
-### Backend (.env file in `ecommerce-backend/`)
+### Backend (.env file in `backend/`)
 
 Make sure you have:
 
@@ -48,13 +48,13 @@ After adding the environment variables:
 
 1. Restart your frontend server:
    ```bash
-   cd ecommerce-frontend
+   cd user-frontend
    npm run dev
    ```
 
 2. Restart your backend server:
    ```bash
-   cd ecommerce-backend
+   cd backend
    npm run dev
    ```
 

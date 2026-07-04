@@ -19,6 +19,13 @@ const api = axios.create({
 // Add token to requests if it exists
 api.interceptors.request.use(
     (config) => {
+        if (
+            typeof FormData !== "undefined" &&
+            config.data instanceof FormData
+        ) {
+            config.headers.setContentType(undefined);
+        }
+
         const adminToken = getStoredAdminToken();
         if (adminToken) {
             config.headers.Authorization = `Bearer ${adminToken}`;

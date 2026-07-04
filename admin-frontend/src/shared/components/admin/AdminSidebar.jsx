@@ -1,7 +1,8 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { clearAdminSession, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
-import { adminService } from '../../services/adminService'
+import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
+import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
+import { AuthController, OrderController } from '../../controllers'
 import {
   LayoutDashboard,
   Package,
@@ -14,12 +15,15 @@ import {
   ReceiptText,
   WalletCards,
   Truck,
+  User,
   X,
 } from 'lucide-react'
+import { subscribeRealtimeDomains } from '../../services/realtime'
 
 const AdminSidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
   const [orderCount, setOrderCount] = React.useState(0)
 
@@ -30,6 +34,7 @@ const AdminSidebar = () => {
   const ordersPath = getPortalOrdersPath(adminUser)
   const cashReportPath = getPortalCashReportPath(adminUser)
   const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
+  const accountPath = getPortalAccountPath(adminUser)
   const isOrderDetail = /^\/(?:admin|seller|delivery)\/orders\/[^/]+/.test(location.pathname)
 
   const normalizeStatus = React.useCallback((status) => {
@@ -45,20 +50,18 @@ const AdminSidebar = () => {
     if (!Array.isArray(orders)) return 0
 
     return orders.filter((order) => {
+      // A null populated user means the customer account was deleted.
+      if (!order?.user) {
+        return false
+      }
+
       const orderStatus = normalizeStatus(order?.orderStatus)
-      const paymentStatus = normalizeStatus(order?.paymentStatus)
 
       if (isDelivery && !['processing', 'shipped'].includes(orderStatus)) {
         return false
       }
 
-      const isFinishedOrder = orderStatus === 'delivered' || orderStatus === 'cancelled'
-      const isSettledPayment =
-        paymentStatus === 'paid' ||
-        paymentStatus === 'refunded' ||
-        paymentStatus === 'failed'
-
-      return !isFinishedOrder || !isSettledPayment
+      return orderStatus !== 'delivered' && orderStatus !== 'cancelled'
     }).length
   }, [isDelivery, normalizeStatus])
 
@@ -67,7 +70,7 @@ const AdminSidebar = () => {
 
     const loadOrderCount = async () => {
       try {
-        const response = await adminService.getOrders()
+        const response = await OrderController.getOrders()
         if (isMounted) {
           setOrderCount(getPendingOrderCount(response.data))
         }
@@ -79,12 +82,12 @@ const AdminSidebar = () => {
     }
 
     loadOrderCount()
-    const interval = window.setInterval(loadOrderCount, 30000)
+    const unsubscribeRealtime = subscribeRealtimeDomains(['orders', 'users'], loadOrderCount)
     window.addEventListener('admin-orders-updated', loadOrderCount)
 
     return () => {
       isMounted = false
-      window.clearInterval(interval)
+      unsubscribeRealtime()
       window.removeEventListener('admin-orders-updated', loadOrderCount)
     }
   }, [getPendingOrderCount])
@@ -133,6 +136,12 @@ const AdminSidebar = () => {
       hidden: adminUser?.role === 'delivery',
     },
     {
+      path: accountPath,
+      name: 'My Info',
+      icon: User,
+      hidden: adminUser?.role === 'admin',
+    },
+    {
       path: '/admin/staff',
       name: 'Staff',
       icon: BriefcaseBusiness,
@@ -140,12 +149,18 @@ const AdminSidebar = () => {
     }
   ].filter((item) => !item.hidden && (!item.adminOnly || adminUser?.role === 'admin'))
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to logout?')) return
 
     const loginPath = getPortalLoginPath(adminUser)
-    clearAdminSession()
-    navigate(loginPath)
+    try {
+      await AuthController.logout()
+    } catch (error) {
+      console.error('Portal logout request failed:', error)
+    } finally {
+      clearAdminSession()
+      navigate(loginPath, { replace: true })
+    }
   }
 
   return (
@@ -163,17 +178,18 @@ const AdminSidebar = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`
+      <Motion.div
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className={`
         fixed inset-y-0 left-0 z-40 w-64 border-r border-[var(--color-border)] bg-[var(--color-bg-card)] transform transition-transform duration-300 ease-in-out shadow-xl
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-center h-16 border-b border-[var(--color-border)] bg-[var(--color-surface-soft)]">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-card)] flex items-center justify-center border border-[var(--color-border)]">
-                <LayoutDashboard className="w-5 h-5 text-[var(--color-primary)]" />
-              </div>
+            <div className="flex items-center">
               <h1 className="text-xl font-bold text-[var(--color-text-main)]">
                 {adminUser?.role === 'admin'
                   ? 'Admin Panel'
@@ -222,13 +238,20 @@ const AdminSidebar = () => {
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
+                    relative isolate flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group
                     ${isActive
-                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      ? 'text-white'
                       : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)] hover:translate-x-1'
                     }
                   `}
                 >
+                  {isActive && (
+                    <Motion.span
+                      layoutId="admin-sidebar-active"
+                      className="absolute inset-0 -z-10 rounded-xl bg-[var(--color-primary)] shadow-md"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
+                    />
+                  )}
                   <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
                     {(item.name === 'Orders' || item.name === 'Deliveries') && item.badge > 0 && (
@@ -264,11 +287,11 @@ const AdminSidebar = () => {
             </button>
           </div>
         </div>
-      </div>
+      </Motion.div>
 
       {isDelivery && !isOrderDetail && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg-card)]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
+          <div className="mx-auto grid max-w-md grid-cols-3 gap-2">
             <Link
               to={ordersPath}
               className={`relative flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
@@ -285,6 +308,17 @@ const AdminSidebar = () => {
                 </span>
               )}
             </Link>
+            <Link
+              to={accountPath}
+              className={`flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
+                location.pathname === accountPath
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
+            >
+              <User className="h-5 w-5" />
+              Account
+            </Link>
             <button
               type="button"
               onClick={handleLogout}
@@ -298,12 +332,18 @@ const AdminSidebar = () => {
       )}
 
       {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <Motion.div
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

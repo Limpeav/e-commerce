@@ -15,13 +15,14 @@
 ## 3. Deploy Backend (Render)
 1.  Click **New +** -> **Web Service**.
 2.  Connect your GitHub repository.
-3.  Select the `ecommerce-backend` folder as Root Directory.
+3.  Select the `backend` folder as Root Directory.
 4.  **Build Command**: `npm install`
 5.  **Start Command**: `node server.js`
 6.  **Environment Variables**:
     - `MONGO_URI`: Your MongoDB connection string.
     - `JWT_SECRET`: A secret string (e.g., `mysecret123`).
     - `CLOUDINARY_...`: Your Cloudinary keys.
+    - `REMOVE_BG_API_KEY`: remove.bg API key for automatic product image background removal.
     - `GOOGLE_...`: Your Google OAuth keys.
     - `ALLOWED_ORIGINS`: Your deployed frontend origin.
       - Example: `https://baby-products-wtux.onrender.com`
@@ -32,7 +33,7 @@
 
 ## 4. Deploy Frontend (Vercel)
 1.  Import your GitHub repository.
-2.  Select `ecommerce-frontend` as the Root Directory.
+2.  Select `user-frontend` as the Root Directory.
 3.  **Framework Preset**: Vite.
 4.  **Build Command**: `npm run build`
 5.  **Output Directory**: `dist`

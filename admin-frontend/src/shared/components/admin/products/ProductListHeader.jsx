@@ -7,7 +7,7 @@ const ProductListHeader = ({
   promotionCount = 0,
   sendingPromotionEmails = false,
 }) => (
-  <div className="bg-white shadow-lg border-b border-gray-200">
+  <div className="admin-reveal bg-white shadow-lg border-b border-gray-200">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -21,7 +21,7 @@ const ProductListHeader = ({
             type="button"
             onClick={onSendPromotionEmails}
             disabled={sendingPromotionEmails || promotionCount === 0}
-            className="flex items-center space-x-2 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-3 text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500 hover:bg-emerald-100 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-emerald-200 disabled:hover:bg-emerald-50"
+            className="flex items-center space-x-2 rounded-xl border border-green-600/35 bg-green-600 px-6 py-3 text-white shadow-sm shadow-green-600/30 transition-all duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:bg-green-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-green-600/35 disabled:hover:bg-green-600"
             title={
               promotionCount === 0
                 ? "Add discount prices before sending promotion emails"

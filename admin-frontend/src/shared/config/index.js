@@ -19,6 +19,7 @@ export const config = {
   // UI Configuration
   DEBOUNCE_DELAY: 300,
   TOAST_DURATION: 3000,
+  USD_TO_KHR_RATE: Number(import.meta.env.VITE_USD_TO_KHR_RATE) || 4100,
 
   // Pagination
   ITEMS_PER_PAGE: 12,

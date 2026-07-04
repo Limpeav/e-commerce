@@ -8,7 +8,7 @@ Enhanced the admin notification system to provide better user experience by maki
 ## ✨ Changes Implemented
 
 ### 1. **Clickable Notifications** 
-**File**: `/ecommerce-frontend/src/components/NotificationPanel.jsx`
+**File**: `/user-frontend/src/components/NotificationPanel.jsx`
 
 #### What Changed:
 - Made entire notification cards clickable
@@ -29,7 +29,7 @@ Enhanced the admin notification system to provide better user experience by maki
 ---
 
 ### 2. **Google Maps Link in Order Details**
-**File**: `/ecommerce-frontend/src/views/admin/Orders/Details.jsx`
+**File**: `/user-frontend/src/views/admin/Orders/Details.jsx`
 
 #### What Changed:
 - Added Google Maps button in the **Shipping Address** section

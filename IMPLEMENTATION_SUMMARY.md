@@ -6,7 +6,7 @@ Successfully implemented Google Maps integration for customer address selection 
 ## Features Implemented
 
 ### 1. Customer Address Selection with Google Maps
-- **Location**: Checkout page (`/ecommerce-frontend/src/views/cart/Checkout.jsx`)
+- **Location**: Checkout page (`/user-frontend/src/views/cart/Checkout.jsx`)
 - **Functionality**:
   - Added Google Maps picker component that allows customers to:
     - Click on map to select delivery location
@@ -16,7 +16,7 @@ Successfully implemented Google Maps integration for customer address selection 
   - Location coordinates (latitude/longitude) are saved with the order
 
 ### 2. Admin Notification System
-- **Location**: Admin Dashboard (`/ecommerce-frontend/src/views/admin/Dashboard/index.jsx`)
+- **Location**: Admin Dashboard (`/user-frontend/src/views/admin/Dashboard/index.jsx`)
 - **Functionality**:
   - Real-time notification bell with unread count badge
   - Auto-refresh every 30 seconds for new notifications

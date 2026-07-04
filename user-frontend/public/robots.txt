@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /cart
+Disallow: /checkout
+Disallow: /wishlist
+Disallow: /profile
+Disallow: /orders
+Disallow: /settings
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /complete-profile
+Disallow: /admin
+Disallow: /seller
+Disallow: /delivery
+
+Sitemap: https://cherishbabykhstore.store/sitemap.xml

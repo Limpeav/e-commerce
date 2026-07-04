@@ -1,0 +1,55 @@
+import axios from "axios";
+import { config } from "../config/index.js";
+
+const API = axios.create({
+  baseURL: `${config.API_BASE_URL}/users`,
+});
+
+const AUTH_API = axios.create({
+  baseURL: `${config.API_BASE_URL}/auth`,
+});
+
+export const registerUser = (data) => API.post("/register", data);
+export const verifyRegistrationEmail = (data) => API.post("/verify-registration-email", data);
+export const resendRegistrationVerification = (data) => API.post("/resend-registration-verification", data);
+export const loginUser = (data) => API.post("/login", data);
+export const googleAuth = (data) => AUTH_API.post("/google", data);
+export const forgotPassword = (data) => API.post("/forgot-password", data);
+export const verifyResetCode = (data) => API.post("/verify-reset-code", data);
+export const resendResetCode = (data) => API.post("/resend-reset-code", data);
+export const resetPassword = (data) => API.post("/reset-password", data);
+export const updateUserProfile = (token, data) =>
+  API.put(
+    "/profile",
+    data,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+export const getNotificationPreferences = (token) =>
+  API.get(
+    "/notification-preferences",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+export const updateNotificationPreferences = (token, data) =>
+  API.put(
+    "/notification-preferences",
+    data,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+export const getDeleteAccountEligibility = (token) =>
+  API.get(
+    "/delete-eligibility",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+export const startPhoneVerification = (token, phone) =>
+  API.post(
+    "/start-phone-verification",
+    { phone },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+export const verifyPhone = (token, code) =>
+  API.post(
+    "/verify-phone",
+    { code },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );

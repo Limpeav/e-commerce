@@ -65,6 +65,22 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.admin-date-input::-webkit-calendar-picker-indicator {
+    filter: brightness(0);
+    opacity: 1;
+}
+
+/* Use a familiar neutral-blue highlight instead of the warm page palette. */
+::selection {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
+::-moz-selection {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
 html:lang(km) body {
     font-family: "Kantumruy Pro", var(--font-sans);
 }
@@ -164,6 +180,70 @@ h6 {
     animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes adminReveal {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.admin-reveal {
+    animation: adminReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.admin-stagger-container > * {
+    animation: adminReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.admin-stagger-container > :nth-child(2) {
+    animation-delay: 45ms;
+}
+
+.admin-stagger-container > :nth-child(3) {
+    animation-delay: 80ms;
+}
+
+.admin-stagger-container > :nth-child(4) {
+    animation-delay: 115ms;
+}
+
+.admin-stagger-container > :nth-child(n + 5) {
+    animation-delay: 145ms;
+}
+
+.admin-card-grid > * {
+    animation: adminReveal 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.admin-card-grid > :nth-child(2n) {
+    animation-delay: 35ms;
+}
+
+.admin-card-grid > :nth-child(3n) {
+    animation-delay: 70ms;
+}
+
+.admin-page-transition button,
+.admin-page-transition a {
+    transition:
+        transform 180ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease,
+        border-color 180ms ease,
+        color 180ms ease,
+        opacity 180ms ease;
+}
+
+.admin-page-transition button:active:not(:disabled),
+.admin-page-transition a:active {
+    transform: scale(0.98);
+}
+
 @keyframes shake {
 
     0%,
@@ -196,6 +276,23 @@ h6 {
     animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .admin-reveal,
+    .admin-stagger-container > *,
+    .admin-card-grid > * {
+        animation: none !important;
+    }
+
+    .admin-page-transition *,
+    .admin-page-transition *::before,
+    .admin-page-transition *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
 /* Global Interactive Pointers */
 button,
 [role="button"],
@@ -204,6 +301,33 @@ input[type="submit"],
 input[type="button"],
 select {
     cursor: pointer;
+}
+
+/* Keep browser autofill from adding a blue background to admin login fields. */
+.admin-login-form input:-webkit-autofill,
+.admin-login-form input:-webkit-autofill:hover,
+.admin-login-form input:-webkit-autofill:focus,
+.admin-login-form input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--color-text-main);
+    caret-color: var(--color-text-main);
+    box-shadow: 0 0 0 1000px var(--color-surface-soft) inset;
+    transition: background-color 9999s ease-out 0s;
+}
+
+/* Keep editable admin fields white when browsers/password managers autofill them. */
+.admin-neutral-autofill,
+.admin-neutral-autofill:focus {
+    background-color: #FFFFFF !important;
+}
+
+.admin-neutral-autofill:-webkit-autofill,
+.admin-neutral-autofill:-webkit-autofill:hover,
+.admin-neutral-autofill:-webkit-autofill:focus,
+.admin-neutral-autofill:-webkit-autofill:active {
+    -webkit-text-fill-color: #111827;
+    caret-color: #111827;
+    box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+    transition: background-color 9999s ease-out 0s;
 }
 
 /* Custom Scrollbar */
@@ -328,7 +452,7 @@ html.dark {
 }
 
 :is(.text-red-500, .text-red-600, .text-red-700, .text-red-800, .text-rose-500, .text-orange-600) {
-    color: #ffffff !important;
+    color: var(--status-danger-text) !important;
 }
 
 :is(.border-red-500, .border-red-600) {

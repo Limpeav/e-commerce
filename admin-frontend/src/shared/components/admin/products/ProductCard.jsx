@@ -1,9 +1,17 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Calendar } from "lucide-react";
 import { normalizeProductCategory } from "../../../constants/productCategories";
 import {
+  formatExpiryDate,
+  productSupportsExpiry,
+} from "../../../utils/productExpiry";
+import {
+  getAvailableStock,
   getNumericDiscount,
   getProductSoldCount,
+  isBestSellerProduct,
   isLowStockProduct,
+  isOutOfStockProduct,
+  isProductIssue,
 } from "../../../utils/adminProducts";
 import Price from "../../common/Price";
 
@@ -11,7 +19,13 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
   const price = Number(product.price) || 0;
   const discountPrice = getNumericDiscount(product);
   const sold = getProductSoldCount(product);
+  const availableStock = getAvailableStock(product);
   const isLowStock = isLowStockProduct(product);
+  const isOutOfStock = isOutOfStockProduct(product);
+  const hasProductIssue = isProductIssue(product);
+  const isBestSeller = isBestSellerProduct(product);
+  const normalizedCategory = normalizeProductCategory(product.category);
+  const showExpiry = productSupportsExpiry(normalizedCategory) && product.expiryDate;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 group hover:-translate-y-1">
@@ -21,13 +35,13 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {isLowStock && (
-          <span className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-            Low Stock
+        {(isOutOfStock || hasProductIssue) && (
+          <span className="absolute right-3 top-3 rounded-full bg-[#FF3B30] px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-[#FF3B30]/30">
+            {isOutOfStock ? "Sold Out" : "Product Issue"}
           </span>
         )}
-        {sold > 0 && (
-          <span className="absolute left-3 top-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+        {isBestSeller && (
+          <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/30">
             Best Seller
           </span>
         )}
@@ -66,17 +80,32 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
               <Price amount={price} className="text-2xl font-bold text-gray-900" usdClassName="text-gray-900" />
             )}
             <p className="text-sm text-gray-600">
-              Stock:{" "}
+              Available:{" "}
               <span className={`font-semibold ${isLowStock ? "text-[#b45309]" : "text-green-600"}`}>
-                {product.stock}
+                {availableStock}
               </span>
             </p>
             <p className="text-sm text-gray-600">
               Sold:{" "}
-              <span className={`font-semibold ${sold > 0 ? "text-emerald-600" : "text-gray-500"}`}>
+              <span className={`font-semibold ${isBestSeller ? "text-emerald-600" : "text-gray-500"}`}>
                 {sold}
               </span>
             </p>
+            {hasProductIssue && (
+              <p className="text-sm text-orange-700">
+                Issue quantity:{" "}
+                <span className="font-semibold">{product.issueQuantity || 0}</span>
+              </p>
+            )}
+            {showExpiry && (
+              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                Expires:{" "}
+                <span className="font-semibold text-amber-600">
+                  {formatExpiryDate(product.expiryDate)}
+                </span>
+              </p>
+            )}
           </div>
         </div>
 

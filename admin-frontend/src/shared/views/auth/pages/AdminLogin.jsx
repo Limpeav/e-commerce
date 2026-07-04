@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminService } from "../../../services/adminService.js";
+import { AuthController } from "../../../controllers";
 import {
   clearAdminSession,
   hasStoredAdminSession,
   persistAdminSession,
 } from "../../../utils/adminSession.js";
+import Loading from "../../../components/common/Loading.jsx";
 import {
   Mail,
   Lock,
@@ -22,20 +23,25 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(() => hasStoredAdminSession());
   const [showPassword, setShowPassword] = useState(false);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [securityCode, setSecurityCode] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
+    let isMounted = true;
 
     const validateExistingAdminSession = async () => {
       if (!hasStoredAdminSession()) {
+        setCheckingSession(false);
         return;
       }
 
       try {
-        const response = await adminService.getCurrentAdmin();
+        const response = await AuthController.getCurrentUser();
         if (response.data?.role === "admin") {
           navigate("/admin", { replace: true });
           return;
@@ -44,10 +50,18 @@ const AdminLogin = () => {
         clearAdminSession();
       } catch {
         clearAdminSession();
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
       }
     };
 
     validateExistingAdminSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const submitHandler = async (e) => {
@@ -56,12 +70,20 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await adminService.login({ email, password });
+      const response = challengeToken
+        ? await AuthController.verifyLogin({ challengeToken, code: securityCode })
+        : await AuthController.login({ email, password });
 
       // Handle both response.data and direct data
       const data = response.data || response;
 
-      if (!data || !data.token) {
+      if (data?.mfaRequired && data.challengeToken) {
+        setChallengeToken(data.challengeToken);
+        setPassword("");
+        return;
+      }
+
+      if (!data?.token) {
         throw new Error("Invalid response from server");
       }
 
@@ -81,6 +103,10 @@ const AdminLogin = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return <Loading message="Loading your portal..." fullScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-base)] flex items-center justify-center p-4 relative overflow-hidden font-sans text-[var(--color-text-main)]">
@@ -112,7 +138,11 @@ const AdminLogin = () => {
             </p>
           </div>
 
-          <form onSubmit={submitHandler} className="px-8 pb-10 space-y-5">
+          <form
+            onSubmit={submitHandler}
+            autoComplete="on"
+            className="admin-login-form px-8 pb-10 space-y-5"
+          >
             {/* Error Display */}
             {error && (
               <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex gap-3 items-start animate-fade-in">
@@ -121,8 +151,7 @@ const AdminLogin = () => {
               </div>
             )}
 
-            {/* Email Field */}
-            <div className="space-y-1.5">
+            {!challengeToken && <div className="space-y-1.5">
               <label className="text-sm font-medium text-[var(--color-text-main)] ml-1">Email Address</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors">
@@ -130,6 +159,7 @@ const AdminLogin = () => {
                 </div>
                 <input
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[var(--color-surface-soft)]/70 border border-[var(--color-border)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var(--color-text-main)] placeholder-stone-400 transition-all shadow-sm"
@@ -137,10 +167,10 @@ const AdminLogin = () => {
                   required
                 />
               </div>
-            </div>
+            </div>}
 
             {/* Password Field */}
-            <div className="space-y-1.5">
+            {!challengeToken && <div className="space-y-1.5">
               <label className="text-sm font-medium text-[var(--color-text-main)] ml-1">Password</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors">
@@ -148,6 +178,7 @@ const AdminLogin = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 bg-[var(--color-surface-soft)]/70 border border-[var(--color-border)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var(--color-text-main)] placeholder-stone-400 transition-all shadow-sm"
@@ -162,7 +193,38 @@ const AdminLogin = () => {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
+            </div>}
+
+            {challengeToken && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-text-main)] ml-1">
+                  Email security code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={securityCode}
+                  onChange={(event) => setSecurityCode(event.target.value.replace(/\D/g, ""))}
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 px-4 py-3 text-center text-xl font-bold tracking-[0.35em] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  placeholder="000000"
+                  required
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChallengeToken("");
+                    setSecurityCode("");
+                    setError("");
+                  }}
+                  className="text-sm text-[var(--color-primary-dark)] hover:underline"
+                >
+                  Use a different account
+                </button>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
@@ -177,22 +239,12 @@ const AdminLogin = () => {
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>{challengeToken ? "Verify Code" : "Sign In"}</span>
                   <LogIn className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
-
-          {/* Footer Section */}
-          <div className="bg-[var(--color-surface-soft)]/70 px-8 py-5 border-t border-[var(--color-border)] flex items-center justify-center">
-            <a
-              href="/login"
-              className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2 font-medium"
-            >
-              Back to Customer Login
-            </a>
-          </div>
 
         </div>
 

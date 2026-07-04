@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowLeft,
@@ -9,38 +9,37 @@ import {
     Download,
     Calendar,
 } from "lucide-react";
-import api from "../../../services/api";
+import { ReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const Reports = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [orders, setOrders] = useState([]);
-    const [products, setProducts] = useState([]);
+
+    const fetchData = useCallback(async ({ silent = false } = {}) => {
+        try {
+            if (!silent) setLoading(true);
+            const reportData = await ReportController.getReportData();
+
+            setStats(reportData.stats);
+            setOrders(reportData.orders);
+            if (!silent) setLoading(false);
+        } catch (err) {
+            console.error("Failed to fetch data", err);
+            if (!silent) setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         fetchData();
-    }, []);
-
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [dashboardRes, ordersRes, productsRes] = await Promise.all([
-                api.get("/admin/dashboard"),
-                api.get("/orders"),
-                api.get("/products"),
-            ]);
-
-            setStats(dashboardRes.data);
-            setOrders(ordersRes.data);
-            setProducts(productsRes.data);
-            setLoading(false);
-        } catch (err) {
-            console.error("Failed to fetch data", err);
-            setLoading(false);
-        }
-    };
+        return subscribeRealtimeDomains(
+            ["orders", "products", "reviews", "users"],
+            () => fetchData({ silent: true })
+        );
+    }, [fetchData]);
 
     const calculateMonthlyRevenue = () => {
         const monthlyData = {};
@@ -83,13 +82,15 @@ const Reports = () => {
         const breakdown = {
             Pending: 0,
             Processing: 0,
-            Shipped: 0,
             Delivered: 0,
             Cancelled: 0,
         };
 
         orders.forEach((order) => {
-            breakdown[order.orderStatus]++;
+            const status = order.orderStatus === "Shipped" ? "Processing" : order.orderStatus;
+            if (Object.hasOwn(breakdown, status)) {
+                breakdown[status]++;
+            }
         });
 
         return breakdown;
@@ -278,7 +279,6 @@ const Reports = () => {
                                 const colors = {
                                     Pending: "bg-yellow-500",
                                     Processing: "bg-blue-500",
-                                    Shipped: "bg-purple-500",
                                     Delivered: "bg-green-500",
                                     Cancelled: "bg-red-500",
                                 };

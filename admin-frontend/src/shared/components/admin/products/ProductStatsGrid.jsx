@@ -1,4 +1,4 @@
-import { Package, Percent, Sparkles, TrendingUp } from "lucide-react";
+import { Package, Percent, ShoppingBag, Sparkles, TrendingUp } from "lucide-react";
 import { createElement } from "react";
 
 const ProductStatCard = ({
@@ -31,13 +31,12 @@ const ProductStatCard = ({
 
 const ProductStatsGrid = ({
   stats,
-  showLowStockOnly,
-  onToggleLowStock,
   onOpenPromotions,
+  onOpenSold,
   onOpenBestSellers,
   onOpenNewArrivals,
 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
+  <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 xl:grid-cols-5">
     <ProductStatCard
       icon={Package}
       label="Total Products"
@@ -62,28 +61,16 @@ const ProductStatsGrid = ({
         </div>
       </div>
     </button>
-    <button
-      type="button"
-      onClick={onToggleLowStock}
-      className={`text-left rounded-2xl p-6 border shadow-lg transition-all duration-300 hover:shadow-xl ${
-        showLowStockOnly
-          ? "bg-orange-50 border-orange-200 ring-2 ring-orange-200"
-          : "bg-white border-gray-100"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">Low Stock Alert</p>
-          <p className="text-3xl font-bold text-[#b45309] mt-1">{stats.lowStockCount}</p>
-          <p className="text-xs text-[#c2410c] mt-2">
-            {showLowStockOnly ? "Showing low stock products" : "Click to show low stock products"}
-          </p>
-        </div>
-        <div className="bg-orange-100 p-3 rounded-xl">
-          <Package className="w-8 h-8 text-[#b45309]" />
-        </div>
-      </div>
-    </button>
+    <ProductStatCard
+      as="button"
+      icon={ShoppingBag}
+      label="Sold"
+      value={stats.totalSoldCount}
+      caption="Open sold products page"
+      iconClassName="bg-orange-100 p-3 rounded-xl text-[#b45309]"
+      onClick={onOpenSold}
+      valueClassName="text-[#b45309]"
+    />
     <ProductStatCard
       as="button"
       icon={TrendingUp}
