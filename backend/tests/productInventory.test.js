@@ -4,6 +4,7 @@ import {
     adjustProductInventory,
     getAvailableStock,
     normalizeSizeStocks,
+    parseSizeStocksPayload,
 } from "../utils/productInventory.js";
 
 test("available stock excludes pending KHQR reservations", () => {
@@ -64,4 +65,18 @@ test("size inventory adjustments keep total stock in sync", () => {
 
   assert.equal(getAvailableStock(product, "EU 17"), 3);
   assert.equal(product.stock, 6);
+});
+
+test("size stock payload accepts simple admin CSV format", () => {
+  assert.deepEqual(parseSizeStocksPayload("NB:5 | 0-3M:8"), [
+    { size: "NB", color: "", stock: 5, reservedStock: 0 },
+    { size: "0-3M", color: "", stock: 8, reservedStock: 0 },
+  ]);
+});
+
+test("size stock payload accepts color variants in admin CSV format", () => {
+  assert.deepEqual(parseSizeStocksPayload("NB:Pink:5 | NB:Blue:3"), [
+    { size: "NB", color: "Pink", stock: 5, reservedStock: 0 },
+    { size: "NB", color: "Blue", stock: 3, reservedStock: 0 },
+  ]);
 });

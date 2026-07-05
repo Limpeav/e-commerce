@@ -100,6 +100,16 @@ export const getAvailableStockForSize = (product = {}, size = "", color = "") =>
   );
 };
 
+export const getAvailableStock = (product = {}, size = "", color = "") => {
+  if (size) return getAvailableStockForSize(product, size, color);
+
+  const stock = Number(product.stock || 0);
+  const reservedStock = Number(product.reservedStock || 0);
+  const issueQuantity = product.hasProductIssue ? Number(product.issueQuantity || 0) : 0;
+
+  return Math.max(0, stock - reservedStock - issueQuantity);
+};
+
 export const getProductColors = (product = {}) =>
   Array.isArray(product.colors)
     ? product.colors.map((color) => String(color || "").trim()).filter(Boolean)

@@ -8,6 +8,8 @@ const csvBuilderDraftRowSchema = mongoose.Schema(
     category: { type: String, default: "", trim: true },
     description: { type: String, default: "", trim: true },
     stock: { type: String, default: "", trim: true },
+    colors: { type: String, default: "", trim: true },
+    sizeStocks: { type: String, default: "", trim: true },
     image: { type: String, default: "", trim: true },
     imageName: { type: String, default: "", trim: true },
   },

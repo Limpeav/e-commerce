@@ -31,11 +31,13 @@ import {
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
+  colorimages: "colorImages",
   discountprice: "discountPrice",
   descriptionkm: "descriptionKm",
   isnewarrival: "isNewArrival",
   hasproductissue: "hasProductIssue",
   issuequantity: "issueQuantity",
+  sizestocks: "sizeStocks",
   titlekm: "titleKm",
   expirydate: "expiryDate",
 };
@@ -1005,6 +1007,10 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.description = translatedProductData.description;
         existingProduct.descriptionKm = translatedProductData.descriptionKm;
         existingProduct.stock = translatedProductData.stock;
+        existingProduct.sizes = translatedProductData.sizes;
+        existingProduct.colors = translatedProductData.colors;
+        existingProduct.colorImages = translatedProductData.colorImages;
+        existingProduct.sizeStocks = translatedProductData.sizeStocks;
         existingProduct.isNewArrival = translatedProductData.isNewArrival;
         existingProduct.hasProductIssue = translatedProductData.hasProductIssue;
         existingProduct.issueQuantity = translatedProductData.issueQuantity;

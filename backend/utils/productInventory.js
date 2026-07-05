@@ -32,7 +32,23 @@ export const parseSizeStocksPayload = (value) => {
   try {
     return normalizeSizeStocks(JSON.parse(value));
   } catch {
-    return [];
+    const entries = value
+      .split(/[|;]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const parts = entry.split(":").map((part) => part.trim());
+        if (parts.length < 2) return null;
+
+        const stock = parts.pop();
+        const size = parts.shift();
+        const color = parts.join(":");
+
+        return { size, color, stock };
+      })
+      .filter(Boolean);
+
+    return normalizeSizeStocks(entries);
   }
 };
 

@@ -9,7 +9,11 @@ import { CartContext } from "./cart-context";
 import { useDarkMode } from "../hooks";
 import { useLanguage } from "./useLanguage";
 import { getEffectiveCartProductPrice, getValidCartItems } from "../utils/checkout";
-import { getCartItemKey, getProductImageForColor } from "../utils/productOptions";
+import {
+  getAvailableStock,
+  getCartItemKey,
+  getProductImageForColor,
+} from "../utils/productOptions";
 import { withGlobalLoading } from "../services/loadingIndicator";
 
 const isPortalRoute = (pathname = "") =>
@@ -86,11 +90,13 @@ export const CartProvider = ({ children }) => {
       .reduce((total, item) => total + Number(item.quantity || 0), 0);
     const totalRequested = existingQuantity + requestedQuantity;
 
-    if (hasNumericStock(product) && Number(product.stock) < totalRequested) {
+    const availableStock = getAvailableStock(product, options.size, options.color);
+
+    if (hasNumericStock(product) && availableStock < totalRequested) {
       toastError(
         t("cart.actionFailedTitle"),
         t("cart.stockLimitMessage", {
-          available: Number(product.stock),
+          available: availableStock,
           requested: totalRequested,
         }),
         { duration: 60000 }
@@ -129,6 +135,23 @@ export const CartProvider = ({ children }) => {
   // Update quantity
   const updateQuantity = async (productId, newQuantity, options = {}) => {
     if (!canUseCustomerCart) return;
+
+    const cartItem = cart.find((item) =>
+      isSameCartItem(item, productId, options.size, options.color)
+    );
+    const availableStock = getAvailableStock(cartItem?.product, options.size, options.color);
+
+    if (Number.isFinite(availableStock) && Number(newQuantity) > availableStock) {
+      toastError(
+        t("cart.actionFailedTitle"),
+        t("cart.stockLimitMessage", {
+          available: availableStock,
+          requested: Number(newQuantity),
+        }),
+        { duration: 60000 }
+      );
+      return;
+    }
 
     const previousCart = cart;
     setCart((currentCart) =>
@@ -363,6 +386,8 @@ const CartPreviewDrawer = ({
                   ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
                   : 0;
                 const productId = item.product._id;
+                const availableStock = getAvailableStock(item.product, item.size, item.color);
+                const reachedStockLimit = item.quantity >= availableStock;
 
                 return (
                   <Motion.article
@@ -408,6 +433,9 @@ const CartPreviewDrawer = ({
                           Color: {item.color}
                         </p>
                       )}
+                      <p className="mt-1 text-xs font-bold uppercase tracking-widest text-text-muted">
+                        qty {availableStock}
+                      </p>
 
                       <div className="mt-2 inline-flex items-center rounded-xl border border-stone-200 dark:border-slate-700 sm:mt-3">
                         <button
@@ -423,8 +451,10 @@ const CartPreviewDrawer = ({
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(productId, item.quantity + 1, { size: item.size, color: item.color })}
-                          className="flex h-8 w-8 items-center justify-center text-text-muted transition-colors hover:text-primary sm:h-9 sm:w-9"
+                          disabled={reachedStockLimit}
+                          className="flex h-8 w-8 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40 sm:h-9 sm:w-9"
                           aria-label={t("cart.increase")}
+                          title={reachedStockLimit ? "Stock limit reached" : undefined}
                         >
                           <Plus className="h-4 w-4" />
                         </button>

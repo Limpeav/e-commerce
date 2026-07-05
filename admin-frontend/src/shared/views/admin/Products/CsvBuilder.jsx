@@ -5,6 +5,7 @@ import {
   PRODUCT_CATEGORY_OPTIONS,
   normalizeProductCategory,
 } from "../../../constants/productCategories";
+import { getDefaultSizesForCategory } from "../../../utils/productOptions";
 import {
   ArrowLeft,
   Copy,
@@ -27,6 +28,12 @@ const CSV_COLUMNS = [
   { key: "category", label: "Category", placeholder: "Select a category" },
   { key: "description", label: "Description", placeholder: "Soft silicone baby bottle set" },
   { key: "stock", label: "Stock", placeholder: "30" },
+  { key: "colors", label: "Colors", placeholder: "Pink, Blue" },
+  {
+    key: "sizeStocks",
+    label: "Size Qty",
+    placeholder: "NB:5 | 0-3M:8 or NB:Pink:5 | NB:Blue:3",
+  },
   {
     key: "image",
     label: "Image URL",
@@ -35,7 +42,9 @@ const CSV_COLUMNS = [
 ];
 
 const CSV_HEADER_ALIASES = {
+  colorimages: "colorImages",
   discountprice: "discountPrice",
+  sizestocks: "sizeStocks",
 };
 
 const createEmptyRow = () => ({
@@ -46,6 +55,8 @@ const createEmptyRow = () => ({
   category: "",
   description: "",
   stock: "",
+  colors: "",
+  sizeStocks: "",
   image: "",
   imageName: "",
   imageUploading: false,
@@ -155,22 +166,57 @@ const mapDraftRow = (row = {}) => ({
   category: normalizeProductCategory(row.category),
   description: row.description || "",
   stock: row.stock || "",
+  colors: row.colors || "",
+  sizeStocks: row.sizeStocks || "",
   image: row.image || "",
   imageName: row.imageName || "",
   imageUploading: false,
 });
 
 const buildDraftPayload = (rows = []) =>
-  rows.map(({ title, price, discountPrice, category, description, stock, image, imageName }) => ({
+  rows.map(({ title, price, discountPrice, category, description, stock, colors, sizeStocks, image, imageName }) => ({
     title,
     price,
     discountPrice,
     category,
     description,
     stock,
+    colors,
+    sizeStocks,
     image,
     imageName,
   }));
+
+const parseColorList = (value = "") =>
+  String(value || "")
+    .split(",")
+    .map((color) => color.trim())
+    .filter(Boolean);
+
+const buildSizeQuantityTemplate = (category = "", colors = "") => {
+  const sizes = getDefaultSizesForCategory(category);
+  const selectedColors = parseColorList(colors);
+
+  if (sizes.length === 0) return "";
+
+  return sizes
+    .flatMap((size) =>
+      selectedColors.length > 0
+        ? selectedColors.map((color) => `${size}:${color}:0`)
+        : [`${size}:0`]
+    )
+    .join(" | ");
+};
+
+const normalizeImageMatchValue = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-z0-9]+/g, "");
+
+const getFileBaseName = (fileName = "") =>
+  String(fileName || "").replace(/\.[^.]+$/, "");
 
 const autoResizeTextarea = (element) => {
   if (!element) {
@@ -188,9 +234,11 @@ const CsvBuilder = () => {
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isApplyingProducts, setIsApplyingProducts] = useState(false);
+  const [isBulkUploadingImages, setIsBulkUploadingImages] = useState(false);
   const [draftStatus, setDraftStatus] = useState("Loading saved draft...");
   const fileInputRefs = useRef({});
   const csvFilePickerRef = useRef(null);
+  const bulkImagePickerRef = useRef(null);
   const hasLoadedDraftRef = useRef(false);
   const lastSavedSnapshotRef = useRef("");
 
@@ -264,6 +312,93 @@ const CsvBuilder = () => {
         error.response?.data?.message || error.message || "Failed to upload image"
       );
       setRowUploadState(rowId, false);
+    }
+  };
+
+  const openBulkImagePicker = () => {
+    bulkImagePickerRef.current?.click();
+  };
+
+  const handleBulkImageUpload = async (fileList) => {
+    const files = Array.from(fileList || []).filter((file) =>
+      file.type.startsWith("image/")
+    );
+
+    if (files.length === 0) return;
+
+    const availableRows = rows.filter((row) => !String(row.image || "").trim());
+    const remainingRows = [...availableRows];
+    const assignments = [];
+
+    files.forEach((file) => {
+      const fileKey = normalizeImageMatchValue(getFileBaseName(file.name));
+      const matchingIndex = remainingRows.findIndex(
+        (row) => normalizeImageMatchValue(row.title) === fileKey
+      );
+      const rowIndex = matchingIndex >= 0 ? matchingIndex : 0;
+      const row = remainingRows[rowIndex];
+
+      if (!row) return;
+
+      remainingRows.splice(rowIndex, 1);
+      assignments.push({ file, rowId: row.id });
+    });
+
+    if (assignments.length === 0) {
+      alert("No empty image rows are available. Add rows or clear image URLs first.");
+      return;
+    }
+
+    setIsBulkUploadingImages(true);
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        assignments.some((assignment) => assignment.rowId === row.id)
+          ? { ...row, imageUploading: true }
+          : row
+      )
+    );
+
+    let uploadedCount = 0;
+    const failedFiles = [];
+
+    for (const assignment of assignments) {
+      const formData = new FormData();
+      formData.append("image", assignment.file);
+
+      try {
+        const response = await ProductController.uploadImage(formData);
+        const imageUrl = response.data?.imageUrl || "";
+
+        setRows((currentRows) =>
+          currentRows.map((row) =>
+            row.id === assignment.rowId
+              ? {
+                  ...row,
+                  image: imageUrl,
+                  imageName: assignment.file.name,
+                  imageUploading: false,
+                }
+              : row
+          )
+        );
+        uploadedCount += 1;
+      } catch (error) {
+        console.error("Failed to upload image", assignment.file.name, error);
+        failedFiles.push(assignment.file.name);
+        setRowUploadState(assignment.rowId, false);
+      }
+    }
+
+    setIsBulkUploadingImages(false);
+
+    if (failedFiles.length > 0) {
+      alert(
+        `Uploaded ${uploadedCount} image${uploadedCount === 1 ? "" : "s"}. Failed: ${failedFiles.join(", ")}`
+      );
+    }
+
+    if (bulkImagePickerRef.current) {
+      bulkImagePickerRef.current.value = "";
     }
   };
 
@@ -399,6 +534,8 @@ const CsvBuilder = () => {
           category: row.category,
           description: row.description,
           stock: row.stock,
+          colors: row.colors,
+          sizeStocks: row.sizeStocks,
           image: row.image,
           imageName: getImageNameFromValue(row.image),
         })
@@ -520,10 +657,10 @@ const CsvBuilder = () => {
             </p>
           </div>
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
-            <p className="text-sm font-medium text-gray-600">Image URL Shortcut</p>
-            <p className="mt-2 text-lg font-bold text-gray-900">Copy per row</p>
+            <p className="text-sm font-medium text-gray-600">Image Uploads</p>
+            <p className="mt-2 text-lg font-bold text-gray-900">JPG becomes URL</p>
             <p className="mt-2 text-sm text-gray-500">
-              Use the copy button to paste URLs directly into other files
+              CSV stores uploaded image URLs because CSV files only hold text
             </p>
           </div>
         </div>
@@ -551,6 +688,14 @@ const CsvBuilder = () => {
                 onChange={(event) => openCsvFile(event.target.files?.[0])}
                 className="hidden"
               />
+              <input
+                ref={bulkImagePickerRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => handleBulkImageUpload(event.target.files)}
+                className="hidden"
+              />
               <button
                 type="button"
                 onClick={createNewFile}
@@ -566,6 +711,20 @@ const CsvBuilder = () => {
               >
                 <FolderOpen className="h-4 w-4" />
                 <span>Open File</span>
+              </button>
+              <button
+                type="button"
+                onClick={openBulkImagePicker}
+                disabled={isBulkUploadingImages}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] px-5 py-3 font-semibold text-[var(--color-primary)] shadow-sm transition-all duration-200 hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                title="Upload multiple JPG or PNG files and fill empty image URL cells"
+              >
+                {isBulkUploadingImages ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                <span>{isBulkUploadingImages ? "Uploading Images..." : "Upload Images"}</span>
               </button>
               <button
                 type="button"
@@ -602,7 +761,7 @@ const CsvBuilder = () => {
                     <th
                       key={column.key}
                       className={`border border-gray-200 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 ${
-                        column.key === "description" ? "min-w-[420px]" : ""
+                        column.key === "description" || column.key === "sizeStocks" ? "min-w-[420px]" : ""
                       }`}
                     >
                       {column.label}
@@ -623,7 +782,7 @@ const CsvBuilder = () => {
                       <td key={column.key} className="border border-gray-200 bg-white px-3 py-3 align-top">
                         <div
                           className={`flex items-center gap-2 ${
-                            column.key === "description" ? "min-w-[420px]" : "min-w-[150px]"
+                            column.key === "description" || column.key === "sizeStocks" ? "min-w-[420px]" : "min-w-[150px]"
                           }`}
                         >
                           {column.key === "category" ? (
@@ -641,7 +800,7 @@ const CsvBuilder = () => {
                                 </option>
                               ))}
                             </select>
-                          ) : column.key === "description" ? (
+                          ) : column.key === "description" || column.key === "sizeStocks" ? (
                             <textarea
                               ref={(element) => autoResizeTextarea(element)}
                               value={row[column.key]}
@@ -708,6 +867,38 @@ const CsvBuilder = () => {
                             </>
                           )}
                         </div>
+                        {column.key === "sizeStocks" && (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const template = buildSizeQuantityTemplate(row.category, row.colors);
+                                if (template) updateRow(row.id, "sizeStocks", template);
+                              }}
+                              disabled={!buildSizeQuantityTemplate(row.category, row.colors)}
+                              className="rounded-lg border border-[var(--color-primary)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-all duration-200 hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Fill baby clothing or shoe sizes with qty 0"
+                            >
+                              Fill sizes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateRow(row.id, "sizeStocks", "")}
+                              disabled={!row.sizeStocks}
+                              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-200 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Clear
+                            </button>
+                            <span className="text-xs text-gray-500">
+                              Format: NB:5 | 0-3M:8 or NB:Pink:5 | NB:Blue:3
+                            </span>
+                          </div>
+                        )}
+                        {column.key === "colors" && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            Separate colors with commas. Example: Pink, Blue
+                          </p>
+                        )}
                         {column.key === "image" && row.image && (
                           <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
                             <div className="flex items-start gap-3">

@@ -44,6 +44,8 @@ const sanitizeDraftRow = (row = {}) => ({
   category: normalizeProductCategory(row.category),
   description: String(row.description || "").trim(),
   stock: String(row.stock || "").trim(),
+  colors: String(row.colors || "").trim(),
+  sizeStocks: String(row.sizeStocks || "").trim(),
   image: String(row.image || "").trim(),
   imageName: String(row.imageName || "").trim(),
 });

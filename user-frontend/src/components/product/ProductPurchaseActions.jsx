@@ -4,6 +4,7 @@ import { useLanguage } from "../../context/useLanguage";
 import { useToast } from "../../context/useToast";
 import { useDarkMode } from "../../hooks";
 import {
+  getAvailableStock,
   getAvailableStockForSize,
   getProductColors,
   getProductSizes,
@@ -57,12 +58,27 @@ const ProductPurchaseActions = ({
     onColorChange?.(color);
   };
   const getSelectedAvailableStock = () => {
-    if (needsSize && selectedSize) {
-      return getAvailableStockForSize(product, selectedSize, selectedColor);
-    }
-
-    return Number(product.stock || 0);
+    return getAvailableStock(product, needsSize ? selectedSize : "", selectedColor);
   };
+
+  const clampQuantityToStock = (availableStock) => {
+    if (!Number.isFinite(availableStock)) return;
+
+    setQuantity((currentQuantity) =>
+      Math.max(1, Math.min(Number(currentQuantity || 1), availableStock || 1))
+    );
+  };
+
+  const handleSelectSize = (size, availableForSize) => {
+    setSelectedSize(size);
+    clampQuantityToStock(availableForSize);
+  };
+
+  const handleSelectColor = (color, availableForColor) => {
+    setSelectedColor(color);
+    clampQuantityToStock(availableForColor);
+  };
+
   const handleIncreaseQuantity = () => {
     const requestedQuantity = Number(quantity || 1) + 1;
     const availableStock = getSelectedAvailableStock();
@@ -149,10 +165,10 @@ const ProductPurchaseActions = ({
                   key={size}
                   type="button"
                   onClick={() => {
-                    if (!isUnavailable) setSelectedSize(size);
+                    if (!isUnavailable) handleSelectSize(size, availableForSize);
                   }}
                   disabled={isUnavailable}
-                  className={`h-11 rounded-xl border text-sm font-black transition-all active:scale-95 ${
+                  className={`flex min-h-14 flex-col items-center justify-center rounded-xl border px-2 py-1.5 text-sm font-black transition-all active:scale-95 ${
                     isSelected
                       ? "border-primary bg-primary text-white shadow-md"
                       : isUnavailable
@@ -166,7 +182,20 @@ const ProductPurchaseActions = ({
                   aria-pressed={isSelected}
                   title={isUnavailable ? "Out of stock" : `${availableForSize} available`}
                 >
-                  {size}
+                  <span className="leading-none">{size}</span>
+                  <span
+                    className={`mt-1 text-[10px] font-extrabold leading-none ${
+                      isSelected
+                        ? "text-white/85"
+                        : isUnavailable
+                          ? isDark
+                            ? "text-slate-600"
+                            : "text-stone-400"
+                          : "text-text-muted"
+                    }`}
+                  >
+                    {isUnavailable ? "Out" : `qty ${availableForSize}`}
+                  </span>
                 </button>
               );
             })}
@@ -183,9 +212,7 @@ const ProductPurchaseActions = ({
             {colorOptions.map((color) => {
               const isSelected = selectedColor === color;
               const availableForColor =
-                selectedSize && needsSize
-                  ? getAvailableStockForSize(product, selectedSize, color)
-                  : Number(product.stock || 0);
+                getAvailableStock(product, needsSize ? selectedSize : "", color);
               const isUnavailable = needsSize && selectedSize && availableForColor <= 0;
 
               return (
@@ -193,7 +220,7 @@ const ProductPurchaseActions = ({
                   key={color}
                   type="button"
                   onClick={() => {
-                    if (!isUnavailable) setSelectedColor(color);
+                    if (!isUnavailable) handleSelectColor(color, availableForColor);
                   }}
                   disabled={isUnavailable}
                   className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-black transition-all active:scale-95 ${
