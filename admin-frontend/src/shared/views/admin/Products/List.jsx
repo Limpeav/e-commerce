@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
 import ProductFilters from "../../../components/admin/products/ProductFilters";
@@ -14,6 +15,9 @@ import {
 } from "../../../utils/adminProducts";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
+const PRODUCT_PAGE_SIZE_OPTIONS = [12, 24, 48, 96];
+const DEFAULT_PRODUCT_PAGE_SIZE = 12;
+
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
@@ -27,6 +31,11 @@ const ProductList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchTerm = searchParams.get("search") || "";
   const categoryFilter = searchParams.get("category") || "all";
+  const requestedPage = Math.max(1, Number.parseInt(searchParams.get("page"), 10) || 1);
+  const requestedPageSize = Number.parseInt(searchParams.get("pageSize"), 10);
+  const pageSize = PRODUCT_PAGE_SIZE_OPTIONS.includes(requestedPageSize)
+    ? requestedPageSize
+    : DEFAULT_PRODUCT_PAGE_SIZE;
   const legacyInventoryState = searchParams.get("outOfStock") === "true"
     ? "sold-out"
     : searchParams.get("lowStock") === "true"
@@ -44,6 +53,37 @@ const ProductList = () => {
             nextParams.delete(name);
           } else {
             nextParams.set(name, value);
+          }
+          nextParams.delete("page");
+
+          return nextParams;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const updatePaginationParams = useCallback(
+    (updates) => {
+      setSearchParams(
+        (currentParams) => {
+          const nextParams = new URLSearchParams(currentParams);
+
+          if (updates.page !== undefined) {
+            if (!updates.page || updates.page <= 1) {
+              nextParams.delete("page");
+            } else {
+              nextParams.set("page", String(updates.page));
+            }
+          }
+
+          if (updates.pageSize !== undefined) {
+            if (updates.pageSize === DEFAULT_PRODUCT_PAGE_SIZE) {
+              nextParams.delete("pageSize");
+            } else {
+              nextParams.set("pageSize", String(updates.pageSize));
+            }
           }
 
           return nextParams;
@@ -87,6 +127,11 @@ const ProductList = () => {
       }),
     [products, searchTerm, categoryFilter, inventoryState]
   );
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const pageStart = filteredProducts.length ? (currentPage - 1) * pageSize : 0;
+  const pageEnd = Math.min(pageStart + pageSize, filteredProducts.length);
+  const paginatedProducts = filteredProducts.slice(pageStart, pageEnd);
 
   const goToAddProduct = () => navigate("/admin/products/add");
 
@@ -223,6 +268,7 @@ const ProductList = () => {
               } else {
                 nextParams.set("inventory", value);
               }
+              nextParams.delete("page");
 
               return nextParams;
             }, { replace: true });
@@ -239,22 +285,120 @@ const ProductList = () => {
             onAddProduct={goToAddProduct}
           />
         ) : (
-          <div className="admin-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-                onEdit={(id) =>
-                  navigate(`/admin/products/edit/${id}`, {
-                    state: {
-                      returnTo: `${location.pathname}${location.search}`,
-                    },
-                  })
-                }
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <>
+            <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold text-gray-500">
+                Showing {pageStart + 1}-{pageEnd} of {filteredProducts.length} product{filteredProducts.length === 1 ? "" : "s"}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={pageSize}
+                  onChange={(event) =>
+                    updatePaginationParams({
+                      page: 1,
+                      pageSize: Number(event.target.value),
+                    })
+                  }
+                  className="h-10 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm font-bold text-gray-700 transition-colors focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
+                  aria-label="Products per page"
+                >
+                  {PRODUCT_PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} per page
+                    </option>
+                  ))}
+                </select>
+                <span className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            </div>
+
+            <div className="admin-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {paginatedProducts.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  onEdit={(id) =>
+                    navigate(`/admin/products/edit/${id}`, {
+                      state: {
+                        returnTo: `${location.pathname}${location.search}`,
+                      },
+                    })
+                  }
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updatePaginationParams({ page: 1 })}
+                    disabled={currentPage === 1}
+                    className="inline-flex h-10 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    First
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updatePaginationParams({ page: Math.max(1, currentPage - 1) })
+                    }
+                    disabled={currentPage === 1}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </button>
+                  <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm font-bold text-gray-600">
+                    Page
+                    <input
+                      type="number"
+                      min="1"
+                      max={totalPages}
+                      value={currentPage}
+                      onChange={(event) => {
+                        const nextPage = Number(event.target.value);
+                        if (!Number.isFinite(nextPage)) return;
+                        updatePaginationParams({
+                          page: Math.min(totalPages, Math.max(1, nextPage)),
+                        });
+                      }}
+                      className="h-7 w-16 rounded-lg border border-gray-200 bg-white px-2 text-center text-sm font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-300"
+                      aria-label="Go to product page"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updatePaginationParams({
+                        page: Math.min(totalPages, currentPage + 1),
+                      })
+                    }
+                    disabled={currentPage === totalPages}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePaginationParams({ page: totalPages })}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex h-10 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

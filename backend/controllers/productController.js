@@ -10,6 +10,7 @@ import {
 } from "../utils/azureTranslation.js";
 import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
 import { sendStorePromotionEmail } from "../utils/sendEmail.js";
+import { cache } from "../utils/cache.js";
 import {
   getProductCategoryLookupValues,
   isAllowedProductCategory,
@@ -27,11 +28,13 @@ import {
 import {
   parseProductColorImagesPayload,
   parseProductColorsPayload,
+  parseProductDetailImagesPayload,
 } from "../utils/productOptions.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
   colorimages: "colorImages",
+  productdetailimages: "productDetailImages",
   discountprice: "discountPrice",
   descriptionkm: "descriptionKm",
   isnewarrival: "isNewArrival",
@@ -62,6 +65,12 @@ const parseBoolean = (value) =>
 const NEW_ARRIVAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const PERSONALIZED_RECOMMENDATION_LIMIT = 8;
 const RECENT_PRODUCT_VIEW_LIMIT = 50;
+const CATEGORY_BEST_SELLER_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+const CATEGORY_BEST_SELLER_WINDOWS = {
+  threeDays: 3 * 24 * 60 * 60 * 1000,
+  fourteenDays: 14 * 24 * 60 * 60 * 1000,
+  thirtyDays: 30 * 24 * 60 * 60 * 1000,
+};
 
 const isProductWithinNewArrivalWindow = (product = {}) => {
   const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
@@ -106,6 +115,158 @@ const sortProductsByIdPriority = (products = [], priorityIds = []) => {
 
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
+};
+
+const getCategoryBestSellerCacheKey = (categoryId = "") =>
+  `best_sellers_cat_${normalizeProductCategory(categoryId)}`;
+
+const getCategoryBestSellerProducts = async (categoryId = "") => {
+  const normalizedCategory = normalizeProductCategory(categoryId);
+  if (!normalizedCategory) {
+    return { error: "Category is required" };
+  }
+
+  const cacheKey = getCategoryBestSellerCacheKey(normalizedCategory);
+  const cachedProducts = cache.get(cacheKey);
+  if (cachedProducts) {
+    return { products: cachedProducts, cacheStatus: "hit" };
+  }
+
+  const categoryLookupValues = getProductCategoryLookupValues(normalizedCategory);
+  if (categoryLookupValues.length === 0) {
+    return { products: [], cacheStatus: "miss" };
+  }
+
+  const candidateProducts = await Product.find({
+    category: { $in: categoryLookupValues },
+    stock: { $gt: 0 },
+  })
+    .sort({ createdAt: -1, _id: -1 })
+    .lean();
+  const inStockProducts = candidateProducts
+    .map((product) =>
+      applyNewArrivalWindow({
+        ...product,
+        category: normalizeProductCategory(product.category),
+        expiryDate: product.expiryDate || null,
+        availableStock: getAvailableStock(product),
+      })
+    )
+    .filter((product) => product.availableStock > 0);
+
+  if (inStockProducts.length === 0) {
+    cache.set(cacheKey, [], CATEGORY_BEST_SELLER_CACHE_TTL_MS);
+    return { products: [], cacheStatus: "miss" };
+  }
+
+  const now = Date.now();
+  const since3Days = new Date(now - CATEGORY_BEST_SELLER_WINDOWS.threeDays);
+  const since14Days = new Date(now - CATEGORY_BEST_SELLER_WINDOWS.fourteenDays);
+  const since30Days = new Date(now - CATEGORY_BEST_SELLER_WINDOWS.thirtyDays);
+  const productIds = inStockProducts.map((product) => product._id);
+
+  const salesWindows = await Order.aggregate([
+    {
+      $match: {
+        paymentStatus: "Paid",
+        orderStatus: { $ne: "Cancelled" },
+        createdAt: { $gte: since30Days },
+        "orderItems.product": { $in: productIds },
+      },
+    },
+    { $unwind: "$orderItems" },
+    {
+      $match: {
+        "orderItems.product": { $in: productIds },
+      },
+    },
+    {
+      $group: {
+        _id: "$orderItems.product",
+        salesLast3Days: {
+          $sum: {
+            $cond: [
+              { $gte: ["$createdAt", since3Days] },
+              "$orderItems.quantity",
+              0,
+            ],
+          },
+        },
+        salesLast14Days: {
+          $sum: {
+            $cond: [
+              { $gte: ["$createdAt", since14Days] },
+              "$orderItems.quantity",
+              0,
+            ],
+          },
+        },
+        salesLast30Days: { $sum: "$orderItems.quantity" },
+        paidRevenue: {
+          $sum: {
+            $multiply: ["$orderItems.quantity", "$orderItems.price"],
+          },
+        },
+      },
+    },
+  ]);
+
+  const salesByProductId = new Map(
+    salesWindows.map((item) => {
+      const salesLast3Days = Number(item.salesLast3Days || 0);
+      const salesLast14Days = Number(item.salesLast14Days || 0);
+      const salesLast30Days = Number(item.salesLast30Days || 0);
+
+      return [
+        item._id.toString(),
+        {
+          salesLast3Days,
+          salesLast14Days,
+          salesLast30Days,
+          paidRevenue: Number(item.paidRevenue || 0),
+          bestSellerScore:
+            salesLast3Days * 0.5 +
+            salesLast14Days * 0.35 +
+            salesLast30Days * 0.15,
+        },
+      ];
+    })
+  );
+
+  const rankedProducts = inStockProducts
+    .map((product) => {
+      const sales = salesByProductId.get(product._id.toString()) || {
+        salesLast3Days: 0,
+        salesLast14Days: 0,
+        salesLast30Days: 0,
+        paidRevenue: 0,
+        bestSellerScore: 0,
+      };
+
+      return {
+        ...product,
+        ...sales,
+        stock: product.availableStock,
+        sold: sales.salesLast30Days,
+        totalSold: sales.salesLast30Days,
+        isBestSeller: sales.bestSellerScore > 0,
+      };
+    })
+    .sort((a, b) => {
+      const scoreDelta = Number(b.bestSellerScore || 0) - Number(a.bestSellerScore || 0);
+      if (scoreDelta !== 0) return scoreDelta;
+
+      const salesDelta = Number(b.salesLast30Days || 0) - Number(a.salesLast30Days || 0);
+      if (salesDelta !== 0) return salesDelta;
+
+      const revenueDelta = Number(b.paidRevenue || 0) - Number(a.paidRevenue || 0);
+      if (revenueDelta !== 0) return revenueDelta;
+
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+
+  cache.set(cacheKey, rankedProducts, CATEGORY_BEST_SELLER_CACHE_TTL_MS);
+  return { products: rankedProducts, cacheStatus: "miss" };
 };
 
 const recordProductView = async ({ user, productId }) => {
@@ -524,6 +685,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     : null;
   const colors = parseProductColorsPayload(data.colors);
   const colorImages = parseProductColorImagesPayload(data.colorImages, colors);
+  const productDetailImages = parseProductDetailImagesPayload(
+    data.productDetailImages,
+    colors
+  );
   const sizeStockData = buildSizeStockData(data.sizeStocks);
   const stock = sizeStockData.sizeStocks.length > 0
     ? sizeStockData.stock
@@ -591,6 +756,7 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     sizes: sizeStockData.sizes,
     colors,
     colorImages,
+    productDetailImages,
     sizeStocks: sizeStockData.sizeStocks,
     image,
     isNewArrival,
@@ -612,6 +778,7 @@ export const createProduct = async (req, res) => {
       sizeStocks,
       colors,
       colorImages,
+      productDetailImages,
       hasProductIssue,
       issueQuantity,
       expiryDate,
@@ -649,6 +816,10 @@ export const createProduct = async (req, res) => {
       sizes: sizeStockData.sizes,
       colors: parsedColors,
       colorImages: parseProductColorImagesPayload(colorImages, parsedColors),
+      productDetailImages: parseProductDetailImagesPayload(
+        productDetailImages,
+        parsedColors
+      ),
       sizeStocks: sizeStockData.sizeStocks,
       isNewArrival: true,
       hasProductIssue: parseBoolean(hasProductIssue),
@@ -755,6 +926,30 @@ export const getProducts = async (req, res) => {
     );
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const result = await getCategoryBestSellerProducts(categoryId);
+
+    if (result.error) {
+      return res.status(400).json({ message: result.error });
+    }
+
+    res.set("X-Cache", result.cacheStatus === "hit" ? "HIT" : "MISS");
+    res.set(
+      "Cache-Control",
+      `private, max-age=${Math.floor(CATEGORY_BEST_SELLER_CACHE_TTL_MS / 1000)}`
+    );
+
+    return res.json(result.products);
+  } catch (err) {
+    console.error("Failed to get category best sellers:", err);
+    return res.status(500).json({
+      message: "Failed to fetch category products",
+    });
   }
 };
 
@@ -1010,6 +1205,7 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.sizes = translatedProductData.sizes;
         existingProduct.colors = translatedProductData.colors;
         existingProduct.colorImages = translatedProductData.colorImages;
+        existingProduct.productDetailImages = translatedProductData.productDetailImages;
         existingProduct.sizeStocks = translatedProductData.sizeStocks;
         existingProduct.isNewArrival = translatedProductData.isNewArrival;
         existingProduct.hasProductIssue = translatedProductData.hasProductIssue;
@@ -1208,6 +1404,10 @@ export const updateProduct = async (req, res) => {
     const sizeStockData = buildSizeStockData(req.body.sizeStocks);
     const colors = parseProductColorsPayload(req.body.colors);
     const colorImages = parseProductColorImagesPayload(req.body.colorImages, colors);
+    const productDetailImages = parseProductDetailImagesPayload(
+      req.body.productDetailImages,
+      colors
+    );
     const submittedStock = sizeStockData.sizeStocks.length > 0
       ? sizeStockData.stock
       : Number.parseInt(req.body.stock, 10);
@@ -1244,6 +1444,7 @@ export const updateProduct = async (req, res) => {
         sizes: sizeStockData.sizes,
         colors,
         colorImages,
+        productDetailImages,
         sizeStocks: sizeStockData.sizeStocks,
         isNewArrival: parseBoolean(req.body.isNewArrival),
         hasProductIssue,
@@ -1264,6 +1465,7 @@ export const updateProduct = async (req, res) => {
     product.sizes = translatedProductData.sizes || [];
     product.colors = translatedProductData.colors || [];
     product.colorImages = translatedProductData.colorImages || [];
+    product.productDetailImages = translatedProductData.productDetailImages || [];
     product.sizeStocks = translatedProductData.sizeStocks || [];
     product.isNewArrival = translatedProductData.isNewArrival;
     product.hasProductIssue = translatedProductData.hasProductIssue;

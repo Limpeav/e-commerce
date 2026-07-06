@@ -100,7 +100,7 @@ export const productService = {
   // Get products by category
   getProductsByCategory: async (category) => {
     try {
-      const response = await axios.get(`${API_URL}/category/${category}`);
+      const response = await axios.get(`${API_URL}/category/${encodeURIComponent(category)}`);
       return { data: response.data };
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to fetch products by category");

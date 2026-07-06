@@ -11,6 +11,7 @@ import {
   buildProductRequestData,
   formatProductColorList,
   getExpiryDateInputValue,
+  MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR,
   parseProductColorList,
   PRODUCT_COLOR_OPTIONS,
   productSupportsExpiry,
@@ -63,6 +64,7 @@ const EditProduct = () => {
     stock: "",
     colors: "",
     colorImages: {},
+    productDetailImages: {},
     isNewArrival: false,
     hasProductIssue: false,
     issueQuantity: "",
@@ -75,6 +77,7 @@ const EditProduct = () => {
   const [loading, setLoading] = useState(false);
   const [backgroundRemoving, setBackgroundRemoving] = useState(false);
   const [colorImageUploading, setColorImageUploading] = useState({});
+  const [detailImageUploading, setDetailImageUploading] = useState({});
   const [backgroundRemovalMessage, setBackgroundRemovalMessage] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
@@ -116,6 +119,7 @@ const EditProduct = () => {
         const hasProductIssue = parseBooleanValue(data.hasProductIssue);
         const colors = Array.isArray(data.colors) ? data.colors : [];
         const colorImages = {};
+        const productDetailImages = {};
         colors.forEach((color) => {
           const colorImage = Array.isArray(data.colorImages)
             ? data.colorImages.find(
@@ -125,6 +129,19 @@ const EditProduct = () => {
               )
             : null;
           colorImages[color] = colorImage?.image || "";
+          const detailImageEntry = Array.isArray(data.productDetailImages)
+            ? data.productDetailImages.find(
+                (entry) =>
+                  String(entry.color || "").trim().toLowerCase() ===
+                  String(color || "").trim().toLowerCase()
+              )
+            : null;
+          productDetailImages[color] = Array.isArray(detailImageEntry?.images)
+            ? detailImageEntry.images
+                .map((image) => String(image || "").trim())
+                .filter(Boolean)
+                .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
+            : [];
         });
 
         setForm({
@@ -136,6 +153,7 @@ const EditProduct = () => {
           stock: data.stock || "",
           colors: colors.join(", "),
           colorImages,
+          productDetailImages,
           sizeStocks: normalizeSizeStocksForForm(data.sizeStocks, data.category, colors),
           isNewArrival: parseBooleanValue(data.isNewArrival),
           hasProductIssue,
@@ -199,14 +217,19 @@ const EditProduct = () => {
       setForm((currentForm) => {
         const nextColors = parseProductColorList(value);
         const nextColorImages = {};
+        const nextProductDetailImages = {};
         nextColors.forEach((color) => {
           nextColorImages[color] = currentForm.colorImages?.[color] || "";
+          nextProductDetailImages[color] = Array.isArray(currentForm.productDetailImages?.[color])
+            ? currentForm.productDetailImages[color]
+            : [];
         });
 
         return {
           ...currentForm,
           colors: value,
           colorImages: nextColorImages,
+          productDetailImages: nextProductDetailImages,
         };
       });
       return;
@@ -294,6 +317,91 @@ const EditProduct = () => {
     handleColorImageChange(color, "");
   };
 
+  const handleProductDetailImageUpload = async (color, files) => {
+    const selectedFiles = Array.from(files || []);
+    if (selectedFiles.length === 0) return;
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    const currentImages = Array.isArray(form.productDetailImages?.[color])
+      ? form.productDetailImages[color]
+      : [];
+    const remainingSlots = MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR - currentImages.length;
+
+    if (remainingSlots <= 0) {
+      setErrorMessage(`You can upload up to ${MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} detail images for ${color}.`);
+      return;
+    }
+
+    const filesToUpload = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > remainingSlots) {
+      setErrorMessage(
+        `Only ${remainingSlots} more detail image${remainingSlots === 1 ? "" : "s"} can be added for ${color}.`
+      );
+    }
+
+    try {
+      setDetailImageUploading((current) => ({ ...current, [color]: true }));
+      const uploadedImageUrls = [];
+
+      for (const file of filesToUpload) {
+        const uploadData = new FormData();
+        uploadData.append("image", file);
+        uploadData.append("removeBackground", "true");
+
+        const response = await ProductController.uploadImage(uploadData);
+        const processedImageUrl = response.data?.imageUrl;
+        if (!processedImageUrl) {
+          throw new Error("The uploaded image URL was not returned");
+        }
+        uploadedImageUrls.push(processedImageUrl);
+      }
+
+      setForm((currentForm) => {
+        const existingImages = Array.isArray(currentForm.productDetailImages?.[color])
+          ? currentForm.productDetailImages[color]
+          : [];
+
+        return {
+          ...currentForm,
+          productDetailImages: {
+            ...currentForm.productDetailImages,
+            [color]: [...existingImages, ...uploadedImageUrls].slice(
+              0,
+              MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR
+            ),
+          },
+        };
+      });
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          error.message ||
+          `Could not upload detail images for ${color}.`
+      );
+    } finally {
+      setDetailImageUploading((current) => ({ ...current, [color]: false }));
+    }
+  };
+
+  const handleRemoveProductDetailImage = (color, imageIndex) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => {
+      const currentImages = Array.isArray(currentForm.productDetailImages?.[color])
+        ? currentForm.productDetailImages[color]
+        : [];
+
+      return {
+        ...currentForm,
+        productDetailImages: {
+          ...currentForm.productDetailImages,
+          [color]: currentImages.filter((_, index) => index !== imageIndex),
+        },
+      };
+    });
+  };
+
   const handleAddColor = (color) => {
     if (!color) return;
 
@@ -324,6 +432,12 @@ const EditProduct = () => {
           ...currentForm.colorImages,
           [color]: currentForm.colorImages?.[color] || "",
         },
+        productDetailImages: {
+          ...currentForm.productDetailImages,
+          [color]: Array.isArray(currentForm.productDetailImages?.[color])
+            ? currentForm.productDetailImages[color]
+            : [],
+        },
       };
     });
   };
@@ -336,7 +450,9 @@ const EditProduct = () => {
         (currentColor) => currentColor.toLowerCase() !== color.toLowerCase()
       );
       const nextColorImages = { ...currentForm.colorImages };
+      const nextProductDetailImages = { ...currentForm.productDetailImages };
       delete nextColorImages[color];
+      delete nextProductDetailImages[color];
 
       return {
         ...currentForm,
@@ -354,6 +470,7 @@ const EditProduct = () => {
             )))
           : currentForm.stock,
         colorImages: nextColorImages,
+        productDetailImages: nextProductDetailImages,
       };
     });
   };
@@ -481,6 +598,26 @@ const EditProduct = () => {
               };
             }, {})
           : currentForm.colorImages,
+        productDetailImages: Array.isArray(updatedProduct.colors)
+          ? updatedProduct.colors.reduce((nextDetailImages, color) => {
+              const detailImageEntry = Array.isArray(updatedProduct.productDetailImages)
+                ? updatedProduct.productDetailImages.find(
+                    (entry) =>
+                      String(entry.color || "").trim().toLowerCase() ===
+                      String(color || "").trim().toLowerCase()
+                  )
+                : null;
+              return {
+                ...nextDetailImages,
+                [color]: Array.isArray(detailImageEntry?.images)
+                  ? detailImageEntry.images
+                      .map((image) => String(image || "").trim())
+                      .filter(Boolean)
+                      .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
+                  : [],
+              };
+            }, {})
+          : currentForm.productDetailImages,
         sizeStocks: normalizeSizeStocksForForm(
           updatedProduct.sizeStocks ?? currentForm.sizeStocks,
           updatedProduct.category ?? currentForm.category,
@@ -774,47 +911,114 @@ const EditProduct = () => {
                     </p>
                   </div>
                   <div className="space-y-3">
-                    {colorOptions.map((color) => (
-                      <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <span className="block text-xs font-bold text-gray-600">{color}</span>
-                            <p className="mt-1 text-xs font-medium text-gray-500">
-                              {form.colorImages[color] ? "Custom image uploaded" : "Uses main image until uploaded"}
-                            </p>
+                    {colorOptions.map((color) => {
+                      const detailImages = Array.isArray(form.productDetailImages?.[color])
+                        ? form.productDetailImages[color]
+                        : [];
+                      const detailImageLimitReached =
+                        detailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
+
+                      return (
+                        <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <span className="block text-xs font-bold text-gray-600">{color}</span>
+                              <p className="mt-1 text-xs font-medium text-gray-500">
+                                {form.colorImages[color] ? "Custom image uploaded" : "Uses main image until uploaded"}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {form.colorImages[color] && (
+                                <img
+                                  src={form.colorImages[color]}
+                                  alt={`${color} preview`}
+                                  className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                                />
+                              )}
+                              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+                                <Upload className="h-4 w-4" />
+                                <span>{colorImageUploading[color] ? "Uploading..." : form.colorImages[color] ? "Replace" : "Upload"}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={Boolean(colorImageUploading[color])}
+                                  onChange={(event) => {
+                                    handleColorImageUpload(color, event.target.files?.[0]);
+                                    event.target.value = "";
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                              {form.colorImages[color] && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveColorImage(color)}
+                                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {form.colorImages[color] && (
-                              <img
-                                src={form.colorImages[color]}
-                                alt={`${color} preview`}
-                                className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
-                              />
-                            )}
-                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
-                              <Upload className="h-4 w-4" />
-                              <span>{colorImageUploading[color] ? "Uploading..." : form.colorImages[color] ? "Replace" : "Upload"}</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={Boolean(colorImageUploading[color])}
-                                onChange={(event) => handleColorImageUpload(color, event.target.files?.[0])}
-                                className="hidden"
-                              />
-                            </label>
-                            {form.colorImages[color] && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveColorImage(color)}
-                                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
+
+                          {form.colorImages[color] && (
+                            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-xs font-bold text-gray-700">Product Detail Images</p>
+                                  <p className="mt-1 text-xs font-medium text-gray-500">
+                                    {detailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded for {color}
+                                  </p>
+                                </div>
+                                <label
+                                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                                    detailImageLimitReached || detailImageUploading[color]
+                                      ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                                      : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
+                                  }`}
+                                >
+                                  <Upload className="h-4 w-4" />
+                                  <span>{detailImageUploading[color] ? "Uploading..." : "Upload Details"}</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    disabled={detailImageLimitReached || Boolean(detailImageUploading[color])}
+                                    onChange={(event) => {
+                                      handleProductDetailImageUpload(color, event.target.files);
+                                      event.target.value = "";
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
+                              </div>
+
+                              {detailImages.length > 0 && (
+                                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                  {detailImages.map((image, imageIndex) => (
+                                    <div key={`${image}-${imageIndex}`} className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                      <img
+                                        src={image}
+                                        alt={`${color} detail ${imageIndex + 1}`}
+                                        className="h-20 w-full object-cover"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveProductDetailImage(color, imageIndex)}
+                                        className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-red-600 shadow-sm hover:bg-red-50"
+                                        aria-label={`Remove ${color} detail image ${imageIndex + 1}`}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

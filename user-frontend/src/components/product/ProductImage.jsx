@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
-import { getProductImageForColor } from '../../utils/productOptions';
+import {
+  getProductDetailImagesForColor,
+  getProductImageForColor,
+} from '../../utils/productOptions';
 
 const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
   const imageSrc = getProductImageForColor(product, selectedColor);
+  const detailImages = getProductDetailImagesForColor(product, selectedColor);
+  const galleryImages = useMemo(
+    () => [imageSrc, ...detailImages].filter(Boolean),
+    [detailImages, imageSrc]
+  );
+  const [activeImage, setActiveImage] = useState(imageSrc);
+
+  useEffect(() => {
+    setActiveImage(imageSrc);
+  }, [imageSrc, selectedColor]);
 
   return (
     <div className="relative font-sans">
@@ -18,7 +31,7 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
           isDark ? "bg-slate-800" : "bg-[#f1ebe5]"
         }`}>
           <img
-            src={imageSrc}
+            src={activeImage || imageSrc}
             alt={product.title}
             decoding="async"
             fetchPriority="high"
@@ -45,6 +58,42 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
           />
         </button>
       </div>
+      {galleryImages.length > 1 && (
+        <div className={`mt-3 overflow-hidden rounded-[1.25rem] border p-2 shadow-sm ${
+          isDark ? "border-slate-800 bg-slate-900" : "border-stone-200 bg-white"
+        }`}>
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+            {galleryImages.map((image, index) => {
+              const isActive = image === (activeImage || imageSrc);
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => setActiveImage(image)}
+                  key={`${image}-${index}`}
+                  className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 transition-all sm:h-24 sm:w-24 ${
+                    isActive
+                      ? isDark
+                        ? "border-primary bg-slate-800 shadow-lg shadow-primary/10"
+                        : "border-primary bg-[#f1ebe5] shadow-lg shadow-primary/10"
+                      : isDark
+                        ? "border-slate-700 bg-slate-800 hover:border-slate-500"
+                        : "border-stone-200 bg-[#f1ebe5] hover:border-stone-300"
+                  }`}
+                  aria-label={`${product.title} image ${index + 1}`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.title} ${selectedColor} thumbnail ${index + 1}`}
+                    loading="lazy"
+                    className="h-full w-full object-contain p-2"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

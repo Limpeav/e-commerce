@@ -28,6 +28,7 @@ export const BABY_SHOE_SIZES = [
 export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_CATEGORY_NAMES = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
+export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const isClothingCategory = (category = "") => {
   const normalizedCategory = String(category || "").trim().toLowerCase();
@@ -142,6 +143,64 @@ export const parseProductColorImagesPayload = (value, colors = []) => {
   return [...uniqueColorImages.values()];
 };
 
+export const parseProductDetailImagesPayload = (value, colors = []) => {
+  if (value === null || value === undefined) return [];
+
+  let rawProductDetailImages = value;
+  if (typeof value === "string") {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) return [];
+
+    try {
+      rawProductDetailImages = JSON.parse(trimmedValue);
+    } catch {
+      return [];
+    }
+  }
+
+  const allowedColors = parseProductColorsPayload(colors);
+  const allowedColorMap = new Map(
+    allowedColors.map((color) => [color.toLowerCase(), color])
+  );
+  const productDetailImages = Array.isArray(rawProductDetailImages)
+    ? rawProductDetailImages
+    : Object.entries(rawProductDetailImages || {}).map(([color, images]) => ({
+        color,
+        images,
+      }));
+
+  const uniqueDetailImages = new Map();
+  productDetailImages.forEach((entry) => {
+    const rawColor =
+      typeof entry === "object" && entry !== null
+        ? entry.color || entry.name || entry.label
+        : "";
+    const normalizedColor = normalizeSelectedColor(rawColor);
+    if (!normalizedColor) return;
+
+    const colorKey = normalizedColor.toLowerCase();
+    const canonicalColor = allowedColorMap.get(colorKey);
+    if (!canonicalColor) return;
+
+    const rawImages =
+      typeof entry === "object" && entry !== null
+        ? entry.images || entry.detailImages || entry.imageUrls || []
+        : [];
+    const images = (Array.isArray(rawImages) ? rawImages : [rawImages])
+      .map((image) => String(image || "").trim())
+      .filter(Boolean)
+      .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR);
+    if (images.length === 0) return;
+
+    uniqueDetailImages.set(colorKey, {
+      color: canonicalColor,
+      images,
+    });
+  });
+
+  return [...uniqueDetailImages.values()];
+};
+
 export const getProductImageForColor = (product = {}, color = "") => {
   const selectedColor = normalizeSelectedColor(color).toLowerCase();
   if (!selectedColor) return product?.image || "";
@@ -153,6 +212,24 @@ export const getProductImageForColor = (product = {}, color = "") => {
     : null;
 
   return colorImage?.image || product?.image || "";
+};
+
+export const getProductDetailImagesForColor = (product = {}, color = "") => {
+  const selectedColor = normalizeSelectedColor(color).toLowerCase();
+  if (!selectedColor) return [];
+
+  const detailImages = Array.isArray(product?.productDetailImages)
+    ? product.productDetailImages.find(
+        (entry) => normalizeSelectedColor(entry?.color).toLowerCase() === selectedColor
+      )
+    : null;
+
+  return Array.isArray(detailImages?.images)
+    ? detailImages.images
+        .map((image) => String(image || "").trim())
+        .filter(Boolean)
+        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
+    : [];
 };
 
 export const validateProductColor = (product, color) => {

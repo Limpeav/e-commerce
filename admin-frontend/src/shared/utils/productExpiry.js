@@ -18,6 +18,7 @@ export const PRODUCT_COLOR_OPTIONS = [
   "Cream",
   "Navy",
 ];
+export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const productSupportsExpiry = (category) =>
   EXPIRY_CATEGORIES.has(normalizeProductCategory(category));
@@ -62,6 +63,17 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
       image: String(form.colorImages?.[color] || "").trim(),
     }))
     .filter((entry) => entry.image);
+  const productDetailImageEntries = colors
+    .map((color) => ({
+      color,
+      images: (Array.isArray(form.productDetailImages?.[color])
+        ? form.productDetailImages[color]
+        : [])
+        .map((image) => String(image || "").trim())
+        .filter(Boolean)
+        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR),
+    }))
+    .filter((entry) => entry.images.length > 0);
 
   const productData = {
     title: form.title,
@@ -72,6 +84,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     stock: form.stock,
     colors: JSON.stringify(colors),
     colorImages: JSON.stringify(colorImageEntries),
+    productDetailImages: JSON.stringify(productDetailImageEntries),
     sizeStocks: JSON.stringify(
       Array.isArray(form.sizeStocks)
         ? form.sizeStocks

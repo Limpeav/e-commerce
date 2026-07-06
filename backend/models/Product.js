@@ -61,6 +61,27 @@ const colorImageSchema = mongoose.Schema(
   { _id: false }
 );
 
+const productDetailImageSchema = mongoose.Schema(
+  {
+    color: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    images: {
+      type: [String],
+      default: [],
+      validate: {
+        validator(images) {
+          return Array.isArray(images) && images.length <= 5;
+        },
+        message: "Product detail images are limited to 5 per color",
+      },
+    },
+  },
+  { _id: false }
+);
+
 const productSchema = mongoose.Schema(
   {
     title: {
@@ -115,6 +136,10 @@ const productSchema = mongoose.Schema(
     },
     colorImages: {
       type: [colorImageSchema],
+      default: [],
+    },
+    productDetailImages: {
+      type: [productDetailImageSchema],
       default: [],
     },
     sizeStocks: {

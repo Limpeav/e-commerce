@@ -30,6 +30,7 @@ export const BABY_SHOE_SIZES = [
 export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_KEYWORDS = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
+export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const isShoeProduct = (product = {}) => {
   const category = normalizeProductCategory(product.category);
@@ -129,6 +130,24 @@ export const getProductImageForColor = (product = {}, color = "") => {
     : null;
 
   return colorImage?.image || product.image || product.images?.[0] || "";
+};
+
+export const getProductDetailImagesForColor = (product = {}, color = "") => {
+  const selectedColor = String(color || "").trim().toLowerCase();
+  if (!selectedColor) return [];
+
+  const detailImageEntry = Array.isArray(product.productDetailImages)
+    ? product.productDetailImages.find(
+        (entry) => String(entry.color || "").trim().toLowerCase() === selectedColor
+      )
+    : null;
+
+  return Array.isArray(detailImageEntry?.images)
+    ? detailImageEntry.images
+        .map((image) => String(image || "").trim())
+        .filter(Boolean)
+        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
+    : [];
 };
 
 export const getCartItemKey = (item = {}) => {

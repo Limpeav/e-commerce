@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -12,6 +12,7 @@ import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPl
 import SEO from "../../components/seo/SEO";
 import { useLanguage } from "../../context/useLanguage";
 import { getBestSellersByCategory } from "../../utils/bestSellers";
+import { ProductController } from "../../controllers/productController";
 
 const VIEW_CONFIG_KEYS = {
   all: {
@@ -77,6 +78,10 @@ export default function ProductCatalog() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const resultsRef = useRef(null);
+  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
+  const [categoryRetryToken, setCategoryRetryToken] = useState(0);
 
   const { products, loading, error, refetch } = useProducts(language);
   const {
@@ -93,20 +98,66 @@ export default function ProductCatalog() {
   const activeView = VIEW_CONFIG_KEYS[currentView] ? currentView : "all";
   const activeConfig = VIEW_CONFIG_KEYS[activeView];
   const activeTitle = t(activeConfig.title);
+  const shouldUseCategoryRanking =
+    selectedCategory !== "All" && !searchQuery.trim();
+
+  useEffect(() => {
+    if (!shouldUseCategoryRanking) {
+      setCategoryProducts([]);
+      setCategoryError("");
+      setCategoryLoading(false);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setCategoryLoading(true);
+    setCategoryError("");
+
+    ProductController.getProductsByCategory(selectedCategory)
+      .then((result) => {
+        if (!isCurrent) return;
+
+        if (result.success) {
+          setCategoryProducts(result.data || []);
+        } else {
+          setCategoryProducts([]);
+          setCategoryError(result.error || "Failed to fetch category products");
+        }
+      })
+      .catch((err) => {
+        if (!isCurrent) return;
+        setCategoryProducts([]);
+        setCategoryError(err.message || "Failed to fetch category products");
+      })
+      .finally(() => {
+        if (isCurrent) setCategoryLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [categoryRetryToken, selectedCategory, shouldUseCategoryRanking]);
+
+  const catalogProducts = shouldUseCategoryRanking
+    ? categoryProducts
+    : filteredProducts;
 
   const visibleProducts = useMemo(() => {
     switch (activeView) {
       case "new-arrivals":
-        return getNewArrivals(filteredProducts);
+        return getNewArrivals(catalogProducts);
       case "best-sellers":
-        return getBestSellersByCategory(filteredProducts);
+        return shouldUseCategoryRanking
+          ? catalogProducts
+          : getBestSellersByCategory(catalogProducts);
       case "deals":
-        return sortByDeals(filteredProducts);
+        return sortByDeals(catalogProducts);
       default:
-        return filteredProducts;
+        return catalogProducts;
     }
-  }, [activeView, filteredProducts]);
-  const productCount = loading ? products.length : visibleProducts.length;
+  }, [activeView, catalogProducts, shouldUseCategoryRanking]);
+  const isCatalogLoading = loading || categoryLoading;
+  const productCount = isCatalogLoading ? products.length : visibleProducts.length;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -131,6 +182,11 @@ export default function ProductCatalog() {
   };
 
   const handleRetry = () => {
+    if (categoryError) {
+      setCategoryRetryToken((currentToken) => currentToken + 1);
+      return;
+    }
+
     refetch();
   };
 
@@ -139,8 +195,8 @@ export default function ProductCatalog() {
     setSelectedCategory("All");
   };
 
-  if (error) {
-    return <ErrorState error={error} onRetry={handleRetry} />;
+  if (error || categoryError) {
+    return <ErrorState error={error || categoryError} onRetry={handleRetry} />;
   }
 
   const seoMeta = {
@@ -218,7 +274,7 @@ export default function ProductCatalog() {
           </div>
         </section>
 
-        {loading ? (
+        {isCatalogLoading ? (
           <ProductLoadingPlaceholder title={t("product.loadingProducts")} />
         ) : (
           <ProductsGrid
