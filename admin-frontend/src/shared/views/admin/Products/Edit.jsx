@@ -30,7 +30,6 @@ import {
   Tag,
   FileText,
   Boxes,
-  Sparkles,
   Save,
   Trash2,
   X,
@@ -75,10 +74,8 @@ const EditProduct = () => {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [backgroundRemoving, setBackgroundRemoving] = useState(false);
   const [colorImageUploading, setColorImageUploading] = useState({});
   const [detailImageUploading, setDetailImageUploading] = useState({});
-  const [backgroundRemovalMessage, setBackgroundRemovalMessage] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -290,7 +287,6 @@ const EditProduct = () => {
     setErrorMessage("");
     const uploadData = new FormData();
     uploadData.append("image", file);
-    uploadData.append("removeBackground", "true");
 
     try {
       setColorImageUploading((current) => ({ ...current, [color]: true }));
@@ -347,7 +343,6 @@ const EditProduct = () => {
       for (const file of filesToUpload) {
         const uploadData = new FormData();
         uploadData.append("image", file);
-        uploadData.append("removeBackground", "true");
 
         const response = await ProductController.uploadImage(uploadData);
         const processedImageUrl = response.data?.imageUrl;
@@ -486,7 +481,6 @@ const EditProduct = () => {
 
     setSuccessMessage("");
     setErrorMessage("");
-    setBackgroundRemovalMessage(null);
     setForm((currentForm) => ({
       ...currentForm,
       image: file,
@@ -498,41 +492,6 @@ const EditProduct = () => {
       setImagePreview(reader.result);
     };
     reader.readAsDataURL(file);
-
-    const uploadData = new FormData();
-    uploadData.append("image", file);
-    uploadData.append("removeBackground", "true");
-
-    try {
-      setBackgroundRemoving(true);
-      const response = await ProductController.uploadImage(uploadData);
-      const processedImageUrl = response.data?.imageUrl;
-
-      if (!processedImageUrl) {
-        throw new Error("The processed image URL was not returned");
-      }
-
-      setForm((currentForm) => ({
-        ...currentForm,
-        image: null,
-        imageUrl: processedImageUrl,
-      }));
-      setImagePreview(processedImageUrl);
-      setBackgroundRemovalMessage({
-        type: "success",
-        text: "AI removed the background automatically.",
-      });
-    } catch (error) {
-      setBackgroundRemovalMessage({
-        type: "warning",
-        text:
-          error.response?.data?.message ||
-          error.message ||
-          "Background removal failed. The original image will be used.",
-      });
-    } finally {
-      setBackgroundRemoving(false);
-    }
   };
 
   const removeImage = () => {
@@ -544,12 +503,10 @@ const EditProduct = () => {
       image: null,
       imageUrl: "",
     }));
-    setBackgroundRemovalMessage(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (backgroundRemoving) return;
 
     setLoading(true);
     setSuccessMessage("");
@@ -742,23 +699,6 @@ const EditProduct = () => {
                     className="hidden"
                   />
                 </label>
-              )}
-              {backgroundRemoving && (
-                <div className="mt-4 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
-                  <Sparkles className="h-4 w-4 animate-pulse" />
-                  Removing image background with AI...
-                </div>
-              )}
-              {!backgroundRemoving && backgroundRemovalMessage && (
-                <div
-                  className={`mt-4 rounded-xl px-4 py-3 text-sm font-semibold ${
-                    backgroundRemovalMessage.type === "success"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-amber-50 text-amber-800"
-                  }`}
-                >
-                  {backgroundRemovalMessage.text}
-                </div>
               )}
             </div>
             {!form.image && !form.imageUrl && form.currentImage && (
@@ -1301,13 +1241,13 @@ const EditProduct = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading || backgroundRemoving}
+                disabled={loading}
                 className="flex items-center space-x-3 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-white transition-all duration-200 font-semibold shadow-lg hover:bg-[var(--color-primary-dark)] hover:shadow-xl transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[var(--color-primary-light)]"
               >
-                {loading || backgroundRemoving ? (
+                {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>{backgroundRemoving ? "Processing image..." : "Updating..."}</span>
+                    <span>Updating...</span>
                   </>
                 ) : (
                   <>

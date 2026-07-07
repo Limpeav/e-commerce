@@ -3,9 +3,6 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import cloudinary from "../config/cloudinary.js";
-import {
-  removeImageBackground,
-} from "../utils/backgroundRemoval.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -457,24 +454,13 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
     throw new Error("Image file is required");
   }
 
-  const shouldRemoveBackground =
-    req.body?.removeBackground === "true" ||
-    req.body?.removeBackground === true;
-  const imageFile = shouldRemoveBackground
-    ? await removeImageBackground(req.file)
-    : req.file;
-  const uploadedImage = await uploadImageBuffer(
-    imageFile,
-    "products/admin-uploads"
-  );
+  const uploadedImage = await uploadImageBuffer(req.file, "products/admin-uploads");
 
   res.status(201).json({
-    message: shouldRemoveBackground
-      ? "Background removed and image uploaded successfully"
-      : "Image uploaded successfully",
+    message: "Image uploaded successfully",
     imageUrl: uploadedImage.secure_url,
     originalName: req.file.originalname,
-    backgroundRemoved: shouldRemoveBackground,
+    backgroundRemoved: false,
   });
 });
 
