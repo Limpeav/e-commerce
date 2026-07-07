@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import {
@@ -9,20 +9,26 @@ import {
 const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
   const imageSrc = getProductImageForColor(product, selectedColor);
-  const detailImages = getProductDetailImagesForColor(product, selectedColor);
+  const defaultDetailColor = Array.isArray(product?.productDetailImages)
+    ? product.productDetailImages.find((entry) => Array.isArray(entry?.images) && entry.images.length > 0)?.color || ""
+    : "";
+  const galleryColor = String(selectedColor || "").trim() || defaultDetailColor;
   const galleryImages = useMemo(
-    () => [imageSrc, ...detailImages].filter(Boolean),
-    [detailImages, imageSrc]
-  );
-  const [activeImage, setActiveImage] = useState(imageSrc);
+    () => {
+      const detailImages = galleryColor
+        ? getProductDetailImagesForColor(product, galleryColor)
+        : [];
 
-  useEffect(() => {
-    setActiveImage(imageSrc);
-  }, [imageSrc, selectedColor]);
+      return [imageSrc, ...detailImages].filter(Boolean);
+    },
+    [galleryColor, imageSrc, product]
+  );
+  const [selectedImage, setSelectedImage] = useState("");
+  const activeImage = galleryImages.includes(selectedImage) ? selectedImage : imageSrc;
 
   return (
-    <div className="relative font-sans">
-      <div className={`sticky top-22 overflow-hidden rounded-[1.75rem] border p-2 transition-all duration-300 sm:rounded-[2rem] sm:p-3 lg:p-4 ${
+    <div className="font-sans lg:sticky lg:top-22 lg:z-10">
+      <div className={`relative overflow-hidden rounded-[1.75rem] border p-2 transition-all duration-300 sm:rounded-[2rem] sm:p-3 lg:p-4 ${
         isDark
           ? "border-slate-800 bg-slate-900 shadow-[0_24px_56px_-28px_rgba(2,6,23,0.9)]"
           : "border-stone-200/80 bg-white shadow-[0_20px_48px_-26px_rgba(120,113,108,0.22)]"
@@ -57,6 +63,7 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
             strokeWidth={2.5}
           />
         </button>
+
       </div>
       {galleryImages.length > 1 && (
         <div className={`mt-3 overflow-hidden rounded-[1.25rem] border p-2 shadow-sm ${
@@ -69,7 +76,7 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
               return (
                 <button
                   type="button"
-                  onClick={() => setActiveImage(image)}
+                  onClick={() => setSelectedImage(image)}
                   key={`${image}-${index}`}
                   className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 transition-all sm:h-24 sm:w-24 ${
                     isActive
@@ -84,7 +91,7 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
                 >
                   <img
                     src={image}
-                    alt={`${product.title} ${selectedColor} thumbnail ${index + 1}`}
+                    alt={`${product.title} ${galleryColor} thumbnail ${index + 1}`}
                     loading="lazy"
                     className="h-full w-full object-contain p-2"
                   />
