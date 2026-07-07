@@ -8,7 +8,6 @@ import {
   Package,
   Users,
   ShoppingCart,
-  FileSpreadsheet,
   LogOut,
   Menu,
   BriefcaseBusiness,
@@ -103,12 +102,6 @@ const AdminSidebar = () => {
       path: '/admin/products',
       name: 'Products',
       icon: Package,
-      adminOnly: true
-    },
-    {
-      path: '/admin/products/csv-builder',
-      name: 'CSV Builder',
-      icon: FileSpreadsheet,
       adminOnly: true
     },
     {
@@ -229,8 +222,7 @@ const AdminSidebar = () => {
                 location.pathname === item.path ||
                 (item.path === ordersPath && location.pathname.startsWith(`${ordersPath}/`)) ||
                 (item.path === '/admin/products' &&
-                  location.pathname.startsWith('/admin/products/') &&
-                  location.pathname !== '/admin/products/csv-builder')
+                  location.pathname.startsWith('/admin/products/'))
 
               return (
                 <Link

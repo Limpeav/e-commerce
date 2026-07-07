@@ -22,14 +22,23 @@ const getReviewUserId = (review) => {
   return typeof reviewUser === "object" ? reviewUser?._id : reviewUser;
 };
 
-const getUserReviewForItem = (item, user) => {
+const getReviewOrderId = (review) => {
+  const reviewOrder = review?.order;
+  return typeof reviewOrder === "object" ? reviewOrder?._id : reviewOrder;
+};
+
+const getUserReviewForItem = (item, user, orderId) => {
   const userId = user?._id || user?.id;
 
-  if (!userId || !Array.isArray(item?.product?.reviews)) {
+  if (!userId || !orderId || !Array.isArray(item?.product?.reviews)) {
     return null;
   }
 
-  return item.product.reviews.find((review) => String(getReviewUserId(review)) === String(userId)) || null;
+  return item.product.reviews.find(
+    (review) =>
+      String(getReviewUserId(review)) === String(userId) &&
+      String(getReviewOrderId(review)) === String(orderId)
+  ) || null;
 };
 
 const uniqueOrderItems = (items = []) =>
@@ -108,7 +117,7 @@ export default function ReviewOrder() {
 
       reviewItems.forEach((item) => {
         const productId = String(getProductId(item));
-        const existingReview = getUserReviewForItem(item, user);
+        const existingReview = getUserReviewForItem(item, user, id);
 
         if (!next[productId]) {
           next[productId] = {
@@ -127,7 +136,7 @@ export default function ReviewOrder() {
       reviewItems.forEach((item) => {
         const productId = String(getProductId(item));
 
-        if (getUserReviewForItem(item, user) && !next[productId]) {
+        if (getUserReviewForItem(item, user, id) && !next[productId]) {
           next[productId] = "existing";
         }
       });
@@ -194,6 +203,7 @@ export default function ReviewOrder() {
         const result = await ProductController.submitReview(productId, user, {
           rating: Number(form.rating),
           comment: form.comment || "",
+          orderId: id,
         });
         return { productId, result };
       })

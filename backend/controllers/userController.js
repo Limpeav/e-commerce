@@ -14,7 +14,6 @@ import {
   validateCustomerPassword,
   validatePortalPassword,
 } from "../utils/authSecurity.js";
-import { recordDeletedAccount } from "../utils/accountDeletionLog.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -885,12 +884,6 @@ export const deleteAccount = async (req, res) => {
     if (hashedOtp !== user.deleteAccountOtp) {
       return res.status(401).json({ message: "Invalid confirmation code. Please check and try again." });
     }
-
-    await recordDeletedAccount({
-      user,
-      deletedBy: "self",
-      deletedByUser: user._id,
-    });
 
     // Hard delete the account
     await User.findByIdAndDelete(req.user._id);

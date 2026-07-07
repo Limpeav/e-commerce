@@ -5,7 +5,6 @@ import {
     Trash2,
     UserCheck,
     RefreshCw,
-    UserX,
 } from "lucide-react";
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
@@ -25,11 +24,6 @@ const UserManagement = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [refreshing, setRefreshing] = useState(false);
-    const [stats, setStats] = useState({
-        deletedCustomers: 0,
-        deletedCustomersBySource: { self: 0, admin: 0 },
-    });
-
     const customerUsers = useMemo(
         () => users.filter((user) => (user.role || "user") === "user"),
         [users]
@@ -52,18 +46,8 @@ const UserManagement = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const [usersResponse, statsResponse] = await Promise.all([
-                UserController.getUsers(),
-                UserController.getStats(),
-            ]);
+            const usersResponse = await UserController.getUsers();
             setUsers(usersResponse.data);
-            setStats({
-                deletedCustomers: Number(statsResponse.data?.deletedCustomers || 0),
-                deletedCustomersBySource: {
-                    self: Number(statsResponse.data?.deletedCustomersBySource?.self || 0),
-                    admin: Number(statsResponse.data?.deletedCustomersBySource?.admin || 0),
-                },
-            });
             setLoading(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch users");
@@ -166,7 +150,7 @@ const UserManagement = () => {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 gap-6 mb-6">
                     <div className="bg-white rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between">
                             <div>
@@ -176,20 +160,6 @@ const UserManagement = () => {
                                 </p>
                             </div>
                             <Users className="w-12 h-12 text-blue-500" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">Deleted Accounts</p>
-                                <p className="text-3xl font-bold text-purple-600">
-                                    {stats.deletedCustomers}
-                                </p>
-                                <p className="mt-1 text-xs font-medium text-gray-500">
-                                    Self: {stats.deletedCustomersBySource.self} · Admin: {stats.deletedCustomersBySource.admin}
-                                </p>
-                            </div>
-                            <UserX className="w-12 h-12 text-purple-500" />
                         </div>
                     </div>
                 </div>

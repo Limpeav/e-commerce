@@ -397,7 +397,7 @@ export default function Settings() {
                 disabled={isLoadingDeleteEligibility || !canDeleteAccount}
                 className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 transition-all hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 disabled:hover:bg-stone-100 disabled:hover:text-stone-400"
               >
-                {isLoadingDeleteEligibility ? 'Checking eligibility...' : 'Delete Account'}
+                Delete Account
               </button>
             </div>
 

@@ -433,10 +433,6 @@ const CartPreviewDrawer = ({
                           Color: {item.color}
                         </p>
                       )}
-                      <p className="mt-1 text-xs font-bold uppercase tracking-widest text-text-muted">
-                        qty {availableStock}
-                      </p>
-
                       <div className="mt-2 inline-flex items-center rounded-xl border border-stone-200 dark:border-slate-700 sm:mt-3">
                         <button
                           type="button"

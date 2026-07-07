@@ -4,14 +4,34 @@ import {
   AlertCircle,
   ArrowLeft,
   CheckCircle,
+  Copy,
   Eye,
   EyeOff,
   KeyRound,
   Loader,
   Mail,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 import { AuthController } from "../../../controllers";
+
+const PASSWORD_WORDS = [
+  "Market",
+  "River",
+  "Green",
+  "Cloud",
+  "Order",
+  "Parcel",
+  "Store",
+  "Route",
+];
+
+const generateSuggestedPassword = (role = "staff") => {
+  const rolePrefix = role === "delivery" ? "Delivery" : "Seller";
+  const word = PASSWORD_WORDS[Math.floor(Math.random() * PASSWORD_WORDS.length)];
+  const number = Math.floor(100 + Math.random() * 900);
+  return `${rolePrefix}${word}${number}!`;
+};
 
 const getPortal = (pathname) => {
   if (pathname.startsWith("/delivery")) {
@@ -40,6 +60,9 @@ const StaffForgotPassword = () => {
   const [resetToken, setResetToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [suggestedPassword, setSuggestedPassword] = useState(() =>
+    generateSuggestedPassword(portal.role)
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -81,12 +104,33 @@ const StaffForgotPassword = () => {
         role: portal.role,
       });
       setResetToken(response.data?.resetToken || "");
+      setSuggestedPassword(generateSuggestedPassword(portal.role));
       setSuccess(response.data?.message || "Code verified successfully.");
       setStep("password");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid or expired code.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const useSuggestedPassword = () => {
+    setPassword(suggestedPassword);
+    setConfirmPassword(suggestedPassword);
+    setShowPassword(true);
+    setError("");
+  };
+
+  const refreshSuggestedPassword = () => {
+    setSuggestedPassword(generateSuggestedPassword(portal.role));
+  };
+
+  const copySuggestedPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(suggestedPassword);
+      setSuccess("Suggested password copied.");
+    } catch {
+      setError("Unable to copy password. You can type it manually.");
     }
   };
 
@@ -204,6 +248,44 @@ const StaffForgotPassword = () => {
 
             {step === "password" && (
               <form onSubmit={submitPassword} className="space-y-5">
+                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold">Suggested password</span>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={refreshSuggestedPassword}
+                        className="rounded-md p-2 text-[var(--color-text-muted)] transition-colors hover:bg-white hover:text-[var(--color-primary)]"
+                        title="Generate another password"
+                        aria-label="Generate another password"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={copySuggestedPassword}
+                        className="rounded-md p-2 text-[var(--color-text-muted)] transition-colors hover:bg-white hover:text-[var(--color-primary)]"
+                        title="Copy suggested password"
+                        aria-label="Copy suggested password"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={useSuggestedPassword}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2.5 text-left transition-colors hover:border-[var(--color-primary)]"
+                  >
+                    <span className="break-all font-mono text-sm font-semibold text-[var(--color-text-main)]">
+                      {suggestedPassword}
+                    </span>
+                    <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-[var(--color-primary-dark)]">
+                      Use
+                    </span>
+                  </button>
+                </div>
+
                 {[["New Password", password, setPassword], ["Confirm Password", confirmPassword, setConfirmPassword]].map(
                   ([label, value, setter]) => (
                     <label key={label} className="block space-y-1.5">

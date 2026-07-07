@@ -16,6 +16,16 @@ const api = axios.create({
     },
 });
 
+const AUTH_ERROR_PATHS = new Set([
+    "/admin/login",
+    "/admin/login/verify",
+]);
+
+const isAuthRequest = (url = "") => {
+    const path = String(url).split("?")[0];
+    return AUTH_ERROR_PATHS.has(path);
+};
+
 // Add token to requests if it exists
 api.interceptors.request.use(
     (config) => {
@@ -41,7 +51,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !isAuthRequest(error.config?.url)) {
             const loginPath = getPortalLoginPath(getStoredAdminUser());
             clearAdminSession();
             window.location.href = loginPath;

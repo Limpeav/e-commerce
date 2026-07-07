@@ -6,10 +6,6 @@ export const UserController = {
     return modelResponse(await adminService.getUsers(), AdminModels.users);
   },
 
-  async getStats() {
-    return modelResponse(await adminService.getUserStats(), AdminModels.userStats);
-  },
-
   async createStaff(payload) {
     return modelResponse(await adminService.createStaffLogin(payload));
   },

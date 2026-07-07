@@ -1,5 +1,6 @@
 import axios from "axios";
 import https from "https";
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import User from "../models/userModel.js";
 import Order from "../models/orderModel.js";
@@ -1494,17 +1495,40 @@ export const updateProduct = async (req, res) => {
 // @access  Private
 export const createProductReview = async (req, res) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating, comment, orderId } = req.body;
 
     const product = await Product.findById(req.params.id);
 
     if (product) {
+      let reviewedOrder = null;
+      if (orderId) {
+        if (!mongoose.isValidObjectId(orderId)) {
+          return res.status(400).json({ message: "Invalid order ID" });
+        }
+
+        reviewedOrder = await Order.findOne({
+          _id: orderId,
+          user: req.user._id,
+          $or: [{ isDelivered: true }, { orderStatus: "Delivered" }],
+          "orderItems.product": product._id,
+        }).select("_id");
+
+        if (!reviewedOrder) {
+          return res.status(403).json({
+            message: "You can only review products from your delivered orders",
+          });
+        }
+      }
+
       const alreadyReviewed = product.reviews.find(
-        (r) => r.user.toString() === req.user._id.toString()
+        (r) =>
+          r.user.toString() === req.user._id.toString() &&
+          (reviewedOrder
+            ? r.order?.toString() === reviewedOrder._id.toString()
+            : !r.order)
       );
 
       // Fetch current user data from database to get latest information
-      const User = (await import("../models/userModel.js")).default;
       const currentUser = await User.findById(req.user._id);
 
       if (!currentUser) {
@@ -1521,6 +1545,7 @@ export const createProductReview = async (req, res) => {
           rating: Number(rating),
           comment,
           user: req.user._id,
+          order: reviewedOrder?._id || null,
         };
 
         product.reviews.push(review);
@@ -1536,7 +1561,11 @@ export const createProductReview = async (req, res) => {
       emitDomainChanged(
         "reviews",
         alreadyReviewed ? "updated" : "created",
-        { productId: product._id, userId: req.user._id },
+        {
+          productId: product._id,
+          userId: req.user._id,
+          orderId: reviewedOrder?._id || null,
+        },
         { roles: ["admin", "seller"] }
       );
       emitDomainChanged(

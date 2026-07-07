@@ -3,8 +3,6 @@ import rateLimit from "express-rate-limit";
 import {
     getDashboardData,
     getDailyCashReport,
-    getCsvBuilderDraft,
-    saveCsvBuilderDraft,
     uploadProductImage,
 } from "../controllers/adminController.js";
 import {
@@ -25,7 +23,6 @@ import {
     updateStaffLogin,
     updateUserRole,
     deleteUser,
-    getUserStats,
 } from "../controllers/userManagementController.js";
 import { translateText } from "../controllers/translationController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
@@ -67,8 +64,6 @@ router.put("/me", protect, portalAccess, updatePortalProfile);
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
 router.get("/cash-report", protect, portalAccess, getDailyCashReport);
-router.get("/csv-builder-draft", protect, admin, getCsvBuilderDraft);
-router.put("/csv-builder-draft", protect, admin, saveCsvBuilderDraft);
 router.post(
     "/uploads/product-image",
     protect,
@@ -81,7 +76,6 @@ router.post("/translate", protect, admin, translateText);
 // User management routes
 router.get("/users", protect, admin, getAllUsers);
 router.post("/users", protect, admin, createStaffLogin);
-router.get("/users/stats", protect, admin, getUserStats); // ← must be before /:id
 router.get("/users/:id", protect, admin, getUserById);
 router.put("/users/:id", protect, admin, updateStaffLogin);
 router.put("/users/:id/role", protect, admin, updateUserRole);

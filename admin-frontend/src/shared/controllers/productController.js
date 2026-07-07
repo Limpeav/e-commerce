@@ -32,15 +32,4 @@ export const ProductController = {
   async upsertCsv(formData) {
     return adminService.upsertProductsCsv(formData);
   },
-
-  async getCsvDraft() {
-    return modelResponse(
-      await adminService.getCsvBuilderDraft(),
-      AdminModels.csvDraft
-    );
-  },
-
-  async saveCsvDraft(payload) {
-    return adminService.saveCsvBuilderDraft(payload);
-  },
 };

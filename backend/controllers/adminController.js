@@ -2,8 +2,6 @@ import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
-import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
-import { normalizeProductCategory } from "../utils/productCategories.js";
 import cloudinary from "../config/cloudinary.js";
 import {
   removeImageBackground,
@@ -36,33 +34,6 @@ const uploadImageBuffer = (file, folder) =>
 
     uploadStream.end(file.buffer);
   });
-
-const sanitizeDraftRow = (row = {}) => ({
-  title: String(row.title || "").trim(),
-  price: String(row.price || "").trim(),
-  discountPrice: String(row.discountPrice || "").trim(),
-  category: normalizeProductCategory(row.category),
-  description: String(row.description || "").trim(),
-  stock: String(row.stock || "").trim(),
-  colors: String(row.colors || "").trim(),
-  sizeStocks: String(row.sizeStocks || "").trim(),
-  image: String(row.image || "").trim(),
-  imageName: String(row.imageName || "").trim(),
-});
-
-const sanitizeDraftFileName = (fileName = "") => {
-  const sanitized = String(fileName || "")
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, "-");
-
-  if (!sanitized) {
-    return "products-import-ready.csv";
-  }
-
-  return sanitized.toLowerCase().endsWith(".csv")
-    ? sanitized
-    : `${sanitized}.csv`;
-};
 
 const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))
@@ -477,7 +448,7 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
   res.json(report);
 });
 
-// @desc    Upload product image for CSV builder
+// @desc    Upload product image for admin product forms
 // @route   POST /api/admin/uploads/product-image
 // @access  Private/Admin
 export const uploadProductImage = asyncHandler(async (req, res) => {
@@ -504,41 +475,6 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
     imageUrl: uploadedImage.secure_url,
     originalName: req.file.originalname,
     backgroundRemoved: shouldRemoveBackground,
-  });
-});
-
-// @desc    Get CSV builder draft
-// @route   GET /api/admin/csv-builder-draft
-// @access  Private/Admin
-export const getCsvBuilderDraft = asyncHandler(async (req, res) => {
-  const draft = await CsvBuilderDraft.findOne({ admin: req.user._id }).lean();
-
-  res.json({
-    rows: draft?.rows || [],
-    fileName: draft?.fileName || "products-import-ready.csv",
-    updatedAt: draft?.updatedAt || null,
-  });
-});
-
-// @desc    Save CSV builder draft
-// @route   PUT /api/admin/csv-builder-draft
-// @access  Private/Admin
-export const saveCsvBuilderDraft = asyncHandler(async (req, res) => {
-  const incomingRows = Array.isArray(req.body?.rows) ? req.body.rows : [];
-  const rows = incomingRows.map(sanitizeDraftRow);
-  const fileName = sanitizeDraftFileName(req.body?.fileName);
-
-  const draft = await CsvBuilderDraft.findOneAndUpdate(
-    { admin: req.user._id },
-    { admin: req.user._id, rows, fileName },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
-  ).lean();
-
-  res.json({
-    message: "Draft saved successfully",
-    rows: draft.rows || [],
-    fileName: draft.fileName || "products-import-ready.csv",
-    updatedAt: draft.updatedAt || null,
   });
 });
 

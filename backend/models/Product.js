@@ -12,6 +12,11 @@ const reviewSchema = mongoose.Schema(
       required: true,
       ref: "User",
     },
+    order: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
   },
   {
     timestamps: true,

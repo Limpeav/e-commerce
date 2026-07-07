@@ -9,7 +9,6 @@ export const AdminModels = {
   products: (value) => asArray(value),
   product: (value) => asObject(value),
   users: (value) => asArray(value),
-  userStats: (value) => asObject(value),
   banners: (value) => asArray(value),
   cashReport: (value) => {
     const payload = asObject(value);
@@ -33,7 +32,6 @@ export const AdminModels = {
       orders: asArray(payload.orders),
     };
   },
-  csvDraft: (value) => asObject(value),
   reviewQueue: (value) => {
     const payload = asObject(value);
 
