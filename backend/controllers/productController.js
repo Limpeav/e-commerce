@@ -72,6 +72,40 @@ const CATEGORY_BEST_SELLER_WINDOWS = {
   fourteenDays: 14 * 24 * 60 * 60 * 1000,
   thirtyDays: 30 * 24 * 60 * 60 * 1000,
 };
+const PRODUCT_SEARCH_LIMIT = 60;
+const PRODUCT_SEARCH_SUGGESTION_LIMIT = 10;
+
+const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getProductVisibilityFilter = (req) =>
+  req.user?.role === "admin" ? {} : { stock: { $gt: 0 } };
+
+const getProductSearchFilter = (keyword = "") => {
+  const trimmedKeyword = String(keyword || "").trim();
+
+  if (!trimmedKeyword) return {};
+
+  const keywordRegex = new RegExp(escapeRegex(trimmedKeyword), "i");
+  return {
+    $or: [
+      { title: keywordRegex },
+      { titleKm: keywordRegex },
+      { description: keywordRegex },
+      { descriptionKm: keywordRegex },
+      { category: keywordRegex },
+    ],
+  };
+};
+
+const addSuggestion = (suggestions, seen, value) => {
+  const suggestion = String(value || "").trim();
+  const key = suggestion.toLowerCase();
+
+  if (!suggestion || seen.has(key)) return;
+
+  seen.add(key);
+  suggestions.push(suggestion);
+};
 
 const isProductWithinNewArrivalWindow = (product = {}) => {
   const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
@@ -927,6 +961,75 @@ export const getProducts = async (req, res) => {
     );
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const searchProducts = async (req, res) => {
+  try {
+    const keyword = String(req.query.q || "").trim();
+    const filters = {
+      ...getProductVisibilityFilter(req),
+      ...getProductSearchFilter(keyword),
+    };
+    const limit = Math.min(
+      Math.max(Number.parseInt(req.query.limit, 10) || PRODUCT_SEARCH_LIMIT, 1),
+      PRODUCT_SEARCH_LIMIT
+    );
+    let products = await Product.find(filters)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
+      .lean();
+
+    products = products.map((product) =>
+      applyNewArrivalWindow({ ...product, expiryDate: product.expiryDate || null })
+    );
+
+    const productsWithMetrics = await attachSalesMetrics(products);
+
+    return res.json(
+      req.user?.role === "admin"
+        ? productsWithMetrics
+        : productsWithMetrics
+            .filter((product) => product.availableStock > 0)
+            .map((product) => ({
+              ...product,
+              stock: product.availableStock,
+            }))
+    );
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const getProductSearchSuggestions = async (req, res) => {
+  try {
+    const keyword = String(req.query.q || "").trim();
+    const filters = {
+      ...getProductVisibilityFilter(req),
+      ...getProductSearchFilter(keyword),
+    };
+    const products = await Product.find(filters)
+      .select("title titleKm category description descriptionKm")
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(40)
+      .lean();
+    const suggestions = [];
+    const seen = new Set();
+    const normalizedKeyword = keyword.toLowerCase();
+
+    products.forEach((product) => {
+      [product.title, product.titleKm, product.category].forEach((value) => {
+        const suggestion = String(value || "").trim();
+
+        if (!normalizedKeyword || suggestion.toLowerCase().includes(normalizedKeyword)) {
+          addSuggestion(suggestions, seen, suggestion);
+        }
+      });
+    });
+
+    return res.json(suggestions.slice(0, PRODUCT_SEARCH_SUGGESTION_LIMIT));
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 

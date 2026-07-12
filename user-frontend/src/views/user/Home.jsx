@@ -19,6 +19,10 @@ import { useDarkMode } from "../../hooks";
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
 import { getBestSellersByCategory } from "../../utils/bestSellers";
+import {
+    buildProductSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../utils/searchSuggestions";
 
 function ProductSection({
     section,
@@ -192,6 +196,15 @@ export default function Home() {
         categories,
         filteredProducts
     } = useProductFilters(products);
+    const productSearchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildProductSearchSuggestionValues(products, categories),
+                searchQuery,
+                10
+            ),
+        [categories, products, searchQuery]
+    );
 
     useEffect(() => {
         if (!searchQuery.trim()) return undefined;
@@ -337,6 +350,7 @@ export default function Home() {
                     selectedCategory={selectedCategory}
                     setSelectedCategory={handleCategorySelect}
                     categories={categories}
+                    searchSuggestions={productSearchSuggestions}
                 />
                 <div className="px-0 sm:px-4 md:px-6">
                     <div className={`max-w-6xl mx-auto border-b transition-colors duration-300 ${isDark ? "border-slate-800" : "border-stone-200/50"}`}></div>

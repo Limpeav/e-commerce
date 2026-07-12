@@ -10,6 +10,10 @@ import { AdminController } from "../../../controllers/adminController";
 import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import {
+    buildOrderSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const formatCurrency = (amount) =>
@@ -48,16 +52,31 @@ const PaymentQueue = () => {
         );
     }, [loadOrders]);
 
+    const baseQueuedOrders = useMemo(
+        () =>
+            orders
+                .filter(
+                    (order) =>
+                        order.paymentMethod === "Cash on Delivery" &&
+                        order.paymentStatus !== "Paid" &&
+                        !["Delivered", "Cancelled"].includes(order.orderStatus)
+                )
+                .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+        [orders]
+    );
+    const searchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildOrderSearchSuggestionValues(baseQueuedOrders),
+                searchTerm,
+                8
+            ),
+        [baseQueuedOrders, searchTerm]
+    );
     const queuedOrders = useMemo(() => {
-        const query = searchTerm.trim().toLowerCase();
+        const query = searchTerm.trim().toLowerCase().replace(/^#/, "");
 
-        return orders
-            .filter(
-                (order) =>
-                    order.paymentMethod === "Cash on Delivery" &&
-                    order.paymentStatus !== "Paid" &&
-                    !["Delivered", "Cancelled"].includes(order.orderStatus)
-            )
+        return baseQueuedOrders
             .filter((order) => {
                 if (!query) return true;
 
@@ -68,9 +87,8 @@ const PaymentQueue = () => {
                     order.user?.name?.toLowerCase().includes(query) ||
                     order.user?.email?.toLowerCase().includes(query)
                 );
-            })
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    }, [orders, searchTerm]);
+            });
+    }, [baseQueuedOrders, searchTerm]);
 
     const queueTotal = queuedOrders.reduce(
         (total, order) => total + Number(order.totalPrice || 0),
@@ -141,11 +159,17 @@ const PaymentQueue = () => {
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="search"
+                                list="payment-queue-search-suggestions"
                                 value={searchTerm}
                                 onChange={(event) => setSearchTerm(event.target.value)}
                                 placeholder="Search order, customer, phone"
                                 className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-semibold text-gray-800 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                             />
+                            <datalist id="payment-queue-search-suggestions">
+                                {searchSuggestions.map((suggestion) => (
+                                    <option key={suggestion} value={suggestion} />
+                                ))}
+                            </datalist>
                         </label>
                     </div>
 

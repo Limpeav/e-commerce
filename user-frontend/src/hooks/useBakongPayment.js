@@ -47,7 +47,11 @@ export const useBakongPayment = (orderId, navigate) => {
   );
 
   useEffect(() => {
-    fetchOrderAndGenerateQR();
+    const timeout = window.setTimeout(() => {
+      fetchOrderAndGenerateQR();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [fetchOrderAndGenerateQR]);
 
   useEffect(() => {

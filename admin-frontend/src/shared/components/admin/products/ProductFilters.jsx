@@ -9,6 +9,7 @@ const ProductFilters = ({
   onSearchChange,
   onCategoryChange,
   onInventoryStateChange,
+  searchSuggestions = [],
 }) => (
   <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -16,11 +17,17 @@ const ProductFilters = ({
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
+          list="admin-product-search-suggestions"
           placeholder="Search products by name or category..."
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
           className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
         />
+        <datalist id="admin-product-search-suggestions">
+          {searchSuggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
       </div>
 
       <div className="relative">

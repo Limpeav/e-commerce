@@ -17,6 +17,10 @@ import {
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
+import {
+    buildUserSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 
 const STAFF_LOGIN_ROLES = [
     { value: "seller", label: "Seller" },
@@ -117,6 +121,17 @@ const StaffManagement = () => {
                 );
             });
     }, [searchTerm, users]);
+    const staffSearchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildUserSearchSuggestionValues(
+                    users.filter((user) => user.role === "seller" || user.role === "delivery")
+                ),
+                searchTerm,
+                8
+            ),
+        [searchTerm, users]
+    );
 
     const staffCount = users.filter((user) => user.role === "seller").length;
     const deliveryCount = users.filter((user) => user.role === "delivery").length;
@@ -507,11 +522,17 @@ const StaffManagement = () => {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
+                            list="staff-search-suggestions"
                             placeholder="Search staff by name, email, or phone..."
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
+                        <datalist id="staff-search-suggestions">
+                            {staffSearchSuggestions.map((suggestion) => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
                 </div>
 

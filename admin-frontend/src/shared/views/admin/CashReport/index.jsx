@@ -15,6 +15,10 @@ import {
 import { CashReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
+import {
+    buildOrderSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const getTodayDate = () => {
@@ -185,7 +189,7 @@ const CashReport = () => {
 
     const filteredOrders = useMemo(() => {
         const orders = report?.orders || [];
-        const query = searchTerm.trim().toLowerCase();
+        const query = searchTerm.trim().toLowerCase().replace(/^#/, "");
 
         if (!query) {
             return orders;
@@ -199,6 +203,15 @@ const CashReport = () => {
             );
         });
     }, [report?.orders, searchTerm]);
+    const searchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildOrderSearchSuggestionValues(report?.orders || []),
+                searchTerm,
+                8
+            ),
+        [report?.orders, searchTerm]
+    );
 
     const handleExportCsv = async () => {
         try {
@@ -410,11 +423,17 @@ const CashReport = () => {
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="search"
+                                    list="cash-report-search-suggestions"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
                                     placeholder="Search order, name, phone"
                                     className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-semibold text-gray-800 focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                                 />
+                                <datalist id="cash-report-search-suggestions">
+                                    {searchSuggestions.map((suggestion) => (
+                                        <option key={suggestion} value={suggestion} />
+                                    ))}
+                                </datalist>
                             </label>
                         )}
                     </div>

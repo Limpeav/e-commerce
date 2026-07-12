@@ -13,6 +13,10 @@ import {
   getProductCategories,
   getProductStats,
 } from "../../../utils/adminProducts";
+import {
+  buildProductSearchSuggestionValues,
+  getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const PRODUCT_PAGE_SIZE_OPTIONS = [12, 24, 48, 96];
@@ -118,6 +122,15 @@ const ProductList = () => {
 
   const categories = useMemo(() => getProductCategories(products), [products]);
   const stats = useMemo(() => getProductStats(products, categories), [products, categories]);
+  const searchSuggestions = useMemo(
+    () =>
+      getMatchingSearchSuggestions(
+        buildProductSearchSuggestionValues(products, categories),
+        searchTerm,
+        10
+      ),
+    [categories, products, searchTerm]
+  );
   const filteredProducts = useMemo(
     () =>
       filterAdminProducts(products, {
@@ -253,6 +266,7 @@ const ProductList = () => {
           searchTerm={searchTerm}
           categoryFilter={categoryFilter}
           inventoryState={inventoryState}
+          searchSuggestions={searchSuggestions}
           onSearchChange={(value) => updateFilterParam("search", value)}
           onCategoryChange={(value) =>
             updateFilterParam("category", value, "all")

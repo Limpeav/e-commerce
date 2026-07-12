@@ -183,7 +183,10 @@ export const useProductFilters = (products) => {
       const query = deferredSearchQuery.toLowerCase();
       result = result.filter(p =>
         String(p.name || p.title || "").toLowerCase().includes(query) ||
-        (p.description && p.description.toLowerCase().includes(query))
+        String(p.titleKm || "").toLowerCase().includes(query) ||
+        String(p.description || "").toLowerCase().includes(query) ||
+        String(p.descriptionKm || "").toLowerCase().includes(query) ||
+        String(p.category || "").toLowerCase().includes(query)
       );
     }
 

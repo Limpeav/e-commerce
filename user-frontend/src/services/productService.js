@@ -97,6 +97,17 @@ export const productService = {
     }
   },
 
+  getSearchSuggestions: async (keyword) => {
+    try {
+      const response = await axios.get(`${API_URL}/search/suggestions`, {
+        params: { q: keyword },
+      });
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to fetch search suggestions");
+    }
+  },
+
   // Get products by category
   getProductsByCategory: async (category) => {
     try {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/common/Loading";
 import { ProductController } from "../../../controllers";
 import { getAvailableStock } from "../../../utils/adminProducts";
+import { getMatchingSearchSuggestions, uniqueSearchSuggestions } from "../../../utils/searchSuggestions";
 
 const RatingStars = ({ rating }) => (
   <div className="flex items-center gap-1" aria-label={`${rating} out of 5 stars`}>
@@ -113,6 +114,20 @@ const RatingReviewList = ({
         product.productId?.toLowerCase().includes(query)
     );
   }, [reviewedProducts, searchTerm]);
+  const searchSuggestions = useMemo(
+    () =>
+      getMatchingSearchSuggestions(
+        uniqueSearchSuggestions(
+          reviewedProducts.flatMap((product) => [
+            product.productTitle,
+            product.productId,
+          ])
+        ),
+        searchTerm,
+        8
+      ),
+    [reviewedProducts, searchTerm]
+  );
 
   if (loading) {
     return <Loading message="Loading product reviews..." />;
@@ -155,11 +170,17 @@ const RatingReviewList = ({
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input
               type="search"
+              list="admin-review-search-suggestions"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search by product title or product ID..."
               className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
             />
+            <datalist id="admin-review-search-suggestions">
+              {searchSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
           </div>
         </div>
 

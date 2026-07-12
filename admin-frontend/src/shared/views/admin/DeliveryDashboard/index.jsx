@@ -38,6 +38,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
     normalizeOrderStatus,
     receiptNotice,
     searchTerm,
+    searchSuggestions,
     setSearchTerm,
     setStatusFilter,
     statusFilter,
@@ -111,12 +112,18 @@ const DeliveryDashboardView = ({ dashboard }) => {
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
+                list="delivery-dashboard-search-suggestions"
                 aria-label="Search deliveries"
                 placeholder="Search order or customer"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-medium text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
+              <datalist id="delivery-dashboard-search-suggestions">
+                {(searchSuggestions || []).map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
             </label>
             <label className="relative">
               <Filter className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />

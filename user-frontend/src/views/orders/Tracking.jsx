@@ -3,6 +3,9 @@ import { Package, MapPin, CheckCircle, Search, Clock, Send, AlertCircle } from "
 import PageLayout from "../../components/ui/PageLayout";
 import { trackOrder } from "../../services/orderService";
 import { useLanguage } from "../../context/useLanguage";
+import { getMatchingSearchSuggestions, uniqueSearchSuggestions } from "../../utils/searchSuggestions";
+
+const RECENT_TRACKING_SEARCHES_KEY = "recentTrackingOrderSearches";
 
 const statusIcons = {
   orderPlaced: Package,
@@ -68,7 +71,19 @@ export default function OrderTracking() {
   const [trackingData, setTrackingData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recentOrderSearches, setRecentOrderSearches] = useState(() => {
+    try {
+      const storedSearches = JSON.parse(localStorage.getItem(RECENT_TRACKING_SEARCHES_KEY) || "[]");
+      return Array.isArray(storedSearches) ? storedSearches : [];
+    } catch {
+      return [];
+    }
+  });
   const pendingText = t("orderTracking.pending");
+  const orderSearchSuggestions = useMemo(
+    () => getMatchingSearchSuggestions(recentOrderSearches, orderNumber, 6),
+    [orderNumber, recentOrderSearches]
+  );
 
   const translateStatus = (status) =>
     t(`orderDetail.status.${String(status || "Pending").trim().toLowerCase()}`, {
@@ -119,6 +134,14 @@ export default function OrderTracking() {
     try {
       const order = await trackOrder(trimmedOrderNumber);
       setTrackingData(order);
+      const nextSearches = uniqueSearchSuggestions([
+        trimmedOrderNumber,
+        order?._id,
+        order?._id ? `#${String(order._id).slice(-8).toUpperCase()}` : "",
+        ...recentOrderSearches,
+      ]).slice(0, 8);
+      setRecentOrderSearches(nextSearches);
+      localStorage.setItem(RECENT_TRACKING_SEARCHES_KEY, JSON.stringify(nextSearches));
     } catch (err) {
       const statusCode = err.response?.status;
       setError(
@@ -170,6 +193,7 @@ export default function OrderTracking() {
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
               <input
                 type="text"
+                list="order-tracking-search-suggestions"
                 value={orderNumber}
                 onChange={(e) => {
                   setOrderNumber(e.target.value);
@@ -179,6 +203,11 @@ export default function OrderTracking() {
                 placeholder={t("orderTracking.placeholder")}
                 className="w-full rounded-xl bg-[color:var(--color-surface-soft)] py-3.5 pl-12 pr-4 text-sm font-medium text-text-main shadow-inner outline-none transition-all placeholder:text-text-muted focus:bg-bg-card focus:ring-2 focus:ring-primary/20"
               />
+              <datalist id="order-tracking-search-suggestions">
+                {orderSearchSuggestions.map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
               {error && (
                 <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium leading-5 text-red-500">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />

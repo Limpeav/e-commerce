@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useLayoutEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { ThemeContext } from "./theme-context";
 
-const ThemeContext = createContext();
 const THEME_MODES = ["light", "dark"];
 const THEME_COLORS = {
   light: "#FCF9F5",
@@ -67,13 +67,3 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
-};
-
-export default ThemeContext;

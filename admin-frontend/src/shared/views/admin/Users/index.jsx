@@ -9,6 +9,10 @@ import {
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
+import {
+    buildUserSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 
 const roleMeta = {
     user: {
@@ -40,8 +44,17 @@ const UserManagement = () => {
             (user) =>
                 user.name?.toLowerCase().includes(term) ||
                 user.email?.toLowerCase().includes(term)
-        );
+            );
     }, [customerUsers, searchTerm]);
+    const searchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildUserSearchSuggestionValues(customerUsers),
+                searchTerm,
+                8
+            ),
+        [customerUsers, searchTerm]
+    );
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -170,11 +183,17 @@ const UserManagement = () => {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
+                            list="customer-search-suggestions"
                             placeholder="Search by name or email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
+                        <datalist id="customer-search-suggestions">
+                            {searchSuggestions.map((suggestion) => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
                 </div>
 

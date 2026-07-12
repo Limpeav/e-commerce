@@ -11,6 +11,10 @@ import {
   getNumericDiscount,
   getProductSoldCount,
 } from "../../../utils/adminProducts";
+import {
+  buildProductSearchSuggestionValues,
+  getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 
 const accentStyles = {
   emerald: {
@@ -149,6 +153,15 @@ const ProductSubsetPage = ({
 
     return [...categories].sort((a, b) => a.localeCompare(b));
   }, [baseSubsetProducts]);
+  const searchSuggestions = useMemo(
+    () =>
+      getMatchingSearchSuggestions(
+        buildProductSearchSuggestionValues(baseSubsetProducts, categoryOptions),
+        searchTerm,
+        10
+      ),
+    [baseSubsetProducts, categoryOptions, searchTerm]
+  );
 
   const subsetProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -261,6 +274,7 @@ const ProductSubsetPage = ({
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
+                list="admin-product-subset-search-suggestions"
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(event) => {
@@ -269,6 +283,11 @@ const ProductSubsetPage = ({
                 }}
                 className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 ${styles.ring}`}
               />
+              <datalist id="admin-product-subset-search-suggestions">
+                {searchSuggestions.map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
             </div>
 
             {enableSalesDateFilter ? (

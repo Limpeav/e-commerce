@@ -13,6 +13,10 @@ import SEO from "../../components/seo/SEO";
 import { useLanguage } from "../../context/useLanguage";
 import { getBestSellersByCategory } from "../../utils/bestSellers";
 import { ProductController } from "../../controllers/productController";
+import {
+  buildProductSearchSuggestionValues,
+  getMatchingSearchSuggestions,
+} from "../../utils/searchSuggestions";
 
 const VIEW_CONFIG_KEYS = {
   all: {
@@ -100,41 +104,56 @@ export default function ProductCatalog() {
   const activeTitle = t(activeConfig.title);
   const shouldUseCategoryRanking =
     selectedCategory !== "All" && !searchQuery.trim();
+  const productSearchSuggestions = useMemo(
+    () =>
+      getMatchingSearchSuggestions(
+        buildProductSearchSuggestionValues(products, categories),
+        searchQuery,
+        10
+      ),
+    [categories, products, searchQuery]
+  );
 
   useEffect(() => {
     if (!shouldUseCategoryRanking) {
-      setCategoryProducts([]);
-      setCategoryError("");
-      setCategoryLoading(false);
-      return undefined;
+      const timeout = window.setTimeout(() => {
+        setCategoryProducts([]);
+        setCategoryError("");
+        setCategoryLoading(false);
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
     }
 
     let isCurrent = true;
-    setCategoryLoading(true);
-    setCategoryError("");
+    const timeout = window.setTimeout(() => {
+      setCategoryLoading(true);
+      setCategoryError("");
 
-    ProductController.getProductsByCategory(selectedCategory)
-      .then((result) => {
-        if (!isCurrent) return;
+      ProductController.getProductsByCategory(selectedCategory)
+        .then((result) => {
+          if (!isCurrent) return;
 
-        if (result.success) {
-          setCategoryProducts(result.data || []);
-        } else {
+          if (result.success) {
+            setCategoryProducts(result.data || []);
+          } else {
+            setCategoryProducts([]);
+            setCategoryError(result.error || "Failed to fetch category products");
+          }
+        })
+        .catch((err) => {
+          if (!isCurrent) return;
           setCategoryProducts([]);
-          setCategoryError(result.error || "Failed to fetch category products");
-        }
-      })
-      .catch((err) => {
-        if (!isCurrent) return;
-        setCategoryProducts([]);
-        setCategoryError(err.message || "Failed to fetch category products");
-      })
-      .finally(() => {
-        if (isCurrent) setCategoryLoading(false);
-      });
+          setCategoryError(err.message || "Failed to fetch category products");
+        })
+        .finally(() => {
+          if (isCurrent) setCategoryLoading(false);
+        });
+    }, 0);
 
     return () => {
       isCurrent = false;
+      window.clearTimeout(timeout);
     };
   }, [categoryRetryToken, selectedCategory, shouldUseCategoryRanking]);
 
@@ -230,6 +249,7 @@ export default function ProductCatalog() {
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           categories={categories}
+          searchSuggestions={productSearchSuggestions}
         />
         <div className="px-0 sm:px-4 md:px-6">
           <div

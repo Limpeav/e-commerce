@@ -1,14 +1,25 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Search, X, ChevronRight } from "lucide-react";
 import { motion as Motion } from "framer-motion";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import { translateCategory } from "../../utils/translationKeys";
 
-export default function SearchBar({ searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, categories }) {
+export default function SearchBar({
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
+    searchSuggestions = [],
+}) {
     const [isDark] = useDarkMode();
     const { t } = useLanguage();
     const categoriesRef = useRef(null);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const visibleSuggestions = searchQuery.trim() && isSearchFocused
+        ? searchSuggestions.slice(0, 8)
+        : [];
 
     const scrollCategories = () => {
         if (!categoriesRef.current) return;
@@ -19,7 +30,7 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
         <div className="w-full px-3 pb-2.5 pt-4 sm:px-4 sm:pb-4 sm:pt-5 md:px-6 lg:py-4">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
                 {/* Search Input Box */}
-                <div className={`flex-1 w-full p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border flex items-center gap-2 transition-colors ${
+                <div className={`relative flex-1 w-full p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border flex items-center gap-2 transition-colors ${
                     isDark
                         ? "bg-slate-900 border-slate-700 shadow-[0_12px_36px_rgba(2,6,23,0.45)]"
                         : "bg-white border-stone-100/80 shadow-[0_2px_15px_rgba(0,0,0,0.02)]"
@@ -36,6 +47,10 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                             className={`bg-transparent border-none outline-none w-full font-medium text-sm ${isDark ? "text-slate-100 placeholder:text-slate-500" : "text-text-main placeholder-stone-400"}`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => {
+                                window.setTimeout(() => setIsSearchFocused(false), 120);
+                            }}
                         />
                         {searchQuery && (
                             <button onClick={() => setSearchQuery("")} className={`p-1 sm:p-1.5 transition-colors shrink-0 ${isDark ? "text-slate-500 hover:text-primary" : "text-stone-300 hover:text-primary"}`}>
@@ -43,6 +58,25 @@ export default function SearchBar({ searchQuery, setSearchQuery, selectedCategor
                             </button>
                         )}
                     </div>
+                    {visibleSuggestions.length > 0 && (
+                        <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl bg-gray-950 py-2 text-left shadow-2xl ring-1 ring-black/10 sm:rounded-2xl">
+                            {visibleSuggestions.map((suggestion) => (
+                                <button
+                                    key={suggestion}
+                                    type="button"
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        setSearchQuery(suggestion);
+                                        setSelectedCategory("All");
+                                        setIsSearchFocused(false);
+                                    }}
+                                    className="block w-full truncate px-4 py-2.5 text-left text-sm font-bold text-gray-100 transition-colors hover:bg-white/10 focus:bg-white/10 focus:outline-none sm:px-5 sm:py-3 sm:text-base"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Categories Wrapper */}

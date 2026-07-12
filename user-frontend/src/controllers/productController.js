@@ -113,6 +113,15 @@ export class ProductController {
     }
   }
 
+  static async getSearchSuggestions(keyword) {
+    try {
+      const response = await productService.getSearchSuggestions(keyword);
+      return { success: true, data: response.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
   static async getProductsByCategory(category) {
     try {
       const response = await productService.getProductsByCategory(category);

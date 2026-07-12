@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import { useLanguage } from "../../context/useLanguage";
+import { getMatchingSearchSuggestions } from "../../utils/searchSuggestions";
 
 export default function KnowledgeBase() {
     const { t } = useLanguage();
@@ -73,6 +74,24 @@ export default function KnowledgeBase() {
     ];
 
     const searchTerm = searchQuery.trim().toLowerCase();
+    const searchTags = [
+        t("help.shippingDelivery"),
+        t("help.ordersProducts"),
+        t("help.paymentsBilling"),
+        t("help.tracking"),
+        t("help.refunds"),
+    ];
+    const searchSuggestions = getMatchingSearchSuggestions(
+        [
+            ...searchTags,
+            ...faqs.flatMap((section) => [
+                section.category,
+                ...section.questions.map((item) => item.q),
+            ]),
+        ],
+        searchQuery,
+        8
+    );
 
     const filteredSections = faqs
         .map((section) => ({
@@ -120,15 +139,21 @@ export default function KnowledgeBase() {
                                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text"
+                                    list="knowledge-base-search-suggestions"
                                     placeholder={t("help.searchPlaceholder")}
                                     className="w-full rounded-2xl border bg-bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20 sm:py-4 sm:pl-14"
                                     style={{ borderColor: "var(--color-border)" }}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                <datalist id="knowledge-base-search-suggestions">
+                                    {searchSuggestions.map((suggestion) => (
+                                        <option key={suggestion} value={suggestion} />
+                                    ))}
+                                </datalist>
                             </div>
                             <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-6">
-                                {[t("help.shippingDelivery"), t("help.ordersProducts"), t("help.paymentsBilling"), t("help.tracking"), t("help.refunds")].map((tag) => (
+                                {searchTags.map((tag) => (
                                     <button
                                         key={tag}
                                         type="button"

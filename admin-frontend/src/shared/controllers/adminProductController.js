@@ -25,6 +25,19 @@ export class AdminProductController {
     }
   }
 
+  static async getSearchSuggestions(keyword) {
+    try {
+      const response = await adminService.getProductSearchSuggestions({ q: keyword });
+      return { success: true, data: response.data || [] };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Failed to fetch product suggestions",
+        data: [],
+      };
+    }
+  }
+
   static async sendStorePromotionEmails() {
     try {
       const response = await adminService.sendStorePromotionEmails();

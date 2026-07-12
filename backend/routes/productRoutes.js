@@ -4,11 +4,13 @@ import {
   getProducts,
   getProductsByCategory,
   getProductById,
+  getProductSearchSuggestions,
   getPersonalizedRecommendations,
   updateProduct,
   createProduct,
   createProductReview,
   importProductsFromCsv,
+  searchProducts,
   sendStorePromotionEmailBlast,
   translateMissingProductsToKhmer,
   translateProductToKhmer,
@@ -37,6 +39,8 @@ router.route("/:id/reviews").post(protect, createProductReview);
 
 // READ ALL
 router.get("/", optionalAuth, getProducts);
+router.get("/search", optionalAuth, searchProducts);
+router.get("/search/suggestions", optionalAuth, getProductSearchSuggestions);
 router.get("/recommendations/personalized", protect, getPersonalizedRecommendations);
 router.get("/category/:categoryId", optionalAuth, getProductsByCategory);
 

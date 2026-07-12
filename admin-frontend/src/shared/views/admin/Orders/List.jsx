@@ -29,6 +29,10 @@ import {
     subscribeRealtimeDomains,
     subscribeRealtimeEvent,
 } from "../../../services/realtime";
+import {
+    buildOrderSearchSuggestionValues,
+    getMatchingSearchSuggestions,
+} from "../../../utils/searchSuggestions";
 
 const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
@@ -285,7 +289,7 @@ const AdminOrders = ({ renderDelivery }) => {
 
         // Search by order ID or user email
         if (searchTerm) {
-            const normalizedSearchTerm = searchTerm.toLowerCase();
+            const normalizedSearchTerm = searchTerm.toLowerCase().replace(/^#/, "");
             filtered = filtered.filter(
                 (order) =>
                     order._id.toLowerCase().includes(normalizedSearchTerm) ||
@@ -597,8 +601,21 @@ const AdminOrders = ({ renderDelivery }) => {
         navigate(loginPath, { replace: true });
     };
 
-    const deliveryOrders = orders.filter((order) =>
-        DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
+    const deliveryOrders = useMemo(
+        () =>
+            orders.filter((order) =>
+                DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
+            ),
+        [orders]
+    );
+    const orderSearchSuggestions = useMemo(
+        () =>
+            getMatchingSearchSuggestions(
+                buildOrderSearchSuggestionValues(isDelivery ? deliveryOrders : orders),
+                searchTerm,
+                8
+            ),
+        [deliveryOrders, isDelivery, orders, searchTerm]
     );
     const todayDateKey = getOrderDateKey(new Date().toISOString());
     const todayDeliveryOrders = deliveryOrders.filter(
@@ -663,6 +680,7 @@ const AdminOrders = ({ renderDelivery }) => {
             normalizeOrderStatus,
             receiptNotice,
             searchTerm,
+            searchSuggestions: orderSearchSuggestions,
             setSearchTerm,
             setStatusFilter,
             statusFilter,
@@ -722,11 +740,17 @@ const AdminOrders = ({ renderDelivery }) => {
                                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
+                                    list="delivery-order-search-suggestions"
                                     placeholder="Search order or customer"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-base font-medium text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                 />
+                                <datalist id="delivery-order-search-suggestions">
+                                    {orderSearchSuggestions.map((suggestion) => (
+                                        <option key={suggestion} value={suggestion} />
+                                    ))}
+                                </datalist>
                             </div>
                             <div className="relative">
                                 <Filter className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -949,11 +973,17 @@ const AdminOrders = ({ renderDelivery }) => {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
+                            list="admin-order-search-suggestions"
                             placeholder="Search by Order ID, customer name or email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
+                        <datalist id="admin-order-search-suggestions">
+                            {orderSearchSuggestions.map((suggestion) => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
 
                     {/* Status Filter */}
