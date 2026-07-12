@@ -29,6 +29,7 @@ import {
   FileText,
   Boxes,
   CalendarDays,
+  Plus,
   X,
 } from "lucide-react";
 
@@ -58,6 +59,7 @@ const AddProduct = () => {
   const [colorImageUploading, setColorImageUploading] = useState({});
   const [detailImageUploading, setDetailImageUploading] = useState({});
   const [formMessage, setFormMessage] = useState(null);
+  const [customColor, setCustomColor] = useState("");
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -111,12 +113,21 @@ const AddProduct = () => {
             ? currentForm.productDetailImages[color]
             : [];
         });
+        const nextSizeStocks = buildDefaultSizeStocks(
+          currentForm.category,
+          currentForm.sizeStocks,
+          nextColors
+        );
 
         return {
           ...currentForm,
           colors: value,
           colorImages: nextColorImages,
           productDetailImages: nextProductDetailImages,
+          sizeStocks: nextSizeStocks,
+          stock: nextSizeStocks.length > 0
+            ? String(getSizeStocksTotal(nextSizeStocks))
+            : currentForm.stock,
         };
       });
       return;
@@ -289,42 +300,51 @@ const AddProduct = () => {
   };
 
   const handleAddColor = (color) => {
-    if (!color) return;
+    const normalizedColor = String(color || "").trim();
+    if (!normalizedColor) return false;
 
     setFormMessage(null);
+    let wasAdded = false;
     setForm((currentForm) => {
       const currentColors = parseProductColorList(currentForm.colors);
-      if (currentColors.some((currentColor) => currentColor.toLowerCase() === color.toLowerCase())) {
+      if (currentColors.some((currentColor) => currentColor.toLowerCase() === normalizedColor.toLowerCase())) {
         return currentForm;
       }
 
+      wasAdded = true;
+      const nextSizeStocks = buildDefaultSizeStocks(
+        currentForm.category,
+        currentForm.sizeStocks,
+        [...currentColors, normalizedColor]
+      );
+
       return {
         ...currentForm,
-        colors: formatProductColorList([...currentColors, color]),
-        sizeStocks: buildDefaultSizeStocks(
-          currentForm.category,
-          currentForm.sizeStocks,
-          [...currentColors, color]
-        ),
-        stock: isSizedProduct(currentForm)
-          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
-              currentForm.category,
-              currentForm.sizeStocks,
-              [...currentColors, color]
-            )))
+        colors: formatProductColorList([...currentColors, normalizedColor]),
+        sizeStocks: nextSizeStocks,
+        stock: nextSizeStocks.length > 0
+          ? String(getSizeStocksTotal(nextSizeStocks))
           : currentForm.stock,
         colorImages: {
           ...currentForm.colorImages,
-          [color]: currentForm.colorImages?.[color] || "",
+          [normalizedColor]: currentForm.colorImages?.[normalizedColor] || "",
         },
         productDetailImages: {
           ...currentForm.productDetailImages,
-          [color]: Array.isArray(currentForm.productDetailImages?.[color])
-            ? currentForm.productDetailImages[color]
+          [normalizedColor]: Array.isArray(currentForm.productDetailImages?.[normalizedColor])
+            ? currentForm.productDetailImages[normalizedColor]
             : [],
         },
       };
     });
+    return wasAdded;
+  };
+
+  const handleAddCustomColor = (event) => {
+    event.preventDefault();
+    if (handleAddColor(customColor)) {
+      setCustomColor("");
+    }
   };
 
   const handleRemoveColor = (color) => {
@@ -338,20 +358,18 @@ const AddProduct = () => {
       delete nextColorImages[color];
       delete nextProductDetailImages[color];
 
+      const nextSizeStocks = buildDefaultSizeStocks(
+        currentForm.category,
+        currentForm.sizeStocks,
+        nextColors
+      );
+
       return {
         ...currentForm,
         colors: formatProductColorList(nextColors),
-        sizeStocks: buildDefaultSizeStocks(
-          currentForm.category,
-          currentForm.sizeStocks,
-          nextColors
-        ),
-        stock: isSizedProduct(currentForm)
-          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
-              currentForm.category,
-              currentForm.sizeStocks,
-              nextColors
-            )))
+        sizeStocks: nextSizeStocks,
+        stock: nextSizeStocks.length > 0
+          ? String(getSizeStocksTotal(nextSizeStocks))
           : currentForm.stock,
         colorImages: nextColorImages,
         productDetailImages: nextProductDetailImages,
@@ -628,7 +646,7 @@ const AddProduct = () => {
                 </div>
               </div>
 
-              {!isSizedProduct(form) && (
+              {!isSizedProduct(form) && form.sizeStocks.length === 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Stock Quantity *
@@ -673,6 +691,23 @@ const AddProduct = () => {
                         ))}
                       </select>
                     </div>
+                    <form onSubmit={handleAddCustomColor} className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={customColor}
+                        onChange={(event) => setCustomColor(event.target.value)}
+                        placeholder="Add custom color, e.g. Natural Oak"
+                        className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!customColor.trim()}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </button>
+                    </form>
                     {colorOptions.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {colorOptions.map((color) => (
@@ -694,7 +729,7 @@ const AddProduct = () => {
                       </div>
                     )}
                     <p className="mt-2 text-xs font-medium text-gray-500">
-                      Select one or more colors. Customers must choose one color when colors are set.
+                      Select preset colors or add custom names. Customers must choose one color when colors are set.
                     </p>
                   </div>
 
@@ -851,12 +886,16 @@ const AddProduct = () => {
                 </div>
               )}
 
-              {isSizedProduct(form) && (
+              {form.sizeStocks.length > 0 && (
                 <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
                   <div className="mb-4">
-                    <p className="text-sm font-bold text-gray-900">Size + Color Inventory</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {isSizedProduct(form) ? "Size + Color Inventory" : "Color Inventory"}
+                    </p>
                     <p className="mt-1 text-xs font-medium text-gray-600">
-                      Enter stock for each size and selected color combination.
+                      {isSizedProduct(form)
+                        ? "Enter stock for each size and selected color combination."
+                        : "Enter stock for each selected color."}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -866,7 +905,9 @@ const AddProduct = () => {
                         className="rounded-lg border border-gray-200 bg-white p-3"
                       >
                         <span className="block text-xs font-bold text-gray-600">
-                          {entry.color ? `${entry.size} / ${entry.color}` : entry.size}
+                          {isSizedProduct(form)
+                            ? entry.color ? `${entry.size} / ${entry.color}` : entry.size
+                            : entry.color}
                         </span>
                         <input
                           type="number"
@@ -884,7 +925,7 @@ const AddProduct = () => {
                 </div>
               )}
 
-              {isSizedProduct(form) && (
+              {form.sizeStocks.length > 0 && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Total Stock Quantity

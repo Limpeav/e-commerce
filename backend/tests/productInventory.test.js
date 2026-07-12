@@ -67,6 +67,62 @@ test("size inventory adjustments keep total stock in sync", () => {
   assert.equal(product.stock, 6);
 });
 
+test("available stock can be checked by selected color without size", () => {
+  assert.equal(
+    getAvailableStock(
+      {
+        stock: 7,
+        reservedStock: 1,
+        sizeStocks: normalizeSizeStocks([
+          { size: "ONE SIZE", color: "Black", stock: 4, reservedStock: 1 },
+          { size: "ONE SIZE", color: "Red", stock: 3, reservedStock: 0 },
+        ]),
+      },
+      "",
+      "black"
+    ),
+    3
+  );
+});
+
+test("color-only stock does not fall back to total stock for a missing color row", () => {
+  assert.equal(
+    getAvailableStock(
+      {
+        stock: 7,
+        reservedStock: 0,
+        sizeStocks: normalizeSizeStocks([
+          { size: "ONE SIZE", color: "Black", stock: 4 },
+          { size: "ONE SIZE", color: "Red", stock: 3 },
+        ]),
+      },
+      "",
+      "Blue"
+    ),
+    0
+  );
+});
+
+test("color-only inventory adjustments keep total stock in sync", () => {
+  const product = {
+    stock: 7,
+    reservedStock: 0,
+    sizeStocks: normalizeSizeStocks([
+      { size: "ONE SIZE", color: "Black", stock: 4 },
+      { size: "ONE SIZE", color: "Red", stock: 3 },
+    ]),
+  };
+
+  adjustProductInventory(product, {
+    color: "Red",
+    quantity: 2,
+    action: "reduce",
+  });
+
+  assert.equal(getAvailableStock(product, "", "Red"), 1);
+  assert.equal(product.stock, 5);
+});
+
 test("size stock payload accepts simple admin CSV format", () => {
   assert.deepEqual(parseSizeStocksPayload("NB:5 | 0-3M:8"), [
     { size: "NB", color: "", stock: 5, reservedStock: 0 },

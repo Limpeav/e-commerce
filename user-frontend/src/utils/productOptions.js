@@ -30,6 +30,7 @@ export const BABY_SHOE_SIZES = [
 export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_KEYWORDS = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
+const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
 export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const isShoeProduct = (product = {}) => {
@@ -70,12 +71,15 @@ export const getAvailableStockForSize = (product = {}, size = "", color = "") =>
   const normalizedSize = String(size || "").trim().toUpperCase();
   const normalizedColor = String(color || "").trim().toLowerCase();
   const matchingSizeStocks = Array.isArray(product.sizeStocks)
-    ? product.sizeStocks.filter(
-        (entry) => String(entry.size || "").trim().toUpperCase() === normalizedSize
-      )
+    ? product.sizeStocks.filter((entry) => {
+        const entrySize = String(entry.size || "").trim().toUpperCase();
+        if (normalizedSize) return entrySize === normalizedSize;
+
+        return normalizedColor && entrySize === COLOR_ONLY_STOCK_SIZE;
+      })
     : [];
 
-  if (normalizedColor) {
+  if (normalizedColor && matchingSizeStocks.length > 0) {
     const sizeStock = matchingSizeStocks.find(
       (entry) => String(entry.color || "").trim().toLowerCase() === normalizedColor
     );
@@ -102,7 +106,7 @@ export const getAvailableStockForSize = (product = {}, size = "", color = "") =>
 };
 
 export const getAvailableStock = (product = {}, size = "", color = "") => {
-  if (size) return getAvailableStockForSize(product, size, color);
+  if (size || color) return getAvailableStockForSize(product, size, color);
 
   const stock = Number(product.stock || 0);
   const reservedStock = Number(product.reservedStock || 0);
@@ -134,13 +138,20 @@ export const getProductImageForColor = (product = {}, color = "") => {
 
 export const getProductDetailImagesForColor = (product = {}, color = "") => {
   const selectedColor = String(color || "").trim().toLowerCase();
-  if (!selectedColor) return [];
-
-  const detailImageEntry = Array.isArray(product.productDetailImages)
-    ? product.productDetailImages.find(
-        (entry) => String(entry.color || "").trim().toLowerCase() === selectedColor
-      )
-    : null;
+  const detailImageEntries = Array.isArray(product.productDetailImages)
+    ? product.productDetailImages
+    : [];
+  const detailImageEntry =
+    detailImageEntries.find(
+      (entry) =>
+        selectedColor &&
+        String(entry.color || "").trim().toLowerCase() === selectedColor &&
+        Array.isArray(entry.images) &&
+        entry.images.length > 0
+    ) ||
+    detailImageEntries.find(
+      (entry) => Array.isArray(entry.images) && entry.images.length > 0
+    );
 
   return Array.isArray(detailImageEntry?.images)
     ? detailImageEntry.images

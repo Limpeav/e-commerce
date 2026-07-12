@@ -27,6 +27,8 @@ export const BABY_SHOE_SIZES = [
   "EU 26",
 ];
 
+export const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
+
 export const isSizedProduct = (product = {}) => {
   const category = normalizeProductCategory(product.category);
   return category === "Clothing" || category === "Shoes";
@@ -34,7 +36,7 @@ export const isSizedProduct = (product = {}) => {
 
 export const productSupportsColorOptions = (product = {}) => {
   const category = normalizeProductCategory(product.category);
-  return isSizedProduct(product) || category === "Furniture";
+  return isSizedProduct(product) || category === "Furniture" || category === "Travel & Gear";
 };
 
 export const getDefaultSizesForCategory = (category = "") => {
@@ -57,6 +59,22 @@ export const buildDefaultSizeStocks = (category = "", currentSizeStocks = [], co
     ])
   );
   const selectedColors = colors.map(normalizeColor).filter(Boolean);
+  const normalizedCategory = normalizeProductCategory(category);
+
+  if (
+    selectedColors.length > 0 &&
+    (normalizedCategory === "Furniture" || normalizedCategory === "Travel & Gear")
+  ) {
+    return selectedColors.map((color) => {
+      const existing = currentBySize.get(getSizeStockKey(COLOR_ONLY_STOCK_SIZE, color));
+      return {
+        size: COLOR_ONLY_STOCK_SIZE,
+        color,
+        stock: existing?.stock ?? "",
+        reservedStock: existing?.reservedStock ?? 0,
+      };
+    });
+  }
 
   return getDefaultSizesForCategory(category).flatMap((size) => {
     const variantColors = selectedColors.length > 0 ? selectedColors : [""];

@@ -13,24 +13,68 @@ import {
 } from "../../utils/productOptions";
 
 const COLOR_SWATCHES = {
+  beige: "#d6c6a8",
   black: "#111827",
   blue: "#2563eb",
   brown: "#92400e",
+  burgundy: "#7f1d1d",
+  charcoal: "#374151",
   cream: "#f5f5dc",
+  gold: "#d97706",
   gray: "#6b7280",
   green: "#16a34a",
   grey: "#6b7280",
+  ivory: "#fffff0",
+  khaki: "#c3b091",
   navy: "#1e3a8a",
+  oak: "#c48a4a",
   orange: "#f97316",
   pink: "#ec4899",
   purple: "#9333ea",
   red: "#dc2626",
+  sage: "#8fa98f",
+  silver: "#c0c0c0",
+  tan: "#d2b48c",
+  walnut: "#7b4f2f",
   white: "#ffffff",
+  wood: "#b7793f",
   yellow: "#eab308",
 };
 
-const getColorSwatch = (color = "") =>
-  COLOR_SWATCHES[String(color).trim().toLowerCase()] || "#e5e7eb";
+const COLOR_PHRASE_SWATCHES = [
+  ["soft white", "#f8f5ef"],
+  ["warm white", "#f7f0df"],
+  ["natural oak", "#c48a4a"],
+  ["light oak", "#d7ad75"],
+  ["dark oak", "#8b5a2b"],
+  ["sage green", "#8fa98f"],
+  ["forest green", "#166534"],
+  ["sky blue", "#38bdf8"],
+  ["baby blue", "#93c5fd"],
+  ["royal blue", "#1d4ed8"],
+  ["hot pink", "#ec4899"],
+  ["rose pink", "#f9a8d4"],
+];
+
+const getColorSwatch = (color = "") => {
+  const normalizedColor = String(color).trim().toLowerCase();
+  if (!normalizedColor) return "#e5e7eb";
+
+  if (/^#(?:[0-9a-f]{3}){1,2}$/i.test(normalizedColor)) {
+    return normalizedColor;
+  }
+
+  const phraseMatch = COLOR_PHRASE_SWATCHES.find(([phrase]) =>
+    normalizedColor.includes(phrase)
+  );
+  if (phraseMatch) return phraseMatch[1];
+
+  const wordMatch = normalizedColor
+    .split(/[^a-z0-9#]+/)
+    .find((word) => COLOR_SWATCHES[word]);
+
+  return wordMatch ? COLOR_SWATCHES[wordMatch] : "#e5e7eb";
+};
 
 const ProductPurchaseActions = ({
   product,
@@ -213,7 +257,9 @@ const ProductPurchaseActions = ({
               const isSelected = selectedColor === color;
               const availableForColor =
                 getAvailableStock(product, needsSize ? selectedSize : "", color);
-              const isUnavailable = needsSize && selectedSize && availableForColor <= 0;
+              const isUnavailable = needsSize
+                ? selectedSize && availableForColor <= 0
+                : availableForColor <= 0;
 
               return (
                 <button
@@ -235,7 +281,7 @@ const ProductPurchaseActions = ({
                         : "border-stone-200 bg-white text-stone-700 hover:border-primary"
                   }`}
                   aria-pressed={isSelected}
-                  title={isUnavailable ? "Out of stock for selected size" : undefined}
+                  title={isUnavailable ? "Out of stock" : `${availableForColor} available`}
                 >
                   <span
                     className="h-5 w-5 rounded-full border border-black/10 shadow-inner"

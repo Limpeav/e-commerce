@@ -3,6 +3,8 @@ import {
   normalizeSelectedSize,
 } from "./productOptions.js";
 
+export const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
+
 export const normalizeSizeStocks = (sizeStocks = []) => {
   const byVariant = new Map();
 
@@ -58,7 +60,19 @@ export const hasSizeStock = (product = {}) =>
 const findSizeStock = (product, size, color = "") => {
   const normalizedSize = normalizeSelectedSize(size);
   const normalizedColor = normalizeSelectedColor(color).toLowerCase();
-  if (!normalizedSize || !hasSizeStock(product)) return null;
+  if (!hasSizeStock(product)) return null;
+
+  if (!normalizedSize && normalizedColor) {
+    return (
+      product.sizeStocks.find(
+        (entry) =>
+          normalizeSelectedSize(entry?.size) === COLOR_ONLY_STOCK_SIZE &&
+          normalizeSelectedColor(entry?.color).toLowerCase() === normalizedColor
+      ) || null
+    );
+  }
+
+  if (!normalizedSize) return null;
 
   const exactMatch = product.sizeStocks.find(
     (entry) =>
@@ -100,14 +114,26 @@ export const syncTotalStockFromSizes = (product) => {
   return product;
 };
 
+const hasColorOnlyStock = (product = {}) =>
+  hasSizeStock(product) &&
+  product.sizeStocks.some(
+    (entry) => normalizeSelectedSize(entry?.size) === COLOR_ONLY_STOCK_SIZE
+  );
+
 export const getAvailableStock = (product, size = "", color = "") => {
   const sizeStock = findSizeStock(product, size, color);
+  const normalizedSize = normalizeSelectedSize(size);
+  const normalizedColor = normalizeSelectedColor(color);
 
   if (sizeStock) {
     return Math.max(
       0,
       Number(sizeStock.stock || 0) - Number(sizeStock.reservedStock || 0)
     );
+  }
+
+  if (!normalizedSize && normalizedColor && hasColorOnlyStock(product)) {
+    return 0;
   }
 
   const totalStock = hasSizeStock(product)
