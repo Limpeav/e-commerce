@@ -2,6 +2,10 @@ export const CAMBODIA_DIAL_CODE = "+855";
 export const ORDER_REQUEST_TIMEOUT_MS = 10000;
 export const SHIPPING_PRICE = 0;
 export const TAX_RATE = 0.08;
+export const DEFAULT_FINANCIAL_SETTINGS = {
+  taxPercentage: TAX_RATE * 100,
+  deliveryFee: SHIPPING_PRICE,
+};
 
 const getProductImageForColor = (product = {}, color = "") => {
   const selectedColor = String(color || "").trim().toLowerCase();
@@ -52,17 +56,22 @@ const getCheckoutValidationMessage = (key, t) =>
     ? t(`checkout.errors.${key}`)
     : checkoutValidationMessages[key];
 
-export const calculateCheckoutTotals = (cartItems = []) => {
+export const calculateCheckoutTotals = (
+  cartItems = [],
+  financialSettings = DEFAULT_FINANCIAL_SETTINGS
+) => {
   const subtotal = cartItems.reduce(
     (acc, item) => acc + getEffectiveCartProductPrice(item.product) * item.quantity,
     0
   );
-  const taxPrice = subtotal * TAX_RATE;
-  const totalPrice = subtotal + SHIPPING_PRICE + taxPrice;
+  const taxRate = Math.max(0, Number(financialSettings.taxPercentage || 0)) / 100;
+  const shippingPrice = Math.max(0, Number(financialSettings.deliveryFee || 0));
+  const taxPrice = subtotal * taxRate;
+  const totalPrice = subtotal + shippingPrice + taxPrice;
 
   return {
     subtotal,
-    shippingPrice: SHIPPING_PRICE,
+    shippingPrice,
     taxPrice,
     totalPrice,
   };

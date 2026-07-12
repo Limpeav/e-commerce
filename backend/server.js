@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
 import { assertSecurityConfig } from "./config/security.js";
 
 import helmet from "helmet";
@@ -195,6 +196,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

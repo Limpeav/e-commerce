@@ -29,6 +29,10 @@ import {
     adjustProductInventory,
     getAvailableStock,
 } from "../utils/productInventory.js";
+import {
+    calculateFinancialTotals,
+    getFinancialSettings,
+} from "../utils/financialSettings.js";
 
 const createHttpError = (statusCode, message) =>
     Object.assign(new Error(message), { statusCode });
@@ -269,15 +273,16 @@ export const createOrder = asyncHandler(async (req, res) => {
         orderItems,
         shippingAddress,
         paymentMethod,
-        taxPrice,
-        shippingPrice,
-        totalPrice,
     } = req.body;
-    const freeShippingPrice = 0;
-    const totalWithoutShipping = Math.max(
-        0,
-        Number(totalPrice || 0) - Math.max(0, Number(shippingPrice || 0))
+    const subtotal = (orderItems || []).reduce(
+        (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+        0
     );
+    const financialSettings = await getFinancialSettings();
+    const calculatedTotals = calculateFinancialTotals(subtotal, financialSettings);
+    const taxPrice = Number(calculatedTotals.taxPrice.toFixed(2));
+    const shippingPrice = Number(calculatedTotals.shippingPrice.toFixed(2));
+    const calculatedTotalPrice = Number(calculatedTotals.totalPrice.toFixed(2));
 
     if (orderItems && orderItems.length === 0) {
         res.status(400);
@@ -424,9 +429,9 @@ export const createOrder = asyncHandler(async (req, res) => {
                     existingPendingOrder.taxPrice =
                         Number(existingPendingOrder.taxPrice || 0) + Number(taxPrice || 0);
                     existingPendingOrder.shippingPrice =
-                        freeShippingPrice;
+                        shippingPrice;
                     existingPendingOrder.totalPrice =
-                        existingTotalWithoutShipping + totalWithoutShipping;
+                        existingTotalWithoutShipping + subtotal + taxPrice + shippingPrice;
                     existingPendingOrder.stockReduced = true;
                     existingPendingOrder.stockRestored = false;
 
@@ -439,8 +444,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                         shippingAddress,
                         paymentMethod,
                         taxPrice,
-                        shippingPrice: freeShippingPrice,
-                        totalPrice: totalWithoutShipping,
+                        shippingPrice,
+                        totalPrice: calculatedTotalPrice,
                         stockReduced: shouldReduceStockImmediately,
                         stockReserved: !shouldReduceStockImmediately,
                         stockRestored: false,

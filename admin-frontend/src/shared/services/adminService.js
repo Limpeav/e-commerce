@@ -14,6 +14,8 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
+  getFinancialSettings: () => api.get("/admin/financial-settings"),
+  updateFinancialSettings: (payload) => api.put("/admin/financial-settings", payload),
   getDailyCashReport: (date, period = "day") =>
     api.get("/admin/cash-report", {
       params: {
@@ -46,6 +48,7 @@ export const adminService = {
   // Orders
   // Product methods
   getProducts: (params) => api.get("/products", { params }),
+  getProductSearchSuggestions: (params) => api.get("/products/search/suggestions", { params }),
   getProductById: (id) => api.get(`/products/${id}`),
   createProduct: (productData) => {
     return api.post("/products", productData);

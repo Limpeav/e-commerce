@@ -15,6 +15,7 @@ import {
   WalletCards,
   Truck,
   User,
+  Settings,
   X,
 } from 'lucide-react'
 import { subscribeRealtimeDomains } from '../../services/realtime'
@@ -138,6 +139,12 @@ const AdminSidebar = () => {
       path: '/admin/staff',
       name: 'Staff',
       icon: BriefcaseBusiness,
+      adminOnly: true
+    },
+    {
+      path: '/admin/financial-settings',
+      name: 'Financial Settings',
+      icon: Settings,
       adminOnly: true
     }
   ].filter((item) => !item.hidden && (!item.adminOnly || adminUser?.role === 'admin'))

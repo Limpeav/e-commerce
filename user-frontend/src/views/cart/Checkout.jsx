@@ -10,8 +10,10 @@ import { useCart } from "../../context/useCart";
 import { CheckoutController } from "../../controllers/checkoutController";
 import { useLanguage } from "../../context/useLanguage";
 import { useDarkMode } from "../../hooks";
+import { settingsService } from "../../services/settingsService";
 import {
   calculateCheckoutTotals,
+  DEFAULT_FINANCIAL_SETTINGS,
   getValidCartItems,
   toLocalPhoneDigits,
 } from "../../utils/checkout";
@@ -60,6 +62,7 @@ const Checkout = () => {
       : "Cash on Delivery"
   );
   const [showBakongWarning, setShowBakongWarning] = useState(false);
+  const [financialSettings, setFinancialSettings] = useState(DEFAULT_FINANCIAL_SETTINGS);
   const checkoutCompletedRef = useRef(false);
   const [shippingAddress, setShippingAddress] = useState(() => ({
     fullName: user?.name || "",
@@ -75,9 +78,33 @@ const Checkout = () => {
 
   const validCartItems = useMemo(() => getValidCartItems(cart), [cart]);
   const totals = useMemo(
-    () => calculateCheckoutTotals(validCartItems),
-    [validCartItems]
+    () => calculateCheckoutTotals(validCartItems, financialSettings),
+    [financialSettings, validCartItems]
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFinancialSettings = async () => {
+      try {
+        const response = await settingsService.getFinancialSettings();
+        if (!mounted) return;
+
+        setFinancialSettings({
+          taxPercentage: response.data?.taxPercentage ?? DEFAULT_FINANCIAL_SETTINGS.taxPercentage,
+          deliveryFee: response.data?.deliveryFee ?? DEFAULT_FINANCIAL_SETTINGS.deliveryFee,
+        });
+      } catch (settingsError) {
+        console.error("Failed to load financial settings:", settingsError);
+      }
+    };
+
+    loadFinancialSettings();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (

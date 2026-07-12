@@ -25,6 +25,10 @@ import {
     deleteUser,
 } from "../controllers/userManagementController.js";
 import { translateText } from "../controllers/translationController.js";
+import {
+    getAdminFinancialSettings,
+    updateAdminFinancialSettings,
+} from "../controllers/settingsController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
 import { createMemoryImageUpload } from "../middleware/upload.js";
@@ -64,6 +68,8 @@ router.put("/me", protect, portalAccess, updatePortalProfile);
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
 router.get("/cash-report", protect, portalAccess, getDailyCashReport);
+router.get("/financial-settings", protect, admin, getAdminFinancialSettings);
+router.put("/financial-settings", protect, admin, updateAdminFinancialSettings);
 router.post(
     "/uploads/product-image",
     protect,

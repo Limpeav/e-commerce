@@ -25,6 +25,7 @@ import {
 import { normalizeSelectedColor } from "../utils/productOptions.js";
 import axios from "axios";
 import { getBakongConfig } from "../config/bakong.js";
+import { getFinancialSettings } from "../utils/financialSettings.js";
 
 const { BakongKHQR, IndividualInfo, MerchantInfo, khqrData } = khqrPackage;
 const KHQR_EXPIRY_MS = 5 * 60 * 1000;
@@ -879,7 +880,8 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
         throw new Error("BAKONG_ACCOUNT_ID is missing or invalid");
     }
 
-    const exchangeRate = bakongConfig.exchangeRate;
+    const financialSettings = await getFinancialSettings();
+    const exchangeRate = financialSettings.usdToKhrRate || bakongConfig.exchangeRate;
     const amountInKHR = Math.round(order.totalPrice * exchangeRate);
     const paymentAmount =
         requestedCurrency === "KHR"

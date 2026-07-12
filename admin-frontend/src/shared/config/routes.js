@@ -20,6 +20,7 @@ export const adminLazyComponents = {
   AdminOrdersList: () => import("../views/admin/Orders/List"),
   AdminOrderDetails: () => import("../views/admin/Orders/Details"),
   AdminReports: () => import("../views/admin/Reports"),
+  AdminFinancialSettings: () => import("../views/admin/FinancialSettings"),
   AdminCashReport: () => import("../views/admin/CashReport"),
   SellerDashboard: () => import("../views/admin/SellerDashboard"),
   SellerPaymentQueue: () => import("../views/admin/PaymentQueue"),
@@ -56,4 +57,5 @@ export const adminRoutes = [
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/staff", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/reports", component: "AdminReports", allowedRoles: ["admin"] },
+  { path: "/admin/financial-settings", component: "AdminFinancialSettings", allowedRoles: ["admin"] },
 ];

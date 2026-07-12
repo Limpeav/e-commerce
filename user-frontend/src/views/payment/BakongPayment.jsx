@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBakongPayment } from "../../hooks/useBakongPayment";
 import { useLanguage } from "../../context/useLanguage";
 import { useDarkMode } from "../../hooks";
 import { useToast } from "../../context/useToast";
+import { settingsService } from "../../services/settingsService";
 
 const KHQR_EXPIRY_SECONDS = 5 * 60;
 
@@ -60,6 +61,7 @@ export default function BakongPayment() {
   const [isDark] = useDarkMode();
   const { success, error: toastError } = useToast();
   const successAlertShownRef = useRef(false);
+  const [exchangeRate, setExchangeRate] = useState(4100);
   const {
     order,
     payment,
@@ -105,6 +107,28 @@ export default function BakongPayment() {
       t("bakongPayment.paymentConfirmed")
     );
   }, [paymentStatus, success, t]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFinancialSettings = async () => {
+      try {
+        const response = await settingsService.getFinancialSettings();
+        const nextRate = Number(response.data?.usdToKhrRate);
+        if (mounted && Number.isFinite(nextRate) && nextRate > 0) {
+          setExchangeRate(nextRate);
+        }
+      } catch (settingsError) {
+        console.error("Failed to load financial settings:", settingsError);
+      }
+    };
+
+    loadFinancialSettings();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // ── Time colour helper ────────────────────────────────────────────────────
   const getTimerColour = () => {
@@ -362,7 +386,6 @@ export default function BakongPayment() {
   }
 
   // ── Main Payment Page ─────────────────────────────────────────────────────
-  const exchangeRate = 4100;
   const amountUSD = order ? Number(order.totalPrice).toFixed(2) : "—";
   const amountKHR = order ? Math.round(order.totalPrice * exchangeRate).toLocaleString() : "—";
   const primaryAmount =
