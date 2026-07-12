@@ -340,8 +340,7 @@ const AddProduct = () => {
     return wasAdded;
   };
 
-  const handleAddCustomColor = (event) => {
-    event.preventDefault();
+  const handleAddCustomColor = () => {
     if (handleAddColor(customColor)) {
       setCustomColor("");
     }
@@ -691,23 +690,30 @@ const AddProduct = () => {
                         ))}
                       </select>
                     </div>
-                    <form onSubmit={handleAddCustomColor} className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <input
                         type="text"
                         value={customColor}
                         onChange={(event) => setCustomColor(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleAddCustomColor();
+                          }
+                        }}
                         placeholder="Add custom color, e.g. Natural Oak"
                         className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
                       />
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={handleAddCustomColor}
                         disabled={!customColor.trim()}
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                       >
                         <Plus className="h-4 w-4" />
                         Add
                       </button>
-                    </form>
+                    </div>
                     {colorOptions.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {colorOptions.map((color) => (
