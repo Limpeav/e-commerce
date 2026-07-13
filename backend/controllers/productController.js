@@ -31,6 +31,10 @@ import {
   parseProductColorsPayload,
   parseProductDetailImagesPayload,
 } from "../utils/productOptions.js";
+import {
+  attachReviewSentiment,
+  classifyReviewSentiment,
+} from "../utils/sentiment.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -79,6 +83,13 @@ const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g,
 
 const getProductVisibilityFilter = (req) =>
   req.user?.role === "admin" ? {} : { stock: { $gt: 0 } };
+
+const attachProductReviewSentiment = (product = {}) => ({
+  ...product,
+  reviews: Array.isArray(product.reviews)
+    ? product.reviews.map((review) => attachReviewSentiment(review))
+    : [],
+});
 
 const getProductSearchFilter = (keyword = "") => {
   const trimmedKeyword = String(keyword || "").trim();
@@ -951,13 +962,15 @@ export const getProducts = async (req, res) => {
     });
     res.json(
       isAdmin
-        ? productsWithMetrics
+        ? productsWithMetrics.map(attachProductReviewSentiment)
         : productsWithMetrics
             .filter((product) => product.availableStock > 0)
-            .map((product) => ({
-              ...product,
-              stock: product.availableStock,
-            }))
+            .map((product) =>
+              attachProductReviewSentiment({
+                ...product,
+                stock: product.availableStock,
+              })
+            )
     );
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -988,13 +1001,15 @@ export const searchProducts = async (req, res) => {
 
     return res.json(
       req.user?.role === "admin"
-        ? productsWithMetrics
+        ? productsWithMetrics.map(attachProductReviewSentiment)
         : productsWithMetrics
             .filter((product) => product.availableStock > 0)
-            .map((product) => ({
-              ...product,
-              stock: product.availableStock,
-            }))
+            .map((product) =>
+              attachProductReviewSentiment({
+                ...product,
+                stock: product.availableStock,
+              })
+            )
     );
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -1437,11 +1452,11 @@ export const getProductById = async (req, res) => {
     const productWithMetrics = await attachSalesMetrics(productData);
     res.json(
       isAdmin
-        ? productWithMetrics
-        : {
+        ? attachProductReviewSentiment(productWithMetrics)
+        : attachProductReviewSentiment({
             ...productWithMetrics,
             stock: productWithMetrics.availableStock,
-          }
+          })
     );
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -1638,15 +1653,24 @@ export const createProductReview = async (req, res) => {
         return res.status(404).json({ message: "User not found" });
       }
 
+      const sentiment = classifyReviewSentiment({ rating, comment });
+      const sentimentAnalyzedAt = new Date();
+
       if (alreadyReviewed) {
         alreadyReviewed.name = currentUser.name;
         alreadyReviewed.rating = Number(rating);
         alreadyReviewed.comment = comment;
+        alreadyReviewed.sentimentLabel = sentiment.label;
+        alreadyReviewed.sentimentScore = sentiment.score;
+        alreadyReviewed.sentimentAnalyzedAt = sentimentAnalyzedAt;
       } else {
         const review = {
           name: currentUser.name, // Use current name from database
           rating: Number(rating),
           comment,
+          sentimentLabel: sentiment.label,
+          sentimentScore: sentiment.score,
+          sentimentAnalyzedAt,
           user: req.user._id,
           order: reviewedOrder?._id || null,
         };

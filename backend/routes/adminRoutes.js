@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import {
     getDashboardData,
     getDailyCashReport,
+    getSentimentReport,
     uploadProductImage,
 } from "../controllers/adminController.js";
 import {
@@ -68,6 +69,7 @@ router.put("/me", protect, portalAccess, updatePortalProfile);
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);
 router.get("/cash-report", protect, portalAccess, getDailyCashReport);
+router.get("/sentiment-report", protect, portalAccess, getSentimentReport);
 router.get("/financial-settings", protect, admin, getAdminFinancialSettings);
 router.put("/financial-settings", protect, admin, updateAdminFinancialSettings);
 router.post(

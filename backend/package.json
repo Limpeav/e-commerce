@@ -10,6 +10,7 @@
     "admin:bootstrap": "node createAdmin.js",
     "normalize:categories": "node scripts/normalizeProductCategories.js",
     "backfill:expiry": "node scripts/backfillExpiryDates.js",
+    "backfill:sentiment": "node scripts/backfillReviewSentiment.js",
     "translate:khmer": "node scripts/translateMissingProductsToKhmer.js"
   },
   "keywords": [],

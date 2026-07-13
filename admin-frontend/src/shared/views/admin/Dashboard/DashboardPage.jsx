@@ -61,6 +61,25 @@ const getCustomerKey = (order) => {
 const getProductId = (item) =>
   typeof item?.product === "string" ? item.product : item?.product?._id;
 
+const getReviewSentimentLabel = (review) => {
+  if (["Positive", "Neutral", "Negative"].includes(review?.sentimentLabel)) {
+    return review.sentimentLabel;
+  }
+
+  const rating = Number(review?.rating || 0);
+  if (rating >= 4) return "Positive";
+  if (rating <= 2) return "Negative";
+  return "Neutral";
+};
+
+const getReviewSentimentScore = (review) => {
+  const score = Number(review?.sentimentScore);
+  if (Number.isFinite(score)) return score;
+
+  const rating = Number(review?.rating || 3);
+  return Math.max(-1, Math.min(1, (rating - 3) / 2));
+};
+
 const formatDayLabel = (date, dayCount) =>
   date.toLocaleDateString("en-US", {
     month: "short",
@@ -265,6 +284,9 @@ const DashboardPage = ({
         ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount
         : Number(product.rating || 0);
       const lowRatingCount = reviews.filter((review) => Number(review.rating || 0) <= 2).length;
+      const negativeSentimentCount = reviews.filter(
+        (review) => getReviewSentimentLabel(review) === "Negative"
+      ).length;
 
       return {
         id: product._id,
@@ -274,6 +296,7 @@ const DashboardPage = ({
         reviewCount,
         averageRating,
         lowRatingCount,
+        negativeSentimentCount,
       };
     });
     const allReviews = products.flatMap((product) =>
@@ -288,7 +311,19 @@ const DashboardPage = ({
       : 0;
     const positiveReviews = allReviews.filter((review) => Number(review.rating || 0) >= 4).length;
     const lowReviews = allReviews.filter((review) => Number(review.rating || 0) <= 2).length;
+    const sentimentCounts = allReviews.reduce(
+      (counts, review) => {
+        counts[getReviewSentimentLabel(review)] += 1;
+        return counts;
+      },
+      { Positive: 0, Neutral: 0, Negative: 0 }
+    );
+    const averageSentimentScore = totalReviews
+      ? allReviews.reduce((sum, review) => sum + getReviewSentimentScore(review), 0) / totalReviews
+      : 0;
     const positiveReviewRate = totalReviews ? (positiveReviews / totalReviews) * 100 : 0;
+    const positiveSentimentRate = totalReviews ? (sentimentCounts.Positive / totalReviews) * 100 : 0;
+    const negativeSentimentRate = totalReviews ? (sentimentCounts.Negative / totalReviews) * 100 : 0;
     const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
       const count = allReviews.filter((review) => Number(review.rating || 0) === rating).length;
       return {
@@ -300,9 +335,14 @@ const DashboardPage = ({
     const categoryReviewMap = new Map();
     productReviewStats.forEach((product) => {
       if (!product.reviewCount) return;
-      const current = categoryReviewMap.get(product.category) || { total: 0, count: 0 };
+      const current = categoryReviewMap.get(product.category) || {
+        total: 0,
+        count: 0,
+        negative: 0,
+      };
       current.total += product.averageRating * product.reviewCount;
       current.count += product.reviewCount;
+      current.negative += product.negativeSentimentCount;
       categoryReviewMap.set(product.category, current);
     });
     const categoryRatings = [...categoryReviewMap.entries()]
@@ -310,8 +350,10 @@ const DashboardPage = ({
         name,
         reviewCount: values.count,
         averageRating: values.total / values.count,
+        negative: values.negative,
+        negativeRate: values.count ? (values.negative / values.count) * 100 : 0,
       }))
-      .sort((a, b) => b.averageRating - a.averageRating);
+      .sort((a, b) => b.negativeRate - a.negativeRate || a.averageRating - b.averageRating);
     return {
       currentOrders,
       paidOrders,
@@ -334,6 +376,10 @@ const DashboardPage = ({
         totalReviews,
         averageRating,
         positiveReviewRate,
+        positiveSentimentRate,
+        negativeSentimentRate,
+        averageSentimentScore,
+        sentimentCounts,
         lowReviews,
         unratedProducts: productReviewStats.filter((product) => product.reviewCount === 0).length,
         ratingDistribution,
@@ -804,12 +850,12 @@ const DashboardPage = ({
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">Average rating</p>
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">Avg sentiment score</p>
                 <Star className="h-5 w-5 fill-[#e2b95f] text-[#e2b95f]" />
               </div>
               <p className="mt-3 text-3xl font-black">
-                {analytics.reviewHealth.averageRating.toFixed(1)}
-                <span className="text-base text-[var(--color-text-muted)]"> / 5</span>
+                {analytics.reviewHealth.averageSentimentScore.toFixed(2)}
+                <span className="text-base text-[var(--color-text-muted)]"> NLP</span>
               </p>
             </article>
             <button
@@ -833,9 +879,9 @@ const DashboardPage = ({
                 <ThumbsUp className="h-5 w-5 text-[#66806b]" />
               </div>
               <p className="mt-3 text-3xl font-black">
-                {analytics.reviewHealth.positiveReviewRate.toFixed(0)}%
+                {analytics.reviewHealth.positiveSentimentRate.toFixed(0)}%
               </p>
-              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">4 and 5 stars</p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">AI-classified positive</p>
             </button>
             <button
               type="button"
@@ -847,49 +893,60 @@ const DashboardPage = ({
                 <AlertTriangle className="h-5 w-5 text-[#ad6856]" />
               </div>
               <p className="mt-3 text-3xl font-black text-[#ad6856]">
-                {number(analytics.reviewHealth.lowReviews)}
+                {number(analytics.reviewHealth.sentimentCounts.Negative)}
               </p>
               <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-                1–2 star reviews
+                AI-classified negative
               </p>
             </button>
           </div>
 
           <div className="mb-6 grid gap-6 lg:grid-cols-2">
             <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating distribution</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Sentiment distribution</h3>
               <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Share of reviews by star rating
+                Share of reviews by AI sentiment label
               </p>
               {analytics.reviewHealth.totalReviews ? (
                 <div className="mt-6 space-y-4">
-                  {analytics.reviewHealth.ratingDistribution.map((item) => (
-                    <div key={item.rating} className="grid grid-cols-[54px_1fr_48px] items-center gap-3">
-                      <span className="flex items-center gap-1 text-sm font-black">
-                        {item.rating}
-                        <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
+                  {["Positive", "Neutral", "Negative"].map((label) => {
+                    const count = analytics.reviewHealth.sentimentCounts[label];
+                    const percentage = analytics.reviewHealth.totalReviews
+                      ? (count / analytics.reviewHealth.totalReviews) * 100
+                      : 0;
+                    const colors = {
+                      Positive: "bg-[#66806b]",
+                      Neutral: "bg-[#8EA7B8]",
+                      Negative: "bg-[#ad6856]",
+                    };
+
+                    return (
+                    <div key={label} className="grid grid-cols-[78px_1fr_48px] items-center gap-3">
+                      <span className="text-sm font-black">
+                        {label}
                       </span>
                       <div className="h-3 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
                         <div
-                          className="h-full rounded-full bg-[#e2b95f]"
-                          style={{ width: `${item.percentage}%` }}
+                          className={`h-full rounded-full ${colors[label]}`}
+                          style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="text-right text-sm font-black">{item.count}</span>
+                      <span className="text-right text-sm font-black">{count}</span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-5">
-                  <EmptyState>Rating distribution will appear after customers submit reviews.</EmptyState>
+                  <EmptyState>Sentiment distribution will appear after customers submit reviews.</EmptyState>
                 </div>
               )}
             </article>
 
             <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Rating by category</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Negative sentiment by category</h3>
               <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Weighted average across reviewed products
+                Categories ranked by customer dissatisfaction signals
               </p>
               {analytics.reviewHealth.categoryRatings.length ? (
                 <div className="mt-6 space-y-4">
@@ -898,8 +955,7 @@ const DashboardPage = ({
                       <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                         <span className="truncate font-bold">{category.name}</span>
                         <span className="flex shrink-0 items-center gap-1 font-black">
-                          {category.averageRating.toFixed(1)}
-                          <Star className="h-3.5 w-3.5 fill-[#e2b95f] text-[#e2b95f]" />
+                          {category.negativeRate.toFixed(0)}%
                           <span className="ml-1 text-xs text-[var(--color-text-muted)]">
                             ({category.reviewCount})
                           </span>
@@ -907,8 +963,8 @@ const DashboardPage = ({
                       </div>
                       <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
                         <div
-                          className="h-full rounded-full bg-[var(--color-primary)]"
-                          style={{ width: `${(category.averageRating / 5) * 100}%` }}
+                          className="h-full rounded-full bg-[#ad6856]"
+                          style={{ width: `${category.negativeRate}%` }}
                         />
                       </div>
                     </div>
@@ -916,7 +972,7 @@ const DashboardPage = ({
                 </div>
               ) : (
                 <div className="mt-5">
-                  <EmptyState>Category ratings will appear after customers submit reviews.</EmptyState>
+                  <EmptyState>Category sentiment will appear after customers submit reviews.</EmptyState>
                 </div>
               )}
             </article>

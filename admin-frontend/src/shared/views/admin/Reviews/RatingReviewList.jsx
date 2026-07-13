@@ -22,12 +22,28 @@ const RatingStars = ({ rating }) => (
   </div>
 );
 
+const getSentimentLabel = (review) => {
+  if (["Positive", "Neutral", "Negative"].includes(review?.sentimentLabel)) {
+    return review.sentimentLabel;
+  }
+
+  const rating = Number(review?.rating || 0);
+  if (rating >= 4) return "Positive";
+  if (rating <= 2) return "Negative";
+  return "Neutral";
+};
+
+const sentimentClasses = {
+  Positive: "border-green-200 bg-green-50 text-green-700",
+  Neutral: "border-gray-200 bg-gray-50 text-gray-700",
+  Negative: "border-red-200 bg-red-50 text-red-700",
+};
+
 const RatingReviewList = ({
   title,
   description,
   emptyMessage,
-  minRating,
-  maxRating,
+  sentimentFilter = "all",
   tone = "green",
 }) => {
   const navigate = useNavigate();
@@ -79,8 +95,8 @@ const RatingReviewList = ({
         const matchingReviews = (
           Array.isArray(product.reviews) ? product.reviews : []
         ).filter((review) => {
-          const rating = Number(review.rating || 0);
-          return rating >= minRating && rating <= maxRating;
+          if (sentimentFilter === "all") return true;
+          return getSentimentLabel(review) === sentimentFilter;
         });
 
         if (matchingReviews.length === 0) return [];
@@ -98,10 +114,18 @@ const RatingReviewList = ({
             product,
             averageRating,
             reviewCount: matchingReviews.length,
+            matchingReviews,
+            sentimentCounts: matchingReviews.reduce(
+              (counts, review) => {
+                counts[getSentimentLabel(review)] += 1;
+                return counts;
+              },
+              { Positive: 0, Neutral: 0, Negative: 0 }
+            ),
           },
         ];
       }),
-    [maxRating, minRating, products]
+    [products, sentimentFilter]
   );
 
   const filteredProducts = useMemo(() => {
@@ -205,6 +229,9 @@ const RatingReviewList = ({
                     <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
                       Rating
                     </th>
+                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
+                      Sentiment
+                    </th>
                     <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-gray-500">
                       Action
                     </th>
@@ -247,6 +274,20 @@ const RatingReviewList = ({
                           {product.reviewCount} matching review
                           {product.reviewCount === 1 ? "" : "s"}
                         </p>
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex flex-wrap gap-2">
+                          {["Positive", "Neutral", "Negative"].map((label) => (
+                            product.sentimentCounts[label] > 0 ? (
+                              <span
+                                key={label}
+                                className={`rounded-full border px-2.5 py-1 text-xs font-black ${sentimentClasses[label]}`}
+                              >
+                                {label}: {product.sentimentCounts[label]}
+                              </span>
+                            ) : null
+                          ))}
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-right align-top">
                         <button
@@ -362,6 +403,63 @@ const RatingReviewList = ({
                   </dt>
                   <dd className="mt-2">
                     <RatingStars rating={Number(selectedProduct.rating || 0)} />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                    AI Sentiment Summary
+                  </dt>
+                  <dd className="mt-2 flex flex-wrap gap-2">
+                    {["Positive", "Neutral", "Negative"].map((label) => {
+                      const count = (Array.isArray(selectedProduct.reviews)
+                        ? selectedProduct.reviews
+                        : []
+                      ).filter((review) => getSentimentLabel(review) === label).length;
+
+                      return (
+                        <span
+                          key={label}
+                          className={`rounded-full border px-3 py-1 text-xs font-black ${sentimentClasses[label]}`}
+                        >
+                          {label}: {count}
+                        </span>
+                      );
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                    Recent Review Sentiment
+                  </dt>
+                  <dd className="mt-2 space-y-3">
+                    {(Array.isArray(selectedProduct.reviews)
+                      ? selectedProduct.reviews
+                      : []
+                    )
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt || 0).getTime() -
+                          new Date(a.createdAt || 0).getTime()
+                      )
+                      .slice(0, 5)
+                      .map((review) => {
+                        const label = getSentimentLabel(review);
+
+                        return (
+                          <div key={review._id || `${review.user}-${review.createdAt}`} className="rounded-xl bg-gray-50 p-3">
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <span className="text-sm font-bold text-gray-900">{review.name || "Customer"}</span>
+                              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${sentimentClasses[label]}`}>
+                                {label}
+                              </span>
+                            </div>
+                            <p className="line-clamp-3 text-sm leading-5 text-gray-600">
+                              {review.comment || "No written comment."}
+                            </p>
+                          </div>
+                        );
+                      })}
                   </dd>
                 </div>
                 <div>

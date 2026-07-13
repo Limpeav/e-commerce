@@ -45,9 +45,11 @@ export const exportDashboardSummary = ({ analytics, period }) => {
     ["Repeat customer rate", `${analytics.repeatRate.toFixed(1)}%`],
     ["Product issues", analytics.productIssues.length],
     ["Average product rating", analytics.reviewHealth.averageRating.toFixed(1)],
+    ["Average sentiment score", analytics.reviewHealth.averageSentimentScore.toFixed(2)],
     ["Total product reviews", analytics.reviewHealth.totalReviews],
-    ["Positive review rate", `${analytics.reviewHealth.positiveReviewRate.toFixed(1)}%`],
-    ["Low-rating reviews", analytics.reviewHealth.lowReviews],
+    ["Positive sentiment rate", `${analytics.reviewHealth.positiveSentimentRate.toFixed(1)}%`],
+    ["Negative sentiment rate", `${analytics.reviewHealth.negativeSentimentRate.toFixed(1)}%`],
+    ["Negative sentiment reviews", analytics.reviewHealth.sentimentCounts.Negative],
     ["Products without reviews", analytics.reviewHealth.unratedProducts],
   ];
   const csv = rows

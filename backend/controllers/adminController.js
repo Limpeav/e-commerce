@@ -3,6 +3,7 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import cloudinary from "../config/cloudinary.js";
+import { buildSentimentAnalytics } from "../utils/sentiment.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -347,6 +348,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     { $group: { _id: null, totalRevenue: { $sum: "$totalPrice" } } },
   ]);
   const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+  const productsForSentiment = await Product.find({})
+    .select("title category reviews")
+    .lean();
+  const sentiment = buildSentimentAnalytics(productsForSentiment);
 
   // Get recent activity (users only – exclude admin actions)
   const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
@@ -412,7 +417,22 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
+    sentiment,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
+  });
+});
+
+// @desc    Customer sentiment analytics for admin reports
+// @route   GET /api/admin/sentiment-report
+// @access  Private/Portal
+export const getSentimentReport = asyncHandler(async (req, res) => {
+  const products = await Product.find({})
+    .select("title category image reviews rating numReviews")
+    .lean();
+
+  res.json({
+    generatedAt: new Date().toISOString(),
+    sentiment: buildSentimentAnalytics(products),
   });
 });
 

@@ -176,6 +176,36 @@ export const classifyReviewSentiment = ({ rating, comment }) => {
   return { label, score: blendedScore };
 };
 
+export const getReviewSentiment = (review = {}) => {
+  const existingLabel = review.sentimentLabel;
+  const existingScore = Number(review.sentimentScore);
+
+  if (
+    ["Positive", "Neutral", "Negative"].includes(existingLabel) &&
+    Number.isFinite(existingScore)
+  ) {
+    return {
+      label: existingLabel,
+      score: existingScore,
+    };
+  }
+
+  return classifyReviewSentiment({
+    rating: review.rating,
+    comment: review.comment,
+  });
+};
+
+export const attachReviewSentiment = (review = {}) => {
+  const sentiment = getReviewSentiment(review);
+
+  return {
+    ...review,
+    sentimentLabel: sentiment.label,
+    sentimentScore: sentiment.score,
+  };
+};
+
 export const summarizeSentiment = (reviews = []) => {
   const summary = {
     positive: 0,
@@ -216,4 +246,99 @@ export const summarizeSentiment = (reviews = []) => {
   }
 
   return summary;
+};
+
+export const buildSentimentAnalytics = (products = []) => {
+  const allReviews = [];
+
+  for (const product of Array.isArray(products) ? products : []) {
+    const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const category = product.category || "Uncategorized";
+
+    reviews.forEach((review) => {
+      allReviews.push({
+        ...attachReviewSentiment(review),
+        productId: product._id,
+        productTitle: product.title,
+        category,
+      });
+    });
+  }
+
+  const summary = summarizeSentiment(allReviews);
+  const positiveRate = summary.total ? (summary.positive / summary.total) * 100 : 0;
+  const neutralRate = summary.total ? (summary.neutral / summary.total) * 100 : 0;
+  const negativeRate = summary.total ? (summary.negative / summary.total) * 100 : 0;
+
+  const productMap = new Map();
+  const categoryMap = new Map();
+  const monthMap = new Map();
+
+  allReviews.forEach((review) => {
+    const productKey = String(review.productId || "unknown");
+    const productEntry = productMap.get(productKey) || {
+      productId: productKey,
+      productTitle: review.productTitle || "Product",
+      category: review.category || "Uncategorized",
+      totalReviews: 0,
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      averageScore: 0,
+      scoreTotal: 0,
+    };
+    const categoryEntry = categoryMap.get(review.category) || {
+      category: review.category || "Uncategorized",
+      totalReviews: 0,
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      averageScore: 0,
+      scoreTotal: 0,
+    };
+    const date = new Date(review.createdAt || review.updatedAt || Date.now());
+    const monthKey = Number.isNaN(date.getTime())
+      ? "Unknown"
+      : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const monthEntry = monthMap.get(monthKey) || {
+      month: monthKey,
+      totalReviews: 0,
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      averageScore: 0,
+      scoreTotal: 0,
+    };
+
+    [productEntry, categoryEntry, monthEntry].forEach((entry) => {
+      entry.totalReviews += 1;
+      entry.scoreTotal += Number(review.sentimentScore || 0);
+      if (review.sentimentLabel === "Positive") entry.positive += 1;
+      else if (review.sentimentLabel === "Negative") entry.negative += 1;
+      else entry.neutral += 1;
+      entry.averageScore = Number((entry.scoreTotal / entry.totalReviews).toFixed(2));
+    });
+
+    productMap.set(productKey, productEntry);
+    categoryMap.set(review.category, categoryEntry);
+    monthMap.set(monthKey, monthEntry);
+  });
+
+  const stripScoreTotal = ({ scoreTotal, ...entry }) => entry;
+
+  return {
+    ...summary,
+    positiveRate: Number(positiveRate.toFixed(1)),
+    neutralRate: Number(neutralRate.toFixed(1)),
+    negativeRate: Number(negativeRate.toFixed(1)),
+    productInsights: [...productMap.values()]
+      .map(stripScoreTotal)
+      .sort((a, b) => b.negative - a.negative || a.averageScore - b.averageScore),
+    categoryInsights: [...categoryMap.values()]
+      .map(stripScoreTotal)
+      .sort((a, b) => a.averageScore - b.averageScore),
+    trend: [...monthMap.values()]
+      .map(stripScoreTotal)
+      .sort((a, b) => a.month.localeCompare(b.month)),
+  };
 };

@@ -8,6 +8,8 @@ import {
     Package,
     Download,
     Calendar,
+    MessageSquareText,
+    AlertTriangle,
 } from "lucide-react";
 import { ReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
@@ -18,6 +20,7 @@ const Reports = () => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({});
     const [orders, setOrders] = useState([]);
+    const [sentiment, setSentiment] = useState(null);
 
     const fetchData = useCallback(async ({ silent = false } = {}) => {
         try {
@@ -26,6 +29,7 @@ const Reports = () => {
 
             setStats(reportData.stats);
             setOrders(reportData.orders);
+            setSentiment(reportData.sentiment || reportData.stats?.sentiment || null);
             if (!silent) setLoading(false);
         } catch (err) {
             console.error("Failed to fetch data", err);
@@ -108,6 +112,7 @@ const Reports = () => {
             monthlyRevenue: calculateMonthlyRevenue(),
             topProducts: getTopProducts(),
             orderStatusBreakdown: getOrderStatusBreakdown(),
+            sentiment,
         };
 
         const blob = new Blob([JSON.stringify(reportData, null, 2)], {
@@ -127,6 +132,19 @@ const Reports = () => {
     const monthlyRevenue = calculateMonthlyRevenue();
     const topProducts = getTopProducts();
     const statusBreakdown = getOrderStatusBreakdown();
+    const sentimentCounts = sentiment || {
+        total: 0,
+        positive: 0,
+        neutral: 0,
+        negative: 0,
+        positiveRate: 0,
+        neutralRate: 0,
+        negativeRate: 0,
+        averageScore: 0,
+        productInsights: [],
+        categoryInsights: [],
+        trend: [],
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -300,6 +318,94 @@ const Reports = () => {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sentiment Analytics */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white rounded-xl shadow-sm p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <MessageSquareText className="w-5 h-5 mr-2" />
+                            AI Sentiment Summary
+                        </h2>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-lg bg-green-50 p-3">
+                                <p className="text-xs font-semibold text-green-700">Positive</p>
+                                <p className="mt-1 text-2xl font-bold text-green-700">{sentimentCounts.positive}</p>
+                                <p className="text-xs text-green-700">{sentimentCounts.positiveRate}%</p>
+                            </div>
+                            <div className="rounded-lg bg-gray-50 p-3">
+                                <p className="text-xs font-semibold text-gray-600">Neutral</p>
+                                <p className="mt-1 text-2xl font-bold text-gray-700">{sentimentCounts.neutral}</p>
+                                <p className="text-xs text-gray-600">{sentimentCounts.neutralRate}%</p>
+                            </div>
+                            <div className="rounded-lg bg-red-50 p-3">
+                                <p className="text-xs font-semibold text-red-700">Negative</p>
+                                <p className="mt-1 text-2xl font-bold text-red-700">{sentimentCounts.negative}</p>
+                                <p className="text-xs text-red-700">{sentimentCounts.negativeRate}%</p>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-sm font-semibold text-gray-600">
+                            Average sentiment score: {Number(sentimentCounts.averageScore || 0).toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <AlertTriangle className="w-5 h-5 mr-2" />
+                            Products Needing Attention
+                        </h2>
+                        <div className="space-y-3">
+                            {sentimentCounts.productInsights?.filter((item) => item.negative > 0).slice(0, 5).length ? (
+                                sentimentCounts.productInsights
+                                    .filter((item) => item.negative > 0)
+                                    .slice(0, 5)
+                                    .map((item) => (
+                                        <div key={item.productId} className="flex items-center justify-between gap-3 rounded-lg bg-red-50 px-3 py-2">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-semibold text-gray-900">{item.productTitle}</p>
+                                                <p className="text-xs text-gray-500">{item.category}</p>
+                                            </div>
+                                            <span className="shrink-0 text-sm font-bold text-red-700">{item.negative} negative</span>
+                                        </div>
+                                    ))
+                            ) : (
+                                <p className="text-gray-500 text-center py-8">No negative sentiment yet</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <Package className="w-5 h-5 mr-2" />
+                            Category Sentiment
+                        </h2>
+                        <div className="space-y-3">
+                            {sentimentCounts.categoryInsights?.slice(0, 5).length ? (
+                                sentimentCounts.categoryInsights.slice(0, 5).map((item) => {
+                                    const negativeRate = item.totalReviews > 0 ? (item.negative / item.totalReviews) * 100 : 0;
+
+                                    return (
+                                        <div key={item.category}>
+                                            <div className="flex justify-between mb-1">
+                                                <span className="text-sm text-gray-600">{item.category}</span>
+                                                <span className="text-sm font-semibold text-gray-900">
+                                                    {negativeRate.toFixed(1)}% negative
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-red-500 h-2 rounded-full transition-all"
+                                                    style={{ width: `${negativeRate}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-gray-500 text-center py-8">No category sentiment available</p>
+                            )}
                         </div>
                     </div>
                 </div>

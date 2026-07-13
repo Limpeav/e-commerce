@@ -7,6 +7,19 @@ const reviewSchema = mongoose.Schema(
     name: { type: String, required: true },
     rating: { type: Number, required: true },
     comment: { type: String, required: false },
+    sentimentLabel: {
+      type: String,
+      enum: ["Positive", "Neutral", "Negative"],
+      default: "Neutral",
+    },
+    sentimentScore: {
+      type: Number,
+      default: 0,
+    },
+    sentimentAnalyzedAt: {
+      type: Date,
+      default: null,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

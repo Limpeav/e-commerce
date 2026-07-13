@@ -3,10 +3,9 @@ import RatingReviewList from "./RatingReviewList";
 const AllReviews = () => (
   <RatingReviewList
     title="Total Reviews"
-    description="All products that have customer star ratings."
+    description="All products that have customer reviews and AI sentiment results."
     emptyMessage="No product reviews found."
-    minRating={1}
-    maxRating={5}
+    sentimentFilter="all"
     tone="green"
   />
 );
