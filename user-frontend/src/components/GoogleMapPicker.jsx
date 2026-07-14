@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MapPin, X, Check, Search, Navigation } from "lucide-react";
 import { useLanguage } from "../context/useLanguage";
 
@@ -20,6 +20,25 @@ const isWithinCambodiaBounds = ({ lat, lng }) =>
   lng >= CAMBODIA_BOUNDS.west &&
   lng <= CAMBODIA_BOUNDS.east;
 
+const getCityProvinceFromText = (value = "") => {
+  const parts = String(value)
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => part.toLowerCase() !== "cambodia");
+
+  if (parts.length >= 2) {
+    return parts[parts.length - 1];
+  }
+
+  return parts[0] || "";
+};
+
+const hasAddressText = (value = "") =>
+  String(value)
+    .split(",")
+    .some((part) => part.trim());
+
 const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = false }) => {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -33,6 +52,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   const [selectedDetails, setSelectedDetails] = useState(null);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [mapAuthError, setMapAuthError] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(true);
   const [isConfirmingLocation, setIsConfirmingLocation] = useState(false);
@@ -45,25 +65,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   const resolvedInitialLocationRef = useRef("");
   const addressRequestIdRef = useRef(0);
 
-  const setCambodiaOnlyError = () => {
+  const setCambodiaOnlyError = useCallback(() => {
     setLocationError(t("mapPicker.cambodiaOnly"));
-  };
+  }, [t]);
 
-  const getCityProvinceFromText = (value = "") => {
-    const parts = String(value)
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .filter((part) => part.toLowerCase() !== "cambodia");
-
-    if (parts.length >= 2) {
-      return parts[parts.length - 1];
-    }
-
-    return parts[0] || "";
-  };
-
-  const extractLocationDetails = (result, fallbackLocation = selectedLocation) => {
+  const extractLocationDetails = useCallback((result, fallbackLocation = selectedLocation) => {
     const addressComponents = result?.address_components || [];
     const getAddressComponent = (...types) =>
       addressComponents.find((component) =>
@@ -125,9 +131,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         getCityProvinceFromText(fallbackFormattedAddress),
       formattedAddress: fallbackFormattedAddress,
     };
-  };
+  }, [selectedLocation]);
 
-  const reverseGeocodeLocation = (location) =>
+  const reverseGeocodeLocation = useCallback((location) =>
     new Promise((resolve) => {
       if (!window.google?.maps?.Geocoder) {
         resolve(null);
@@ -150,9 +156,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       } catch {
         resolve(null);
       }
-    });
+    }), [extractLocationDetails]);
 
-  const updateDraftLocationDetails = (details) => {
+  const updateDraftLocationDetails = useCallback((details) => {
     const locationText =
       details?.formattedAddress ||
       details?.address ||
@@ -173,21 +179,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       setAddressName(locationText);
       setSearchQuery(locationText);
     }
-  };
+  }, [addressName]);
 
-  const emitLocationSelection = (details) => {
+  const emitLocationSelection = useCallback((details) => {
     updateDraftLocationDetails(details);
     if (typeof onSelectLocation === "function") {
       onSelectLocation(details);
     }
-  };
+  }, [onSelectLocation, updateDraftLocationDetails]);
 
-  const hasAddressText = (value = "") =>
-    String(value)
-      .split(",")
-      .some((part) => part.trim());
-
-  const revealLocationOnMap = (location, { zoom = 17 } = {}) => {
+  const revealLocationOnMap = useCallback((location, { zoom = 17 } = {}) => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.panTo(location);
       mapInstanceRef.current.setZoom(zoom);
@@ -198,7 +199,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
       window.setTimeout(() => markerRef.current?.setAnimation(null), 750);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isOpen) return;
@@ -231,7 +232,13 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         emitLocationSelection(details);
       }
     });
-  }, [isGoogleMapsLoaded, initialLocation, address]);
+  }, [
+    isGoogleMapsLoaded,
+    initialLocation,
+    address,
+    reverseGeocodeLocation,
+    emitLocationSelection,
+  ]);
 
   const cleanupMapInstance = () => {
     if (mapInstanceRef.current && window.google?.maps?.event) {
@@ -289,11 +296,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   useEffect(() => {
     const previousAuthFailureHandler = window.gm_authFailure;
     window.gm_authFailure = () => {
-      setLocationError(
-        t("mapPicker.googleMapsAuthFailed", {
-          origin: window.location.origin,
-        })
-      );
+      const errorMessage = t("mapPicker.googleMapsAuthFailed", {
+        origin: window.location.origin,
+      });
+      setMapAuthError(errorMessage);
+      setLocationError(errorMessage);
       setIsGoogleMapsLoaded(false);
       setIsMapLoading(false);
     };
@@ -315,7 +322,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       } else {
         const handleLoad = () => {
           setIsGoogleMapsLoaded(true);
-          setLocationError("");
+          setLocationError((currentError) =>
+            currentError === mapAuthError ? currentError : ""
+          );
         };
         existingScript.addEventListener("load", handleLoad);
         return () => {
@@ -336,7 +345,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
     script.onload = () => {
       setIsGoogleMapsLoaded(true);
-      setLocationError("");
+      setLocationError((currentError) =>
+        currentError === mapAuthError ? currentError : ""
+      );
     };
 
     script.onerror = () => {
@@ -349,7 +360,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     return () => {
       window.gm_authFailure = previousAuthFailureHandler;
     };
-  }, [t]);
+  }, [mapAuthError, t]);
 
   // Initialize map when modal opens
   useEffect(() => {
@@ -357,7 +368,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
     if (!isGoogleMapsLoaded || !window.google || !window.google.maps) {
       setIsMapLoading(true);
-      setLocationError("Loading Google Maps...");
+      setLocationError(mapAuthError || "Loading Google Maps...");
       return;
     }
 
@@ -397,6 +408,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
           strictBounds: true,
         },
       });
+
+      if (mapAuthError) {
+        setLocationError(mapAuthError);
+      }
 
       mapInstanceRef.current = map;
 
@@ -557,7 +572,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       }
 
       setIsMapLoading(false);
-      setLocationError("");
+      if (!mapAuthError) {
+        setLocationError("");
+      }
     } catch (error) {
       console.error("Error initializing map:", error);
       setLocationError(t("mapPicker.mapInitFailed"));
@@ -569,7 +586,20 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
       }
     };
-  }, [isOpen, address, isGoogleMapsLoaded]);
+  }, [
+    isOpen,
+    address,
+    initialLocation,
+    isGoogleMapsLoaded,
+    mapAuthError,
+    selectedLocation,
+    setCambodiaOnlyError,
+    reverseGeocodeLocation,
+    updateDraftLocationDetails,
+    extractLocationDetails,
+    revealLocationOnMap,
+    t,
+  ]);
 
   useEffect(() => {
     if (!isOpen || !mapInstanceRef.current || !window.google?.maps?.event) {

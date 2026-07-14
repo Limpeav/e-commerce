@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Send } from "lucide-react";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { getOrderById } from "../../services/orderService";
@@ -53,6 +53,7 @@ const uniqueOrderItems = (items = []) =>
 export default function ReviewOrder() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
   const [isDark] = useDarkMode();
@@ -76,6 +77,13 @@ export default function ReviewOrder() {
         const data = await getOrderById(id);
         setOrder(data);
       } catch (loadError) {
+        if (loadError.response?.status === 401) {
+          const returnPath = `${location.pathname}${location.search}${location.hash}`;
+          logout();
+          navigate("/login", { replace: true, state: { from: returnPath } });
+          return;
+        }
+
         setError(loadError.response?.data?.message || loadError.message || "Unable to load this order.");
       } finally {
         setLoading(false);
@@ -83,7 +91,7 @@ export default function ReviewOrder() {
     };
 
     loadOrder();
-  }, [id]);
+  }, [id, location.hash, location.pathname, location.search, logout, navigate]);
 
   useEffect(() => {
     return () => {
@@ -143,7 +151,7 @@ export default function ReviewOrder() {
 
       return next;
     });
-  }, [reviewItems, user]);
+  }, [id, reviewItems, user]);
 
   const setRating = (productId, rating) => {
     setForms((current) => ({

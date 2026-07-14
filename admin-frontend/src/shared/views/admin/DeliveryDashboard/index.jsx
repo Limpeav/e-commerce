@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import {
+  CalendarDays,
   ChevronDown,
   Eye,
   Filter,
@@ -32,13 +33,17 @@ const DeliveryDashboardView = ({ dashboard }) => {
     handleDeliveryLogout,
     handleOpenGoogleMaps,
     handleRowNavigation,
+    handleDatePickerKeyDown,
     deliveryBusyLabel,
     deliveryMapOrderId,
     deliveryNavigatingOrderId,
     normalizeOrderStatus,
     receiptNotice,
+    selectedOrderDate,
     searchTerm,
     searchSuggestions,
+    openDatePicker,
+    setSelectedOrderDate,
     setSearchTerm,
     setStatusFilter,
     statusFilter,
@@ -107,7 +112,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
         </section>
 
         <section className="sticky top-0 z-20 -mx-4 mb-4 border-y border-gray-200 bg-gray-50/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_170px]">
             <label className="relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
@@ -137,6 +142,18 @@ const DeliveryDashboardView = ({ dashboard }) => {
                 <option value="Processing">Processing</option>
                 <option value="Delivered">Delivered</option>
               </select>
+            </label>
+            <label className="relative">
+              <CalendarDays className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="date"
+                aria-label="Select delivery date"
+                value={selectedOrderDate}
+                onChange={(event) => setSelectedOrderDate(event.target.value)}
+                onClick={openDatePicker}
+                onKeyDown={handleDatePickerKeyDown}
+                className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
             </label>
           </div>
         </section>

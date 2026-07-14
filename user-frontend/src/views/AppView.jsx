@@ -49,13 +49,29 @@ const phoneExemptPaths = [
   "/reset-password",
 ];
 
+const getSafeAuthRedirect = (requestedRedirect, fallback = "/customer") => {
+  if (
+    typeof requestedRedirect === "string" &&
+    requestedRedirect.startsWith("/") &&
+    !requestedRedirect.startsWith("//") &&
+    !requestedRedirect.startsWith("/login") &&
+    !requestedRedirect.startsWith("/register")
+  ) {
+    return requestedRedirect;
+  }
+
+  return fallback;
+};
+
 export default function AppView() {
   const location = useLocation();
   const [isStandalonePaymentScreen, setIsStandalonePaymentScreen] = useState(false);
   const { user } = useAuth();
   const [isDark] = useDarkMode();
   const { language } = useLanguage();
-  const authenticatedRedirect = user?.phone ? "/customer" : "/complete-profile";
+  const authenticatedRedirect = user?.phone
+    ? getSafeAuthRedirect(location.state?.from)
+    : "/complete-profile";
   const isPortalRoute = isPortalPath(location.pathname);
 
   useEffect(() => {

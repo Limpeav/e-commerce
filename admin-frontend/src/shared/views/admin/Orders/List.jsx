@@ -71,6 +71,9 @@ const AdminOrders = ({ renderDelivery }) => {
     const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
     const initialStatus = searchParams.get("status") || initialDeliveryViewState.statusFilter || "All";
     const [statusFilter, setStatusFilter] = useState(initialStatus);
+    const [selectedOrderDate, setSelectedOrderDate] = useState(
+        initialDeliveryViewState.selectedOrderDate || ""
+    );
     const [expandedOrderDates, setExpandedOrderDates] = useState(
         initialDeliveryViewState.expandedOrderDates || {}
     );
@@ -116,11 +119,12 @@ const AdminOrders = ({ renderDelivery }) => {
                 JSON.stringify({
                     searchTerm,
                     statusFilter,
+                    selectedOrderDate,
                     expandedOrderDates,
                 })
             );
         }
-    }, [expandedOrderDates, isDelivery, searchTerm, statusFilter]);
+    }, [expandedOrderDates, isDelivery, searchTerm, selectedOrderDate, statusFilter]);
 
     useEffect(() => {
         return () => {
@@ -192,7 +196,7 @@ const AdminOrders = ({ renderDelivery }) => {
 
     useEffect(() => {
         filterOrders();
-    }, [searchTerm, statusFilter, orders]);
+    }, [searchTerm, statusFilter, selectedOrderDate, orders]);
 
     const getOrderDateKey = (createdAt) => {
         const date = createdAt ? new Date(createdAt) : null;
@@ -220,6 +224,11 @@ const AdminOrders = ({ renderDelivery }) => {
         });
     };
 
+    const getOrderCreatedAtTime = (createdAt) => {
+        const time = createdAt ? new Date(createdAt).getTime() : 0;
+        return Number.isNaN(time) ? 0 : time;
+    };
+
     const groupedOrders = useMemo(() => {
         const groupsByDate = filteredOrders.reduce((groups, order) => {
             const dateKey = getOrderDateKey(order.createdAt);
@@ -243,7 +252,7 @@ const AdminOrders = ({ renderDelivery }) => {
             .map((group) => ({
                 ...group,
                 orders: group.orders.sort(
-                    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+                    (a, b) => getOrderCreatedAtTime(b.createdAt) - getOrderCreatedAtTime(a.createdAt)
                 ),
             }))
             .sort((a, b) => {
@@ -285,6 +294,10 @@ const AdminOrders = ({ renderDelivery }) => {
         // Filter by status
         if (statusFilter !== "All") {
             filtered = filtered.filter((order) => normalizeOrderStatus(order.orderStatus) === statusFilter);
+        }
+
+        if (selectedOrderDate) {
+            filtered = filtered.filter((order) => getOrderDateKey(order.createdAt) === selectedOrderDate);
         }
 
         // Search by order ID or user email
@@ -601,6 +614,16 @@ const AdminOrders = ({ renderDelivery }) => {
         navigate(loginPath, { replace: true });
     };
 
+    const openDatePicker = (event) => {
+        event.currentTarget.showPicker?.();
+    };
+
+    const handleDatePickerKeyDown = (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.currentTarget.showPicker?.();
+        }
+    };
+
     const deliveryOrders = useMemo(
         () =>
             orders.filter((order) =>
@@ -672,6 +695,7 @@ const AdminOrders = ({ renderDelivery }) => {
             getStatusStyle,
             groupedOrders,
             handleDeliveryLogout,
+            handleDatePickerKeyDown,
             handleOpenGoogleMaps,
             handleRowNavigation,
             deliveryBusyLabel,
@@ -679,8 +703,11 @@ const AdminOrders = ({ renderDelivery }) => {
             deliveryNavigatingOrderId,
             normalizeOrderStatus,
             receiptNotice,
+            selectedOrderDate,
             searchTerm,
             searchSuggestions: orderSearchSuggestions,
+            openDatePicker,
+            setSelectedOrderDate,
             setSearchTerm,
             setStatusFilter,
             statusFilter,
@@ -735,7 +762,7 @@ const AdminOrders = ({ renderDelivery }) => {
                     </div>
 
                     <div className="sticky top-0 z-20 -mx-4 mb-4 border-y border-gray-200 bg-gray-50/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]">
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_170px]">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                                 <input
@@ -763,6 +790,18 @@ const AdminOrders = ({ renderDelivery }) => {
                                     <option value="Processing">Processing</option>
                                     <option value="Delivered">Delivered</option>
                                 </select>
+                            </div>
+                            <div className="relative">
+                                <CalendarDays className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="date"
+                                    value={selectedOrderDate}
+                                    onChange={(e) => setSelectedOrderDate(e.target.value)}
+                                    onClick={openDatePicker}
+                                    onKeyDown={handleDatePickerKeyDown}
+                                    className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-base font-bold text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    aria-label="Select delivery date"
+                                />
                             </div>
                         </div>
                     </div>
@@ -967,7 +1006,7 @@ const AdminOrders = ({ renderDelivery }) => {
 
             {/* Filters */}
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {/* Search */}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -1000,6 +1039,29 @@ const AdminOrders = ({ renderDelivery }) => {
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="date"
+                            value={selectedOrderDate}
+                            onChange={(e) => setSelectedOrderDate(e.target.value)}
+                            onClick={openDatePicker}
+                            onKeyDown={handleDatePickerKeyDown}
+                            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                            aria-label="Select order date"
+                        />
+                        {selectedOrderDate && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedOrderDate("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                            >
+                                Clear
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
