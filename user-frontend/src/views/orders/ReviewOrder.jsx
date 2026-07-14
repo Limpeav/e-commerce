@@ -22,22 +22,15 @@ const getReviewUserId = (review) => {
   return typeof reviewUser === "object" ? reviewUser?._id : reviewUser;
 };
 
-const getReviewOrderId = (review) => {
-  const reviewOrder = review?.order;
-  return typeof reviewOrder === "object" ? reviewOrder?._id : reviewOrder;
-};
-
-const getUserReviewForItem = (item, user, orderId) => {
+const getUserReviewForItem = (item, user) => {
   const userId = user?._id || user?.id;
 
-  if (!userId || !orderId || !Array.isArray(item?.product?.reviews)) {
+  if (!userId || !Array.isArray(item?.product?.reviews)) {
     return null;
   }
 
   return item.product.reviews.find(
-    (review) =>
-      String(getReviewUserId(review)) === String(userId) &&
-      String(getReviewOrderId(review)) === String(orderId)
+    (review) => String(getReviewUserId(review)) === String(userId)
   ) || null;
 };
 
@@ -125,7 +118,7 @@ export default function ReviewOrder() {
 
       reviewItems.forEach((item) => {
         const productId = String(getProductId(item));
-        const existingReview = getUserReviewForItem(item, user, id);
+        const existingReview = getUserReviewForItem(item, user);
 
         if (!next[productId]) {
           next[productId] = {
@@ -144,14 +137,14 @@ export default function ReviewOrder() {
       reviewItems.forEach((item) => {
         const productId = String(getProductId(item));
 
-        if (getUserReviewForItem(item, user, id) && !next[productId]) {
+        if (getUserReviewForItem(item, user) && !next[productId]) {
           next[productId] = "existing";
         }
       });
 
       return next;
     });
-  }, [id, reviewItems, user]);
+  }, [reviewItems, user]);
 
   const setRating = (productId, rating) => {
     setForms((current) => ({

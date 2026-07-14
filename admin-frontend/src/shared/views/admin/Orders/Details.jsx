@@ -207,6 +207,12 @@ const OrderDetails = () => {
             return updatedOrder;
         });
         setUpdating(false);
+
+        window.dispatchEvent(new Event("admin-orders-updated"));
+
+        if (isDelivery && newStatus === "Delivered") {
+            navigate(ordersPath, { replace: true });
+        }
     };
 
     const handlePaymentStatusUpdate = async (newPaymentStatus) => {

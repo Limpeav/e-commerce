@@ -91,6 +91,47 @@ const attachProductReviewSentiment = (product = {}) => ({
     : [],
 });
 
+const getReviewUserKey = (review = {}) => {
+  const user = review.user;
+  const userId = typeof user === "object" ? user?._id || user : user;
+  return userId ? String(userId) : "";
+};
+
+const getReviewTime = (review = {}) => {
+  const time = new Date(review.updatedAt || review.createdAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+const dedupeReviewsByUser = (reviews = []) => {
+  const reviewsByUser = new Map();
+
+  for (const review of reviews) {
+    const userKey = getReviewUserKey(review);
+
+    if (!userKey) {
+      continue;
+    }
+
+    const currentReview = reviewsByUser.get(userKey);
+
+    if (!currentReview || getReviewTime(review) >= getReviewTime(currentReview)) {
+      reviewsByUser.set(userKey, review);
+    }
+  }
+
+  return Array.from(reviewsByUser.values()).sort(
+    (a, b) => getReviewTime(b) - getReviewTime(a)
+  );
+};
+
+const syncProductReviewStats = (product) => {
+  product.numReviews = product.reviews.length;
+  product.rating = product.reviews.length
+    ? product.reviews.reduce((acc, item) => acc + Number(item.rating || 0), 0) /
+      product.reviews.length
+    : 0;
+};
+
 const getProductSearchFilter = (keyword = "") => {
   const trimmedKeyword = String(keyword || "").trim();
 
@@ -1424,26 +1465,20 @@ export const getProductById = async (req, res) => {
       }
     }
 
-    // Check if reviews were removed
-    if (validReviews.length !== product.reviews.length) {
+    const uniqueReviews = dedupeReviewsByUser(validReviews);
+
+    // Check if reviews were removed or duplicate user/product reviews were collapsed.
+    if (validReviews.length !== product.reviews.length || uniqueReviews.length !== validReviews.length) {
       hasChanges = true;
     }
 
     // Always update product if there are changes
     if (hasChanges) {
-      product.reviews = validReviews;
-      product.numReviews = validReviews.length;
-
-      if (validReviews.length > 0) {
-        product.rating =
-          validReviews.reduce((acc, item) => item.rating + acc, 0) /
-          validReviews.length;
-      } else {
-        product.rating = 0;
-      }
+      product.reviews = uniqueReviews;
+      syncProductReviewStats(product);
 
       await product.save();
-      console.log(`Product updated: ${validReviews.length} reviews remaining`);
+      console.log(`Product updated: ${product.reviews.length} reviews remaining`);
     }
 
     const productData = applyNewArrivalWindow(product.toObject());
@@ -1638,13 +1673,11 @@ export const createProductReview = async (req, res) => {
         }
       }
 
-      const alreadyReviewed = product.reviews.find(
-        (r) =>
-          r.user.toString() === req.user._id.toString() &&
-          (reviewedOrder
-            ? r.order?.toString() === reviewedOrder._id.toString()
-            : !r.order)
+      const userReviews = product.reviews.filter(
+        (review) => review.user.toString() === req.user._id.toString()
       );
+      const alreadyReviewed = userReviews
+        .sort((a, b) => getReviewTime(b) - getReviewTime(a))[0];
 
       // Fetch current user data from database to get latest information
       const currentUser = await User.findById(req.user._id);
@@ -1660,6 +1693,7 @@ export const createProductReview = async (req, res) => {
         alreadyReviewed.name = currentUser.name;
         alreadyReviewed.rating = Number(rating);
         alreadyReviewed.comment = comment;
+        alreadyReviewed.order = reviewedOrder?._id || alreadyReviewed.order || null;
         alreadyReviewed.sentimentLabel = sentiment.label;
         alreadyReviewed.sentimentScore = sentiment.score;
         alreadyReviewed.sentimentAnalyzedAt = sentimentAnalyzedAt;
@@ -1678,11 +1712,8 @@ export const createProductReview = async (req, res) => {
         product.reviews.push(review);
       }
 
-      product.numReviews = product.reviews.length;
-
-      product.rating =
-        product.reviews.reduce((acc, item) => item.rating + acc, 0) /
-        product.reviews.length;
+      product.reviews = dedupeReviewsByUser(product.reviews);
+      syncProductReviewStats(product);
 
       await product.save();
       emitDomainChanged(
