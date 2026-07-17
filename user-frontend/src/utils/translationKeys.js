@@ -10,6 +10,7 @@ const CATEGORY_TRANSLATION_KEYS = {
   Furniture: "categories.furniture",
   "Travel & Gear": "categories.travelGear",
   "Bath & Skin": "categories.bathSkin",
+  "Toy & Play": "categories.toyPlay",
 };
 
 export const getCategoryTranslationKey = (category = "") => {

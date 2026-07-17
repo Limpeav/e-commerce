@@ -1,7 +1,18 @@
 import "../config/env.js";
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
-import { normalizeProductCategory } from "../utils/productCategories.js";
+import {
+  PRODUCT_CATEGORY_ALIASES,
+  normalizeProductCategory,
+} from "../utils/productCategories.js";
+
+const getAliasCategories = () => [
+  ...new Set(
+    Object.entries(PRODUCT_CATEGORY_ALIASES).flatMap(([canonicalCategory, aliases]) =>
+      aliases.filter((alias) => alias !== canonicalCategory)
+    )
+  ),
+];
 
 const run = async () => {
   if (!process.env.MONGO_URI) {
@@ -10,9 +21,7 @@ const run = async () => {
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  const products = await Product.find({
-    category: { $in: ["Nursery & Decor", "Nursery", "Decor", "Decore"] },
-  });
+  const products = await Product.find({ category: { $in: getAliasCategories() } });
 
   let updatedCount = 0;
 

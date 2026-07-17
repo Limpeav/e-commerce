@@ -7,10 +7,11 @@ export const PRODUCT_CATEGORY_ALIASES = {
   Furniture: ["Furniture", "Nursery & Decor", "Nursery", "Decor", "Decore"],
   "Travel & Gear": ["Travel & Gear", "Travel", "Gear"],
   "Bath & Skin": ["Bath & Skin", "Bath", "Skin"],
+  "Toy & Play": ["Toy & Play", "Toy", "Toys", "Play & Learn", "Play", "Learn"],
 };
 
 export const PRODUCT_CATEGORY_OPTIONS = Object.keys(PRODUCT_CATEGORY_ALIASES);
-export const REMOVED_PRODUCT_CATEGORIES = ["Toy", "Toys", "Play & Learn", "Play", "Learn"];
+export const REMOVED_PRODUCT_CATEGORIES = [];
 
 const CATEGORY_NORMALIZATION_MAP = Object.entries(PRODUCT_CATEGORY_ALIASES).reduce(
   (result, [canonicalCategory, aliases]) => {

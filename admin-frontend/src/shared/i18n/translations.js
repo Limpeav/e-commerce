@@ -251,6 +251,7 @@ export const translations = {
       furniture: "Furniture",
       travelGear: "Travel & Gear",
       bathSkin: "Bath & Skin",
+      toyPlay: "Toy & Play",
     },
   },
   km: {
@@ -505,6 +506,7 @@ export const translations = {
       furniture: "គ្រឿងសង្ហារឹម",
       travelGear: "សម្ភារៈធ្វើដំណើរ",
       bathSkin: "ងូតទឹកនិងថែស្បែក",
+      toyPlay: "ប្រដាប់ក្មេងលេង និងការលេង",
     },
     "Welcome Back": "សូមស្វាគមន៍មកវិញ",
     "Sign in to continue shopping": "ចូលគណនីដើម្បីបន្តទិញទំនិញ",

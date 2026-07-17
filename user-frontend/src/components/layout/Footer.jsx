@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Mail,
   Phone,
@@ -6,11 +6,23 @@ import {
 import { useLanguage } from "../../context/useLanguage";
 import BrandLogo from "../common/BrandLogo";
 
+const HOME_SECTION_NAVIGATION_EVENT = "home-section:navigate";
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { t } = useLanguage();
+  const location = useLocation();
+  const routePrefix = location.pathname.startsWith("/customer") ? "/customer" : "";
 
   const linkClass = "text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-1 inline-block";
+  const getRoute = (path) => `${routePrefix}${path}`;
+  const handleSectionLinkClick = (targetId) => {
+    window.dispatchEvent(
+      new CustomEvent(HOME_SECTION_NAVIGATION_EVENT, {
+        detail: { targetId },
+      })
+    );
+  };
 
   return (
     <footer
@@ -24,7 +36,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-16">
           {/* Brand */}
           <div className="col-span-2 space-y-6">
-            <Link to="/" className="group flex items-center gap-3">
+            <Link to={getRoute("") || "/"} className="group flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-stone-100 bg-white p-1 shadow-xl shadow-primary/20 transition-transform duration-500 group-hover:rotate-12 sm:h-14 sm:w-14 sm:rounded-2xl">
                 <BrandLogo
                   className="h-full w-full rounded-lg object-contain sm:rounded-xl"
@@ -37,15 +49,15 @@ export default function Footer() {
             </p>
             <div className="space-y-3">
               {[
-                { icon: Phone, text: "016 568 335" },
-                { icon: Mail, text: "limpeavhour@gmail.com" },
+                { icon: Phone, text: "016 568 335", href: "tel:016568335" },
+                { icon: Mail, text: "limpeavhour@gmail.com", href: "mailto:limpeavhour@gmail.com" },
               ].map((item) => (
-                <div key={item.text} className="group flex cursor-pointer items-center gap-3">
+                <a key={item.text} href={item.href} className="group flex cursor-pointer items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-bg-card transition-all group-hover:bg-primary sm:h-9 sm:w-9 sm:rounded-xl" style={{ borderColor: "var(--color-border)" }}>
                     <item.icon className="h-3.5 w-3.5 text-text-muted transition-colors group-hover:text-white sm:h-4 sm:w-4" />
                   </div>
                   <span className="text-xs font-medium tracking-wide text-text-muted transition-colors group-hover:text-primary sm:text-sm">{item.text}</span>
-                </div>
+                </a>
               ))}
             </div>
           </div>
@@ -55,13 +67,19 @@ export default function Footer() {
             <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.shop")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: t('footer.allProducts'), to: '/products' },
-                { name: t('footer.newArrivals'), to: '/products?view=new-arrivals' },
-                { name: t('footer.bestSellers'), to: '/products?view=best-sellers' },
-                { name: t('footer.deals'), to: '/deals' },
+                { name: t('footer.allProducts'), to: `${getRoute("") || "/"}#all-products`, targetId: "all-products" },
+                { name: t('footer.newArrivals'), to: `${getRoute("") || "/"}#new-arrivals`, targetId: "new-arrivals" },
+                { name: t('footer.bestSellers'), to: `${getRoute("") || "/"}#best-sellers`, targetId: "best-sellers" },
+                { name: t('footer.deals'), to: `${getRoute("") || "/"}#deals`, targetId: "deals" },
               ].map((link) => (
                 <li key={link.name}>
-                  <Link to={link.to} className={linkClass}>{link.name}</Link>
+                  <Link
+                    to={link.to}
+                    className={linkClass}
+                    onClick={() => handleSectionLinkClick(link.targetId)}
+                  >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -72,9 +90,9 @@ export default function Footer() {
             <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.support")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: t('footer.contact'), to: '/contact' },
-                { name: t('footer.faq'), to: '/knowledge-base' },
-                { name: t('footer.trackOrder'), to: '/orders/tracking' },
+                { name: t('footer.contact'), to: getRoute('/contact') },
+                { name: t('footer.faq'), to: getRoute('/knowledge-base') },
+                { name: t('footer.trackOrder'), to: getRoute('/orders/tracking') },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>
@@ -88,9 +106,10 @@ export default function Footer() {
             <h4 className="mb-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:mb-8 sm:text-xs">{t("footer.company")}</h4>
             <ul className="space-y-3 sm:space-y-3.5">
               {[
-                { name: t('footer.aboutUs'), to: '/about' },
-                { name: t('footer.privacyPolicy'), to: '/privacy' },
-                { name: t('footer.termsOfService'), to: '/terms' },
+                { name: t('footer.aboutUs'), to: getRoute('/about') },
+                { name: t('footer.location'), to: getRoute('/location') },
+                { name: t('footer.privacyPolicy'), to: getRoute('/privacy') },
+                { name: t('footer.termsOfService'), to: getRoute('/terms') },
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.to} className={linkClass}>{link.name}</Link>

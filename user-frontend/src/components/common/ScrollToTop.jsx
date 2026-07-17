@@ -49,6 +49,7 @@ export default function ScrollToTop() {
   const location = useLocation();
   const navigationType = useNavigationType();
   const isHome = HOME_PATHS.has(location.pathname);
+  const hasHash = Boolean(location.hash);
 
   useEffect(() => {
     if (!("scrollRestoration" in window.history)) return undefined;
@@ -67,6 +68,7 @@ export default function ScrollToTop() {
       : scrollPositions.get(location.key);
     const shouldRestore = savedPosition !== null
       && savedPosition !== undefined
+      && !hasHash
       && (isHome || navigationType === "POP");
     let isRestoring = shouldRestore;
     let cancelRestore = null;
@@ -75,7 +77,7 @@ export default function ScrollToTop() {
       cancelRestore = restoreScrollPosition(savedPosition, () => {
         isRestoring = false;
       });
-    } else {
+    } else if (!hasHash) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
 
@@ -98,7 +100,7 @@ export default function ScrollToTop() {
         homeScrollPosition = window.scrollY;
       }
     };
-  }, [isHome, location.key, navigationType]);
+  }, [hasHash, isHome, location.key, navigationType]);
 
   return null;
 }

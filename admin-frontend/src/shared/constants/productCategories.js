@@ -7,6 +7,7 @@ export const PRODUCT_CATEGORY_OPTIONS = [
   "Furniture",
   "Travel & Gear",
   "Bath & Skin",
+  "Toy & Play",
 ];
 
 export const PRODUCT_CATEGORY_OPTIONS_WITH_ALL = [
@@ -23,6 +24,7 @@ export const PRODUCT_CATEGORY_ALIASES = {
   Furniture: ["Furniture", "Nursery & Decor", "Nursery", "Decor", "Decore"],
   "Travel & Gear": ["Travel & Gear", "Travel", "Gear"],
   "Bath & Skin": ["Bath & Skin", "Bath", "Skin"],
+  "Toy & Play": ["Toy & Play", "Toy", "Toys", "Play & Learn", "Play", "Learn"],
 };
 
 const CATEGORY_NORMALIZATION_MAP = Object.entries(PRODUCT_CATEGORY_ALIASES).reduce(
@@ -43,7 +45,7 @@ export const normalizeProductCategory = (category = "") => {
   return CATEGORY_NORMALIZATION_MAP[trimmedCategory.toLowerCase()] || trimmedCategory;
 };
 
-export const REMOVED_PRODUCT_CATEGORIES = ["Toy", "Toys", "Play & Learn", "Play", "Learn"];
+export const REMOVED_PRODUCT_CATEGORIES = [];
 
 export const isRemovedProductCategory = (category = "") =>
   REMOVED_PRODUCT_CATEGORIES.some(

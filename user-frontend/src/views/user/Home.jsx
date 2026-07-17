@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavigationType } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
@@ -19,10 +19,13 @@ import { useDarkMode } from "../../hooks";
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useLanguage } from "../../context/useLanguage";
 import { getBestSellersByCategory } from "../../utils/bestSellers";
+import { translateCategory } from "../../utils/translationKeys";
 import {
     buildProductSearchSuggestionValues,
     getMatchingSearchSuggestions,
 } from "../../utils/searchSuggestions";
+
+const HOME_SECTION_NAVIGATION_EVENT = "home-section:navigate";
 
 function ProductSection({
     section,
@@ -84,7 +87,7 @@ function ProductSection({
         : "grid auto-rows-fr grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16";
 
     return (
-        <section className="space-y-6">
+        <section id={section.id} className="scroll-mt-40 space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -168,6 +171,7 @@ function ProductSection({
 }
 
 export default function Home() {
+    const location = useLocation();
     const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
@@ -177,6 +181,7 @@ export default function Home() {
     const prefersReducedMotion = useReducedMotion();
     
     const productsRef = useRef(null);
+    const sectionScrollTimeoutRef = useRef(null);
     const animateProducts = navigationType !== "POP" && !prefersReducedMotion;
 
     // Custom hooks
@@ -219,17 +224,30 @@ export default function Home() {
         return () => window.clearTimeout(scrollTimer);
     }, [searchQuery]);
 
+    const scrollToProductsArea = useCallback((targetId = "all-products") => {
+        let attempt = 0;
+
+        const scrollToTarget = () => {
+            const target = document.getElementById(targetId) || productsRef.current;
+
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+
+            if (attempt < 20) {
+                attempt += 1;
+                window.setTimeout(scrollToTarget, 100);
+            }
+        };
+
+        window.setTimeout(scrollToTarget, 100);
+    }, []);
+
     const handleCategorySelect = useCallback((category) => {
         setSelectedCategory(category);
-        // Add a small delay to ensure React state updates before scrolling
-        setTimeout(() => {
-            if (productsRef.current) {
-                const yOffset = -180; // Adjust for navbar and search bar height
-                const y = productsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-            }
-        }, 100);
-    }, [setSelectedCategory]);
+        scrollToProductsArea("all-products");
+    }, [scrollToProductsArea, setSelectedCategory]);
 
     const handleAddToCart = useCallback((product) => {
         if (!user) return;
@@ -243,6 +261,35 @@ export default function Home() {
     const handleClearFilters = useCallback(() => {
         setSearchQuery("");
         setSelectedCategory("All");
+    }, [setSearchQuery, setSelectedCategory]);
+
+    const scrollToHomeSection = useCallback((targetId) => {
+        if (!targetId) return;
+
+        setSearchQuery("");
+        setSelectedCategory("All");
+
+        if (sectionScrollTimeoutRef.current) {
+            window.clearTimeout(sectionScrollTimeoutRef.current);
+        }
+
+        let attempt = 0;
+        const scrollToTarget = () => {
+            const target = document.getElementById(targetId);
+
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                sectionScrollTimeoutRef.current = null;
+                return;
+            }
+
+            if (attempt < 20) {
+                attempt += 1;
+                sectionScrollTimeoutRef.current = window.setTimeout(scrollToTarget, 100);
+            }
+        };
+
+        sectionScrollTimeoutRef.current = window.setTimeout(scrollToTarget, 100);
     }, [setSearchQuery, setSelectedCategory]);
 
     const gridContainerVariants = useMemo(() => ({
@@ -266,8 +313,12 @@ export default function Home() {
 
     const productSections = useMemo(() => {
         const normalizedProducts = [...filteredProducts];
+        const sectionTitle = selectedCategory === "All"
+            ? t("product.all")
+            : translateCategory(selectedCategory, t);
         const allProductsSection = {
-            title: t("product.all"),
+            id: "all-products",
+            title: sectionTitle,
             description: searchQuery
                 ? t("product.showingMatches", { query: searchQuery })
                 : t("product.browseFullCollection"),
@@ -309,18 +360,21 @@ export default function Home() {
         return [
             ...personalizedSection,
             {
+                id: "new-arrivals",
                 title: t("product.newArrival"),
                 description: t("product.freshPicks"),
                 products: newArrivals,
                 layout: "horizontal",
             },
             {
+                id: "deals",
                 title: t("product.deal"),
                 description: t("product.strongestSavings"),
                 products: deals,
                 layout: "horizontal",
             },
             {
+                id: "best-sellers",
                 title: t("product.bestSeller"),
                 description: t("product.popularProducts"),
                 products: bestSellers,
@@ -329,6 +383,33 @@ export default function Home() {
             allProductsSection,
         ].filter((section) => section.products.length > 0);
     }, [filteredProducts, recommendationSource, recommendedProducts, searchQuery, selectedCategory, t]);
+
+    useEffect(() => {
+        if (!location.hash) return undefined;
+
+        const targetId = decodeURIComponent(location.hash.slice(1));
+        if (!targetId) return undefined;
+
+        scrollToHomeSection(targetId);
+    }, [location.hash, productSections.length, scrollToHomeSection]);
+
+    useEffect(() => {
+        const handleSectionNavigation = (event) => {
+            scrollToHomeSection(event.detail?.targetId);
+        };
+
+        window.addEventListener(HOME_SECTION_NAVIGATION_EVENT, handleSectionNavigation);
+
+        return () => {
+            window.removeEventListener(HOME_SECTION_NAVIGATION_EVENT, handleSectionNavigation);
+        };
+    }, [scrollToHomeSection]);
+
+    useEffect(() => () => {
+        if (sectionScrollTimeoutRef.current) {
+            window.clearTimeout(sectionScrollTimeoutRef.current);
+        }
+    }, []);
 
     if (error) {
         return <ErrorState error={error} onRetry={handleRetry} />;

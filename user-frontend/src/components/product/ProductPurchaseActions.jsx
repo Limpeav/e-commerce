@@ -269,7 +269,7 @@ const ProductPurchaseActions = ({
                     if (!isUnavailable) handleSelectColor(color, availableForColor);
                   }}
                   disabled={isUnavailable}
-                  className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-black transition-all active:scale-95 ${
+                  className={`flex min-h-12 items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-black transition-all active:scale-95 ${
                     isSelected
                       ? "border-[#DBDBDB] bg-[#DBDBDB] text-stone-900 shadow-md"
                       : isUnavailable
@@ -288,7 +288,24 @@ const ProductPurchaseActions = ({
                     style={{ backgroundColor: getColorSwatch(color) }}
                     aria-hidden="true"
                   />
-                  <span>{color}</span>
+                  <span className="flex flex-col items-start leading-none">
+                    <span>{color}</span>
+                    {!needsSize && (
+                      <span
+                        className={`mt-1 text-[10px] font-extrabold uppercase tracking-wide ${
+                          isSelected
+                            ? "text-stone-700"
+                            : isUnavailable
+                              ? isDark
+                                ? "text-slate-600"
+                                : "text-stone-400"
+                              : "text-text-muted"
+                        }`}
+                      >
+                        {isUnavailable ? "Out" : `qty ${availableForColor}`}
+                      </span>
+                    )}
+                  </span>
                 </button>
               );
             })}
