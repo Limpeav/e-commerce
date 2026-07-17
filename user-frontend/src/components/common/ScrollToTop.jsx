@@ -3,7 +3,15 @@ import { useLocation, useNavigationType } from "react-router-dom";
 
 const scrollPositions = new Map();
 const HOME_PATHS = new Set(["/", "/customer"]);
-let homeScrollPosition = null;
+const SAVE_SCROLL_POSITION_EVENT = "scroll-position:save";
+
+const getScrollPositionKey = (location) => {
+  if (HOME_PATHS.has(location.pathname)) {
+    return "home";
+  }
+
+  return `${location.pathname}${location.search}`;
+};
 
 const restoreScrollPosition = (top, onComplete) => {
   let frameId = null;
@@ -48,8 +56,9 @@ const restoreScrollPosition = (top, onComplete) => {
 export default function ScrollToTop() {
   const location = useLocation();
   const navigationType = useNavigationType();
-  const isHome = HOME_PATHS.has(location.pathname);
   const hasHash = Boolean(location.hash);
+  const shouldForceTop = location.state?.scrollToTop === true;
+  const scrollPositionKey = getScrollPositionKey(location);
 
   useEffect(() => {
     if (!("scrollRestoration" in window.history)) return undefined;
@@ -63,44 +72,41 @@ export default function ScrollToTop() {
   }, []);
 
   useLayoutEffect(() => {
-    const savedPosition = isHome
-      ? homeScrollPosition
-      : scrollPositions.get(location.key);
+    const savedPosition = scrollPositions.get(scrollPositionKey);
     const shouldRestore = savedPosition !== null
       && savedPosition !== undefined
       && !hasHash
-      && (isHome || navigationType === "POP");
+      && !shouldForceTop
+      && navigationType === "POP";
     let isRestoring = shouldRestore;
     let cancelRestore = null;
+
+    const saveScrollPosition = () => {
+      if (isRestoring) return;
+
+      scrollPositions.set(scrollPositionKey, window.scrollY);
+    };
 
     if (shouldRestore) {
       cancelRestore = restoreScrollPosition(savedPosition, () => {
         isRestoring = false;
       });
-    } else if (!hasHash) {
+    } else if (!hasHash || shouldForceTop) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
 
-    const saveScrollPosition = () => {
-      if (isRestoring) return;
-
-      scrollPositions.set(location.key, window.scrollY);
-      if (isHome) {
-        homeScrollPosition = window.scrollY;
-      }
-    };
-
     window.addEventListener("scroll", saveScrollPosition, { passive: true });
+    window.addEventListener("pagehide", saveScrollPosition);
+    window.addEventListener(SAVE_SCROLL_POSITION_EVENT, saveScrollPosition);
 
     return () => {
+      saveScrollPosition();
       cancelRestore?.();
       window.removeEventListener("scroll", saveScrollPosition);
-      scrollPositions.set(location.key, window.scrollY);
-      if (isHome) {
-        homeScrollPosition = window.scrollY;
-      }
+      window.removeEventListener("pagehide", saveScrollPosition);
+      window.removeEventListener(SAVE_SCROLL_POSITION_EVENT, saveScrollPosition);
     };
-  }, [hasHash, isHome, location.key, navigationType]);
+  }, [hasHash, navigationType, scrollPositionKey, shouldForceTop]);
 
   return null;
 }

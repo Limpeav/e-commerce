@@ -144,7 +144,7 @@ const ProductInfo = ({
           <Calendar className={`w-5 h-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
           <div>
             <span className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
-              Expiry Date
+              {t("product.expiryDate")}
             </span>
             <p className={`text-sm font-bold ${isDark ? 'text-amber-300' : 'text-amber-900'}`}>
               {formatExpiryDate(product.expiryDate, { long: true })}

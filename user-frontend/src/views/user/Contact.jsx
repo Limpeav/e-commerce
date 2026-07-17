@@ -69,7 +69,7 @@ export default function Contact() {
             icon: Phone,
             iconTitle: t("contact.phone"),
             title: t("contact.voiceSupport"),
-            value: "+1 (555) 000-1234",
+            value: "096 988 8919",
             description: t("contact.phoneHours"),
             color: "blue"
         },
@@ -77,7 +77,7 @@ export default function Contact() {
             icon: Mail,
             iconTitle: t("contact.email"),
             title: t("contact.emailTerminal"),
-            value: "support@cherishbabykhstore.store",
+            value: "pichvisal.theam@gmail.com",
             description: t("contact.emailHours"),
             color: "primary"
         },

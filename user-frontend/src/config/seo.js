@@ -131,9 +131,9 @@ export const organizationSchema = {
   logo: "https://cherishbabykhstore.store/logo.png",
   contactPoint: {
     "@type": "ContactPoint",
-    telephone: "+1-555-000-1234",
+    telephone: "+855969888919",
     contactType: "customer service",
-    email: "support@cherishbabykhstore.store",
+    email: "pichvisal.theam@gmail.com",
   },
   sameAs: [],
 }

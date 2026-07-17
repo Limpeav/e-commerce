@@ -26,6 +26,74 @@ import {
 } from "../../utils/searchSuggestions";
 
 const HOME_SECTION_NAVIGATION_EVENT = "home-section:navigate";
+const HOME_PRODUCT_ORDER_STORAGE_KEY = "cherish-home-product-order-v1";
+const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
+
+const shuffleProducts = (products = []) => {
+    const shuffled = [...products];
+
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+    }
+
+    return shuffled;
+};
+
+const getProductStableId = (product, index) =>
+    String(product?._id || product?.id || product?.slug || `${product?.title || product?.name || "product"}-${index}`);
+
+const readStoredHomeProductOrder = () => {
+    if (typeof window === "undefined") return [];
+
+    try {
+        const storedOrder = window.sessionStorage.getItem(HOME_PRODUCT_ORDER_STORAGE_KEY);
+        const parsedOrder = storedOrder ? JSON.parse(storedOrder) : [];
+        return Array.isArray(parsedOrder) ? parsedOrder.map(String) : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeStoredHomeProductOrder = (order) => {
+    if (typeof window === "undefined") return;
+
+    try {
+        window.sessionStorage.setItem(HOME_PRODUCT_ORDER_STORAGE_KEY, JSON.stringify(order));
+    } catch {
+        // Ignore storage failures; the current render still gets a stable memoized order.
+    }
+};
+
+const getSessionHomeProductOrder = (products = []) => {
+    const productIds = products.map(getProductStableId);
+    const currentProductIds = new Set(productIds);
+    const storedOrder = readStoredHomeProductOrder();
+    const retainedOrder = storedOrder.filter((productId) => currentProductIds.has(productId));
+    const retainedIds = new Set(retainedOrder);
+    const newProductIds = productIds.filter((productId) => !retainedIds.has(productId));
+    const nextOrder = [...retainedOrder, ...shuffleProducts(newProductIds)];
+
+    if (
+        nextOrder.length !== storedOrder.length ||
+        nextOrder.some((productId, index) => productId !== storedOrder[index])
+    ) {
+        writeStoredHomeProductOrder(nextOrder);
+    }
+
+    return nextOrder;
+};
+
+const sortProductsByStableOrder = (products = [], orderedProductIds = []) => {
+    const orderById = new Map(orderedProductIds.map((productId, index) => [productId, index]));
+
+    return [...products].sort((a, b) => {
+        const aOrder = orderById.get(getProductStableId(a, 0)) ?? Number.MAX_SAFE_INTEGER;
+        const bOrder = orderById.get(getProductStableId(b, 0)) ?? Number.MAX_SAFE_INTEGER;
+
+        return aOrder - bOrder;
+    });
+};
 
 function ProductSection({
     section,
@@ -313,6 +381,8 @@ export default function Home() {
 
     const productSections = useMemo(() => {
         const normalizedProducts = [...filteredProducts];
+        const homeProductOrder = getSessionHomeProductOrder(products);
+        const shuffledProducts = sortProductsByStableOrder(normalizedProducts, homeProductOrder);
         const sectionTitle = selectedCategory === "All"
             ? t("product.all")
             : translateCategory(selectedCategory, t);
@@ -322,7 +392,7 @@ export default function Home() {
             description: searchQuery
                 ? t("product.showingMatches", { query: searchQuery })
                 : t("product.browseFullCollection"),
-            products: normalizedProducts,
+            products: shuffledProducts,
         };
 
         if (selectedCategory !== "All") {
@@ -382,7 +452,7 @@ export default function Home() {
             },
             allProductsSection,
         ].filter((section) => section.products.length > 0);
-    }, [filteredProducts, recommendationSource, recommendedProducts, searchQuery, selectedCategory, t]);
+    }, [filteredProducts, products, recommendationSource, recommendedProducts, searchQuery, selectedCategory, t]);
 
     useEffect(() => {
         if (!location.hash) return undefined;
@@ -392,6 +462,69 @@ export default function Home() {
 
         scrollToHomeSection(targetId);
     }, [location.hash, productSections.length, scrollToHomeSection]);
+
+    useEffect(() => {
+        if (navigationType !== "POP" || loading || location.hash) return undefined;
+
+        let returnPosition = null;
+
+        try {
+            const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+            returnPosition = storedPosition ? JSON.parse(storedPosition) : null;
+        } catch {
+            returnPosition = null;
+        }
+
+        if (!returnPosition?.productId) return undefined;
+
+        let attempt = 0;
+        let restoreTimer = null;
+        let frameId = null;
+
+        const restoreProductPosition = () => {
+            const targetCard = Array.from(document.querySelectorAll("[data-product-card]"))
+                .find((card) => card.dataset.productId === String(returnPosition.productId));
+
+            if (targetCard) {
+                const cardRect = targetCard.getBoundingClientRect();
+                const cardTop = Number(returnPosition.cardTop);
+                const fallbackTop = Number(returnPosition.scrollY);
+                const nextTop = Number.isFinite(cardTop)
+                    ? window.scrollY + cardRect.top - cardTop
+                    : fallbackTop;
+
+                if (Number.isFinite(nextTop)) {
+                    window.scrollTo({ top: Math.max(0, nextTop), left: 0, behavior: "auto" });
+                }
+
+                try {
+                    window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+                } catch {
+                    // Ignore storage failures.
+                }
+
+                return;
+            }
+
+            if (attempt < 20) {
+                attempt += 1;
+                restoreTimer = window.setTimeout(() => {
+                    frameId = window.requestAnimationFrame(restoreProductPosition);
+                }, 100);
+            }
+        };
+
+        frameId = window.requestAnimationFrame(restoreProductPosition);
+
+        return () => {
+            if (restoreTimer) {
+                window.clearTimeout(restoreTimer);
+            }
+            if (frameId) {
+                window.cancelAnimationFrame(frameId);
+            }
+        };
+    }, [loading, location.hash, navigationType, productSections.length]);
 
     useEffect(() => {
         const handleSectionNavigation = (event) => {

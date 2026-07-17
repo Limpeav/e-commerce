@@ -16,6 +16,12 @@ export default function Footer() {
 
   const linkClass = "text-xs sm:text-sm font-medium text-text-muted hover:text-primary transition-all hover:translate-x-1 inline-block";
   const getRoute = (path) => `${routePrefix}${path}`;
+  const homeLinkState = { scrollToTop: true };
+  const scrollHomeToTop = () => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+  };
   const handleSectionLinkClick = (targetId) => {
     window.dispatchEvent(
       new CustomEvent(HOME_SECTION_NAVIGATION_EVENT, {
@@ -36,7 +42,12 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-16">
           {/* Brand */}
           <div className="col-span-2 space-y-6">
-            <Link to={getRoute("") || "/"} className="group flex items-center gap-3">
+            <Link
+              to={getRoute("") || "/"}
+              state={homeLinkState}
+              onClick={scrollHomeToTop}
+              className="group flex items-center gap-3"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-stone-100 bg-white p-1 shadow-xl shadow-primary/20 transition-transform duration-500 group-hover:rotate-12 sm:h-14 sm:w-14 sm:rounded-2xl">
                 <BrandLogo
                   className="h-full w-full rounded-lg object-contain sm:rounded-xl"
@@ -49,8 +60,8 @@ export default function Footer() {
             </p>
             <div className="space-y-3">
               {[
-                { icon: Phone, text: "016 568 335", href: "tel:016568335" },
-                { icon: Mail, text: "limpeavhour@gmail.com", href: "mailto:limpeavhour@gmail.com" },
+                { icon: Phone, text: "096 988 8919", href: "tel:0969888919" },
+                { icon: Mail, text: "pichvisal.theam@gmail.com", href: "mailto:pichvisal.theam@gmail.com" },
               ].map((item) => (
                 <a key={item.text} href={item.href} className="group flex cursor-pointer items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-bg-card transition-all group-hover:bg-primary sm:h-9 sm:w-9 sm:rounded-xl" style={{ borderColor: "var(--color-border)" }}>

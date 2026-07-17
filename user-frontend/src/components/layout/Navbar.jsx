@@ -169,6 +169,13 @@ export default function Navbar() {
   const nextThemeMode = themeOrder[(currentThemeIndex + 1) % themeOrder.length];
   const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
   const handleThemeClick = () => setThemeMode(nextThemeMode);
+  const homeLinkState = { scrollToTop: true };
+
+  const scrollHomeToTop = () => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+  };
 
   const handleLogout = () => {
     logout();
@@ -189,7 +196,12 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="h-20 flex justify-between items-center">
             {/* Logo */}
-            <Link to="/customer" className="flex items-center gap-3 group">
+            <Link
+              to="/customer"
+              state={homeLinkState}
+              onClick={scrollHomeToTop}
+              className="flex items-center gap-3 group"
+            >
               <Motion.div
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 className="flex h-12 w-12 items-center justify-center transition-all duration-300"
@@ -368,7 +380,12 @@ export default function Navbar() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link to="/customer" className="flex items-center gap-2">
+            <Link
+              to="/customer"
+              state={homeLinkState}
+              onClick={scrollHomeToTop}
+              className="flex items-center gap-2"
+            >
               <div className="flex h-9 w-9 items-center justify-center">
                 <BrandLogo className="h-full w-full object-contain" />
               </div>

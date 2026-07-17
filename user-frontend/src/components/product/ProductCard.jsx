@@ -12,6 +12,9 @@ import {
   productSupportsExpiry,
 } from '../../utils/productExpiry';
 
+const SAVE_SCROLL_POSITION_EVENT = 'scroll-position:save';
+const PRODUCT_RETURN_POSITION_STORAGE_KEY = 'cherish-product-return-position-v1';
+
 const ProductCard = ({
   product,
   onAddToCart,
@@ -33,9 +36,29 @@ const ProductCard = ({
   const { language, t } = useLanguage();
   const localizedProduct = getLocalizedProductText(product, language);
   const navigate = useNavigate();
+  const cardRef = React.useRef(null);
   const roundedRating = Math.min(5, Math.max(0, Math.round(Number(product.rating) || 0)));
 
+  const saveReturnPosition = () => {
+    window.dispatchEvent(new Event(SAVE_SCROLL_POSITION_EVENT));
+    const cardRect = cardRef.current?.getBoundingClientRect();
+
+    try {
+      window.sessionStorage.setItem(
+        PRODUCT_RETURN_POSITION_STORAGE_KEY,
+        JSON.stringify({
+          productId: product._id,
+          scrollY: window.scrollY,
+          cardTop: cardRect?.top ?? null,
+        })
+      );
+    } catch {
+      // Ignore storage failures; global scroll restoration still handles normal browsers.
+    }
+  };
+
   const openProductDetails = () => {
+    saveReturnPosition();
     navigate(`/products/${product._id}`);
   };
 
@@ -53,7 +76,9 @@ const ProductCard = ({
 
   return (
     <Motion.article
+      ref={cardRef}
       data-product-card
+      data-product-id={product._id}
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
@@ -80,7 +105,10 @@ const ProductCard = ({
       <div className={`relative aspect-square overflow-hidden rounded-xl sm:rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
         <Link
           to={`/products/${product._id}`}
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            saveReturnPosition();
+          }}
           className="block h-full w-full"
         >
           <img
@@ -130,7 +158,10 @@ const ProductCard = ({
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}
-              onClick={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                saveReturnPosition();
+              }}
               className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-xl shadow-[0_18px_36px_-18px_rgba(122,150,126,0.48)] transition-transform hover:scale-105 active:scale-95"
               title={t("product.chooseSize")}
             >
@@ -183,7 +214,10 @@ const ProductCard = ({
         {/* Title */}
         <Link
           to={`/products/${product._id}`}
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            saveReturnPosition();
+          }}
           className="cursor-pointer transition-colors duration-300 group-hover:text-primary"
         >
           <h3 data-no-static-translation className={`font-bold text-sm leading-snug line-clamp-1 min-h-[1.125rem] sm:min-h-[1.375rem] sm:text-lg ${isDark ? 'text-slate-50' : 'text-stone-900'}`}>
@@ -200,7 +234,7 @@ const ProductCard = ({
         {productSupportsExpiry(product.category) && product.expiryDate && (
           <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
             <Calendar className="w-3 h-3" />
-            <span>Expires: {formatExpiryDate(product.expiryDate)}</span>
+            <span>{t("product.expires")}: {formatExpiryDate(product.expiryDate)}</span>
           </div>
         )}
 
@@ -222,7 +256,10 @@ const ProductCard = ({
           {needsSize && user && !outOfStock ? (
             <Link
               to={`/products/${product._id}`}
-              onClick={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                saveReturnPosition();
+              }}
               className={`md:hidden rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider sm:px-4 sm:text-xs ${isDark ? 'bg-primary/15 text-primary-light' : 'bg-primary/10 text-primary'}`}
             >
               Size
@@ -240,7 +277,10 @@ const ProductCard = ({
           {/* Desktop: View Details Arrow */}
           <Link
             to={`/products/${product._id}`}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              saveReturnPosition();
+            }}
             className={`hidden items-center gap-1 text-xs font-bold transition-colors group-hover:text-primary md:flex ${isDark ? 'text-slate-400' : 'text-stone-300'}`}
           >
             {t('product.details')} <ArrowRight className="w-3 h-3" />

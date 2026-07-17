@@ -185,7 +185,7 @@ export default function Terms() {
                                 <p className="text-sm font-medium text-text-muted">
                                     For questions about these terms, please reach out to us:
                                 </p>
-                                <p className="mt-2 text-sm font-bold text-text-main">support@cherishbabykhstore.store</p>
+                                <p className="mt-2 text-sm font-bold text-text-main">pichvisal.theam@gmail.com</p>
                             </div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10" style={{ borderColor: "var(--color-border)" }}>
                                 <Mail className="h-5 w-5 text-primary" />
