@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion as Motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -14,9 +14,11 @@ import ProductCard from "../../components/product/ProductCard";
 import ProductLoadingPlaceholder from "../../components/product/ProductLoadingPlaceholder";
 import SEO from "../../components/seo/SEO";
 import { useDarkMode } from "../../hooks";
+import { useScrollVisibility } from "../../hooks/useScrollVisibility";
 
 // Hooks
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
+import { useVisibleProductRows } from "../../hooks/useVisibleProductRows";
 import { useLanguage } from "../../context/useLanguage";
 import { getBestSellersByCategory } from "../../utils/bestSellers";
 import { translateCategory } from "../../utils/translationKeys";
@@ -111,6 +113,17 @@ function ProductSection({
     const isHorizontal = section.layout === "horizontal";
     const [canScrollPrev, setCanScrollPrev] = useState(false);
     const [canScrollNext, setCanScrollNext] = useState(false);
+    const productListKey = useMemo(
+        () => section.products.map((product, index) => getProductStableId(product, index)).join("|"),
+        [section.products]
+    );
+    const { visibleCount, hasMoreProducts, showMoreProducts } = useVisibleProductRows({
+        totalProducts: section.products.length,
+        resetKey: `${section.id}-${section.title}-${productListKey}`,
+    });
+    const visibleProducts = isHorizontal
+        ? section.products
+        : section.products.slice(0, visibleCount);
 
     const updateScrollState = useCallback(() => {
         const container = scrollRef.current;
@@ -220,7 +233,7 @@ function ProductSection({
                     animate="show"
                     className={productsContainerClass}
                 >
-                    {section.products.map((product) => (
+                    {visibleProducts.map((product) => (
                         <ProductCard
                             key={`${section.title}-${product._id}`}
                             product={product}
@@ -229,10 +242,27 @@ function ProductSection({
                             isInWishlist={isInWishlist}
                             user={user}
                             variants={gridItemVariants}
+                            productSectionId={section.id}
                             className={isHorizontal ? "h-[27rem] w-[calc((100%_-_1.5rem)*0.4545)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72" : ""}
                         />
                     ))}
                 </Motion.div>
+                {!isHorizontal && hasMoreProducts && (
+                    <div className="mt-8 flex justify-center sm:mt-12">
+                        <button
+                            type="button"
+                            onClick={showMoreProducts}
+                            className={`inline-flex items-center gap-2 rounded-2xl border px-6 py-3 text-sm font-bold transition-all active:scale-95 sm:px-8 sm:py-4 ${
+                                isDark
+                                    ? "border-slate-700 bg-slate-900 text-slate-100 hover:border-primary hover:text-primary-light"
+                                    : "border-stone-200 bg-white text-text-main shadow-sm hover:border-primary/40 hover:text-primary hover:shadow-md"
+                            }`}
+                        >
+                            {t("product.seeMore")}
+                            <ChevronDown className="h-4 w-4" />
+                        </button>
+                    </div>
+                )}
             </div>
         </section>
     );
@@ -245,6 +275,7 @@ export default function Home() {
     const { user } = useAuth();
     const { language, t } = useLanguage();
     const [isDark] = useDarkMode();
+    const isSearchBarVisible = useScrollVisibility();
     const navigationType = useNavigationType();
     const prefersReducedMotion = useReducedMotion();
     
@@ -403,6 +434,7 @@ export default function Home() {
             !searchQuery.trim() && recommendedProducts.length > 0;
         const personalizedSection = shouldShowPersonalizedRecommendations
             ? [{
+                id: "recommended-for-you",
                 title: t("product.recommendedForYou"),
                 description: recommendationSource === "orders"
                     ? t("product.recommendedFromPurchases")
@@ -482,8 +514,14 @@ export default function Home() {
         let frameId = null;
 
         const restoreProductPosition = () => {
-            const targetCard = Array.from(document.querySelectorAll("[data-product-card]"))
-                .find((card) => card.dataset.productId === String(returnPosition.productId));
+            const matchingCards = Array.from(document.querySelectorAll("[data-product-card]"))
+                .filter((card) => card.dataset.productId === String(returnPosition.productId));
+            const targetCard = returnPosition.sectionId
+                ? matchingCards.find((card) => (
+                    card.dataset.productSection === String(returnPosition.sectionId) ||
+                    card.closest("section[id]")?.id === String(returnPosition.sectionId)
+                )) || matchingCards[0]
+                : matchingCards[0];
 
             if (targetCard) {
                 const cardRect = targetCard.getBoundingClientRect();
@@ -557,7 +595,7 @@ export default function Home() {
             />
             <div className={`min-h-screen font-sans pt-14 sm:pt-16 lg:pt-20 pb-16 lg:pb-0 transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
             {/* Top Navigation Wrapper - Positioned below fixed navbar */}
-            <div className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
+            <div className={`sticky top-14 sm:top-16 lg:top-20 z-40 transform-gpu backdrop-blur-xl transition-[transform,opacity,background-color,color,border-color] duration-300 ease-out will-change-transform ${isSearchBarVisible ? "translate-y-0 opacity-100" : "-translate-y-[calc(100%+5rem)] opacity-0 pointer-events-none"} ${isDark ? "bg-slate-950/88" : "bg-bg-base/80"}`}>
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}

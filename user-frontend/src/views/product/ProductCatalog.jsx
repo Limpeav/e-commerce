@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
 import { useAuth } from "../../context/useAuth";
 import { useProducts, useProductFilters } from "../../hooks/useProducts";
 import { useDarkMode } from "../../hooks";
+import { useScrollVisibility } from "../../hooks/useScrollVisibility";
 import ErrorState from "../../components/product/ErrorState";
 import SearchBar from "../../components/home/SearchBar";
 import ProductsGrid from "../../components/product/ProductsGrid";
@@ -36,6 +37,8 @@ const VIEW_CONFIG_KEYS = {
     description: "product.strongestSavings",
   },
 };
+
+const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
 
 const sortByDeals = (products) =>
   [...products]
@@ -79,7 +82,9 @@ export default function ProductCatalog() {
   const { user } = useAuth();
   const { language, t } = useLanguage();
   const [isDark] = useDarkMode();
+  const isSearchBarVisible = useScrollVisibility();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [searchParams] = useSearchParams();
   const resultsRef = useRef(null);
   const [categoryProducts, setCategoryProducts] = useState([]);
@@ -179,8 +184,73 @@ export default function ProductCatalog() {
   const productCount = isCatalogLoading ? products.length : visibleProducts.length;
 
   useEffect(() => {
+    if (navigationType === "POP") return;
+
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [activeView]);
+  }, [activeView, navigationType]);
+
+  useEffect(() => {
+    if (navigationType !== "POP" || isCatalogLoading || location.hash) return undefined;
+
+    let returnPosition = null;
+
+    try {
+      const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+      returnPosition = storedPosition ? JSON.parse(storedPosition) : null;
+    } catch {
+      returnPosition = null;
+    }
+
+    if (!returnPosition?.productId) return undefined;
+
+    let attempt = 0;
+    let restoreTimer = null;
+    let frameId = null;
+
+    const restoreProductPosition = () => {
+      const targetCard = Array.from(document.querySelectorAll("[data-product-card]"))
+        .find((card) => card.dataset.productId === String(returnPosition.productId));
+
+      if (targetCard) {
+        const cardRect = targetCard.getBoundingClientRect();
+        const cardTop = Number(returnPosition.cardTop);
+        const fallbackTop = Number(returnPosition.scrollY);
+        const nextTop = Number.isFinite(cardTop)
+          ? window.scrollY + cardRect.top - cardTop
+          : fallbackTop;
+
+        if (Number.isFinite(nextTop)) {
+          window.scrollTo({ top: Math.max(0, nextTop), left: 0, behavior: "auto" });
+        }
+
+        try {
+          window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+        } catch {
+          // Ignore storage failures.
+        }
+
+        return;
+      }
+
+      if (attempt < 20) {
+        attempt += 1;
+        restoreTimer = window.setTimeout(() => {
+          frameId = window.requestAnimationFrame(restoreProductPosition);
+        }, 100);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(restoreProductPosition);
+
+    return () => {
+      if (restoreTimer) {
+        window.clearTimeout(restoreTimer);
+      }
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isCatalogLoading, location.hash, navigationType, visibleProducts.length]);
 
   useEffect(() => {
     if (!searchQuery.trim()) return undefined;
@@ -239,7 +309,7 @@ export default function ProductCatalog() {
         }`}
       >
       <div
-        className={`sticky top-14 sm:top-16 lg:top-20 z-40 backdrop-blur-xl transition-colors duration-300 ${
+        className={`sticky top-14 sm:top-16 lg:top-20 z-40 transform-gpu backdrop-blur-xl transition-[transform,opacity,background-color,color,border-color] duration-300 ease-out will-change-transform ${isSearchBarVisible ? "translate-y-0 opacity-100" : "-translate-y-[calc(100%+5rem)] opacity-0 pointer-events-none"} ${
           isDark ? "bg-slate-950/88" : "bg-bg-base/80"
         }`}
       >

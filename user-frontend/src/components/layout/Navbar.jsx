@@ -24,6 +24,7 @@ import { useAuth } from "../../context/useAuth";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useDarkMode } from "../../hooks";
+import { useScrollVisibility } from "../../hooks/useScrollVisibility";
 import { useLanguage } from "../../context/useLanguage";
 import { supportedLanguages } from "../../i18n/translations";
 import { useToast } from "../../context/useToast";
@@ -67,6 +68,7 @@ export default function Navbar() {
   const [isDark, , themeMode, setThemeMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const isScrollNavbarVisible = useScrollVisibility();
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const accountDropdownRef = useRef(null);
 
@@ -170,6 +172,10 @@ export default function Navbar() {
   const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
   const handleThemeClick = () => setThemeMode(nextThemeMode);
   const homeLinkState = { scrollToTop: true };
+  const isNavbarVisible = isScrollNavbarVisible || showDropdown || showMobileMenu;
+  const navbarVisibilityClassName = isNavbarVisible
+    ? "translate-y-0 opacity-100 shadow-sm"
+    : "-translate-y-full opacity-0 shadow-none pointer-events-none";
 
   const scrollHomeToTop = () => {
     window.requestAnimationFrame(() => {
@@ -190,7 +196,7 @@ export default function Navbar() {
     <>
       {/* Desktop Navbar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[100] hidden border-b backdrop-blur-xl transition-colors duration-300 lg:block ${shellClassName}`}
+        className={`fixed top-0 left-0 right-0 z-[100] hidden transform-gpu border-b backdrop-blur-xl transition-[transform,opacity,box-shadow,background-color,color,border-color] duration-300 ease-out will-change-transform lg:block ${navbarVisibilityClassName} ${shellClassName}`}
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="max-w-7xl mx-auto px-6">
@@ -368,7 +374,7 @@ export default function Navbar() {
 
       {/* Mobile Header - Compact & Sticky */}
       <nav
-        className={`safe-area-top fixed top-0 left-0 right-0 z-[90] border-b backdrop-blur-xl transition-colors duration-300 lg:hidden ${isDark ? "bg-[#1A1C19]/95" : "bg-[#FCF9F5]/95"}`}
+        className={`safe-area-top fixed top-0 left-0 right-0 z-[90] transform-gpu border-b backdrop-blur-xl transition-[transform,opacity,box-shadow,background-color,color,border-color] duration-300 ease-out will-change-transform lg:hidden ${navbarVisibilityClassName} ${isDark ? "bg-[#1A1C19]/95" : "bg-[#FCF9F5]/95"}`}
         style={{ borderColor: "var(--color-border)" }}
       >
         <div className="px-4 h-16 flex justify-between items-center">

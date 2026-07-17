@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
+import { useVisibleProductRows } from '../../hooks/useVisibleProductRows';
 
 const container = {
   hidden: { opacity: 0 },
@@ -32,6 +33,11 @@ const ProductsGrid = ({
 }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
+  const { visibleCount, hasMoreProducts, showMoreProducts } = useVisibleProductRows({
+    totalProducts: filteredProducts.length,
+    resetKey: `${selectedCategory}-${searchQuery}-${filteredProducts.length}`,
+  });
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
 
   return (
     <AnimatePresence mode="wait">
@@ -41,19 +47,37 @@ const ProductsGrid = ({
           initial="hidden"
           animate="show"
           key={selectedCategory + searchQuery}
-          className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-x-8 md:gap-y-16"
+          className="space-y-8 sm:space-y-12"
         >
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product._id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onWishlistToggle={onWishlistToggle}
-              isInWishlist={isInWishlist}
-              user={user}
-              variants={item}
-            />
-          ))}
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16">
+            {visibleProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onAddToCart={onAddToCart}
+                onWishlistToggle={onWishlistToggle}
+                isInWishlist={isInWishlist}
+                user={user}
+                variants={item}
+              />
+            ))}
+          </div>
+          {hasMoreProducts && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={showMoreProducts}
+                className={`inline-flex items-center gap-2 rounded-2xl border px-6 py-3 text-sm font-bold transition-all active:scale-95 sm:px-8 sm:py-4 ${
+                  isDark
+                    ? "border-slate-700 bg-slate-900 text-slate-100 hover:border-primary hover:text-primary-light"
+                    : "border-stone-200 bg-white text-text-main shadow-sm hover:border-primary/40 hover:text-primary hover:shadow-md"
+                }`}
+              >
+                {t("product.seeMore")}
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </Motion.div>
       ) : (
         <Motion.div

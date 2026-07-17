@@ -22,6 +22,7 @@ const ProductCard = ({
   isInWishlist,
   user,
   variants,
+  productSectionId,
   className = ""
 }) => {
   const price = Number(product.price || 0);
@@ -42,12 +43,17 @@ const ProductCard = ({
   const saveReturnPosition = () => {
     window.dispatchEvent(new Event(SAVE_SCROLL_POSITION_EVENT));
     const cardRect = cardRef.current?.getBoundingClientRect();
+    const sectionId =
+      productSectionId ||
+      cardRef.current?.closest('section[id]')?.id ||
+      null;
 
     try {
       window.sessionStorage.setItem(
         PRODUCT_RETURN_POSITION_STORAGE_KEY,
         JSON.stringify({
           productId: product._id,
+          sectionId,
           scrollY: window.scrollY,
           cardTop: cardRect?.top ?? null,
         })
@@ -79,6 +85,7 @@ const ProductCard = ({
       ref={cardRef}
       data-product-card
       data-product-id={product._id}
+      data-product-section={productSectionId || undefined}
       variants={variants}
       whileHover={{ y: -8 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
