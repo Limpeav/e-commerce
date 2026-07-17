@@ -147,13 +147,13 @@ export default function Hero() {
 
     return (
         <div className={`w-full px-3 pb-4 pt-1 transition-colors duration-300 sm:px-4 sm:pb-8 sm:pt-2 md:px-6 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
-            <div className="max-w-6xl mx-auto">
+            <div className="mx-auto max-w-[1024px]">
                 <Motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     ref={sliderRef}
-                    className={`w-full relative rounded-2xl sm:rounded-[2.5rem] overflow-hidden min-h-[200px] sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px] text-white ${
+                    className={`relative aspect-video w-full overflow-hidden rounded-2xl text-white sm:rounded-[2.5rem] ${
                         isDark
                             ? "bg-slate-900 shadow-[0_30px_80px_-24px_rgba(15,23,42,0.95)]"
                             : "bg-white shadow-2xl"
@@ -165,7 +165,7 @@ export default function Hero() {
                         onPointerUp={handleDragEnd}
                         onPointerCancel={handleDragEnd}
                         onPointerLeave={handleDragEnd}
-                        className="relative overflow-hidden touch-pan-y"
+                        className="relative h-full overflow-hidden touch-pan-y"
                     >
                         <div
                             className={`relative z-10 flex h-full ${isDragging ? "" : "transition-transform duration-500 ease-out"}`}
@@ -177,7 +177,7 @@ export default function Hero() {
                             {slides.map((slide, index) => (
                                 <div
                                     key={`${slide.alt}-${index}`}
-                                    className="relative min-h-[200px] min-w-full sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px]"
+                                    className="relative h-full min-w-full"
                                     style={{ width: containerWidth || "100%" }}
                                 >
                                     <img
@@ -187,7 +187,7 @@ export default function Hero() {
                                         loading={index === 0 ? "eager" : "lazy"}
                                         decoding="async"
                                         fetchPriority={index === 0 ? "high" : "low"}
-                                        className="pointer-events-none block h-full min-h-[200px] w-full select-none object-cover sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px]"
+                                        className="pointer-events-none block h-full w-full select-none object-contain"
                                     />
                                 </div>
                             ))}

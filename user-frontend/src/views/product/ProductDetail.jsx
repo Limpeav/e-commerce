@@ -9,7 +9,6 @@ import { useDarkMode } from "../../hooks";
 // Components
 import ProductImage from "../../components/product/ProductImage";
 import ProductInfo from "../../components/product/ProductInfo";
-import ProductPurchaseActions from "../../components/product/ProductPurchaseActions";
 import RelatedProducts from "../../components/product/RelatedProducts";
 import Loading from "../../components/common/Loading";
 import SEO from "../../components/seo/SEO";
@@ -17,7 +16,6 @@ import SEO from "../../components/seo/SEO";
 // Hooks
 import { useProductDetail } from "../../hooks/useProductDetail";
 import { useLanguage } from "../../context/useLanguage";
-import { normalizeProductCategory } from "../../constants/productCategories";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -94,10 +92,6 @@ export default function ProductDetail() {
       reviewCount: product.numReviews || 0,
     } : undefined,
   } : null
-  const normalizedCategory = normalizeProductCategory(product.category);
-  const showPurchaseActionsUnderImage =
-    normalizedCategory === "Milk" || normalizedCategory === "Bath & Skin";
-
   return (
     <>
       <SEO
@@ -133,20 +127,6 @@ export default function ProductDetail() {
               onWishlist={handleWishlist}
               isInWishlist={isInWishlist(product._id)}
             />
-            {showPurchaseActionsUnderImage && (
-              <div className="hidden w-full lg:block lg:px-0">
-                <ProductPurchaseActions
-                  product={product}
-                  quantity={quantity}
-                  setQuantity={setQuantity}
-                  onAddToCart={handleAddToCart}
-                  onLoginRequired={() => navigate("/login")}
-                  user={user}
-                  selectedColor={selectedColor}
-                  onColorChange={setSelectedColor}
-                />
-              </div>
-            )}
           </div>
 
           {/* Product Details Section */}
@@ -159,8 +139,6 @@ export default function ProductDetail() {
             user={user}
             selectedColor={selectedColor}
             onColorChange={setSelectedColor}
-            showPurchaseActions={!showPurchaseActionsUnderImage}
-            showPurchaseActionsOnMobile={showPurchaseActionsUnderImage}
           />
         </div>
 

@@ -26,12 +26,36 @@ const colorAssets = [
   { color: "Warm Cream", path: `${ASSET_DIR}/warm-cream.png` },
 ];
 
-const detailAssets = [
-  `${ASSET_DIR}/collar-detail.png`,
-  `${ASSET_DIR}/sleeve-detail.png`,
-  `${ASSET_DIR}/button-detail.png`,
-  `${ASSET_DIR}/embroidery-detail.png`,
-  `${ASSET_DIR}/hem-detail.png`,
+const detailAssetsByColor = [
+  {
+    color: "Sky Blue",
+    assets: [
+      `${ASSET_DIR}/collar-detail.png`,
+      `${ASSET_DIR}/sleeve-detail.png`,
+      `${ASSET_DIR}/button-detail.png`,
+      `${ASSET_DIR}/embroidery-detail.png`,
+      `${ASSET_DIR}/sky-blue-backside.png`,
+    ],
+  },
+  {
+    color: "Blush Pink",
+    assets: [
+      `${ASSET_DIR}/blush-pink-collar-detail.png`,
+      `${ASSET_DIR}/blush-pink-button-detail.png`,
+      `${ASSET_DIR}/blush-pink-embroidery-detail.png`,
+      `${ASSET_DIR}/blush-pink-backside.png`,
+    ],
+  },
+  {
+    color: "Warm Cream",
+    assets: [
+      `${ASSET_DIR}/warm-cream-collar-detail.png`,
+      `${ASSET_DIR}/warm-cream-sleeve-detail.png`,
+      `${ASSET_DIR}/warm-cream-button-detail.png`,
+      `${ASSET_DIR}/warm-cream-hem-detail.png`,
+      `${ASSET_DIR}/warm-cream-backside.png`,
+    ],
+  },
 ];
 
 const stockBySize = {
@@ -73,23 +97,6 @@ const run = async () => {
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  const existingProduct = await Product.findOne({ title: PRODUCT_TITLE });
-  if (existingProduct) {
-    console.log(
-      JSON.stringify(
-        {
-          created: false,
-          id: existingProduct._id.toString(),
-          title: existingProduct.title,
-          image: existingProduct.image,
-        },
-        null,
-        2
-      )
-    );
-    return;
-  }
-
   const colorImages = [];
   for (const asset of colorAssets) {
     colorImages.push({
@@ -98,16 +105,23 @@ const run = async () => {
     });
   }
 
-  const detailImages = [];
-  for (const assetPath of detailAssets) {
-    detailImages.push(await uploadImage(assetPath));
+  const productDetailImages = [];
+  for (const detailGroup of detailAssetsByColor) {
+    const images = [];
+    for (const assetPath of detailGroup.assets) {
+      images.push(await uploadImage(assetPath));
+    }
+    productDetailImages.push({
+      color: detailGroup.color,
+      images,
+    });
   }
 
   const colors = colorAssets.map((asset) => asset.color);
   const sizeStocks = buildSizeStocks(colors);
   const stock = sizeStocks.reduce((sum, entry) => sum + entry.stock, 0);
 
-  const product = await Product.create({
+  const productPayload = {
     title: PRODUCT_TITLE,
     titleKm: "អាវកប្បាសកអាវសម្រាប់ទារក StarTrim",
     price: 13.99,
@@ -123,12 +137,7 @@ const run = async () => {
     sizes: BABY_CLOTHING_SIZES,
     colors,
     colorImages,
-    productDetailImages: [
-      {
-        color: "Sky Blue",
-        images: detailImages,
-      },
-    ],
+    productDetailImages,
     sizeStocks,
     totalSold: 0,
     isNewArrival: true,
@@ -137,17 +146,29 @@ const run = async () => {
     expiryDate: null,
     rating: 0,
     numReviews: 0,
-  });
+  };
+
+  const existingProduct = await Product.findOne({ title: PRODUCT_TITLE });
+  const product = existingProduct
+    ? await Product.findByIdAndUpdate(existingProduct._id, productPayload, {
+        new: true,
+        runValidators: true,
+      })
+    : await Product.create(productPayload);
 
   console.log(
     JSON.stringify(
       {
-        created: true,
+        created: !existingProduct,
+        updated: Boolean(existingProduct),
         id: product._id.toString(),
         title: product.title,
         image: product.image,
         colors: product.colors,
-        detailImageCount: product.productDetailImages[0]?.images.length || 0,
+        detailGroups: product.productDetailImages.map((entry) => ({
+          color: entry.color,
+          count: entry.images.length,
+        })),
         stock: product.stock,
         sizeStockCount: product.sizeStocks.length,
       },
