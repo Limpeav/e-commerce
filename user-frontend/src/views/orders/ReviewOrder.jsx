@@ -6,6 +6,7 @@ import { getOrderById } from "../../services/orderService";
 import { ProductController } from "../../controllers/productController";
 import { useAuth } from "../../context/useAuth";
 import { useDarkMode } from "../../hooks";
+import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import AnimatedStarRating from "../../components/ui/AnimatedStarRating";
 
@@ -14,8 +15,8 @@ const getProductId = (item) => {
   return typeof product === "object" ? product?._id : product;
 };
 
-const getProductName = (item) =>
-  item?.product?.title || item?.product?.name || item?.name || "Purchased product";
+const getProductName = (item, fallback = "Purchased product") =>
+  item?.product?.title || item?.product?.name || item?.name || fallback;
 
 const getReviewUserId = (review) => {
   const reviewUser = review?.user;
@@ -50,6 +51,7 @@ export default function ReviewOrder() {
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
   const [isDark] = useDarkMode();
+  const { t } = useLanguage();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,14 +79,14 @@ export default function ReviewOrder() {
           return;
         }
 
-        setError(loadError.response?.data?.message || loadError.message || "Unable to load this order.");
+        setError(loadError.response?.data?.message || loadError.message || t("reviewOrder.errors.loadOrder"));
       } finally {
         setLoading(false);
       }
     };
 
     loadOrder();
-  }, [id, location.hash, location.pathname, location.search, logout, navigate]);
+  }, [id, location.hash, location.pathname, location.search, logout, navigate, t]);
 
   useEffect(() => {
     return () => {
@@ -178,12 +180,12 @@ export default function ReviewOrder() {
           const productId = String(getProductId(item));
           next[productId] = {
             ...next[productId],
-            error: missingRatings.includes(productId) ? "Please choose a rating." : "",
+            error: missingRatings.includes(productId) ? t("reviewOrder.errors.chooseRating") : "",
           };
         });
         return next;
       });
-      window.alert("Please select a star rating for every product before submitting.");
+      window.alert(t("reviewOrder.errors.selectEveryRating"));
       return;
     }
 
@@ -217,7 +219,7 @@ export default function ReviewOrder() {
         failedResults.forEach(({ productId, result }) => {
           next[productId] = {
             ...next[productId],
-            error: result.error || "Failed to submit review.",
+            error: result.error || t("reviewOrder.errors.submitFailed"),
           };
         });
         return next;
@@ -255,7 +257,7 @@ export default function ReviewOrder() {
   };
 
   if (loading) {
-    return <Loading message="Loading review page..." />;
+    return <Loading message={t("reviewOrder.loading")} />;
   }
 
   if (error || !order) {
@@ -264,11 +266,11 @@ export default function ReviewOrder() {
     return (
       <div className={`min-h-screen px-4 py-24 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
         <div className={`mx-auto max-w-xl rounded-2xl border p-8 text-center ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}>
-          <p className="mb-4 text-lg font-black text-text-main">Review page unavailable</p>
+          <p className="mb-4 text-lg font-black text-text-main">{t("reviewOrder.errors.pageUnavailable")}</p>
           <p className="mb-6 text-sm font-bold leading-relaxed text-text-muted">
             {isAuthorizationError
-              ? "This order belongs to a different customer account. Please sign in with the account that placed this order, then open the review link again."
-              : error || "Order not found."}
+              ? t("reviewOrder.errors.wrongAccount")
+              : error || t("reviewOrder.errors.orderNotFound")}
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             {isAuthorizationError && (
@@ -277,11 +279,11 @@ export default function ReviewOrder() {
                 onClick={switchOrderAccount}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-black text-white"
               >
-                Sign in with order account
+                {t("reviewOrder.signInOrderAccount")}
               </button>
             )}
             <Link to="/orders" className={`inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black ${isAuthorizationError ? "bg-stone-100 text-text-main" : "bg-primary text-white"}`}>
-              Back to orders
+              {t("reviewOrder.backToOrders")}
             </Link>
           </div>
         </div>
@@ -426,7 +428,7 @@ export default function ReviewOrder() {
                 className="mb-3 inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary sm:text-xs"
           >
                 <Sparkles className="h-4 w-4" />
-            Review submitted
+            {t("reviewOrder.success.badge")}
           </Motion.p>
           <Motion.h1
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
@@ -434,7 +436,7 @@ export default function ReviewOrder() {
                 transition={{ delay: 0.3 }}
                 className="font-display text-4xl font-black leading-tight tracking-tight text-text-main sm:text-5xl"
           >
-            Thank you for your review
+            {t("reviewOrder.success.title")}
           </Motion.h1>
           <Motion.p
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
@@ -442,7 +444,7 @@ export default function ReviewOrder() {
                 transition={{ delay: 0.38 }}
                 className="mx-auto mt-4 max-w-md text-sm font-bold leading-6 text-text-muted sm:text-base sm:leading-7 md:mx-0"
           >
-                Your feedback is live and helps other families choose with confidence.
+                {t("reviewOrder.success.message")}
           </Motion.p>
 
           <Motion.div
@@ -456,13 +458,15 @@ export default function ReviewOrder() {
                 <div className={`border-r p-4 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                   <p className="text-2xl font-black text-text-main">{submittedCount}</p>
                   <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-text-muted">
-                    {submittedCount === 1 ? "Product reviewed" : "Products reviewed"}
+                    {submittedCount === 1
+                      ? t("reviewOrder.success.productReviewed")
+                      : t("reviewOrder.success.productsReviewed")}
                   </p>
                 </div>
                 <div className="p-4">
                   <p className="text-2xl font-black text-text-main">3s</p>
                   <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-text-muted">
-                    Auto return
+                    {t("reviewOrder.success.autoReturn")}
                   </p>
                 </div>
               </Motion.div>
@@ -474,8 +478,8 @@ export default function ReviewOrder() {
                 className="mt-6"
               >
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.12em] text-text-muted">
-                  <span>Returning to home</span>
-                  <span>Almost there</span>
+                  <span>{t("reviewOrder.success.returningHome")}</span>
+                  <span>{t("reviewOrder.success.almostThere")}</span>
             </div>
                 <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-slate-800" : "bg-stone-100"}`}>
               <Motion.div
@@ -499,7 +503,7 @@ export default function ReviewOrder() {
                   className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark active:translate-y-0"
                 >
                   <Home className="h-4 w-4" />
-                  Continue shopping
+                  {t("reviewOrder.success.continueShopping")}
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <Link
@@ -511,7 +515,7 @@ export default function ReviewOrder() {
                   }`}
                 >
                   <ShoppingBag className="h-4 w-4" />
-                  View orders
+                  {t("reviewOrder.success.viewOrders")}
                 </Link>
               </Motion.div>
             </div>
@@ -525,10 +529,10 @@ export default function ReviewOrder() {
     <main className={`min-h-screen px-4 pb-20 pt-20 sm:px-6 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="mx-auto max-w-5xl">
         <header className="mb-8">
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-primary">Delivered order</p>
-          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-5xl">Rate your products</h1>
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-primary">{t("reviewOrder.deliveredOrder")}</p>
+          <h1 className="font-display text-3xl font-black tracking-tight text-text-main sm:text-5xl">{t("reviewOrder.title")}</h1>
           <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-text-muted sm:text-base">
-            Share a quick rating for the products from order #{String(order._id).slice(-8).toUpperCase()}.
+            {t("reviewOrder.subtitle", { orderNumber: String(order._id).slice(-8).toUpperCase() })}
           </p>
         </header>
 
@@ -539,11 +543,11 @@ export default function ReviewOrder() {
             const submitted = submittedByProduct[productId];
             const hasExistingReview = submitted === "existing" || submitted === "updated";
             const statusLabel = submitted === "submitted"
-              ? "Submitted"
+              ? t("reviewOrder.status.submitted")
               : submitted === "updated"
-                ? "Review updated"
+                ? t("reviewOrder.status.updated")
                 : submitted === "existing"
-                  ? "Already reviewed"
+                  ? t("reviewOrder.status.existing")
                   : "";
 
             return (
@@ -556,7 +560,7 @@ export default function ReviewOrder() {
                     {item.image ? (
                       <img
                         src={item.image}
-                        alt={getProductName(item)}
+                        alt={getProductName(item, t("reviewOrder.purchasedProduct"))}
                         loading="lazy"
                         decoding="async"
                         className="h-full w-full object-cover"
@@ -571,9 +575,9 @@ export default function ReviewOrder() {
                   <div>
                     <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <h2 className="font-display text-xl font-black text-text-main">{getProductName(item)}</h2>
+                        <h2 className="font-display text-xl font-black text-text-main">{getProductName(item, t("reviewOrder.purchasedProduct"))}</h2>
                         <p className="mt-1 text-xs font-black uppercase tracking-widest text-text-muted">
-                          Quantity {item.quantity || 1}
+                          {t("reviewOrder.quantity", { count: item.quantity || 1 })}
                         </p>
                       </div>
                       {statusLabel && (
@@ -589,7 +593,7 @@ export default function ReviewOrder() {
                         <div className={`rounded-2xl border px-4 py-3 text-sm font-bold leading-relaxed ${
                           isDark ? "border-emerald-900/60 bg-emerald-950/30 text-emerald-200" : "border-emerald-100 bg-emerald-50 text-emerald-800"
                         }`}>
-                          You already rated this product. You can change the stars or review text, then update your review.
+                          {t("reviewOrder.notices.alreadyRated")}
                         </div>
                       )}
 
@@ -597,12 +601,12 @@ export default function ReviewOrder() {
                         <div className={`rounded-2xl border px-4 py-3 text-sm font-bold leading-relaxed ${
                           isDark ? "border-blue-900/60 bg-blue-950/30 text-blue-200" : "border-blue-100 bg-blue-50 text-blue-800"
                         }`}>
-                          Review submitted for this product. You can continue with the next product, or update this one.
+                          {t("reviewOrder.notices.submitted")}
                         </div>
                       )}
 
                       <div>
-                        <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-primary">Rating</p>
+                        <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-primary">{t("reviewOrder.rating")}</p>
                         <AnimatedStarRating
                           value={form.rating}
                           onChange={(rating) => setRating(productId, rating)}
@@ -613,14 +617,14 @@ export default function ReviewOrder() {
 
                       <div>
                         <label className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary" htmlFor={`review-${productId}`}>
-                          Your Review(optional)
+                          {t("reviewOrder.reviewLabel")}
                         </label>
                         <textarea
                           id={`review-${productId}`}
                           value={form.comment || ""}
                           onChange={(event) => setComment(productId, event.target.value)}
                           rows={4}
-                          placeholder="Write your review here..."
+                          placeholder={t("reviewOrder.reviewPlaceholder")}
                           className={`w-full resize-none rounded-2xl border-2 p-4 text-sm font-bold text-text-main outline-none transition-colors focus:border-primary ${
                             isDark ? "border-slate-700 bg-slate-800 placeholder:text-slate-500" : "border-stone-100 bg-stone-50 placeholder:text-stone-400"
                           }`}
@@ -647,10 +651,10 @@ export default function ReviewOrder() {
           }`}>
             <div className="mb-3 sm:mb-0">
               <p className="font-display text-lg font-black text-text-main">
-                Ready to submit all reviews?
+                {t("reviewOrder.readyTitle")}
               </p>
               <p className="mt-1 text-xs font-bold text-text-muted">
-                Add a rating for all {reviewItems.length} product{reviewItems.length === 1 ? "" : "s"} before submitting.
+                {t("reviewOrder.submitHint", { count: reviewItems.length })}
               </p>
             </div>
             <button
@@ -660,7 +664,7 @@ export default function ReviewOrder() {
               className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               <Send className="h-4 w-4" />
-              {submittingAll ? "Submitting all..." : "Submit all reviews"}
+              {submittingAll ? t("reviewOrder.submittingAll") : t("reviewOrder.submitAll")}
             </button>
           </div>
         )}
