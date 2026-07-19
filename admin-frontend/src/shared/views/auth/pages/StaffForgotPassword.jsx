@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
@@ -67,6 +67,20 @@ const StaffForgotPassword = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setResendCooldown((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const submitEmail = async (event) => {
     event.preventDefault();
@@ -83,11 +97,36 @@ const StaffForgotPassword = () => {
       setEmail(response.data?.email || normalizedEmail);
       setMaskedEmail(response.data?.maskedEmail || normalizedEmail);
       setSuccess(response.data?.message || "We sent a code to your email.");
+      setResendCooldown(60);
       setStep("code");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to send reset code.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
+    setError("");
+    setSuccess("");
+    setResendLoading(true);
+
+    try {
+      const response = await AuthController.resendResetCode({
+        email: email.trim().toLowerCase(),
+        role: portal.role,
+      });
+      setEmail(response.data?.email || email);
+      setMaskedEmail(response.data?.maskedEmail || maskedEmail);
+      setCode("");
+      setSuccess(response.data?.message || "A new code has been sent to your email.");
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to resend reset code.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -243,6 +282,28 @@ const StaffForgotPassword = () => {
                   {loading ? <Loader className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
                   Verify OTP
                 </button>
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <p className="text-xs font-bold text-[var(--color-text-muted)]">
+                      Resend OTP in{" "}
+                      <span className="text-[var(--color-primary-dark)]">{resendCooldown}s</span>
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={resendOtp}
+                      disabled={resendLoading}
+                      className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-primary-dark)] transition-colors hover:text-[var(--color-primary)] disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {resendLoading ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      Didn't get a code? Resend OTP
+                    </button>
+                  )}
+                </div>
               </form>
             )}
 

@@ -4,6 +4,15 @@ import { useLocation, useNavigationType } from "react-router-dom";
 const scrollPositions = new Map();
 const HOME_PATHS = new Set(["/", "/customer"]);
 const SAVE_SCROLL_POSITION_EVENT = "scroll-position:save";
+const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
+
+const hasPendingProductReturnPosition = () => {
+  try {
+    return Boolean(window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY));
+  } catch {
+    return false;
+  }
+};
 
 const getScrollPositionKey = (location) => {
   if (HOME_PATHS.has(location.pathname)) {
@@ -73,16 +82,19 @@ export default function ScrollToTop() {
 
   useLayoutEffect(() => {
     const savedPosition = scrollPositions.get(scrollPositionKey);
+    const shouldLetProductRestoreHandleScroll =
+      navigationType === "POP" && hasPendingProductReturnPosition();
     const shouldRestore = savedPosition !== null
       && savedPosition !== undefined
       && !hasHash
       && !shouldForceTop
-      && navigationType === "POP";
+      && navigationType === "POP"
+      && !shouldLetProductRestoreHandleScroll;
     let isRestoring = shouldRestore;
     let cancelRestore = null;
 
     const saveScrollPosition = () => {
-      if (isRestoring) return;
+      if (isRestoring || hasPendingProductReturnPosition()) return;
 
       scrollPositions.set(scrollPositionKey, window.scrollY);
     };
@@ -91,7 +103,7 @@ export default function ScrollToTop() {
       cancelRestore = restoreScrollPosition(savedPosition, () => {
         isRestoring = false;
       });
-    } else if (!hasHash || shouldForceTop) {
+    } else if ((!hasHash || shouldForceTop) && !shouldLetProductRestoreHandleScroll) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
 
