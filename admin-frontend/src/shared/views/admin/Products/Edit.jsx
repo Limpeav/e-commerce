@@ -21,6 +21,7 @@ import {
   getSizeStocksTotal,
   isSizedProduct,
   normalizeSizeStocksForForm,
+  productSupportsColorOptions,
 } from "../../../utils/productOptions";
 import {
   ArrowLeft,
@@ -186,33 +187,40 @@ const EditProduct = () => {
     }
 
     if (name === "category") {
-      setForm((currentForm) => ({
-        ...currentForm,
-        category: value,
-        sizeStocks: buildDefaultSizeStocks(
+      setForm((currentForm) => {
+        const shouldShowColorOptions = productSupportsColorOptions({ category: value });
+        const nextColors = shouldShowColorOptions
+          ? parseProductColorList(currentForm.colors)
+          : [];
+        const nextSizeStocks = buildDefaultSizeStocks(
           value,
           currentForm.sizeStocks,
-          parseProductColorList(currentForm.colors)
-        ),
-        stock: buildDefaultSizeStocks(
-          value,
-          currentForm.sizeStocks,
-          parseProductColorList(currentForm.colors)
-        ).length > 0
-          ? String(getSizeStocksTotal(buildDefaultSizeStocks(
-              value,
-              currentForm.sizeStocks,
-              parseProductColorList(currentForm.colors)
-            )))
-          : currentForm.stock,
-        expiryDate: productSupportsExpiry(value)
-          ? currentForm.expiryDate
-          : "",
-      }));
+          nextColors
+        );
+
+        return {
+          ...currentForm,
+          category: value,
+          colors: shouldShowColorOptions ? currentForm.colors : "",
+          colorImages: shouldShowColorOptions ? currentForm.colorImages : {},
+          productDetailImages: shouldShowColorOptions
+            ? currentForm.productDetailImages
+            : {},
+          sizeStocks: nextSizeStocks,
+          stock: nextSizeStocks.length > 0
+            ? String(getSizeStocksTotal(nextSizeStocks))
+            : currentForm.stock,
+          expiryDate: productSupportsExpiry(value)
+            ? currentForm.expiryDate
+            : "",
+        };
+      });
       return;
     }
 
     if (name === "colors") {
+      if (!productSupportsColorOptions(form)) return;
+
       setForm((currentForm) => {
         const nextColors = parseProductColorList(value);
         const nextColorImages = {};
@@ -409,6 +417,8 @@ const EditProduct = () => {
   };
 
   const handleAddColor = (color) => {
+    if (!productSupportsColorOptions(form)) return false;
+
     const normalizedColor = String(color || "").trim();
     if (!normalizedColor) return false;
 
@@ -811,197 +821,201 @@ const EditProduct = () => {
                 )}
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Product Colors
-                  <span className="text-xs text-gray-500 ml-2">(Optional)</span>
-                </label>
-                <div className="relative">
-                  <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    value=""
-                    onChange={(event) => {
-                      handleAddColor(event.target.value);
-                      event.target.value = "";
-                    }}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900"
-                  >
-                    <option value="">Select a color</option>
-                    {availableColorOptions.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    type="text"
-                    value={customColor}
-                    onChange={(event) => setCustomColor(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        handleAddCustomColor();
-                      }
-                    }}
-                    placeholder="Add custom color, e.g. Natural Oak"
-                    className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCustomColor}
-                    disabled={!customColor.trim()}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </button>
-                </div>
-                {colorOptions.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {colorOptions.map((color) => (
-                      <span
-                        key={color}
-                        className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700"
+              {productSupportsColorOptions(form) && (
+                <>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Product Colors
+                      <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <select
+                        value=""
+                        onChange={(event) => {
+                          handleAddColor(event.target.value);
+                          event.target.value = "";
+                        }}
+                        className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900"
                       >
-                        {color}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveColor(color)}
-                          className="rounded-full p-0.5 text-blue-500 hover:bg-blue-100 hover:text-blue-800"
-                          aria-label={`Remove ${color}`}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <p className="mt-2 text-xs font-medium text-gray-500">
-                  Select preset colors or add custom names. Customers must choose one color when colors are set.
-                </p>
-              </div>
-
-              {colorOptions.length > 0 && (
-                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
-                  <div className="mb-4">
-                    <p className="text-sm font-bold text-gray-900">Color Images</p>
-                    <p className="mt-1 text-xs font-medium text-gray-600">
-                      Upload an image for each color. Empty colors use the main product image.
+                        <option value="">Select a color</option>
+                        {availableColorOptions.map((color) => (
+                          <option key={color} value={color}>
+                            {color}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={customColor}
+                        onChange={(event) => setCustomColor(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleAddCustomColor();
+                          }
+                        }}
+                        placeholder="Add custom color, e.g. Natural Oak"
+                        className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomColor}
+                        disabled={!customColor.trim()}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </button>
+                    </div>
+                    {colorOptions.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {colorOptions.map((color) => (
+                          <span
+                            key={color}
+                            className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700"
+                          >
+                            {color}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveColor(color)}
+                              className="rounded-full p-0.5 text-blue-500 hover:bg-blue-100 hover:text-blue-800"
+                              aria-label={`Remove ${color}`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="mt-2 text-xs font-medium text-gray-500">
+                      Select preset colors or add custom names. Customers must choose one color when colors are set.
                     </p>
                   </div>
-                  <div className="space-y-3">
-                    {colorOptions.map((color) => {
-                      const detailImages = Array.isArray(form.productDetailImages?.[color])
-                        ? form.productDetailImages[color]
-                        : [];
-                      const detailImageLimitReached =
-                        detailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
 
-                      return (
-                        <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <span className="block text-xs font-bold text-gray-600">{color}</span>
-                              <p className="mt-1 text-xs font-medium text-gray-500">
-                                {form.colorImages[color] ? "Custom image uploaded" : "Uses main image until uploaded"}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {form.colorImages[color] && (
-                                <img
-                                  src={form.colorImages[color]}
-                                  alt={`${color} preview`}
-                                  className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
-                                />
-                              )}
-                              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
-                                <Upload className="h-4 w-4" />
-                                <span>{colorImageUploading[color] ? "Uploading..." : form.colorImages[color] ? "Replace" : "Upload"}</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  disabled={Boolean(colorImageUploading[color])}
-                                  onChange={(event) => {
-                                    handleColorImageUpload(color, event.target.files?.[0]);
-                                    event.target.value = "";
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
-                              {form.colorImages[color] && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveColorImage(color)}
-                                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                  {colorOptions.length > 0 && (
+                    <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-gray-900">Color Images</p>
+                        <p className="mt-1 text-xs font-medium text-gray-600">
+                          Upload an image for each color. Empty colors use the main product image.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        {colorOptions.map((color) => {
+                          const detailImages = Array.isArray(form.productDetailImages?.[color])
+                            ? form.productDetailImages[color]
+                            : [];
+                          const detailImageLimitReached =
+                            detailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
 
-                          {form.colorImages[color] && (
-                            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          return (
+                            <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <p className="text-xs font-bold text-gray-700">Product Detail Images</p>
+                                  <span className="block text-xs font-bold text-gray-600">{color}</span>
                                   <p className="mt-1 text-xs font-medium text-gray-500">
-                                    {detailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded for {color}
+                                    {form.colorImages[color] ? "Custom image uploaded" : "Uses main image until uploaded"}
                                   </p>
                                 </div>
-                                <label
-                                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
-                                    detailImageLimitReached || detailImageUploading[color]
-                                      ? "cursor-not-allowed bg-gray-200 text-gray-500"
-                                      : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
-                                  }`}
-                                >
-                                  <Upload className="h-4 w-4" />
-                                  <span>{detailImageUploading[color] ? "Uploading..." : "Upload Details"}</span>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    disabled={detailImageLimitReached || Boolean(detailImageUploading[color])}
-                                    onChange={(event) => {
-                                      handleProductDetailImageUpload(color, event.target.files);
-                                      event.target.value = "";
-                                    }}
-                                    className="hidden"
-                                  />
-                                </label>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {form.colorImages[color] && (
+                                    <img
+                                      src={form.colorImages[color]}
+                                      alt={`${color} preview`}
+                                      className="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                                    />
+                                  )}
+                                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+                                    <Upload className="h-4 w-4" />
+                                    <span>{colorImageUploading[color] ? "Uploading..." : form.colorImages[color] ? "Replace" : "Upload"}</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      disabled={Boolean(colorImageUploading[color])}
+                                      onChange={(event) => {
+                                        handleColorImageUpload(color, event.target.files?.[0]);
+                                        event.target.value = "";
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  {form.colorImages[color] && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveColorImage(color)}
+                                      className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
-                              {detailImages.length > 0 && (
-                                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                                  {detailImages.map((image, imageIndex) => (
-                                    <div key={`${image}-${imageIndex}`} className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                      <img
-                                        src={image}
-                                        alt={`${color} detail ${imageIndex + 1}`}
-                                        className="h-20 w-full object-cover"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveProductDetailImage(color, imageIndex)}
-                                        className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-red-600 shadow-sm hover:bg-red-50"
-                                        aria-label={`Remove ${color} detail image ${imageIndex + 1}`}
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </button>
+                              {form.colorImages[color] && (
+                                <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                      <p className="text-xs font-bold text-gray-700">Product Detail Images</p>
+                                      <p className="mt-1 text-xs font-medium text-gray-500">
+                                        {detailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded for {color}
+                                      </p>
                                     </div>
-                                  ))}
+                                    <label
+                                      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                                        detailImageLimitReached || detailImageUploading[color]
+                                          ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                                          : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
+                                      }`}
+                                    >
+                                      <Upload className="h-4 w-4" />
+                                      <span>{detailImageUploading[color] ? "Uploading..." : "Upload Details"}</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        disabled={detailImageLimitReached || Boolean(detailImageUploading[color])}
+                                        onChange={(event) => {
+                                          handleProductDetailImageUpload(color, event.target.files);
+                                          event.target.value = "";
+                                        }}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                  </div>
+
+                                  {detailImages.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                      {detailImages.map((image, imageIndex) => (
+                                        <div key={`${image}-${imageIndex}`} className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                          <img
+                                            src={image}
+                                            alt={`${color} detail ${imageIndex + 1}`}
+                                            className="h-20 w-full object-cover"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveProductDetailImage(color, imageIndex)}
+                                            className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-red-600 shadow-sm hover:bg-red-50"
+                                            aria-label={`Remove ${color} detail image ${imageIndex + 1}`}
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {!isSizedProduct(form) && form.sizeStocks.length === 0 && (

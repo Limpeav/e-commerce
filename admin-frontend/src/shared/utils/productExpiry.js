@@ -1,4 +1,5 @@
 import { normalizeProductCategory } from "../constants/productCategories.js";
+import { productSupportsColorOptions } from "./productOptions.js";
 
 const EXPIRY_CATEGORIES = new Set(["Milk", "Bath & Skin"]);
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,7 +57,8 @@ export const formatProductColorList = (colors = []) =>
   colors.map((color) => String(color || "").trim()).filter(Boolean).join(", ");
 
 export const buildProductRequestData = (form, { includeImage = false } = {}) => {
-  const colors = parseProductColorList(form.colors);
+  const supportsColorOptions = productSupportsColorOptions(form);
+  const colors = supportsColorOptions ? parseProductColorList(form.colors) : [];
   const colorImageEntries = colors
     .map((color) => ({
       color,
@@ -86,7 +88,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     colorImages: JSON.stringify(colorImageEntries),
     productDetailImages: JSON.stringify(productDetailImageEntries),
     sizeStocks: JSON.stringify(
-      Array.isArray(form.sizeStocks)
+      supportsColorOptions && Array.isArray(form.sizeStocks)
         ? form.sizeStocks
             .filter((entry) => String(entry.size || "").trim())
             .map((entry) => ({
