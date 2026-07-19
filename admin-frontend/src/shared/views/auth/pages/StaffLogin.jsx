@@ -62,8 +62,6 @@ const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(() => hasStoredAdminSession());
   const [showPassword, setShowPassword] = useState(false);
-  const [challengeToken, setChallengeToken] = useState("");
-  const [securityCode, setSecurityCode] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -112,16 +110,8 @@ const StaffLogin = () => {
     setLoading(true);
 
     try {
-      const response = challengeToken
-        ? await AuthController.verifyLogin({ challengeToken, code: securityCode })
-        : await AuthController.login({ email, password });
+      const response = await AuthController.login({ email, password });
       const data = response.data || response;
-
-      if (data?.mfaRequired && data.challengeToken) {
-        setChallengeToken(data.challengeToken);
-        setPassword("");
-        return;
-      }
 
       if (!data?.token) {
         throw new Error("Invalid response from server");
@@ -181,7 +171,7 @@ const StaffLogin = () => {
               </div>
             )}
 
-            {!challengeToken && <div className="space-y-1.5">
+            <div className="space-y-1.5">
               <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">Email Address</label>
               <div className="relative group">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] transition-colors group-focus-within:text-[var(--color-primary)]">
@@ -196,9 +186,9 @@ const StaffLogin = () => {
                   required
                 />
               </div>
-            </div>}
+            </div>
 
-            {!challengeToken && <div className="space-y-1.5">
+            <div className="space-y-1.5">
               <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">Password</label>
               <div className="relative group">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] transition-colors group-focus-within:text-[var(--color-primary)]">
@@ -229,38 +219,7 @@ const StaffLogin = () => {
                   Forgot password?
                 </button>
               </div>
-            </div>}
-
-            {challengeToken && (
-              <div className="space-y-1.5">
-                <label className="ml-1 text-sm font-semibold text-[var(--color-text-main)]">
-                  Email security code
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={securityCode}
-                  onChange={(event) => setSecurityCode(event.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]/70 px-4 py-3 text-center text-xl font-bold tracking-[0.35em] focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
-                  placeholder="000000"
-                  required
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setChallengeToken("");
-                    setSecurityCode("");
-                    setError("");
-                  }}
-                  className="text-sm text-[var(--color-primary-dark)] hover:underline"
-                >
-                  Use a different account
-                </button>
-              </div>
-            )}
+            </div>
 
             <button
               type="submit"
@@ -274,7 +233,7 @@ const StaffLogin = () => {
                 </>
               ) : (
                 <>
-                  <span>{challengeToken ? "Verify Code" : "Sign In"}</span>
+                  <span>Sign In</span>
                   <LogIn className="h-4 w-4" />
                 </>
               )}

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { USER_ROLES } from "../constants/roles.js";
+import { DEFAULT_SELLER_SHIFT, SELLER_SHIFTS, USER_ROLES } from "../constants/roles.js";
 
 const userSchema = mongoose.Schema(
   {
@@ -10,6 +10,7 @@ const userSchema = mongoose.Schema(
     phone: { type: String },
     isAdmin: { type: Boolean, default: false },
     role: { type: String, enum: USER_ROLES, default: "user" },
+    shift: { type: String, enum: SELLER_SHIFTS },
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpires: { type: Date },
@@ -44,6 +45,16 @@ const userSchema = mongoose.Schema(
 );
 
 userSchema.index({ _id: 1, "viewedProducts.viewedAt": -1 });
+
+userSchema.pre("validate", function () {
+  if (this.role === "seller" && !this.shift) {
+    this.shift = DEFAULT_SELLER_SHIFT;
+  }
+
+  if (this.role !== "seller") {
+    this.shift = undefined;
+  }
+});
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password") || !this.password) {

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import User from "../models/userModel.js";
-import { PORTAL_ROLES } from "../constants/roles.js";
+import { DEFAULT_SELLER_SHIFT, PORTAL_ROLES } from "../constants/roles.js";
 import { sendPasswordResetCode, sendPortalLoginCode } from "../utils/sendEmail.js";
 import {
   createPortalChallengeToken,
@@ -23,6 +23,7 @@ const serializePortalUser = (user, token) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  shift: user.role === "seller" ? user.shift || DEFAULT_SELLER_SHIFT : undefined,
   token,
   expiresIn: null,
 });
@@ -35,6 +36,7 @@ const serializePortalProfile = (user) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  shift: user.role === "seller" ? user.shift || DEFAULT_SELLER_SHIFT : undefined,
 });
 
 const maskEmail = (email) =>
@@ -107,6 +109,16 @@ export const loginAdmin = async (req, res) => {
 
     if (!(await user.matchPassword(password))) {
       return genericLoginError(res);
+    }
+
+    if (STAFF_ROLES.includes(user.role)) {
+      user.portalLoginCodeHash = undefined;
+      user.portalLoginChallengeId = undefined;
+      user.portalLoginCodeExpires = undefined;
+      user.portalLoginAttempts = 0;
+      await user.save({ validateModifiedOnly: true });
+
+      return res.json(serializePortalUser(user, createPortalSessionToken(user)));
     }
 
     const code = generateLoginCode();

@@ -1,11 +1,28 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import Product from "../models/Product.js";
-import { USER_ROLES } from "../constants/roles.js";
+import { DEFAULT_SELLER_SHIFT, SELLER_SHIFTS, USER_ROLES } from "../constants/roles.js";
 import { emitDomainChanged } from "../realtime/socket.js";
 import { normalizeEmail, validatePortalPassword } from "../utils/authSecurity.js";
 
 const STAFF_LOGIN_ROLES = ["seller", "delivery", "admin"];
+
+const serializeStaffUser = (user) => ({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    shift: user.role === "seller" ? user.shift || DEFAULT_SELLER_SHIFT : undefined,
+    createdAt: user.createdAt,
+});
+
+const normalizeSellerShift = (value) => String(value || DEFAULT_SELLER_SHIFT).trim().toLowerCase();
+
+const getValidSellerShift = (value) => {
+    const shift = normalizeSellerShift(value);
+    return SELLER_SHIFTS.includes(shift) ? shift : "";
+};
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -24,6 +41,7 @@ export const createStaffLogin = asyncHandler(async (req, res) => {
     const password = req.body.password;
     const phone = req.body.phone?.trim();
     const role = req.body.role || "seller";
+    const shift = role === "seller" ? getValidSellerShift(req.body.shift) : undefined;
 
     if (!name || !email || !password) {
         return res.status(400).json({ message: "Name, email, and password are required" });
@@ -36,6 +54,10 @@ export const createStaffLogin = asyncHandler(async (req, res) => {
 
     if (!STAFF_LOGIN_ROLES.includes(role)) {
         return res.status(400).json({ message: "Role must be admin, seller, or delivery" });
+    }
+
+    if (role === "seller" && !shift) {
+        return res.status(400).json({ message: "Seller shift must be morning or afternoon" });
     }
 
     const userExists = await User.findOne({ email });
@@ -51,18 +73,12 @@ export const createStaffLogin = asyncHandler(async (req, res) => {
         password,
         ...(phone ? { phone } : {}),
         role,
+        ...(shift ? { shift } : {}),
         isVerified: true,
     });
     emitDomainChanged("users", "created", { userId: user._id, role: user.role });
 
-    res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        createdAt: user.createdAt,
-    });
+    res.status(201).json(serializeStaffUser(user));
 });
 
 // @desc    Get user by ID
@@ -98,6 +114,7 @@ export const updateStaffLogin = asyncHandler(async (req, res) => {
     const phone = req.body.phone?.trim();
     const role = req.body.role;
     const password = String(req.body.password || "");
+    const shift = role === "seller" ? getValidSellerShift(req.body.shift || user.shift) : undefined;
 
     if (!name || !email) {
         return res.status(400).json({ message: "Name and email are required" });
@@ -105,6 +122,10 @@ export const updateStaffLogin = asyncHandler(async (req, res) => {
 
     if (!["seller", "delivery"].includes(role)) {
         return res.status(400).json({ message: "Role must be seller or delivery" });
+    }
+
+    if (role === "seller" && !shift) {
+        return res.status(400).json({ message: "Seller shift must be morning or afternoon" });
     }
 
     if (password) {
@@ -128,6 +149,7 @@ export const updateStaffLogin = asyncHandler(async (req, res) => {
     user.email = email;
     user.phone = phone || undefined;
     user.role = role;
+    user.shift = shift;
     if (password) {
         user.password = password;
     }
@@ -142,14 +164,7 @@ export const updateStaffLogin = asyncHandler(async (req, res) => {
         role: updatedUser.role,
     });
 
-    return res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        role: updatedUser.role,
-        createdAt: updatedUser.createdAt,
-    });
+    return res.json(serializeStaffUser(updatedUser));
 });
 
 // @desc    Update user role
@@ -177,6 +192,12 @@ export const updateUserRole = asyncHandler(async (req, res) => {
 
         const previousRole = user.role;
         user.role = role || user.role;
+        if (user.role === "seller" && !user.shift) {
+            user.shift = DEFAULT_SELLER_SHIFT;
+        }
+        if (user.role !== "seller") {
+            user.shift = undefined;
+        }
         if (role && role !== previousRole) {
             user.tokenVersion = (user.tokenVersion || 0) + 1;
         }
@@ -191,6 +212,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
             name: updatedUser.name,
             email: updatedUser.email,
             role: updatedUser.role,
+            shift: updatedUser.role === "seller" ? updatedUser.shift : undefined,
         });
     } else {
         res.status(404);

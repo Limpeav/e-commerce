@@ -792,6 +792,7 @@ const Register = () => {
                   placeholder=" "
                   value={form.password || ""}
                   onClick={() => setShowPasswordChoice(true)}
+                  onFocus={() => setShowPasswordChoice(true)}
                   onChange={(e) => {
                     setForm({ ...form, password: e.target.value });
                   }}

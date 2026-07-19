@@ -1119,7 +1119,6 @@ export const getPersonalizedRecommendations = async (req, res) => {
       {
         $match: {
           user: req.user._id,
-          paymentStatus: "Paid",
           orderStatus: { $ne: "Cancelled" },
         },
       },
@@ -1149,11 +1148,40 @@ export const getPersonalizedRecommendations = async (req, res) => {
         _id: { $in: purchasedProductIds },
         stock: { $gt: 0 },
       }).lean();
-      const preparedProducts = await prepareShopperProducts(purchasedProducts);
+      const purchasedCategories = [
+        ...new Set(
+          purchasedProducts
+            .map((product) => normalizeProductCategory(product.category))
+            .filter(Boolean)
+        ),
+      ];
+      const remainingLimit = Math.max(
+        PERSONALIZED_RECOMMENDATION_LIMIT - purchasedProducts.length,
+        0
+      );
+      const similarProducts = remainingLimit > 0 && purchasedCategories.length > 0
+        ? await Product.find({
+            _id: { $nin: purchasedProductIds },
+            category: { $in: purchasedCategories },
+            stock: { $gt: 0 },
+          })
+            .sort({ totalSold: -1, rating: -1, createdAt: -1, _id: -1 })
+            .limit(remainingLimit)
+            .lean()
+        : [];
+      const preparedProducts = await prepareShopperProducts([
+        ...purchasedProducts,
+        ...similarProducts,
+      ]);
+      const recommendationPriorityIds = [
+        ...purchasedProductIds,
+        ...similarProducts.map((product) => product._id),
+      ];
 
       return res.json({
         source: "orders",
-        products: sortProductsByIdPriority(preparedProducts, purchasedProductIds),
+        products: sortProductsByIdPriority(preparedProducts, recommendationPriorityIds)
+          .slice(0, PERSONALIZED_RECOMMENDATION_LIMIT),
       });
     }
 

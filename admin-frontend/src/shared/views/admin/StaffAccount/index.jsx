@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle,
+  Clock,
   Loader2,
   Mail,
   Phone,
@@ -21,6 +22,7 @@ const StaffAccount = () => {
     name: storedUser?.name || "",
     email: storedUser?.email || "",
     phone: storedUser?.phone || "",
+    shift: storedUser?.shift || "morning",
   });
   const [loading, setLoading] = useState(!storedUser);
   const [saving, setSaving] = useState(false);
@@ -40,6 +42,7 @@ const StaffAccount = () => {
           name: profile.name || "",
           email: profile.email || "",
           phone: profile.phone || "",
+          shift: profile.shift || "morning",
         });
       } catch (err) {
         if (isMounted) {
@@ -184,6 +187,20 @@ const StaffAccount = () => {
                 />
               </span>
             </label>
+
+            {storedUser?.role === "seller" && (
+              <label className="block">
+                <span className="mb-2 block text-sm font-black text-gray-900">Seller Shift</span>
+                <span className="relative block">
+                  <Clock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={formData.shift === "afternoon" ? "Afternoon Shift" : "Morning Shift"}
+                    className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-base font-semibold text-gray-500 shadow-sm"
+                    readOnly
+                  />
+                </span>
+              </label>
+            )}
           </div>
 
           <button

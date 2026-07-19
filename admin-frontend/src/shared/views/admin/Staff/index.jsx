@@ -3,6 +3,7 @@ import { motion as Motion } from "framer-motion";
 import {
     BriefcaseBusiness,
     CheckCircle,
+    Clock,
     Eye,
     EyeOff,
     Pencil,
@@ -27,6 +28,11 @@ const STAFF_LOGIN_ROLES = [
     { value: "delivery", label: "Delivery" },
 ];
 
+const SELLER_SHIFTS = [
+    { value: "morning", label: "Morning Shift" },
+    { value: "afternoon", label: "Afternoon Shift" },
+];
+
 const roleMeta = {
     seller: {
         label: "Seller",
@@ -37,6 +43,17 @@ const roleMeta = {
         label: "Delivery",
         className: "bg-amber-100 text-amber-800",
         Icon: Truck,
+    },
+};
+
+const shiftMeta = {
+    morning: {
+        label: "Morning Shift",
+        className: "bg-emerald-600 text-white",
+    },
+    afternoon: {
+        label: "Afternoon Shift",
+        className: "bg-violet-100 text-violet-800",
     },
 };
 
@@ -97,6 +114,7 @@ const StaffManagement = () => {
         email: "",
         phone: "",
         role: "seller",
+        shift: "morning",
         password: "",
     });
     const [staffForm, setStaffForm] = useState({
@@ -105,6 +123,7 @@ const StaffManagement = () => {
         phone: "",
         password: "",
         role: "seller",
+        shift: "morning",
     });
 
     const staffUsers = useMemo(() => {
@@ -117,7 +136,8 @@ const StaffManagement = () => {
                 return (
                     user.name?.toLowerCase().includes(term) ||
                     user.email?.toLowerCase().includes(term) ||
-                    user.phone?.toLowerCase().includes(term)
+                    user.phone?.toLowerCase().includes(term) ||
+                    shiftMeta[user.shift]?.label.toLowerCase().includes(term)
                 );
             });
     }, [searchTerm, users]);
@@ -202,7 +222,13 @@ const StaffManagement = () => {
 
     const handleStaffFormChange = (event) => {
         const { name, value } = event.target;
-        setStaffForm((prev) => ({ ...prev, [name]: value }));
+        setStaffForm((prev) => ({
+            ...prev,
+            [name]: value,
+            ...(name === "role" && value === "seller" && !prev.shift
+                ? { shift: "morning" }
+                : {}),
+        }));
     };
 
     const handleCreateStaffLogin = async (event) => {
@@ -225,6 +251,7 @@ const StaffManagement = () => {
                 name: staffForm.name.trim(),
                 email: staffForm.email.trim(),
                 phone: staffForm.phone.trim(),
+                shift: staffForm.role === "seller" ? staffForm.shift : undefined,
             };
 
             await UserController.createStaff(payload);
@@ -234,6 +261,7 @@ const StaffManagement = () => {
                 phone: "",
                 password: "",
                 role: "seller",
+                shift: "morning",
             });
             setStaffFormMessage({ type: "success", text: "Staff login created successfully." });
             setShowPassword(false);
@@ -278,6 +306,7 @@ const StaffManagement = () => {
             email: user.email || "",
             phone: user.phone || "",
             role: user.role || "seller",
+            shift: user.role === "seller" ? user.shift || "morning" : "morning",
             password: "",
         });
         setShowPassword(false);
@@ -292,7 +321,13 @@ const StaffManagement = () => {
 
     const handleEditFormChange = (event) => {
         const { name, value } = event.target;
-        setEditForm((current) => ({ ...current, [name]: value }));
+        setEditForm((current) => ({
+            ...current,
+            [name]: value,
+            ...(name === "role" && value === "seller" && !current.shift
+                ? { shift: "morning" }
+                : {}),
+        }));
         setEditMessage("");
     };
 
@@ -312,6 +347,7 @@ const StaffManagement = () => {
                 email: editForm.email.trim(),
                 phone: editForm.phone.trim(),
                 role: editForm.role,
+                shift: editForm.role === "seller" ? editForm.shift : undefined,
                 password: editForm.password,
             });
             setEditingStaff(null);
@@ -351,6 +387,21 @@ const StaffManagement = () => {
         return (
             <span className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${meta.className}`}>
                 <Icon className="w-3 h-3 mr-1" />
+                {meta.label}
+            </span>
+        );
+    };
+
+    const renderShiftBadge = (user) => {
+        if (user.role !== "seller") {
+            return <span className="text-sm text-gray-400">-</span>;
+        }
+
+        const meta = shiftMeta[user.shift] || shiftMeta.morning;
+
+        return (
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold leading-5 ${meta.className}`}>
+                <Clock className="mr-1 h-3 w-3" />
                 {meta.label}
             </span>
         );
@@ -448,7 +499,7 @@ const StaffManagement = () => {
                             {staffFormMessage.text}
                         </div>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
                         <input
                             type="text"
                             name="name"
@@ -505,15 +556,29 @@ const StaffManagement = () => {
                                     </option>
                                 ))}
                             </select>
-                            <button
-                                type="submit"
-                                disabled={creatingStaff}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                {creatingStaff ? "Adding..." : "Add"}
-                            </button>
                         </div>
+                        {staffForm.role === "seller" && (
+                            <select
+                                name="shift"
+                                value={staffForm.shift}
+                                onChange={handleStaffFormChange}
+                                className="min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                {SELLER_SHIFTS.map((shift) => (
+                                    <option key={shift.value} value={shift.value}>
+                                        {shift.label}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={creatingStaff}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            {creatingStaff ? "Adding..." : "Add"}
+                        </button>
                     </div>
                 </form>
 
@@ -554,6 +619,9 @@ const StaffManagement = () => {
                                         Role
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Shift
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Joined
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -564,7 +632,7 @@ const StaffManagement = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {staffUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center">
+                                        <td colSpan="7" className="px-6 py-12 text-center">
                                             <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                             <p className="text-gray-500">No staff accounts found</p>
                                         </td>
@@ -594,6 +662,9 @@ const StaffManagement = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {renderRoleBadge(user.role)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {renderShiftBadge(user)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {new Date(user.createdAt).toLocaleDateString()}
@@ -697,6 +768,23 @@ const StaffManagement = () => {
                                     ))}
                                 </select>
                             </label>
+                            {editForm.role === "seller" && (
+                                <label className="grid gap-1.5 text-sm font-bold text-gray-700 sm:col-span-2">
+                                    Seller shift
+                                    <select
+                                        name="shift"
+                                        value={editForm.shift}
+                                        onChange={handleEditFormChange}
+                                        className="h-11 rounded-xl border border-gray-300 px-4 font-medium outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                    >
+                                        {SELLER_SHIFTS.map((shift) => (
+                                            <option key={shift.value} value={shift.value}>
+                                                {shift.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
                             <label className="grid gap-1.5 text-sm font-bold text-gray-700 sm:col-span-2">
                                 Email address
                                 <input

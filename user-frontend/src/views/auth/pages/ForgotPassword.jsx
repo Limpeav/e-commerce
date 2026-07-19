@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Search,
   RotateCcw,
+  X,
 } from "lucide-react";
 
 const STEPS = {
@@ -26,6 +27,40 @@ const STEPS = {
   VERIFY_CODE: 2,
   NEW_PASSWORD: 3,
   SUCCESS: 4,
+};
+
+const validateStrongPassword = (value = "") =>
+  value.length >= 10 &&
+  /[a-z]/.test(value) &&
+  /[A-Z]/.test(value) &&
+  /\d/.test(value) &&
+  /[^A-Za-z0-9]/.test(value);
+
+const generateStrongPassword = () => {
+  const requiredGroups = [
+    "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    "abcdefghijkmnopqrstuvwxyz",
+    "23456789",
+    "!@#$%&*?",
+  ];
+  const allCharacters = requiredGroups.join("");
+  const randomIndex = (length) => {
+    const values = new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    return values[0] % length;
+  };
+  const characters = requiredGroups.map((group) => group[randomIndex(group.length)]);
+
+  while (characters.length < 14) {
+    characters.push(allCharacters[randomIndex(allCharacters.length)]);
+  }
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
+  }
+
+  return characters.join("");
 };
 
 const ForgotPassword = () => {
@@ -38,6 +73,7 @@ const ForgotPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordSuggestion, setShowPasswordSuggestion] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -244,6 +280,57 @@ const ForgotPassword = () => {
       setLoading(false);
     }
   };
+
+  const closePasswordSuggestion = () => {
+    setShowPasswordSuggestion(false);
+    setError("");
+  };
+
+  const useSuggestedPassword = () => {
+    const suggestedPassword = generateStrongPassword();
+    setPassword(suggestedPassword);
+    setConfirmPassword(suggestedPassword);
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+    setError("");
+  };
+
+  const passwordRules = [
+    {
+      label: "Uppercase and lowercase letters",
+      valid: /[a-z]/.test(password || "") && /[A-Z]/.test(password || ""),
+    },
+    {
+      label: "At least one number",
+      valid: /\d/.test(password || ""),
+    },
+    {
+      label: "At least one special character",
+      valid: /[^A-Za-z0-9]/.test(password || ""),
+    },
+    {
+      label: "At least 10 characters",
+      valid: (password || "").length >= 10,
+    },
+  ];
+  const passedPasswordRules = passwordRules.filter((rule) => rule.valid).length;
+  const passwordStrength = passedPasswordRules === passwordRules.length
+    ? {
+        label: "Strong",
+        barClassName: "bg-emerald-500",
+        textClassName: "text-emerald-600",
+      }
+    : passedPasswordRules >= 2
+      ? {
+          label: "Medium",
+          barClassName: "bg-amber-400",
+          textClassName: "text-amber-600",
+        }
+      : {
+          label: "Weak",
+          barClassName: "bg-rose-400",
+          textClassName: "text-rose-600",
+        };
 
   // Step indicator
   const StepIndicator = () => {
@@ -583,6 +670,8 @@ const ForgotPassword = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter new password"
                     value={password}
+                    onClick={() => setShowPasswordSuggestion(true)}
+                    onFocus={() => setShowPasswordSuggestion(true)}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
@@ -712,6 +801,136 @@ const ForgotPassword = () => {
                 <ArrowLeft className="w-5 h-5" />
                 Back to Sign In
               </button>
+            </div>
+          )}
+
+          {showPasswordSuggestion && step === STEPS.NEW_PASSWORD && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <button
+                type="button"
+                aria-label="Close password suggestions"
+                onClick={closePasswordSuggestion}
+                className="absolute inset-0 cursor-default bg-stone-950/35 backdrop-blur-sm"
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="reset-password-suggestion-title"
+                className="relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_30px_90px_-30px_rgba(45,49,46,0.55)] backdrop-blur-2xl dark:border-[#383D39] dark:bg-[#232624]/95 sm:p-8"
+              >
+                <button
+                  type="button"
+                  onClick={closePasswordSuggestion}
+                  aria-label="Close password suggestions"
+                  className="absolute right-4 top-4 rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-primary dark:hover:bg-[#1A1C1B]"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                <div className="pr-8">
+                  <h2
+                    id="reset-password-suggestion-title"
+                    className="font-display text-2xl font-black text-text-main dark:text-slate-100 sm:text-3xl"
+                  >
+                    Password Suggestions
+                  </h2>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-text-muted">
+                    Create a strong password or use a generated one.
+                  </p>
+                </div>
+
+                <div className="mt-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="reset-password-suggestion-input" className="text-sm font-black text-primary">
+                      New password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={useSuggestedPassword}
+                      className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-black text-primary transition-colors hover:bg-primary hover:text-white"
+                    >
+                      Use suggested password
+                    </button>
+                  </div>
+
+                  <div className="relative mt-2">
+                    <input
+                      id="reset-password-suggestion-input"
+                      autoFocus
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        setError("");
+                      }}
+                      autoComplete="new-password"
+                      className="h-12 w-full border-0 border-b-2 border-primary bg-transparent pr-12 text-lg font-bold text-text-main outline-none dark:text-slate-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-primary transition-colors hover:bg-primary/10"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-[1.5rem] bg-stone-100/90 p-4 dark:bg-[#1A1C1B] sm:p-5">
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-[#383D39]">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${passwordStrength.barClassName}`}
+                      style={{
+                        width: `${Math.max(
+                          (passedPasswordRules / passwordRules.length) * 100,
+                          password ? 12 : 0
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-4">
+                    <span className="text-sm font-bold text-text-muted">
+                      Password strength
+                    </span>
+                    <span className={`text-sm font-black ${passwordStrength.textClassName}`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+
+                  <ul className="mt-4 space-y-3">
+                    {passwordRules.map((rule) => (
+                      <li
+                        key={rule.label}
+                        className={`flex items-center gap-3 text-sm font-bold transition-colors ${
+                          rule.valid ? "text-emerald-600" : "text-stone-400"
+                        }`}
+                      >
+                        <CheckCircle
+                          className={`h-5 w-5 shrink-0 ${
+                            rule.valid ? "fill-emerald-500 text-white" : ""
+                          }`}
+                        />
+                        <span>{rule.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!validateStrongPassword(password)}
+                  onClick={closePasswordSuggestion}
+                  className={`mt-6 flex h-12 w-full items-center justify-center rounded-xl text-sm font-black uppercase tracking-[0.18em] transition-all ${
+                    validateStrongPassword(password)
+                      ? "bg-primary text-white shadow-lg shadow-primary/25 hover:-translate-y-0.5 hover:bg-primary-dark"
+                      : "cursor-not-allowed bg-stone-200 text-stone-400 dark:bg-[#1A1C1B] dark:text-[#727871]"
+                  }`}
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           )}
         </div>
