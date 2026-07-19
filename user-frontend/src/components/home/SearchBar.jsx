@@ -43,6 +43,7 @@ export default function SearchBar({
                         <Search className={`w-4 h-4 mr-2 sm:mr-3 group-focus-within:text-primary transition-colors shrink-0 ${isDark ? "text-slate-400" : "text-stone-400"}`} />
                         <input
                             type="text"
+                            data-product-search-input="true"
                             placeholder={t("product.searchPlaceholder")}
                             className={`bg-transparent border-none outline-none w-full font-medium text-sm ${isDark ? "text-slate-100 placeholder:text-slate-500" : "text-text-main placeholder-stone-400"}`}
                             value={searchQuery}

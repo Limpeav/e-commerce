@@ -68,7 +68,9 @@ export default function Navbar() {
   const [isDark, , themeMode, setThemeMode] = useDarkMode();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const isScrollNavbarVisible = useScrollVisibility();
+  const isScrollNavbarVisible = useScrollVisibility({
+    keepVisibleFocusSelector: "[data-product-search-input='true']",
+  });
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const accountDropdownRef = useRef(null);
 

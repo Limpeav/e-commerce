@@ -307,7 +307,9 @@ export default function Home() {
     const { user } = useAuth();
     const { language, t } = useLanguage();
     const [isDark] = useDarkMode();
-    const isSearchBarVisible = useScrollVisibility();
+    const isSearchBarVisible = useScrollVisibility({
+        keepVisibleFocusSelector: "[data-product-search-input='true']",
+    });
     const navigationType = useNavigationType();
     const prefersReducedMotion = useReducedMotion();
     
