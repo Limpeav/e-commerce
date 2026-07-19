@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle,
   Loader2,
   Mail,
@@ -12,7 +10,6 @@ import {
 } from "lucide-react";
 import { AuthController } from "../../../controllers";
 import {
-  getPortalDashboardPath,
   getStoredAdminToken,
   getStoredAdminUser,
   persistAdminSession,
@@ -114,13 +111,6 @@ const StaffAccount = () => {
               Update your own staff account details.
             </p>
           </div>
-          <Link
-            to={getPortalDashboardPath(storedUser)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
         </div>
 
         <form

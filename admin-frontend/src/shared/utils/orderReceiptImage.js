@@ -34,6 +34,7 @@ export const createReceiptImageBlob = ({
     customerPhone,
     paymentMethod,
     fullAddress,
+    orderItems = [],
     subtotal,
     deliveryFee,
     taxPrice,
@@ -64,11 +65,31 @@ export const createReceiptImageBlob = ({
             height: Math.max(44, lines.length * 30),
         };
     });
+    const itemRows = (orderItems || []).map((item) => {
+        const quantity = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        const variantText = [item.size ? `Size ${item.size}` : "", item.color ? `Color ${item.color}` : ""]
+            .filter(Boolean)
+            .join(" · ");
+        const nameLines = splitTextLines(measuringContext, item.name || "Product", 520);
+
+        return {
+            nameLines,
+            quantity,
+            price,
+            variantText,
+            lineTotal: price * quantity,
+            height: Math.max(58, nameLines.length * 26 + (variantText ? 26 : 0) + 20),
+        };
+    });
 
     const logicalHeight =
         120 +
         detailRows.reduce((total, row) => total + row.height, 0) +
         38 +
+        (itemRows.length
+            ? 42 + itemRows.reduce((total, row) => total + row.height, 0) + 22
+            : 0) +
         44 * 3 +
         104 +
         42;
@@ -116,6 +137,46 @@ export const createReceiptImageBlob = ({
     context.lineTo(rightEdge, y + 8);
     context.stroke();
     y += 52;
+
+    if (itemRows.length) {
+        context.textAlign = "left";
+        context.fillStyle = "#2f332f";
+        context.font = "800 23px Inter, Arial, sans-serif";
+        context.fillText("Items Ordered", padding, y);
+        y += 36;
+
+        itemRows.forEach((item) => {
+            context.textAlign = "left";
+            context.fillStyle = "#2f332f";
+            context.font = "700 20px Inter, Arial, sans-serif";
+            item.nameLines.forEach((line, index) => {
+                context.fillText(line, padding, y + index * 26);
+            });
+
+            const metaY = y + item.nameLines.length * 26 + 2;
+            context.fillStyle = "#737a72";
+            context.font = "400 19px Inter, Arial, sans-serif";
+            context.fillText(
+                `Qty ${item.quantity} x ${formatCurrency(item.price)}${item.variantText ? ` · ${item.variantText}` : ""}`,
+                padding,
+                metaY
+            );
+
+            context.textAlign = "right";
+            context.fillStyle = "#2f332f";
+            context.font = "700 20px Inter, Arial, sans-serif";
+            context.fillText(formatCurrency(item.lineTotal), rightEdge, y + 22);
+            y += item.height;
+        });
+
+        context.strokeStyle = "#ddd5cc";
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(padding, y);
+        context.lineTo(rightEdge, y);
+        context.stroke();
+        y += 44;
+    }
 
     const totalRows = [
         ["Subtotal:", formatCurrency(subtotal)],
