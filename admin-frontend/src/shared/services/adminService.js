@@ -95,6 +95,10 @@ export const adminService = {
   // Data export
   exportData: (type, format) => api.get(`/admin/export/${type}?format=${format}`),
 
+  // Settings
+  getSettings: () => api.get("/admin/settings"),
+  updateSettings: (settings) => api.put("/admin/settings", settings),
+
   // Cleanup
   cleanupReviews: () => api.post("/admin/cleanup-reviews"),
   getReviewQueue: (params) => api.get("/admin/reviews", { params }),

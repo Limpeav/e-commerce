@@ -4,6 +4,8 @@ import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import cloudinary from "../config/cloudinary.js";
 import { buildSentimentAnalytics } from "../utils/sentiment.js";
+import CsvBuilderDraft from "../models/CsvBuilderDraft.js";
+import Setting from "../models/Setting.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -32,6 +34,31 @@ const uploadImageBuffer = (file, folder) =>
 
     uploadStream.end(file.buffer);
   });
+
+const sanitizeDraftRow = (row = {}) => ({
+  title: String(row.title || "").trim(),
+  price: String(row.price || "").trim(),
+  discountPrice: String(row.discountPrice || "").trim(),
+  category: String(row.category || "").trim(),
+  description: String(row.description || "").trim(),
+  stock: String(row.stock || "").trim(),
+  image: String(row.image || "").trim(),
+  imageName: String(row.imageName || "").trim(),
+});
+
+const sanitizeDraftFileName = (fileName = "") => {
+  const sanitized = String(fileName || "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-");
+
+  if (!sanitized) {
+    return "products-import-ready.csv";
+  }
+
+  return sanitized.toLowerCase().endsWith(".csv")
+    ? sanitized
+    : `${sanitized}.csv`;
+};
 
 const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))
@@ -157,7 +184,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
   };
   const timezone = getTimezoneName(timezoneOffset);
 
-  const [orders, summaryData, dailyRows, pendingCashData] = await Promise.all([
+  const [orders, summaryData, dailyRows, pendingCashCount] = await Promise.all([
     normalizedPeriod === "day"
       ? Order.find(paidCashMatch)
           .sort({ paidAt: -1 })
@@ -195,32 +222,17 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
           },
           { $sort: { _id: 1 } },
         ]),
-    Order.aggregate([
-      {
-        $match: {
-          paymentMethod: "Cash on Delivery",
-          paymentStatus: { $ne: "Paid" },
-          orderStatus: { $nin: ["Delivered", "Cancelled"] },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          pendingCashCount: { $sum: 1 },
-          pendingCashAmount: { $sum: "$totalPrice" },
-        },
-      },
-    ]),
+    Order.countDocuments({
+      paymentMethod: "Cash on Delivery",
+      paymentStatus: { $ne: "Paid" },
+      orderStatus: { $nin: ["Delivered", "Cancelled"] },
+    }),
   ]);
 
   const summary = summaryData[0] || {
     totalCash: 0,
     orderCount: 0,
     averageOrderValue: 0,
-  };
-  const pendingCash = pendingCashData[0] || {
-    pendingCashCount: 0,
-    pendingCashAmount: 0,
   };
 
   return {
@@ -235,8 +247,7 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
       totalCash: Number(summary.totalCash || 0),
       orderCount: Number(summary.orderCount || 0),
       averageOrderValue: Number(summary.averageOrderValue || 0),
-      pendingCashCount: Number(pendingCash.pendingCashCount || 0),
-      pendingCashAmount: Number(pendingCash.pendingCashAmount || 0),
+      pendingCashCount,
     },
     dailyBreakdown:
       normalizedPeriod === "day"
@@ -264,7 +275,6 @@ const buildCashReportCsv = (report) => {
     ["Paid Cash Orders", report.summary.orderCount],
     ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
     ["Pending Cash Orders", report.summary.pendingCashCount],
-    ["Pending Cash Amount", report.summary.pendingCashAmount.toFixed(2)],
     [],
     ...(report.period === "day"
       ? [
@@ -310,21 +320,20 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Get counts
   const usersCount = await User.countDocuments();
   const productsCount = await Product.countDocuments();
-  const ordersCount = await Order.countDocuments(ADMIN_VISIBLE_ORDER_FILTER);
+  const ordersCount = await Order.countDocuments();
   const pendingOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Pending",
   });
   const processingOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
-    orderStatus: { $in: ["Processing", "Shipped"] },
+    orderStatus: "Processing",
+  });
+  const shippedOrdersCount = await Order.countDocuments({
+    orderStatus: "Shipped",
   });
   const deliveredOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Delivered",
   });
   const cancelledOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     orderStatus: "Cancelled",
   });
 
@@ -333,7 +342,6 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     paymentStatus: "Paid",
   });
   const unpaidOrdersCount = await Order.countDocuments({
-    ...ADMIN_VISIBLE_ORDER_FILTER,
     paymentStatus: { $ne: "Paid" },
   });
   const cashToCollectCount = await Order.countDocuments({
@@ -354,7 +362,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const sentiment = buildSentimentAnalytics(productsForSentiment);
 
   // Get recent activity (users only – exclude admin actions)
-  const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
+  const recentOrders = await Order.find({})
     .sort({ createdAt: -1 })
     .limit(3)
     .populate("user", "name email role");
@@ -404,6 +412,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   // Sort by actual timestamp
   recentActivity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  // Get exchange rate
+  const rateSetting = await Setting.findOne({ key: "usd_to_khr_rate" });
+  const exchangeRate = rateSetting ? parseFloat(rateSetting.value) : parseFloat(process.env.USD_TO_KHR_RATE) || 4100;
+
   res.json({
     admin: req.user.name,
     users: usersCount,
@@ -412,12 +424,14 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     revenue: totalRevenue,
     pendingOrders: pendingOrdersCount,
     processingOrders: processingOrdersCount,
+    shippedOrders: shippedOrdersCount,
     deliveredOrders: deliveredOrdersCount,
     cancelledOrders: cancelledOrdersCount,
     paidOrders: paidOrdersCount,
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
     sentiment,
+    exchangeRate,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
 });
@@ -481,6 +495,41 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
     imageUrl: uploadedImage.secure_url,
     originalName: req.file.originalname,
     backgroundRemoved: false,
+  });
+});
+
+// @desc    Get CSV builder draft
+// @route   GET /api/admin/csv-builder-draft
+// @access  Private/Admin
+export const getCsvBuilderDraft = asyncHandler(async (req, res) => {
+  const draft = await CsvBuilderDraft.findOne({ admin: req.user._id }).lean();
+
+  res.json({
+    rows: draft?.rows || [],
+    fileName: draft?.fileName || "products-import-ready.csv",
+    updatedAt: draft?.updatedAt || null,
+  });
+});
+
+// @desc    Save CSV builder draft
+// @route   PUT /api/admin/csv-builder-draft
+// @access  Private/Admin
+export const saveCsvBuilderDraft = asyncHandler(async (req, res) => {
+  const incomingRows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  const rows = incomingRows.map(sanitizeDraftRow);
+  const fileName = sanitizeDraftFileName(req.body?.fileName);
+
+  const draft = await CsvBuilderDraft.findOneAndUpdate(
+    { admin: req.user._id },
+    { admin: req.user._id, rows, fileName },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  ).lean();
+
+  res.json({
+    message: "Draft saved successfully",
+    rows: draft.rows || [],
+    fileName: draft.fileName || "products-import-ready.csv",
+    updatedAt: draft.updatedAt || null,
   });
 });
 
