@@ -33,6 +33,8 @@ import {
   X,
 } from "lucide-react";
 
+const CUSTOMER_HOME_PATH = "/customer";
+
 const validateStrongPassword = (password = "") =>
   password.length >= 10
   && /[a-z]/.test(password)
@@ -126,11 +128,11 @@ const Register = () => {
     if (!registrationVerified) return undefined;
 
     const redirectTimer = setTimeout(() => {
-      navigate("/login", { replace: true, state: { from: safeRedirect } });
-    }, 3500);
+      navigate(CUSTOMER_HOME_PATH, { replace: true });
+    }, 900);
 
     return () => clearTimeout(redirectTimer);
-  }, [navigate, registrationVerified, safeRedirect]);
+  }, [navigate, registrationVerified]);
 
   const showRejectedVerification = () => {
     setVerificationRejected(true);
@@ -277,6 +279,13 @@ const Register = () => {
         email: verificationEmail,
         code,
       });
+      const storedUser = authService.persistUser({ user: data, token: data.token });
+
+      if (!storedUser?.token) {
+        throw new Error(t("registerPage.errors.registrationFailed"));
+      }
+
+      login(storedUser);
       setSuccessMessage(data.message || t("registerPage.messages.verificationSuccess"));
       setRegistrationVerified(true);
       setLoading(false);
@@ -536,7 +545,7 @@ const Register = () => {
                       {successMessage || t("registerPage.messages.verificationSuccess")}
                     </p>
                     <p className="forgot-password-success-copy mt-5 text-xs font-black uppercase tracking-[0.18em] text-green-600">
-                      Your account is ready. Redirecting to sign in…
+                      Your account is ready. Redirecting to shopping home...
                     </p>
                     <div className="forgot-password-success-progress mt-4 h-1.5 overflow-hidden rounded-full bg-green-200">
                       <span className="block h-full rounded-full bg-green-500" />
@@ -545,11 +554,11 @@ const Register = () => {
 
                   <button
                     type="button"
-                    onClick={() => navigate("/login", { replace: true, state: { from: safeRedirect } })}
+                    onClick={() => navigate(CUSTOMER_HOME_PATH, { replace: true })}
                     className="otp-embossed-button flex w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-dark active:scale-95"
                   >
                     <CheckCircle className="h-5 w-5" />
-                    Continue to sign in
+                    Continue shopping
                   </button>
                 </div>
               ) : <>

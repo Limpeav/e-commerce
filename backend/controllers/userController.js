@@ -207,9 +207,15 @@ export const verifyRegistrationEmail = async (req, res) => {
     await user.save();
 
     res.json({
-      message: "Email verified successfully. You can now log in.",
+      message: "Email verified successfully. Redirecting you to the home page.",
+      _id: user._id,
+      name: user.name,
+      phone: user.phone,
       email: user.email,
+      role: user.role,
       isVerified: user.isVerified,
+      notificationPreferences: user.notificationPreferences || { promotionalEmails: true },
+      token: generateToken(user._id),
     });
   } catch (error) {
     console.error("Verify registration email error:", error);
