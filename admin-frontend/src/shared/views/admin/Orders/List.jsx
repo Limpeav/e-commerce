@@ -408,6 +408,7 @@ const AdminOrders = ({ renderDelivery }) => {
                 customerPhone: formatPhoneNumber(order.shippingAddress?.phone),
                 paymentMethod: order.paymentMethod,
                 fullAddress: formatFullAddress(order.shippingAddress),
+                orderItems: order.orderItems || [],
                 subtotal,
                 deliveryFee,
                 taxPrice,

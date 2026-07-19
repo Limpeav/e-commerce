@@ -456,17 +456,52 @@ export const sendPaymentTelegramAlert = async (paymentDetails) => {
   }
 };
 
-export const buildOrderReceiptCaption = ({ orderId, customerName, totalPrice }) => {
+const formatReceiptItemLine = (item, index) => {
+  const name = escapeHtml(item?.name || "Product");
+  const quantity = Number(item?.quantity || 0);
+  const price = Number(item?.price || 0);
+  const variantText = [item?.size ? `Size ${item.size}` : "", item?.color ? `Color ${item.color}` : ""]
+    .filter(Boolean)
+    .join(", ");
+  const variantSuffix = variantText ? ` (${escapeHtml(variantText)})` : "";
+
+  return `${index + 1}. ${name}${variantSuffix} - Qty ${quantity} x $${price.toFixed(2)}`;
+};
+
+export const buildOrderReceiptCaption = ({
+  orderId,
+  customerName,
+  customerPhone,
+  paymentMethod,
+  paymentStatus,
+  orderItems = [],
+  totalPrice,
+}) => {
   const safeOrderId = orderId ? escapeHtml(orderId) : "N/A";
   const safeCustomerName = customerName ? escapeHtml(customerName) : "Unknown";
+  const safeCustomerPhone = customerPhone ? escapeHtml(customerPhone) : "N/A";
+  const safePaymentMethod = paymentMethod ? escapeHtml(paymentMethod) : "N/A";
+  const safePaymentStatus = paymentStatus ? escapeHtml(paymentStatus) : "N/A";
+  const itemLines = orderItems.slice(0, 6).map(formatReceiptItemLine);
+  const extraItemCount = Math.max(0, orderItems.length - itemLines.length);
 
-  return [
+  const lines = [
     "<b>ORDER RECEIPT</b>",
     "",
     `<b>Order</b>: <code>${safeOrderId}</code>`,
     `<b>Customer</b>: ${safeCustomerName}`,
+    `<b>Phone</b>: ${safeCustomerPhone}`,
+    `<b>Payment</b>: ${safePaymentMethod}`,
+    `<b>Status</b>: ${safePaymentStatus}`,
+    "",
+    "<b>Items Ordered</b>",
+    ...(itemLines.length ? itemLines : ["No items listed"]),
+    ...(extraItemCount ? [`...and ${extraItemCount} more item${extraItemCount === 1 ? "" : "s"}`] : []),
+    "",
     `<b>Total</b>: $${Number(totalPrice || 0).toFixed(2)}`,
-  ].join("\n");
+  ];
+
+  return lines.join("\n");
 };
 
 export const sendOrderReceiptTelegramPhoto = async ({
@@ -475,6 +510,10 @@ export const sendOrderReceiptTelegramPhoto = async ({
   mimeType,
   orderId,
   customerName,
+  customerPhone,
+  paymentMethod,
+  paymentStatus,
+  orderItems,
   totalPrice,
 }) => {
   const { botToken, chatId, threadId, enabled } = getTelegramConfig("receipt");
@@ -486,6 +525,10 @@ export const sendOrderReceiptTelegramPhoto = async ({
   const caption = buildOrderReceiptCaption({
     orderId,
     customerName,
+    customerPhone,
+    paymentMethod,
+    paymentStatus,
+    orderItems,
     totalPrice,
   });
 

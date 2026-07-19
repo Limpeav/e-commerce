@@ -412,6 +412,7 @@ const OrderDetails = () => {
     const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid"];
     const deliveryLatitude = order.shippingAddress?.latitude;
     const deliveryLongitude = order.shippingAddress?.longitude;
+    const orderItems = order.orderItems || [];
     const mapUrl =
         deliveryLatitude && deliveryLongitude
             ? `https://www.google.com/maps/search/?api=1&query=${deliveryLatitude},${deliveryLongitude}`
@@ -454,6 +455,7 @@ const OrderDetails = () => {
                 customerPhone,
                 paymentMethod: order.paymentMethod,
                 fullAddress,
+                orderItems,
                 subtotal,
                 deliveryFee,
                 taxPrice,
@@ -888,6 +890,39 @@ const OrderDetails = () => {
                                             <span className="text-right font-bold text-[var(--color-text-main)]">{value}</span>
                                         </div>
                                     ))}
+                                    {orderItems.length > 0 && (
+                                        <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+                                            <p className="mb-3 font-bold text-[var(--color-text-main)]">Items Ordered</p>
+                                            <div className="space-y-3">
+                                                {orderItems.map((item, index) => {
+                                                    const quantity = Number(item.quantity || 0);
+                                                    const price = Number(item.price || 0);
+                                                    const lineTotal = price * quantity;
+
+                                                    return (
+                                                        <div
+                                                            key={`${item.product || item.name || "item"}-${index}`}
+                                                            className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-lg bg-[var(--color-surface-soft)] p-3"
+                                                        >
+                                                            <div className="min-w-0">
+                                                                <p className="truncate font-bold text-[var(--color-text-main)]">
+                                                                    {item.name || "Product"}
+                                                                </p>
+                                                                <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                                                                    Qty {quantity} x {formatCurrency(price)}
+                                                                    {item.size ? ` · Size ${item.size}` : ""}
+                                                                    {item.color ? ` · Color ${item.color}` : ""}
+                                                                </p>
+                                                            </div>
+                                                            <span className="self-center font-bold text-[var(--color-text-main)]">
+                                                                {formatCurrency(lineTotal)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-4">
                                         <div className="flex justify-between gap-4">
                                             <span>Subtotal:</span>

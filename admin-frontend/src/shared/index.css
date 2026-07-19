@@ -314,6 +314,17 @@ select {
     transition: background-color 9999s ease-out 0s;
 }
 
+/* Keep browser autofill from adding a blue background to seller/delivery login fields. */
+.staff-login-form input:-webkit-autofill,
+.staff-login-form input:-webkit-autofill:hover,
+.staff-login-form input:-webkit-autofill:focus,
+.staff-login-form input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--color-text-main);
+    caret-color: var(--color-text-main);
+    box-shadow: 0 0 0 1000px #FFFFFF inset;
+    transition: background-color 9999s ease-out 0s;
+}
+
 /* Keep editable admin fields white when browsers/password managers autofill them. */
 .admin-neutral-autofill,
 .admin-neutral-autofill:focus {

@@ -13,6 +13,7 @@ import {
     forgotPortalPassword,
     getAdminProfile,
     logoutPortalSession,
+    resendPortalResetCode,
     resetPortalPassword,
     updatePortalProfile,
     verifyPortalResetCode,
@@ -60,6 +61,7 @@ router.post("/register", protect, admin, registerAdmin);
 router.post("/login", adminLoginLimiter, loginAdmin);
 router.post("/login/verify", adminMfaLimiter, verifyAdminLogin);
 router.post("/forgot-password", adminResetLimiter, forgotPortalPassword);
+router.post("/forgot-password/resend", adminResetLimiter, resendPortalResetCode);
 router.post("/forgot-password/verify", adminResetLimiter, verifyPortalResetCode);
 router.post("/reset-password", adminResetLimiter, resetPortalPassword);
 router.post("/logout", protect, portalAccess, logoutPortalSession);

@@ -14,6 +14,10 @@ export const AuthController = {
     return modelResponse(await adminService.forgotPassword(payload));
   },
 
+  async resendResetCode(payload) {
+    return modelResponse(await adminService.resendResetCode(payload));
+  },
+
   async verifyResetCode(payload) {
     return modelResponse(await adminService.verifyResetCode(payload));
   },

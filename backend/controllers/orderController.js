@@ -1017,6 +1017,10 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
             mimeType: req.file.mimetype,
             orderId: order._id.toString().slice(-8).toUpperCase(),
             customerName: order.shippingAddress?.fullName || order.user?.name,
+            customerPhone: order.shippingAddress?.phone,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+            orderItems: order.orderItems,
             totalPrice: order.totalPrice,
         });
 
