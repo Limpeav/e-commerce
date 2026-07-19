@@ -21,7 +21,6 @@ import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
-import Price from "../../components/shared/Price";
 import { subscribeRealtimeDomains } from "../../services/realtime";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 
@@ -375,7 +374,9 @@ const Orders = () => {
                         <div className="flex flex-col items-end">
                           <span className={`text-xs font-bold uppercase tracking-wide mb-1 mr-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>Total</span>
                           <div className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg ${invertedSurfaceClassName} ${isDark ? "shadow-slate-950/30" : "shadow-primary/10"}`}>
-                            <Price amount={order.totalPrice} className="text-xl font-bold tracking-tight" usdClassName={isDark ? "text-slate-50" : "text-white"} />
+                            <span className="text-xl font-bold tracking-tight">
+                              {formatCurrency(order.totalPrice)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -427,11 +428,15 @@ const Orders = () => {
                                     Color: {item.color}
                                   </span>
                                 )}
-                                <Price amount={item.price} className="text-xs font-bold text-primary" usdClassName="text-primary" />
+                                <span className="text-xs font-bold text-primary">
+                                  {formatCurrency(item.price)}
+                                </span>
                               </div>
                             </div>
                             <div className="text-right">
-                              <Price amount={item.price * item.quantity} className="font-bold text-sm" />
+                              <p className="font-bold text-sm">
+                                {formatCurrency(item.price * item.quantity)}
+                              </p>
                             </div>
                           </div>
                         ))}

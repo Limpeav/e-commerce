@@ -1,9 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-    buildOrderReceiptCaption,
-    buildPaymentTelegramMessage,
-} from "../utils/sendTelegramMessage.js";
+import { buildPaymentTelegramMessage } from "../utils/sendTelegramMessage.js";
 
 test("buildPaymentTelegramMessage formats and escapes a confirmed KHQR payment", () => {
     const message = buildPaymentTelegramMessage({
@@ -31,31 +28,4 @@ test("buildPaymentTelegramMessage formats KHR without decimals", () => {
     });
 
     assert.match(message, /51,250 KHR/);
-});
-
-test("buildOrderReceiptCaption includes ordered items and escapes user content", () => {
-    const message = buildOrderReceiptCaption({
-        orderId: "A98869EC",
-        customerName: "Hour <Test>",
-        customerPhone: "016568335",
-        paymentMethod: "Cash on Delivery",
-        paymentStatus: "Pending",
-        totalPrice: 10.13,
-        orderItems: [
-            {
-                name: "Travel Bag & Cover",
-                quantity: 1,
-                price: 7.99,
-                color: "Black",
-                size: "M",
-            },
-        ],
-    });
-
-    assert.match(message, /ORDER RECEIPT/);
-    assert.match(message, /Hour &lt;Test&gt;/);
-    assert.match(message, /Travel Bag &amp; Cover/);
-    assert.match(message, /Size M, Color Black/);
-    assert.match(message, /Qty 1 x \$7\.99/);
-    assert.match(message, /Total<\/b>: \$10\.13/);
 });

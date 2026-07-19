@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
@@ -30,17 +30,6 @@ import {
 const HOME_SECTION_NAVIGATION_EVENT = "home-section:navigate";
 const HOME_PRODUCT_ORDER_STORAGE_KEY = "cherish-home-product-order-v1";
 const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
-
-const readProductReturnPosition = () => {
-    if (typeof window === "undefined") return null;
-
-    try {
-        const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-        return storedPosition ? JSON.parse(storedPosition) : null;
-    } catch {
-        return null;
-    }
-};
 
 const shuffleProducts = (products = []) => {
     const shuffled = [...products];
@@ -108,18 +97,8 @@ const sortProductsByStableOrder = (products = [], orderedProductIds = []) => {
     });
 };
 
-const isReloadNavigation = () => {
-    if (typeof window === "undefined" || !window.performance?.getEntriesByType) {
-        return false;
-    }
-
-    const navigationEntry = window.performance.getEntriesByType("navigation")?.[0];
-    return navigationEntry?.type === "reload";
-};
-
 function ProductSection({
     section,
-    sectionIndex,
     isDark,
     t,
     gridContainerVariants,
@@ -129,7 +108,6 @@ function ProductSection({
     onWishlistToggle,
     isInWishlist,
     user,
-    shouldRestoreProductRows,
 }) {
     const scrollRef = useRef(null);
     const isHorizontal = section.layout === "horizontal";
@@ -139,15 +117,8 @@ function ProductSection({
         () => section.products.map((product, index) => getProductStableId(product, index)).join("|"),
         [section.products]
     );
-    const returnPosition = readProductReturnPosition();
-    const returnProductIndex = Number(returnPosition?.productIndex);
-    const returnInitialRows =
-        shouldRestoreProductRows && returnPosition?.sectionId === section.id && Number.isInteger(returnProductIndex)
-            ? Math.max(4, Math.ceil((returnProductIndex + 1) / 2))
-            : 4;
     const { visibleCount, hasMoreProducts, showMoreProducts } = useVisibleProductRows({
         totalProducts: section.products.length,
-        initialRows: returnInitialRows,
         resetKey: `${section.id}-${section.title}-${productListKey}`,
     });
     const visibleProducts = isHorizontal
@@ -256,14 +227,13 @@ function ProductSection({
 
                 <Motion.div
                     ref={scrollRef}
-                    data-product-scroller={section.id}
                     onScroll={isHorizontal ? updateScrollState : undefined}
                     variants={gridContainerVariants}
                     initial={animateProducts ? "hidden" : false}
                     animate="show"
                     className={productsContainerClass}
                 >
-                    {visibleProducts.map((product, index) => (
+                    {visibleProducts.map((product) => (
                         <ProductCard
                             key={`${section.title}-${product._id}`}
                             product={product}
@@ -273,8 +243,6 @@ function ProductSection({
                             user={user}
                             variants={gridItemVariants}
                             productSectionId={section.id}
-                            productIndex={index}
-                            imagePriority={sectionIndex === 0 && index < (isHorizontal ? 4 : 8)}
                             className={isHorizontal ? "h-[27rem] w-[calc((100%_-_1.5rem)*0.4545)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72" : ""}
                         />
                     ))}
@@ -314,7 +282,6 @@ export default function Home() {
     const productsRef = useRef(null);
     const sectionScrollTimeoutRef = useRef(null);
     const animateProducts = navigationType !== "POP" && !prefersReducedMotion;
-    const shouldSkipProductPositionRestore = useMemo(() => isReloadNavigation(), []);
 
     // Custom hooks
     const {
@@ -528,73 +495,25 @@ export default function Home() {
         scrollToHomeSection(targetId);
     }, [location.hash, productSections.length, scrollToHomeSection]);
 
-    useLayoutEffect(() => {
-        if (!loading || location.hash) return undefined;
+    useEffect(() => {
+        if (navigationType !== "POP" || loading || location.hash) return undefined;
 
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-        return undefined;
-    }, [loading, location.hash]);
-
-    useLayoutEffect(() => {
-        if (!shouldSkipProductPositionRestore) return undefined;
+        let returnPosition = null;
 
         try {
-            window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+            const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+            returnPosition = storedPosition ? JSON.parse(storedPosition) : null;
         } catch {
-            // Ignore storage failures; the page should still start from the top.
+            returnPosition = null;
         }
-
-        if (!location.hash) {
-            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-        }
-
-        return undefined;
-    }, [location.hash, shouldSkipProductPositionRestore]);
-
-    useLayoutEffect(() => {
-        if (
-            shouldSkipProductPositionRestore ||
-            navigationType !== "POP" ||
-            loading ||
-            location.hash
-        ) return undefined;
-
-        const returnPosition = readProductReturnPosition();
 
         if (!returnPosition?.productId) return undefined;
 
         let attempt = 0;
-        let correctionCount = 0;
         let restoreTimer = null;
         let frameId = null;
-        let isCancelled = false;
-        const maxCorrections = 6;
-        const correctionDelay = 60;
-        const finishRestore = ({ clearSavedPosition = true } = {}) => {
-            if (restoreTimer) {
-                window.clearTimeout(restoreTimer);
-                restoreTimer = null;
-            }
-            if (frameId) {
-                window.cancelAnimationFrame(frameId);
-                frameId = null;
-            }
-            if (!clearSavedPosition) return;
-
-            try {
-                window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-            } catch {
-                // Ignore storage failures.
-            }
-        };
-        const cancelRestore = () => {
-            isCancelled = true;
-            finishRestore();
-        };
 
         const restoreProductPosition = () => {
-            if (isCancelled) return;
-
             const matchingCards = Array.from(document.querySelectorAll("[data-product-card]"))
                 .filter((card) => card.dataset.productId === String(returnPosition.productId));
             const targetCard = returnPosition.sectionId
@@ -605,16 +524,6 @@ export default function Home() {
                 : matchingCards[0];
 
             if (targetCard) {
-                const targetScroller = returnPosition.scrollerId
-                    ? Array.from(document.querySelectorAll("[data-product-scroller]"))
-                        .find((scroller) => scroller.dataset.productScroller === String(returnPosition.scrollerId))
-                    : targetCard.closest("[data-product-scroller]");
-                const scrollerLeft = Number(returnPosition.scrollerLeft);
-
-                if (targetScroller && Number.isFinite(scrollerLeft)) {
-                    targetScroller.scrollLeft = scrollerLeft;
-                }
-
                 const cardRect = targetCard.getBoundingClientRect();
                 const cardTop = Number(returnPosition.cardTop);
                 const fallbackTop = Number(returnPosition.scrollY);
@@ -626,15 +535,12 @@ export default function Home() {
                     window.scrollTo({ top: Math.max(0, nextTop), left: 0, behavior: "auto" });
                 }
 
-                if (correctionCount < maxCorrections) {
-                    correctionCount += 1;
-                    restoreTimer = window.setTimeout(() => {
-                        frameId = window.requestAnimationFrame(restoreProductPosition);
-                    }, correctionDelay);
-                    return;
+                try {
+                    window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+                } catch {
+                    // Ignore storage failures.
                 }
 
-                finishRestore();
                 return;
             }
 
@@ -646,26 +552,17 @@ export default function Home() {
             }
         };
 
-        window.addEventListener("wheel", cancelRestore, { passive: true });
-        window.addEventListener("touchstart", cancelRestore, { passive: true });
-        window.addEventListener("pointerdown", cancelRestore, { passive: true });
-        window.addEventListener("keydown", cancelRestore);
         frameId = window.requestAnimationFrame(restoreProductPosition);
 
         return () => {
-            finishRestore({ clearSavedPosition: false });
-            window.removeEventListener("wheel", cancelRestore);
-            window.removeEventListener("touchstart", cancelRestore);
-            window.removeEventListener("pointerdown", cancelRestore);
-            window.removeEventListener("keydown", cancelRestore);
+            if (restoreTimer) {
+                window.clearTimeout(restoreTimer);
+            }
+            if (frameId) {
+                window.cancelAnimationFrame(frameId);
+            }
         };
-    }, [
-        loading,
-        location.hash,
-        navigationType,
-        productSections.length,
-        shouldSkipProductPositionRestore,
-    ]);
+    }, [loading, location.hash, navigationType, productSections.length]);
 
     useEffect(() => {
         const handleSectionNavigation = (event) => {
@@ -721,11 +618,10 @@ export default function Home() {
                         <ProductLoadingPlaceholder title={t("product.loadingProducts")} />
                     ) : productSections.length > 0 ? (
                         <div className="space-y-12 sm:space-y-16">
-                            {productSections.map((section, sectionIndex) => (
+                            {productSections.map((section) => (
                                 <ProductSection
                                     key={section.title}
                                     section={section}
-                                    sectionIndex={sectionIndex}
                                     isDark={isDark}
                                     t={t}
                                     gridContainerVariants={gridContainerVariants}
@@ -735,9 +631,6 @@ export default function Home() {
                                     onWishlistToggle={toggleWishlist}
                                     isInWishlist={isInWishlist}
                                     user={user}
-                                    shouldRestoreProductRows={
-                                        navigationType === "POP" && !shouldSkipProductPositionRestore
-                                    }
                                 />
                             ))}
                         </div>

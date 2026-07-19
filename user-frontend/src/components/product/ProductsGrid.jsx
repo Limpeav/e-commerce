@@ -1,24 +1,10 @@
 import React from 'react';
-import { useNavigationType } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { useVisibleProductRows } from '../../hooks/useVisibleProductRows';
-
-const PRODUCT_RETURN_POSITION_STORAGE_KEY = 'cherish-product-return-position-v1';
-
-const readProductReturnPosition = () => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-    return storedPosition ? JSON.parse(storedPosition) : null;
-  } catch {
-    return null;
-  }
-};
 
 const container = {
   hidden: { opacity: 0 },
@@ -47,15 +33,8 @@ const ProductsGrid = ({
 }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
-  const navigationType = useNavigationType();
-  const returnPosition = readProductReturnPosition();
-  const returnProductIndex = Number(returnPosition?.productIndex);
-  const returnInitialRows = navigationType === 'POP' && Number.isInteger(returnProductIndex)
-    ? Math.max(4, Math.ceil((returnProductIndex + 1) / 2))
-    : 4;
   const { visibleCount, hasMoreProducts, showMoreProducts } = useVisibleProductRows({
     totalProducts: filteredProducts.length,
-    initialRows: returnInitialRows,
     resetKey: `${selectedCategory}-${searchQuery}-${filteredProducts.length}`,
   });
   const visibleProducts = filteredProducts.slice(0, visibleCount);
@@ -71,7 +50,7 @@ const ProductsGrid = ({
           className="space-y-8 sm:space-y-12"
         >
           <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 md:gap-x-8 md:gap-y-16">
-            {visibleProducts.map((product, index) => (
+            {visibleProducts.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
@@ -80,8 +59,6 @@ const ProductsGrid = ({
                 isInWishlist={isInWishlist}
                 user={user}
                 variants={item}
-                productIndex={index}
-                imagePriority={index < 8}
               />
             ))}
           </div>

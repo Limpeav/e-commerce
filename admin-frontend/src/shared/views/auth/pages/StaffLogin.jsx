@@ -173,7 +173,7 @@ const StaffLogin = () => {
             </p>
           </div>
 
-          <form onSubmit={submitHandler} className="staff-login-form space-y-5 px-8 pb-10 sm:px-10">
+          <form onSubmit={submitHandler} className="space-y-5 px-8 pb-10 sm:px-10">
             {error && (
               <div className="flex animate-fade-in items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />

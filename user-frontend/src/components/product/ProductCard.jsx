@@ -7,7 +7,6 @@ import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
 import { isClothingProduct } from '../../utils/productOptions';
 import { getLocalizedProductText } from '../../utils/productLocalization';
-import Price from '../shared/Price';
 import {
   formatExpiryDate,
   productSupportsExpiry,
@@ -24,8 +23,6 @@ const ProductCard = ({
   user,
   variants,
   productSectionId,
-  productIndex,
-  imagePriority = false,
   className = ""
 }) => {
   const price = Number(product.price || 0);
@@ -41,20 +38,7 @@ const ProductCard = ({
   const localizedProduct = getLocalizedProductText(product, language);
   const navigate = useNavigate();
   const cardRef = React.useRef(null);
-  const imageRef = React.useRef(null);
   const roundedRating = Math.min(5, Math.max(0, Math.round(Number(product.rating) || 0)));
-  const imageSrc = product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image';
-  const [isImageLoaded, setIsImageLoaded] = React.useState(false);
-  const loadingBlockClass = isDark ? 'bg-slate-800' : 'bg-stone-100';
-
-  React.useEffect(() => {
-    const image = imageRef.current;
-    setIsImageLoaded(false);
-
-    if (image?.complete && image.naturalWidth > 0) {
-      setIsImageLoaded(true);
-    }
-  }, [imageSrc]);
 
   const saveReturnPosition = () => {
     window.dispatchEvent(new Event(SAVE_SCROLL_POSITION_EVENT));
@@ -63,7 +47,6 @@ const ProductCard = ({
       productSectionId ||
       cardRef.current?.closest('section[id]')?.id ||
       null;
-    const productScroller = cardRef.current?.closest('[data-product-scroller]');
 
     try {
       window.sessionStorage.setItem(
@@ -71,9 +54,6 @@ const ProductCard = ({
         JSON.stringify({
           productId: product._id,
           sectionId,
-          productIndex: Number.isInteger(productIndex) ? productIndex : null,
-          scrollerId: productScroller?.dataset.productScroller || null,
-          scrollerLeft: productScroller?.scrollLeft ?? null,
           scrollY: window.scrollY,
           cardTop: cardRect?.top ?? null,
         })
@@ -84,8 +64,6 @@ const ProductCard = ({
   };
 
   const openProductDetails = () => {
-    if (!isImageLoaded) return;
-
     saveReturnPosition();
     navigate(`/products/${product._id}`);
   };
@@ -114,7 +92,6 @@ const ProductCard = ({
       onClick={openProductDetails}
       onKeyDown={(event) => {
         if (
-          isImageLoaded &&
           event.target === event.currentTarget &&
           (event.key === 'Enter' || event.key === ' ')
         ) {
@@ -123,37 +100,14 @@ const ProductCard = ({
         }
       }}
       role="link"
-      tabIndex={isImageLoaded ? 0 : -1}
-      aria-busy={!isImageLoaded}
+      tabIndex={0}
       aria-label={`${localizedProduct.title} — ${t('product.details')}`}
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border transition-shadow duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:rounded-[2rem] ${
+      className={`group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border transition-shadow duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:rounded-[2rem] ${
         isDark
           ? 'bg-slate-900 border-slate-800 shadow-[0_20px_50px_-18px_rgba(2,6,23,0.8)] hover:shadow-[0_24px_64px_-20px_rgba(79,70,229,0.35)]'
           : 'bg-white border-stone-100 shadow-sm hover:shadow-[0_20px_50px_-12px_rgba(122,150,126,0.25)]'
-      } ${isImageLoaded ? 'cursor-pointer' : 'cursor-wait'} ${className}`}
+      } ${className}`}
     >
-      {!isImageLoaded && (
-        <div
-          className={`pointer-events-auto absolute inset-0 z-30 flex flex-col ${
-            isDark ? 'bg-slate-900' : 'bg-white'
-          }`}
-          role="status"
-          aria-label={t('product.loadingProducts')}
-        >
-          <div className={`aspect-square w-full rounded-xl sm:rounded-2xl ${loadingBlockClass} animate-pulse`} />
-          <div className="flex flex-1 flex-col gap-3 p-3 pt-4 sm:p-5 sm:pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className={`h-3 w-24 rounded-full ${loadingBlockClass} animate-pulse`} />
-              <div className={`h-6 w-24 rounded-lg ${loadingBlockClass} animate-pulse`} />
-            </div>
-            <div className={`h-5 w-4/5 rounded-xl ${loadingBlockClass} animate-pulse`} />
-            <div className={`h-4 w-full rounded-xl ${loadingBlockClass} animate-pulse`} />
-            <div className={`h-4 w-2/3 rounded-xl ${loadingBlockClass} animate-pulse`} />
-            <div className={`mt-auto h-8 w-24 rounded-xl ${loadingBlockClass} animate-pulse`} />
-          </div>
-        </div>
-      )}
-
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
       <div className={`relative aspect-square overflow-hidden rounded-xl sm:rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
         <Link
@@ -165,25 +119,14 @@ const ProductCard = ({
           className="block h-full w-full"
         >
           <img
-            ref={imageRef}
-            src={imageSrc}
+            src={product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
             alt={localizedProduct.title}
-            loading={imagePriority ? 'eager' : 'lazy'}
-            fetchPriority={imagePriority ? 'high' : 'auto'}
+            loading="lazy"
             decoding="async"
-            onLoad={() => setIsImageLoaded(true)}
-            className={`w-full h-full object-cover object-center transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-105 ${
-              isImageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/400x400?text=No+Image';
-              setIsImageLoaded(true);
-            }}
+            className="w-full h-full object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.33,1,0.68,1)] group-hover:scale-105"
+            onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'; }}
           />
         </Link>
-        {!isImageLoaded && (
-          <div className={`pointer-events-none absolute inset-0 animate-pulse ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`} />
-        )}
 
         {/* Hover Radial Glow */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.03)_0%,_transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
@@ -308,14 +251,12 @@ const ProductCard = ({
         {/* Price Row */}
         <div className="mt-auto flex min-h-[3.5rem] items-end justify-between gap-2">
           <div className="flex min-h-[3.25rem] flex-col justify-end">
-            {hasDiscount && (
-              <Price amount={price} showKHR={false} className={`h-4 text-xs font-bold line-through ${isDark ? 'text-slate-500' : 'text-stone-300'}`} />
-            )}
-            <Price
-              amount={finalPrice}
-              className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}
-              usdClassName={isDark ? 'text-white' : 'text-stone-900'}
-            />
+            <span className={`h-4 text-xs font-bold line-through ${hasDiscount ? '' : 'invisible'} ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
+              ${price.toFixed(2)}
+            </span>
+            <span className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}>
+              ${finalPrice.toFixed(2)}
+            </span>
           </div>
 
           {/* Mobile Only: Text Button */}

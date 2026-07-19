@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 import { useCart } from "../../context/useCart";
 import { useWishlist } from "../../context/useWishlist";
@@ -40,17 +40,6 @@ const VIEW_CONFIG_KEYS = {
 
 const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
 
-const readProductReturnPosition = () => {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-    return storedPosition ? JSON.parse(storedPosition) : null;
-  } catch {
-    return null;
-  }
-};
-
 const sortByDeals = (products) =>
   [...products]
     .filter(
@@ -87,15 +76,6 @@ const getNewArrivals = (products) => {
   return sortByNewest(markedNewArrivals).slice(0, 8);
 };
 
-const isReloadNavigation = () => {
-  if (typeof window === "undefined" || !window.performance?.getEntriesByType) {
-    return false;
-  }
-
-  const navigationEntry = window.performance.getEntriesByType("navigation")?.[0];
-  return navigationEntry?.type === "reload";
-};
-
 export default function ProductCatalog() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -111,7 +91,6 @@ export default function ProductCatalog() {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
   const [categoryRetryToken, setCategoryRetryToken] = useState(0);
-  const shouldSkipProductPositionRestore = useMemo(() => isReloadNavigation(), []);
 
   const { products, loading, error, refetch } = useProducts(language);
   const {
@@ -210,73 +189,25 @@ export default function ProductCatalog() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeView, navigationType]);
 
-  useLayoutEffect(() => {
-    if (!isCatalogLoading || location.hash) return undefined;
+  useEffect(() => {
+    if (navigationType !== "POP" || isCatalogLoading || location.hash) return undefined;
 
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    return undefined;
-  }, [isCatalogLoading, location.hash]);
-
-  useLayoutEffect(() => {
-    if (!shouldSkipProductPositionRestore) return undefined;
+    let returnPosition = null;
 
     try {
-      window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+      const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+      returnPosition = storedPosition ? JSON.parse(storedPosition) : null;
     } catch {
-      // Ignore storage failures; the catalog should still start from the top.
+      returnPosition = null;
     }
-
-    if (!location.hash) {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    }
-
-    return undefined;
-  }, [location.hash, shouldSkipProductPositionRestore]);
-
-  useLayoutEffect(() => {
-    if (
-      shouldSkipProductPositionRestore ||
-      navigationType !== "POP" ||
-      isCatalogLoading ||
-      location.hash
-    ) return undefined;
-
-    const returnPosition = readProductReturnPosition();
 
     if (!returnPosition?.productId) return undefined;
 
     let attempt = 0;
-    let correctionCount = 0;
     let restoreTimer = null;
     let frameId = null;
-    let isCancelled = false;
-    const maxCorrections = 6;
-    const correctionDelay = 60;
-    const finishRestore = ({ clearSavedPosition = true } = {}) => {
-      if (restoreTimer) {
-        window.clearTimeout(restoreTimer);
-        restoreTimer = null;
-      }
-      if (frameId) {
-        window.cancelAnimationFrame(frameId);
-        frameId = null;
-      }
-      if (!clearSavedPosition) return;
-
-      try {
-        window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-      } catch {
-        // Ignore storage failures.
-      }
-    };
-    const cancelRestore = () => {
-      isCancelled = true;
-      finishRestore();
-    };
 
     const restoreProductPosition = () => {
-      if (isCancelled) return;
-
       const targetCard = Array.from(document.querySelectorAll("[data-product-card]"))
         .find((card) => card.dataset.productId === String(returnPosition.productId));
 
@@ -292,15 +223,12 @@ export default function ProductCatalog() {
           window.scrollTo({ top: Math.max(0, nextTop), left: 0, behavior: "auto" });
         }
 
-        if (correctionCount < maxCorrections) {
-          correctionCount += 1;
-          restoreTimer = window.setTimeout(() => {
-            frameId = window.requestAnimationFrame(restoreProductPosition);
-          }, correctionDelay);
-          return;
+        try {
+          window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
+        } catch {
+          // Ignore storage failures.
         }
 
-        finishRestore();
         return;
       }
 
@@ -312,26 +240,17 @@ export default function ProductCatalog() {
       }
     };
 
-    window.addEventListener("wheel", cancelRestore, { passive: true });
-    window.addEventListener("touchstart", cancelRestore, { passive: true });
-    window.addEventListener("pointerdown", cancelRestore, { passive: true });
-    window.addEventListener("keydown", cancelRestore);
     frameId = window.requestAnimationFrame(restoreProductPosition);
 
     return () => {
-      finishRestore({ clearSavedPosition: false });
-      window.removeEventListener("wheel", cancelRestore);
-      window.removeEventListener("touchstart", cancelRestore);
-      window.removeEventListener("pointerdown", cancelRestore);
-      window.removeEventListener("keydown", cancelRestore);
+      if (restoreTimer) {
+        window.clearTimeout(restoreTimer);
+      }
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
     };
-  }, [
-    isCatalogLoading,
-    location.hash,
-    navigationType,
-    visibleProducts.length,
-    shouldSkipProductPositionRestore,
-  ]);
+  }, [isCatalogLoading, location.hash, navigationType, visibleProducts.length]);
 
   useEffect(() => {
     if (!searchQuery.trim()) return undefined;

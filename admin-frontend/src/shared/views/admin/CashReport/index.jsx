@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { CashReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
-import Price from "../../../components/common/Price";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import {
     buildOrderSearchSuggestionValues,
@@ -34,12 +33,11 @@ const getReportPeriod = (activeTab, viewMode) => {
     return viewMode;
 };
 
-const formatUSD = (amount) =>
+const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(amount || 0));
-const formatCurrency = formatUSD;
 
 const formatDateTime = (value) => {
     if (!value) return "N/A";
@@ -250,7 +248,7 @@ const CashReport = () => {
     const statCards = [
         {
             label: "Total Cash",
-            value: <Price amount={summary.totalCash} />,
+            value: formatCurrency(summary.totalCash),
             hint: `${summary.orderCount || 0} paid order${summary.orderCount === 1 ? "" : "s"}`,
             tone: "text-green-700",
             bg: "bg-green-50",
@@ -266,7 +264,7 @@ const CashReport = () => {
         },
         {
             label: "Average Order",
-            value: <Price amount={summary.averageOrderValue} />,
+            value: formatCurrency(summary.averageOrderValue),
             hint: "per paid cash order",
             tone: "text-indigo-700",
             bg: "bg-indigo-50",
@@ -467,10 +465,10 @@ const CashReport = () => {
                                                     {day.orderCount}
                                                 </td>
                                                 <td className="whitespace-nowrap px-5 py-4 text-right font-bold text-gray-700">
-                                                    <Price amount={day.averageOrderValue} usdClassName="text-gray-700" />
+                                                    {formatCurrency(day.averageOrderValue)}
                                                 </td>
                                                 <td className="whitespace-nowrap px-5 py-4 text-right font-black text-gray-950">
-                                                    <Price amount={day.totalCash} usdClassName="text-gray-950" />
+                                                    {formatCurrency(day.totalCash)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -522,7 +520,7 @@ const CashReport = () => {
                                                 </span>
                                             </td>
                                             <td className="whitespace-nowrap px-5 py-4 text-right font-black text-gray-950">
-                                                <Price amount={order.totalPrice} usdClassName="text-gray-950" />
+                                                {formatCurrency(order.totalPrice)}
                                             </td>
                                         </tr>
                                     ))}

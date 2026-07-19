@@ -6,7 +6,6 @@ export const adminService = {
   login: (credentials) => api.post("/admin/login", credentials),
   verifyLogin: (challenge) => api.post("/admin/login/verify", challenge),
   forgotPassword: (payload) => api.post("/admin/forgot-password", payload),
-  resendResetCode: (payload) => api.post("/admin/forgot-password/resend", payload),
   verifyResetCode: (payload) => api.post("/admin/forgot-password/verify", payload),
   resetPassword: (payload) => api.post("/admin/reset-password", payload),
   logout: () => api.post("/admin/logout"),
@@ -94,10 +93,6 @@ export const adminService = {
 
   // Data export
   exportData: (type, format) => api.get(`/admin/export/${type}?format=${format}`),
-
-  // Settings
-  getSettings: () => api.get("/admin/settings"),
-  updateSettings: (settings) => api.put("/admin/settings", settings),
 
   // Cleanup
   cleanupReviews: () => api.post("/admin/cleanup-reviews"),

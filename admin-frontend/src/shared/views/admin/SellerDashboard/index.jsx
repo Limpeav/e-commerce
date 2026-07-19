@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { DashboardController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
-import Price from "../../../components/common/Price";
 import {
     getPortalCashReportPath,
     getPortalOrderDetailsPath,
@@ -21,12 +20,11 @@ import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
-const formatUSD = (amount) =>
+const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(amount || 0));
-const formatCurrency = formatUSD;
 
 const SellerDashboard = () => {
     const navigate = useNavigate();
@@ -84,7 +82,7 @@ const SellerDashboard = () => {
     const statCards = [
         {
             label: "Cash Today",
-            value: <Price amount={totalCashToday} />,
+            value: formatCurrency(totalCashToday),
             hint: `${paidTodayCount} paid order${paidTodayCount === 1 ? "" : "s"}`,
             icon: WalletCards,
             tone: "text-green-700",
@@ -222,7 +220,7 @@ const SellerDashboard = () => {
                                         </p>
                                     </div>
                                     <div className="text-left sm:text-right">
-                                        <Price amount={order.totalPrice} className="font-black text-gray-950" usdClassName="text-gray-950" />
+                                        <p className="font-black text-gray-950">{formatCurrency(order.totalPrice)}</p>
                                         <p className="mt-1 text-xs font-black uppercase text-amber-700">
                                             {order.paymentMethod === "BAKONG_KHQR"
                                                 ? `BAKONG · ${order.paymentStatus}`

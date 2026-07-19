@@ -261,10 +261,6 @@ export const forgotPortalPassword = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    if (requestedRole && !STAFF_ROLES.includes(requestedRole)) {
-      return res.status(400).json({ message: "Invalid staff role" });
-    }
-
     const user = await User.findOne({ email });
     const roleAllowed =
       user &&
@@ -272,8 +268,8 @@ export const forgotPortalPassword = async (req, res) => {
       (!requestedRole || user.role === requestedRole);
 
     if (!roleAllowed) {
-      return res.status(404).json({
-        message: "Wrong email. Please enter a registered seller or delivery email.",
+      return res.json({
+        message: "If a staff account exists for that email, a reset code has been sent.",
       });
     }
 
@@ -304,61 +300,6 @@ export const forgotPortalPassword = async (req, res) => {
   } catch (error) {
     console.error("Portal forgot password error:", error);
     return res.status(500).json({ message: "Failed to process password reset request" });
-  }
-};
-
-export const resendPortalResetCode = async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body.email);
-    const requestedRole = req.body.role;
-
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
-    if (requestedRole && !STAFF_ROLES.includes(requestedRole)) {
-      return res.status(400).json({ message: "Invalid staff role" });
-    }
-
-    const user = await User.findOne({ email });
-    const roleAllowed =
-      user &&
-      STAFF_ROLES.includes(user.role) &&
-      (!requestedRole || user.role === requestedRole);
-
-    if (!roleAllowed) {
-      return res.status(404).json({
-        message: "Wrong email. Please enter a registered seller or delivery email.",
-      });
-    }
-
-    const resetCode = crypto.randomInt(100000, 1000000).toString();
-
-    await User.updateOne(
-      { _id: user._id },
-      {
-        resetPasswordToken: hashResetValue(resetCode),
-        resetPasswordExpires: Date.now() + 10 * 60 * 1000,
-      }
-    );
-
-    try {
-      await sendPasswordResetCode(user.email, user.name, resetCode);
-    } catch (emailError) {
-      console.error("Portal password reset resend email error:", emailError);
-      return res.status(503).json({
-        message: "Unable to resend code at the moment. Please try again later.",
-      });
-    }
-
-    return res.json({
-      message: "A new code has been sent to your email.",
-      maskedEmail: maskEmail(user.email),
-      email: user.email,
-    });
-  } catch (error) {
-    console.error("Portal resend reset code error:", error);
-    return res.status(500).json({ message: "Failed to resend code" });
   }
 };
 

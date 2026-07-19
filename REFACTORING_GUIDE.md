@@ -1,4 +1,3 @@
-npm install -g @google/gemini-cli
 # MVC Refactoring Guide
 
 This guide will help you refactor your project to follow professional MVC architecture.
