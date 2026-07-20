@@ -8,6 +8,9 @@ export const PORTAL_CHALLENGE_TTL = "5m";
 export const normalizeEmail = (email = "") =>
   String(email).trim().toLowerCase();
 
+export const isGmailAddress = (email = "") =>
+  /^[^\s@]+@gmail\.com$/.test(normalizeEmail(email));
+
 export const validatePortalPassword = (password = "") => {
   const value = String(password);
   const errors = [];

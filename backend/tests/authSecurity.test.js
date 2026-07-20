@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import {
   createPortalSessionToken,
   hashLoginCode,
+  isGmailAddress,
   normalizeEmail,
   safeEqual,
   validateCustomerPassword,
@@ -52,6 +53,12 @@ test("customer password policy accepts a strong password", () => {
 
 test("email normalization is consistent", () => {
   assert.equal(normalizeEmail(" ThesisPlus2026@GMAIL.com "), "thesisplus2026@gmail.com");
+});
+
+test("customer Gmail validation only accepts gmail.com addresses", () => {
+  assert.equal(isGmailAddress(" Customer.Name+tag@GMAIL.com "), true);
+  assert.equal(isGmailAddress("customer@yahoo.com"), false);
+  assert.equal(isGmailAddress("customer@gmail.com.kh"), false);
 });
 
 test("login code hashes are challenge-specific and compared safely", () => {

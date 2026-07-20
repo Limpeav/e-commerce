@@ -12,6 +12,13 @@ const ADMIN_VISIBLE_ORDER_FILTER = {
   ],
 };
 
+const ADMIN_MANAGED_USERS_FILTER = {
+  $or: [
+    { role: { $ne: "user" } },
+    { role: "user", isVerified: true },
+  ],
+};
+
 const uploadImageBuffer = (file, folder) =>
   new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -308,7 +315,7 @@ const buildCashReportCsv = (report) => {
 // @access  Private/Admin
 export const getDashboardData = asyncHandler(async (req, res) => {
   // Get counts
-  const usersCount = await User.countDocuments();
+  const usersCount = await User.countDocuments(ADMIN_MANAGED_USERS_FILTER);
   const productsCount = await Product.countDocuments();
   const ordersCount = await Order.countDocuments(ADMIN_VISIBLE_ORDER_FILTER);
   const pendingOrdersCount = await Order.countDocuments({
@@ -359,7 +366,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     .limit(3)
     .populate("user", "name email role");
 
-  const recentUsers = await User.find({ role: "user" })
+  const recentUsers = await User.find({ role: "user", isVerified: true })
     .sort({ createdAt: -1 })
     .limit(2)
     .select("name email createdAt");

@@ -24,11 +24,20 @@ const getValidSellerShift = (value) => {
     return SELLER_SHIFTS.includes(shift) ? shift : "";
 };
 
+const ADMIN_MANAGED_USERS_FILTER = {
+    $or: [
+        { role: { $ne: "user" } },
+        { role: "user", isVerified: true },
+    ],
+};
+
 // @desc    Get all users
 // @route   GET /api/admin/users
 // @access  Private/Admin
 export const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+    const users = await User.find(ADMIN_MANAGED_USERS_FILTER)
+        .select("-password")
+        .sort({ createdAt: -1 });
     res.json(users);
 });
 

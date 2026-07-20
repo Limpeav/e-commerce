@@ -2,6 +2,7 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import { emitDomainChanged } from "../realtime/socket.js";
+import { isGmailAddress, normalizeEmail } from "../utils/authSecurity.js";
 
 // Customer sessions should remain valid until the user logs out or deletes the account.
 const generateToken = (id) => {
@@ -29,10 +30,15 @@ export const googleAuth = async (req, res) => {
       }
     );
 
-    const { email, name, sub, email_verified: emailVerified } = googleResponse.data;
+    const { email: googleEmail, name, sub, email_verified: emailVerified } = googleResponse.data;
+    const email = normalizeEmail(googleEmail);
 
     if (!email || !name || !sub || !emailVerified) {
       return res.status(400).json({ message: "Invalid Google account response" });
+    }
+
+    if (!isGmailAddress(email)) {
+      return res.status(400).json({ message: "Customer registration only accepts @gmail.com email addresses." });
     }
 
     // Check if user exists

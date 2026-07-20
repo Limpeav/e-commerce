@@ -42,6 +42,9 @@ const validateStrongPassword = (password = "") =>
   && /\d/.test(password)
   && /[^A-Za-z0-9]/.test(password);
 
+const isGmailAddress = (email = "") =>
+  /^[^\s@]+@gmail\.com$/.test(String(email).trim().toLowerCase());
+
 const generateStrongPassword = () => {
   const requiredGroups = [
     "ABCDEFGHJKLMNPQRSTUVWXYZ",
@@ -204,6 +207,11 @@ const Register = () => {
       return;
     }
 
+    if (!isGmailAddress(form.email)) {
+      setError(t("registerPage.errors.gmailOnly"));
+      return;
+    }
+
     if (!isValidCambodiaMobilePhone(form.phone)) {
       setError(t("registerPage.errors.validCambodiaPhone"));
       return;
@@ -322,6 +330,7 @@ const Register = () => {
       form.name
       && form.email
       && form.phone
+      && isGmailAddress(form.email)
       && validateStrongPassword(form.password)
       && agreedToTerms
     );

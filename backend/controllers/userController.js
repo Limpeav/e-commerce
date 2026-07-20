@@ -11,6 +11,7 @@ import { emitDomainChanged } from "../realtime/socket.js";
 import { normalizeCambodiaMobilePhone } from "../utils/cambodiaPhone.js";
 import { PORTAL_ROLES } from "../constants/roles.js";
 import {
+  isGmailAddress,
   validateCustomerPassword,
   validatePortalPassword,
 } from "../utils/authSecurity.js";
@@ -78,6 +79,10 @@ export const registerUser = async (req, res) => {
 
     if (!name || !email || !req.body.phone || !password) {
       return res.status(400).json({ message: "Name, email, phone number, and password are required" });
+    }
+
+    if (!isGmailAddress(email)) {
+      return res.status(400).json({ message: "Customer registration only accepts @gmail.com email addresses." });
     }
 
     if (!normalizedPhone) {
@@ -155,7 +160,6 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    emitDomainChanged("users", "created", { userId: user._id, role: user.role });
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -205,6 +209,7 @@ export const verifyRegistrationEmail = async (req, res) => {
     user.verificationCode = undefined;
     user.verificationCodeExpires = undefined;
     await user.save();
+    emitDomainChanged("users", "created", { userId: user._id, role: user.role });
 
     res.json({
       message: "Email verified successfully. Redirecting you to the home page.",

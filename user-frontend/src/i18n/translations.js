@@ -73,6 +73,7 @@ export const translations = {
       errors: {
         requiredFields: "Please fill in all required fields: {{fields}}.",
         validEmail: "Please enter a valid email address.",
+        gmailOnly: "Customer registration only accepts @gmail.com email addresses.",
         validCambodiaPhone: "Please enter a valid Cambodian mobile phone number.",
         passwordLength: "Password must contain at least 6 characters.",
         strongPassword: "Use a strong password with at least 10 characters, uppercase, lowercase, a number, and a special character.",
@@ -927,6 +928,7 @@ export const translations = {
       errors: {
         requiredFields: "សូមបំពេញព័ត៌មានចាំបាច់ទាំងអស់៖ {{fields}}។",
         validEmail: "សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ។",
+        gmailOnly: "ការចុះឈ្មោះអតិថិជនទទួលយកតែអ៊ីមែល @gmail.com ប៉ុណ្ណោះ។",
         validCambodiaPhone: "សូមបញ្ចូលលេខទូរស័ព្ទចល័តកម្ពុជាដែលត្រឹមត្រូវ។",
         passwordLength: "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ។",
         strongPassword: "សូមប្រើពាក្យសម្ងាត់ខ្លាំងដែលមានយ៉ាងតិច 10 តួអក្សរ រួមមានអក្សរធំ អក្សរតូច លេខ និងសញ្ញាពិសេស។",
