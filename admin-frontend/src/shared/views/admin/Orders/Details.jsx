@@ -29,6 +29,8 @@ import {
     joinOrderRoom,
     subscribeRealtimeEvent,
 } from "../../../services/realtime";
+import { adminService } from "../../../services/adminService";
+import { config } from "../../../config";
 
 const OrderDetails = () => {
     const { id } = useParams();
@@ -41,6 +43,7 @@ const OrderDetails = () => {
     const [uploadingProof, setUploadingProof] = useState(false);
     const [sendingReceipt, setSendingReceipt] = useState(false);
     const [receiptNotice, setReceiptNotice] = useState("");
+    const [usdToKhrRate, setUsdToKhrRate] = useState(config.USD_TO_KHR_RATE);
     const receiptNoticeTimeoutRef = useRef(null);
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
@@ -53,6 +56,19 @@ const OrderDetails = () => {
             location.state.returnTo.startsWith(ordersPath))
             ? location.state.returnTo
             : ordersPath;
+
+    useEffect(() => {
+        if (!isDelivery) return;
+
+        adminService.getPublicFinancialSettings()
+            .then((response) => {
+                const configuredRate = Number(response.data?.usdToKhrRate);
+                if (configuredRate > 0) setUsdToKhrRate(configuredRate);
+            })
+            .catch((settingsError) => {
+                console.error("Failed to load financial settings:", settingsError);
+            });
+    }, [isDelivery]);
 
     const cacheDeliveryOrder = useCallback((updatedOrder) => {
         if (!isDelivery || !updatedOrder?._id) {
@@ -334,6 +350,8 @@ const OrderDetails = () => {
             : currentOrder?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatKhrCurrency = (amount) =>
+        `៛${Math.round(Number(amount || 0) * usdToKhrRate).toLocaleString("en-US")} KHR`;
 
     const getDeliveryFee = (currentOrder) => {
         const storedFee = Number(currentOrder?.shippingPrice || 0);
@@ -938,7 +956,14 @@ const OrderDetails = () => {
                                         </div>
                                         <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
                                             <span>Total:</span>
-                                            <span>{formatCurrency(displayedTotal)}</span>
+                                            <span className="flex flex-wrap items-baseline justify-end gap-x-2">
+                                                <span>{formatCurrency(displayedTotal)}</span>
+                                                {isDelivery && (
+                                                    <span className="text-sm font-bold tracking-wide text-blue-700">
+                                                        ({formatKhrCurrency(displayedTotal)})
+                                                    </span>
+                                                )}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

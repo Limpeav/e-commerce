@@ -33,6 +33,8 @@ import {
     buildOrderSearchSuggestionValues,
     getMatchingSearchSuggestions,
 } from "../../../utils/searchSuggestions";
+import { adminService } from "../../../services/adminService";
+import { config } from "../../../config";
 
 const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
@@ -83,6 +85,7 @@ const AdminOrders = ({ renderDelivery }) => {
     const [deliveryBusyLabel, setDeliveryBusyLabel] = useState("");
     const [deliveryNavigatingOrderId, setDeliveryNavigatingOrderId] = useState("");
     const [deliveryMapOrderId, setDeliveryMapOrderId] = useState("");
+    const [usdToKhrRate, setUsdToKhrRate] = useState(config.USD_TO_KHR_RATE);
     const receiptNoticeTimeoutRef = useRef(null);
     const fetchOrders = useCallback(async ({ silent = false } = {}) => {
         try {
@@ -105,6 +108,19 @@ const AdminOrders = ({ renderDelivery }) => {
     useEffect(() => {
         fetchOrders({ silent: isDelivery && initialDeliveryOrders.length > 0 });
     }, [fetchOrders]);
+
+    useEffect(() => {
+        if (!isDelivery) return;
+
+        adminService.getPublicFinancialSettings()
+            .then((response) => {
+                const configuredRate = Number(response.data?.usdToKhrRate);
+                if (configuredRate > 0) setUsdToKhrRate(configuredRate);
+            })
+            .catch((settingsError) => {
+                console.error("Failed to load financial settings:", settingsError);
+            });
+    }, [isDelivery]);
 
     useEffect(() => {
         if (isDelivery) {
@@ -539,6 +555,8 @@ const AdminOrders = ({ renderDelivery }) => {
             : order?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const formatKhrCurrency = (amount) =>
+        `៛${Math.round(Number(amount || 0) * usdToKhrRate).toLocaleString("en-US")} KHR`;
 
     const formatPhoneNumber = (phone) => {
         if (!phone) return "No phone";
@@ -686,6 +704,7 @@ const AdminOrders = ({ renderDelivery }) => {
             expandedOrderDates,
             filteredOrders,
             formatCurrency,
+            formatKhrCurrency,
             formatDeliveryAddress,
             formatPhoneNumber,
             getDisplayPaymentStatus,

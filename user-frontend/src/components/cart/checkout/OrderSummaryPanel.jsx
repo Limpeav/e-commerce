@@ -3,9 +3,12 @@ import { getEffectiveCartProductPrice } from "../../../utils/checkout";
 import { useLanguage } from "../../../context/useLanguage";
 import { getLocalizedProductText } from "../../../utils/productLocalization";
 import { getProductImageForColor } from "../../../utils/productOptions";
+import DualCurrencyPrice from "../../common/DualCurrencyPrice";
+import { useFinancialSettings } from "../../../context/useFinancialSettings";
 
 const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }) => {
   const { language, t } = useLanguage();
+  const { settings } = useFinancialSettings();
 
   return (
   <div className="lg:col-span-1">
@@ -56,9 +59,7 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
               </div>
             </div>
             <div className="text-right">
-              <p className="font-bold text-text-main text-sm">
-                ${(getEffectiveCartProductPrice(item.product) * item.quantity).toFixed(2)}
-              </p>
+              <DualCurrencyPrice amount={getEffectiveCartProductPrice(item.product) * item.quantity} className="flex flex-col items-end font-bold text-text-main text-sm" khrClassName="text-[10px] text-text-muted" separator="" />
             </div>
           </div>
           );
@@ -68,26 +69,26 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
       <div className={`space-y-3 mb-8 border-t pt-6 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Subtotal</span>
-          <span className="text-text-main font-bold">${totals.subtotal.toFixed(2)}</span>
+          <DualCurrencyPrice amount={totals.subtotal} className="flex flex-col items-end text-text-main font-bold" khrClassName="text-[10px] text-text-muted" separator="" />
         </div>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Shipping</span>
-          <span className="text-green-600 font-bold">
-            {totals.shippingPrice === 0 ? "Free" : `$${totals.shippingPrice.toFixed(2)}`}
-          </span>
+          {totals.shippingPrice === 0 ? (
+            <span className="text-green-600 font-bold">Free</span>
+          ) : (
+            <DualCurrencyPrice amount={totals.shippingPrice} className="flex flex-col items-end text-green-600 font-bold" khrClassName="text-[10px] text-text-muted" separator="" />
+          )}
         </div>
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
-          <span>Tax (8%)</span>
-          <span className="text-text-main font-bold">${totals.taxPrice.toFixed(2)}</span>
+          <span>Tax ({Number(settings.taxPercentage) || 0}%)</span>
+          <DualCurrencyPrice amount={totals.taxPrice} className="flex flex-col items-end text-text-main font-bold" khrClassName="text-[10px] text-text-muted" separator="" />
         </div>
 
         <div className={`h-px my-4 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>
 
         <div className="flex justify-between items-end">
           <span className="text-text-main font-bold text-lg">Total</span>
-          <span className="text-3xl font-black font-display tracking-tight text-primary">
-            ${totals.totalPrice.toFixed(2)}
-          </span>
+          <DualCurrencyPrice amount={totals.totalPrice} className="flex flex-col items-end text-3xl font-black font-display tracking-tight text-primary" khrClassName="text-sm text-text-muted" separator="" />
         </div>
       </div>
 

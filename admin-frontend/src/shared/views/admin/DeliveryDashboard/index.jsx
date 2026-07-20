@@ -21,6 +21,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
     expandedOrderDates,
     filteredOrders,
     formatCurrency,
+    formatKhrCurrency,
     formatDeliveryAddress,
     formatPhoneNumber,
     getDisplayPaymentStatus,
@@ -248,8 +249,13 @@ const DeliveryDashboardView = ({ dashboard }) => {
                                 <p className="text-[11px] font-bold uppercase text-gray-500">
                                   Total
                                 </p>
-                                <p className="text-lg font-black text-gray-950">
-                                  {formatCurrency(order.totalPrice)}
+                                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 leading-tight">
+                                  <span className="text-lg font-black text-gray-950">
+                                    {formatCurrency(order.totalPrice)}
+                                  </span>
+                                  <span className="text-xs font-bold tracking-wide text-blue-700">
+                                    ({formatKhrCurrency(order.totalPrice)})
+                                  </span>
                                 </p>
                               </div>
                               <div className="rounded-xl bg-gray-50 p-3">

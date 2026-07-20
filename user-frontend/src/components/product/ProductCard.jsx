@@ -11,6 +11,7 @@ import {
   formatExpiryDate,
   productSupportsExpiry,
 } from '../../utils/productExpiry';
+import DualCurrencyPrice from '../common/DualCurrencyPrice';
 
 const SAVE_SCROLL_POSITION_EVENT = 'scroll-position:save';
 const PRODUCT_RETURN_POSITION_STORAGE_KEY = 'cherish-product-return-position-v1';
@@ -310,9 +311,12 @@ const ProductCard = ({
             <span className={`h-4 text-xs font-bold line-through ${hasDiscount ? '' : 'invisible'} ${isDark ? 'text-slate-500' : 'text-stone-300'}`}>
               ${price.toFixed(2)}
             </span>
-            <span className={`text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}>
-              ${finalPrice.toFixed(2)}
-            </span>
+            <DualCurrencyPrice
+              amount={finalPrice}
+              className={`flex flex-wrap items-baseline gap-x-1 text-base font-black tracking-tight sm:text-xl ${isDark ? 'text-white' : 'text-stone-900'}`}
+              khrClassName={`text-[10px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-stone-500'}`}
+              separator=""
+            />
           </div>
 
           {/* Mobile Only: Text Button */}

@@ -3,6 +3,8 @@ export const ORDER_REQUEST_TIMEOUT_MS = 10000;
 export const SHIPPING_PRICE = 0;
 export const TAX_RATE = 0.08;
 export const DEFAULT_FINANCIAL_SETTINGS = {
+  usdToKhrRate: 4100,
+  khrToUsdRate: 1 / 4100,
   taxPercentage: TAX_RATE * 100,
   deliveryFee: SHIPPING_PRICE,
 };

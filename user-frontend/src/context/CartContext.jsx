@@ -15,6 +15,7 @@ import {
   getProductImageForColor,
 } from "../utils/productOptions";
 import { withGlobalLoading } from "../services/loadingIndicator";
+import DualCurrencyPrice from "../components/common/DualCurrencyPrice";
 
 const isPortalRoute = (pathname = "") =>
   pathname.startsWith("/admin") ||
@@ -467,9 +468,7 @@ const CartPreviewDrawer = ({
                             </span>
                           </div>
                         )}
-                        <p className="text-sm font-black text-primary">
-                          ${(price * item.quantity).toFixed(2)}
-                        </p>
+                        <DualCurrencyPrice amount={price * item.quantity} className="flex flex-wrap items-baseline gap-1 text-sm font-black text-primary" khrClassName="text-[10px] text-text-muted" separator="" />
                       </div>
                     </div>
 
@@ -500,7 +499,7 @@ const CartPreviewDrawer = ({
             <div className="space-y-2 text-sm sm:space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-text-muted">{t("cart.subtotal")}</span>
-                <span className="font-black text-text-main">${subtotal.toFixed(2)}</span>
+                <DualCurrencyPrice amount={subtotal} className="flex flex-col items-end font-black text-text-main" khrClassName="text-[10px] text-text-muted" separator="" />
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-bold text-text-muted">{t("cart.shipping")}</span>
@@ -510,7 +509,7 @@ const CartPreviewDrawer = ({
 
             <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 dark:border-slate-800 sm:mt-5 sm:pt-4">
               <span className="font-display text-lg font-black text-text-main">{t("cart.total")}</span>
-              <span className="font-display text-xl font-black text-text-main">${subtotal.toFixed(2)}</span>
+              <DualCurrencyPrice amount={subtotal} className="flex flex-col items-end font-display text-xl font-black text-text-main" khrClassName="text-xs text-text-muted" separator="" />
             </div>
 
             <Link

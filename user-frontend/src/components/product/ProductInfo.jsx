@@ -9,6 +9,7 @@ import {
   productSupportsExpiry,
 } from '../../utils/productExpiry';
 import ProductPurchaseActions from './ProductPurchaseActions';
+import DualCurrencyPrice from '../common/DualCurrencyPrice';
 
 const ProductInfo = ({
   product,
@@ -113,9 +114,7 @@ const ProductInfo = ({
       <div className="flex flex-wrap items-end gap-2.5 sm:gap-3">
         {hasDiscount ? (
           <>
-            <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-              ${discountPrice.toFixed(2)}
-            </span>
+            <DualCurrencyPrice amount={discountPrice} className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-normal ${isDark ? "text-white" : "text-stone-900"}`} khrClassName="text-base font-bold tracking-wide text-primary sm:text-xl" separator="" />
             <span className={`mb-1 line-through text-lg font-bold decoration-2 sm:mb-1.5 sm:text-xl ${isDark ? "text-slate-500" : "text-stone-400"}`}>
               ${price.toFixed(2)}
             </span>
@@ -124,9 +123,7 @@ const ProductInfo = ({
             </div>
           </>
         ) : (
-          <span className={`text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-tighter ${isDark ? "text-white" : "text-stone-900"}`}>
-            ${price.toFixed(2)}
-          </span>
+          <DualCurrencyPrice amount={price} className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 text-3xl sm:text-4xl lg:text-[3rem] font-black font-display tracking-normal ${isDark ? "text-white" : "text-stone-900"}`} khrClassName="text-base font-bold tracking-wide text-primary sm:text-xl" separator="" />
         )}
       </div>
 
