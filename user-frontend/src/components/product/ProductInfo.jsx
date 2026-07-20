@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Baby, Calendar } from 'lucide-react';
+import { ArrowRight, Star, Baby, Calendar, ChevronDown } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { getLocalizedProductText } from '../../utils/productLocalization';
@@ -25,7 +25,10 @@ const ProductInfo = ({
 }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
+  const [expandedDescriptionKey, setExpandedDescriptionKey] = useState(null);
   const localizedProduct = getLocalizedProductText(product, language);
+  const descriptionKey = `${product._id}-${language}`;
+  const isDescriptionExpanded = expandedDescriptionKey === descriptionKey;
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
   const hasDiscount = discountPrice > 0 && discountPrice < price;
@@ -130,9 +133,23 @@ const ProductInfo = ({
       {/* Description */}
       <div className={`prose prose-stone max-w-none rounded-[1.2rem] border p-4 shadow-sm ${isDark ? "bg-slate-900 border-slate-800" : "bg-stone-50/50 border-stone-100"}`}>
         <h3 className={`mb-2 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Product Description</h3>
-        <p data-no-static-translation className={`text-sm leading-relaxed font-medium sm:text-[15px] ${isDark ? "text-slate-300" : "text-stone-600"}`}>
+        <p
+          id="product-description"
+          data-no-static-translation
+          className={`text-sm leading-relaxed font-medium sm:text-[15px] ${isDescriptionExpanded ? "" : "line-clamp-3"} ${isDark ? "text-slate-300" : "text-stone-600"}`}
+        >
           {localizedProduct.description}
         </p>
+        <button
+          type="button"
+          onClick={() => setExpandedDescriptionKey((currentKey) => currentKey === descriptionKey ? null : descriptionKey)}
+          aria-expanded={isDescriptionExpanded}
+          aria-controls="product-description"
+          aria-label={isDescriptionExpanded ? "Collapse product description" : "Show full product description"}
+          className={`mx-auto mt-2 flex h-8 w-10 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isDark ? "text-slate-300 hover:bg-slate-800 hover:text-white" : "text-stone-500 hover:bg-stone-200/70 hover:text-stone-900"}`}
+        >
+          <ChevronDown className={`h-5 w-5 transition-transform duration-300 ${isDescriptionExpanded ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
       {/* Expiry Date - shown for Milk and Bath & Skin */}
