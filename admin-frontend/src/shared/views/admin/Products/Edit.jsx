@@ -10,17 +10,21 @@ import { useLanguage } from "../../../context/useLanguage";
 import {
   buildProductRequestData,
   formatProductColorList,
+  GENERAL_PRODUCT_DETAIL_IMAGES_KEY,
   getExpiryDateInputValue,
   MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR,
   parseProductColorList,
   PRODUCT_COLOR_OPTIONS,
+  PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE,
   productSupportsExpiry,
+  productSupportsGeneralDetailImages,
 } from "../../../utils/productExpiry";
 import {
   buildDefaultSizeStocks,
   getSizeStocksTotal,
   isSizedProduct,
   normalizeSizeStocksForForm,
+  productSupportsOptionalSizeOptions,
   productSupportsColorOptions,
 } from "../../../utils/productOptions";
 import {
@@ -41,6 +45,31 @@ import Loading from "../../../components/common/Loading";
 
 const parseBooleanValue = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
+
+const getProductDetailImagesFromEntry = (entry) =>
+  Array.isArray(entry?.images)
+    ? entry.images
+        .map((image) => String(image || "").trim())
+        .filter(Boolean)
+        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
+    : [];
+
+const findProductDetailImageEntry = (entries = [], groupName = "") =>
+  entries.find(
+    (entry) =>
+      String(entry.color || "").trim().toLowerCase() ===
+      String(groupName || "").trim().toLowerCase()
+  );
+
+const shouldDefaultToTotalQuantity = (product = {}) => {
+  if (normalizeProductCategory(product.category) !== "Diapering & Care") {
+    return false;
+  }
+
+  return /\b(wipe|wipes|wet wipes|cream|lotion|powder)\b/i.test(
+    `${product.title || ""} ${product.description || ""}`
+  );
+};
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -72,6 +101,7 @@ const EditProduct = () => {
     expiryDate: "",
     currentImage: "",
     sizeStocks: [],
+    trackSizeInventory: false,
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -117,9 +147,22 @@ const EditProduct = () => {
         const res = await ProductController.getById(id);
         const data = res.data;
         const hasProductIssue = parseBooleanValue(data.hasProductIssue);
+        const normalizedCategory = normalizeProductCategory(data.category);
         const colors = Array.isArray(data.colors) ? data.colors : [];
+        const normalizedSizeStocks = normalizeSizeStocksForForm(
+          data.sizeStocks,
+          data.category,
+          colors
+        );
+        const trackSizeInventory =
+          productSupportsOptionalSizeOptions({ category: normalizedCategory }) &&
+          normalizedSizeStocks.length > 0 &&
+          !shouldDefaultToTotalQuantity(data);
         const colorImages = {};
         const productDetailImages = {};
+        const productDetailImageEntries = Array.isArray(data.productDetailImages)
+          ? data.productDetailImages
+          : [];
         colors.forEach((color) => {
           const colorImage = Array.isArray(data.colorImages)
             ? data.colorImages.find(
@@ -129,32 +172,32 @@ const EditProduct = () => {
               )
             : null;
           colorImages[color] = colorImage?.image || "";
-          const detailImageEntry = Array.isArray(data.productDetailImages)
-            ? data.productDetailImages.find(
-                (entry) =>
-                  String(entry.color || "").trim().toLowerCase() ===
-                  String(color || "").trim().toLowerCase()
-              )
-            : null;
-          productDetailImages[color] = Array.isArray(detailImageEntry?.images)
-            ? detailImageEntry.images
-                .map((image) => String(image || "").trim())
-                .filter(Boolean)
-                .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
-            : [];
+          productDetailImages[color] = getProductDetailImagesFromEntry(
+            findProductDetailImageEntry(productDetailImageEntries, color)
+          );
         });
+        if (productSupportsGeneralDetailImages(normalizedCategory)) {
+          const generalDetailImageEntry =
+            findProductDetailImageEntry(
+              productDetailImageEntries,
+              GENERAL_PRODUCT_DETAIL_IMAGES_KEY
+            ) || (colors.length === 0 ? productDetailImageEntries[0] : null);
+          productDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY] =
+            getProductDetailImagesFromEntry(generalDetailImageEntry);
+        }
 
         setForm({
           title: data.title || "",
           price: data.price || "",
           discountPrice: data.discountPrice || "",
-          category: normalizeProductCategory(data.category),
+          category: normalizedCategory,
           description: data.description || "",
           stock: data.stock || "",
           colors: colors.join(", "),
           colorImages,
           productDetailImages,
-          sizeStocks: normalizeSizeStocksForForm(data.sizeStocks, data.category, colors),
+          sizeStocks: normalizedSizeStocks,
+          trackSizeInventory,
           isNewArrival: parseBooleanValue(data.isNewArrival),
           hasProductIssue,
           issueQuantity: data.issueQuantity || (hasProductIssue ? "1" : ""),
@@ -189,14 +232,23 @@ const EditProduct = () => {
     if (name === "category") {
       setForm((currentForm) => {
         const shouldShowColorOptions = productSupportsColorOptions({ category: value });
+        const shouldShowGeneralDetailImages = productSupportsGeneralDetailImages(value);
+        const shouldUseOptionalSizeInventory =
+          productSupportsOptionalSizeOptions({ category: value }) &&
+          productSupportsOptionalSizeOptions(currentForm) &&
+          currentForm.trackSizeInventory;
         const nextColors = shouldShowColorOptions
           ? parseProductColorList(currentForm.colors)
           : [];
-        const nextSizeStocks = buildDefaultSizeStocks(
-          value,
-          currentForm.sizeStocks,
-          nextColors
-        );
+        const currentGeneralDetailImages = Array.isArray(
+          currentForm.productDetailImages?.[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+        )
+          ? currentForm.productDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+          : [];
+        const nextSizeStocks =
+          shouldShowColorOptions || shouldUseOptionalSizeInventory
+            ? buildDefaultSizeStocks(value, currentForm.sizeStocks, nextColors)
+            : [];
 
         return {
           ...currentForm,
@@ -205,8 +257,11 @@ const EditProduct = () => {
           colorImages: shouldShowColorOptions ? currentForm.colorImages : {},
           productDetailImages: shouldShowColorOptions
             ? currentForm.productDetailImages
-            : {},
+            : shouldShowGeneralDetailImages
+              ? { [GENERAL_PRODUCT_DETAIL_IMAGES_KEY]: currentGeneralDetailImages }
+              : {},
           sizeStocks: nextSizeStocks,
+          trackSizeInventory: shouldUseOptionalSizeInventory,
           stock: nextSizeStocks.length > 0
             ? String(getSizeStocksTotal(nextSizeStocks))
             : currentForm.stock,
@@ -281,6 +336,7 @@ const EditProduct = () => {
 
       return {
         ...currentForm,
+        trackSizeInventory: true,
         sizeStocks: nextSizeStocks,
         stock: String(getSizeStocksTotal(nextSizeStocks)),
       };
@@ -497,10 +553,58 @@ const EditProduct = () => {
     });
   };
 
+  const handleEnableOptionalSizeInventory = () => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => {
+      const nextSizeStocks = buildDefaultSizeStocks(
+        currentForm.category,
+        currentForm.sizeStocks,
+        []
+      );
+
+      return {
+        ...currentForm,
+        trackSizeInventory: true,
+        sizeStocks: nextSizeStocks,
+        stock: String(getSizeStocksTotal(nextSizeStocks)),
+      };
+    });
+  };
+
+  const handleDisableOptionalSizeInventory = () => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setForm((currentForm) => ({
+      ...currentForm,
+      stock: String(getSizeStocksTotal(currentForm.sizeStocks)),
+      sizeStocks: [],
+      trackSizeInventory: false,
+    }));
+  };
+
   const colorOptions = parseProductColorList(form.colors);
+  const showGeneralDetailImages =
+    productSupportsGeneralDetailImages(form.category) &&
+    !productSupportsColorOptions(form);
+  const generalDetailImages = Array.isArray(
+    form.productDetailImages?.[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+  )
+    ? form.productDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+    : [];
+  const generalDetailImageLimitReached =
+    generalDetailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
   const availableColorOptions = PRODUCT_COLOR_OPTIONS.filter(
     (color) => !colorOptions.some((selectedColor) => selectedColor.toLowerCase() === color.toLowerCase())
   );
+  const usesOptionalSizeInventory =
+    productSupportsOptionalSizeOptions(form) && form.trackSizeInventory;
+  const usesSizeInventory = isSizedProduct(form) || usesOptionalSizeInventory;
+  const hasSizeStockInventory = form.sizeStocks.length > 0 && usesSizeInventory;
+  const showOptionalSizeInventoryPrompt =
+    productSupportsOptionalSizeOptions(form) && !form.trackSizeInventory;
+  const showOptionalSizeInventoryRemoval =
+    productSupportsOptionalSizeOptions(form) && form.trackSizeInventory;
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -531,6 +635,88 @@ const EditProduct = () => {
       imageUrl: "",
     }));
   };
+
+  const renderGeneralDetailImagesPanel = (extraClassName = "") =>
+    showGeneralDetailImages ? (
+      <div className={`${extraClassName} rounded-xl border border-gray-200 bg-gray-50 p-5`}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-gray-900">Product Detail Images</p>
+            <p className="mt-1 text-xs font-medium text-gray-600">
+              Upload package, ingredients, usage, size guide, or instruction images for this product.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-blue-700">
+              {PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE}
+            </p>
+            <p className="mt-1 text-xs font-medium text-gray-500">
+              {generalDetailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded
+            </p>
+          </div>
+          <label
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              generalDetailImageLimitReached ||
+              detailImageUploading[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+                ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+            <span>
+              {detailImageUploading[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+                ? "Uploading..."
+                : "Upload Details"}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={
+                generalDetailImageLimitReached ||
+                Boolean(detailImageUploading[GENERAL_PRODUCT_DETAIL_IMAGES_KEY])
+              }
+              onChange={(event) => {
+                handleProductDetailImageUpload(
+                  GENERAL_PRODUCT_DETAIL_IMAGES_KEY,
+                  event.target.files
+                );
+                event.target.value = "";
+              }}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        {generalDetailImages.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {generalDetailImages.map((image, imageIndex) => (
+              <div
+                key={`${image}-${imageIndex}`}
+                className="relative overflow-hidden rounded-lg border border-gray-200 bg-white"
+              >
+                <img
+                  src={image}
+                  alt={`Product detail ${imageIndex + 1}`}
+                  className="h-24 w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleRemoveProductDetailImage(
+                      GENERAL_PRODUCT_DETAIL_IMAGES_KEY,
+                      imageIndex
+                    )
+                  }
+                  className="absolute right-1 top-1 rounded-md bg-white/90 p-1 text-red-600 shadow-sm hover:bg-red-50"
+                  aria-label={`Remove product detail image ${imageIndex + 1}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ) : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -582,31 +768,46 @@ const EditProduct = () => {
               };
             }, {})
           : currentForm.colorImages,
-        productDetailImages: Array.isArray(updatedProduct.colors)
-          ? updatedProduct.colors.reduce((nextDetailImages, color) => {
-              const detailImageEntry = Array.isArray(updatedProduct.productDetailImages)
-                ? updatedProduct.productDetailImages.find(
-                    (entry) =>
-                      String(entry.color || "").trim().toLowerCase() ===
-                      String(color || "").trim().toLowerCase()
-                  )
-                : null;
-              return {
-                ...nextDetailImages,
-                [color]: Array.isArray(detailImageEntry?.images)
-                  ? detailImageEntry.images
-                      .map((image) => String(image || "").trim())
-                      .filter(Boolean)
-                      .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
-                  : [],
-              };
-            }, {})
-          : currentForm.productDetailImages,
+        productDetailImages: (() => {
+          const updatedColors = Array.isArray(updatedProduct.colors)
+            ? updatedProduct.colors
+            : parseProductColorList(currentForm.colors);
+          const detailImageEntries = Array.isArray(updatedProduct.productDetailImages)
+            ? updatedProduct.productDetailImages
+            : [];
+          const nextDetailImages = updatedColors.reduce((result, color) => ({
+            ...result,
+            [color]: getProductDetailImagesFromEntry(
+              findProductDetailImageEntry(detailImageEntries, color)
+            ),
+          }), {});
+
+          if (
+            productSupportsGeneralDetailImages(
+              updatedProduct.category ?? currentForm.category
+            )
+          ) {
+            const generalDetailImageEntry =
+              findProductDetailImageEntry(
+                detailImageEntries,
+                GENERAL_PRODUCT_DETAIL_IMAGES_KEY
+              ) ||
+              (updatedColors.length === 0 ? detailImageEntries[0] : null);
+            nextDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY] =
+              getProductDetailImagesFromEntry(generalDetailImageEntry);
+          }
+
+          return nextDetailImages;
+        })(),
         sizeStocks: normalizeSizeStocksForForm(
           updatedProduct.sizeStocks ?? currentForm.sizeStocks,
           updatedProduct.category ?? currentForm.category,
           updatedProduct.colors ?? parseProductColorList(currentForm.colors)
         ),
+        trackSizeInventory:
+          productSupportsOptionalSizeOptions({
+            category: updatedProduct.category ?? currentForm.category,
+          }) && currentForm.trackSizeInventory,
       }));
       setImagePreview(updatedImage || imagePreview);
       setSuccessMessage(
@@ -733,6 +934,7 @@ const EditProduct = () => {
                 Current image will be kept if you don't upload a new one
               </p>
             )}
+            {renderGeneralDetailImagesPanel("mt-6")}
           </div>
 
           {/* Product Details */}
@@ -962,6 +1164,9 @@ const EditProduct = () => {
                                       <p className="mt-1 text-xs font-medium text-gray-500">
                                         {detailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded for {color}
                                       </p>
+                                      <p className="mt-1 text-xs font-semibold text-blue-700">
+                                        {PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE}
+                                      </p>
                                     </div>
                                     <label
                                       className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
@@ -1018,7 +1223,7 @@ const EditProduct = () => {
                 </>
               )}
 
-              {!isSizedProduct(form) && form.sizeStocks.length === 0 && (
+              {!isSizedProduct(form) && !hasSizeStockInventory && (
                 <div className="md:col-span-2">
                   <label
                     htmlFor="product-stock-quantity"
@@ -1042,20 +1247,54 @@ const EditProduct = () => {
                       className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-12 pr-4 font-medium text-gray-900 transition-all duration-200 placeholder:text-gray-400 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+                  {showOptionalSizeInventoryPrompt && (
+                    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <p className="text-xs font-semibold text-blue-900">
+                        Leave this as total quantity for products without sizes.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleEnableOptionalSizeInventory}
+                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Track by diaper size
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {form.sizeStocks.length > 0 && (
+              {hasSizeStockInventory && (
                 <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-5">
                   <div className="mb-4">
-                    <p className="text-sm font-bold text-gray-900">
-                      {isSizedProduct(form) ? "Size + Color Inventory" : "Color Inventory"}
-                    </p>
-                    <p className="mt-1 text-xs font-medium text-gray-600">
-                      {isSizedProduct(form)
-                        ? "Update stock for each size and selected color combination."
-                        : "Update stock for each selected color."}
-                    </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {usesSizeInventory
+                            ? productSupportsOptionalSizeOptions(form)
+                              ? "Size Inventory"
+                              : "Size + Color Inventory"
+                            : "Color Inventory"}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-gray-600">
+                          {usesSizeInventory
+                            ? productSupportsOptionalSizeOptions(form)
+                              ? "Update stock for each diaper size. Total stock updates automatically."
+                              : "Update stock for each size and selected color combination."
+                            : "Update stock for each selected color."}
+                        </p>
+                      </div>
+                      {showOptionalSizeInventoryRemoval && (
+                        <button
+                          type="button"
+                          onClick={handleDisableOptionalSizeInventory}
+                          className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 transition-colors hover:bg-white"
+                        >
+                          Use total quantity
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {form.sizeStocks.map((entry) => (
@@ -1064,7 +1303,7 @@ const EditProduct = () => {
                         className="rounded-lg border border-gray-200 bg-white p-3"
                       >
                         <span className="block text-xs font-bold text-gray-600">
-                          {isSizedProduct(form)
+                          {usesSizeInventory
                             ? entry.color ? `${entry.size} / ${entry.color}` : entry.size
                             : entry.color}
                         </span>
@@ -1089,7 +1328,7 @@ const EditProduct = () => {
                 </div>
               )}
 
-              {form.sizeStocks.length > 0 && (
+              {hasSizeStockInventory && (
                 <div className="md:col-span-2">
                   <label
                     htmlFor="product-stock-quantity"

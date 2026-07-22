@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Star } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
-import { translateTextRealtime } from '../../services/realtime';
 
 const KHMER_MONTHS = [
   "មករា",
@@ -25,9 +24,6 @@ const isKhmerLanguage = (language = "") =>
 const getReviewKey = (review, index) =>
   String(review?._id || `${review?.name || "review"}-${review?.createdAt || index}`);
 
-const getReviewTranslationKey = (review, index) =>
-  `${getReviewKey(review, index)}:${String(review?.comment || "").trim()}`;
-
 const formatReviewDate = (value, language) => {
   const date = new Date(value);
 
@@ -45,77 +41,12 @@ const formatReviewDate = (value, language) => {
 const ReviewList = ({ reviews }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
-  const [translatedComments, setTranslatedComments] = useState({});
-  const translationCacheRef = useRef({});
-  const inFlightTranslationsRef = useRef(new Set());
   const sortedReviews = useMemo(
     () => [...(reviews || [])].sort(
       (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     ),
     [reviews]
   );
-  const reviewComments = useMemo(
-    () => sortedReviews
-      .map((review, index) => ({
-        key: getReviewTranslationKey(review, index),
-        comment: String(review.comment || "").trim(),
-      }))
-      .filter(({ comment }) => comment),
-    [sortedReviews]
-  );
-
-  useEffect(() => {
-    if (!isKhmerLanguage(language)) {
-      return undefined;
-    }
-
-    let isCancelled = false;
-    const pendingComments = reviewComments.filter(({ key }) =>
-      !translationCacheRef.current[key] && !inFlightTranslationsRef.current.has(key)
-    );
-
-    if (!pendingComments.length) {
-      return undefined;
-    }
-
-    pendingComments.forEach(({ key }) => inFlightTranslationsRef.current.add(key));
-
-    Promise.allSettled(
-      pendingComments.map(async ({ key, comment }) => {
-        const result = await translateTextRealtime({
-          text: comment,
-          targetLanguage: "km",
-          sourceLanguage: "auto",
-        });
-        return [key, String(result.translatedText || "").trim()];
-      })
-    ).then((results) => {
-      const nextTranslations = {};
-
-      results.forEach((result) => {
-        if (result.status !== "fulfilled") return;
-
-        const [key, translatedText] = result.value;
-        if (!translatedText) return;
-
-        translationCacheRef.current[key] = translatedText;
-        nextTranslations[key] = translatedText;
-      });
-
-      if (!isCancelled && Object.keys(nextTranslations).length) {
-        setTranslatedComments((current) => ({
-          ...current,
-          ...nextTranslations,
-        }));
-      }
-    }).finally(() => {
-      pendingComments.forEach(({ key }) => inFlightTranslationsRef.current.delete(key));
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [language, reviewComments]);
 
   return (
     <div>
@@ -123,12 +54,7 @@ const ReviewList = ({ reviews }) => {
         <div className="grid gap-4 sm:gap-6">
           {sortedReviews.map((review, index) => {
             const reviewKey = getReviewKey(review, index);
-            const reviewTranslationKey = getReviewTranslationKey(review, index);
             const comment = String(review.comment || "").trim();
-            const storedKhmerComment = String(review.commentKm || "").trim();
-            const displayComment = isKhmerLanguage(language)
-              ? storedKhmerComment || translatedComments[reviewTranslationKey] || comment
-              : comment;
             const rating = Math.min(5, Math.max(1, Math.round(Number(review.rating) || 0)));
 
             return (
@@ -166,7 +92,7 @@ const ReviewList = ({ reviews }) => {
                 </div>
                 {comment && (
                   <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl border ${isDark ? "bg-slate-800 border-slate-700" : "bg-stone-50/50 border-stone-100/50"}`}>
-                    <p className="text-text-muted leading-relaxed font-bold italic text-sm sm:text-base">"{displayComment}"</p>
+                    <p className="text-text-muted leading-relaxed font-bold italic text-sm sm:text-base">"{comment}"</p>
                   </div>
                 )}
               </div>

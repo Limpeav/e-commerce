@@ -27,12 +27,24 @@ export const BABY_SHOE_SIZES = [
   "EU 26",
 ];
 
+export const BABY_DIAPERING_CARE_SIZES = [
+  "NB",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+];
+
 export const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
 
 export const isSizedProduct = (product = {}) => {
   const category = normalizeProductCategory(product.category);
   return category === "Clothing" || category === "Shoes";
 };
+
+export const productSupportsOptionalSizeOptions = (product = {}) =>
+  normalizeProductCategory(product.category) === "Diapering & Care";
 
 export const productSupportsColorOptions = (product = {}) => {
   const category = normalizeProductCategory(product.category);
@@ -43,13 +55,15 @@ export const getDefaultSizesForCategory = (category = "") => {
   const normalizedCategory = normalizeProductCategory(category);
   if (normalizedCategory === "Shoes") return BABY_SHOE_SIZES;
   if (normalizedCategory === "Clothing") return BABY_CLOTHING_SIZES;
+  if (normalizedCategory === "Diapering & Care") return BABY_DIAPERING_CARE_SIZES;
   return [];
 };
 
 const normalizeColor = (color = "") => String(color || "").trim();
+const normalizeSize = (size = "") => String(size || "").trim().toUpperCase();
 
 const getSizeStockKey = (size = "", color = "") =>
-  `${String(size || "").trim().toUpperCase()}::${normalizeColor(color).toLowerCase()}`;
+  `${normalizeSize(size)}::${normalizeColor(color).toLowerCase()}`;
 
 export const buildDefaultSizeStocks = (category = "", currentSizeStocks = [], colors = []) => {
   const currentBySize = new Map(
@@ -99,6 +113,10 @@ export const normalizeSizeStocksForForm = (sizeStocks = [], category = "", color
       stock: entry.stock ?? "",
       reservedStock: Number(entry.reservedStock || 0),
     }));
+  }
+
+  if (productSupportsOptionalSizeOptions({ category })) {
+    return [];
   }
 
   return buildDefaultSizeStocks(category, [], colors);

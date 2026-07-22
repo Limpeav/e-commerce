@@ -1,3 +1,5 @@
+import { normalizeProductCategory } from "./productCategories.js";
+
 export const BABY_CLOTHING_SIZES = [
   "NB",
   "0-3M",
@@ -25,32 +27,57 @@ export const BABY_SHOE_SIZES = [
   "EU 26",
 ];
 
+export const BABY_DIAPERING_CARE_SIZES = [
+  "NB",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+];
+
 export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_CATEGORY_NAMES = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
+const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
 export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const isClothingCategory = (category = "") => {
-  const normalizedCategory = String(category || "").trim().toLowerCase();
-  return ["clothing", "cloth", "clothes"].includes(normalizedCategory);
+  return normalizeProductCategory(category) === "Clothing";
 };
 
+export const isDiaperingCareCategory = (category = "") =>
+  normalizeProductCategory(category) === "Diapering & Care";
+
 export const isShoeProduct = (product = {}) => {
+  const category = normalizeProductCategory(product.category);
   const searchableText = `${product.category || ""} ${product.title || ""}`.toLowerCase();
-  return SHOE_CATEGORY_NAMES.some((name) => searchableText.includes(name));
+  return category === "Shoes" || SHOE_CATEGORY_NAMES.some((name) => searchableText.includes(name));
 };
 
 export const getProductSizes = (product = {}) => {
-  const needsSize = isClothingCategory(product.category) || isShoeProduct(product);
-  if (!needsSize) return [];
+  const sizeStockSizes = Array.isArray(product.sizeStocks)
+    ? [
+        ...new Set(
+          product.sizeStocks
+            .map((entry) => normalizeSelectedSize(entry.size))
+            .filter((size) => size && size !== COLOR_ONLY_STOCK_SIZE)
+        ),
+      ]
+    : [];
+
+  if (sizeStockSizes.length > 0) return sizeStockSizes;
 
   const customSizes = Array.isArray(product.sizes)
-    ? product.sizes.map((size) => String(size).trim()).filter(Boolean)
+    ? product.sizes.map((size) => normalizeSelectedSize(size)).filter(Boolean)
     : [];
 
   if (customSizes.length > 0) return customSizes;
 
-  return isShoeProduct(product) ? BABY_SHOE_SIZES : BABY_CLOTHING_SIZES;
+  if (isShoeProduct(product)) return BABY_SHOE_SIZES;
+  if (isClothingCategory(product.category)) return BABY_CLOTHING_SIZES;
+
+  return [];
 };
 
 export const normalizeSelectedSize = (size = "") => String(size || "").trim().toUpperCase();
@@ -162,6 +189,7 @@ export const parseProductDetailImagesPayload = (value, colors = []) => {
   const allowedColorMap = new Map(
     allowedColors.map((color) => [color.toLowerCase(), color])
   );
+  const shouldRestrictToAllowedColors = allowedColors.length > 0;
   const productDetailImages = Array.isArray(rawProductDetailImages)
     ? rawProductDetailImages
     : Object.entries(rawProductDetailImages || {}).map(([color, images]) => ({
@@ -179,7 +207,9 @@ export const parseProductDetailImagesPayload = (value, colors = []) => {
     if (!normalizedColor) return;
 
     const colorKey = normalizedColor.toLowerCase();
-    const canonicalColor = allowedColorMap.get(colorKey);
+    const canonicalColor = shouldRestrictToAllowedColors
+      ? allowedColorMap.get(colorKey)
+      : normalizedColor;
     if (!canonicalColor) return;
 
     const rawImages =
@@ -250,12 +280,12 @@ export const validateProductColor = (product, color) => {
 };
 
 export const validateProductSize = (product, size) => {
-  if (!isClothingCategory(product?.category) && !isShoeProduct(product)) return "";
+  const allowedSizes = getProductSizes(product).map(normalizeSelectedSize);
+  if (allowedSizes.length === 0) return "";
 
   const selectedSize = normalizeSelectedSize(size);
   if (!selectedSize) return "Please choose a size for this item.";
 
-  const allowedSizes = getProductSizes(product).map(normalizeSelectedSize);
   if (!allowedSizes.includes(selectedSize)) {
     return `Invalid size. Choose one of: ${allowedSizes.join(", ")}.`;
   }

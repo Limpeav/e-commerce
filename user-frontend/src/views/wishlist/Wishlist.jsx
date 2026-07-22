@@ -4,7 +4,7 @@ import { useAuth } from "../../context/useAuth";
 import { Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, ShoppingBag, ArrowRight, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 import { useDarkMode } from "../../hooks";
-import { isClothingProduct } from "../../utils/productOptions";
+import { getProductSizes } from "../../utils/productOptions";
 import { useLanguage } from "../../context/useLanguage";
 import { getLocalizedProductText } from "../../utils/productLocalization";
 import DualCurrencyPrice from "../../components/common/DualCurrencyPrice";
@@ -156,6 +156,7 @@ export default function Wishlist() {
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
           {wishlist.map((product) => {
             const localizedProduct = getLocalizedProductText(product, language);
+            const needsSize = getProductSizes(product).length > 0;
 
             return (
             <div
@@ -228,7 +229,7 @@ export default function Wishlist() {
                 </div>
 
                 {/* Add to Cart Button */}
-                {isClothingProduct(product) && product.stock > 0 ? (
+                {needsSize && product.stock > 0 ? (
                   <Link
                     to={`/products/${product._id}`}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[10px] font-black text-white shadow-sm transition-all duration-300 hover:bg-primary-dark hover:shadow-md active:scale-95 sm:py-3 sm:text-sm"

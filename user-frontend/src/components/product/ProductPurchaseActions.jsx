@@ -8,7 +8,6 @@ import {
   getAvailableStockForSize,
   getProductColors,
   getProductSizes,
-  isClothingProduct,
   productHasColorOptions,
 } from "../../utils/productOptions";
 
@@ -95,7 +94,7 @@ const ProductPurchaseActions = ({
   const { info } = useToast();
   const sizeOptions = getProductSizes(product);
   const colorOptions = getProductColors(product);
-  const needsSize = isClothingProduct(product);
+  const needsSize = sizeOptions.length > 0;
   const needsColor = productHasColorOptions(product);
   const [internalSelectedSize, setInternalSelectedSize] = useState("");
   const [internalSelectedColor, setInternalSelectedColor] = useState("");

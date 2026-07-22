@@ -5,7 +5,7 @@ import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { translateCategory } from '../../utils/translationKeys';
-import { isClothingProduct } from '../../utils/productOptions';
+import { getProductSizes } from '../../utils/productOptions';
 import { getLocalizedProductText } from '../../utils/productLocalization';
 import {
   formatExpiryDate,
@@ -35,7 +35,7 @@ const ProductCard = ({
   const finalPrice = hasDiscount ? discountPrice : price;
   const inWishlist = isInWishlist(product._id);
   const outOfStock = product.stock === 0;
-  const needsSize = isClothingProduct(product);
+  const needsSize = getProductSizes(product).length > 0;
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
   const localizedProduct = getLocalizedProductText(product, language);

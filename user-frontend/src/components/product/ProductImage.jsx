@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
+import { normalizeProductCategory } from '../../constants/productCategories';
 import {
   getProductDetailImagesForColor,
   getProductImageForColor,
@@ -13,18 +14,21 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
     ? product.productDetailImages.find((entry) => Array.isArray(entry?.images) && entry.images.length > 0)?.color || ""
     : "";
   const galleryColor = String(selectedColor || "").trim() || defaultDetailColor;
+  const detailImages = useMemo(
+    () => (galleryColor ? getProductDetailImagesForColor(product, galleryColor) : []),
+    [galleryColor, product]
+  );
   const galleryImages = useMemo(
-    () => {
-      const detailImages = galleryColor
-        ? getProductDetailImagesForColor(product, galleryColor)
-        : [];
-
-      return [imageSrc, ...detailImages].filter(Boolean);
-    },
-    [galleryColor, imageSrc, product]
+    () => [imageSrc, ...detailImages].filter(Boolean),
+    [detailImages, imageSrc]
   );
   const [selectedImage, setSelectedImage] = useState("");
   const activeImage = galleryImages.includes(selectedImage) ? selectedImage : imageSrc;
+  const productImageCoversFrame =
+    normalizeProductCategory(product?.category) === "Diapering & Care";
+  const imageCoversFrame = (image = "") =>
+    productImageCoversFrame || detailImages.includes(image);
+  const activeImageCoversFrame = imageCoversFrame(activeImage);
 
   return (
     <div className="font-sans">
@@ -57,7 +61,11 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
                       src={image}
                       alt={`${product.title} ${galleryColor} thumbnail ${index + 1}`}
                       loading="lazy"
-                      className="h-full w-full object-contain p-2"
+                      className={
+                        imageCoversFrame(image)
+                          ? "h-full w-full object-cover"
+                          : "h-full w-full object-contain p-2"
+                      }
                     />
                   </button>
                 );
@@ -79,11 +87,15 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
               alt={product.title}
               decoding="async"
               fetchPriority="high"
-              className={`relative z-10 block max-h-[235px] w-auto max-w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02] sm:max-h-[335px] lg:max-h-[450px] ${
-                isDark
-                  ? "drop-shadow-[0_20px_32px_rgba(2,6,23,0.55)]"
-                  : "drop-shadow-[0_18px_24px_rgba(120,113,108,0.18)]"
-              }`}
+              className={
+                activeImageCoversFrame
+                  ? "absolute inset-0 z-10 h-full w-full object-cover object-center transition-transform duration-500 hover:scale-[1.02]"
+                  : `relative z-10 block max-h-[235px] w-auto max-w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02] sm:max-h-[335px] lg:max-h-[450px] ${
+                      isDark
+                        ? "drop-shadow-[0_20px_32px_rgba(2,6,23,0.55)]"
+                        : "drop-shadow-[0_18px_24px_rgba(120,113,108,0.18)]"
+                    }`
+              }
             />
           </div>
 

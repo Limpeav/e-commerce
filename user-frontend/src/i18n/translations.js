@@ -107,8 +107,6 @@ export const translations = {
       purchasedProduct: "Purchased product",
       quantity: "Quantity {{count}}",
       rating: "Rating",
-      reviewLabel: "Your review (optional)",
-      reviewPlaceholder: "Write your review here...",
       readyTitle: "Ready to submit all reviews?",
       submitHint: "Add a rating for all {{count}} product(s) before submitting.",
       submittingAll: "Submitting all...",
@@ -121,7 +119,7 @@ export const translations = {
         existing: "Already reviewed",
       },
       notices: {
-        alreadyRated: "You already rated this product. You can change the stars or review text, then update your review.",
+        alreadyRated: "You already rated this product. You can change the stars, then update your review.",
         submitted: "Review submitted for this product. You can continue with the next product, or update this one.",
       },
       success: {
@@ -1005,8 +1003,6 @@ export const translations = {
       purchasedProduct: "ផលិតផលដែលបានទិញ",
       quantity: "ចំនួន {{count}}",
       rating: "ការវាយតម្លៃ",
-      reviewLabel: "មតិយោបល់របស់អ្នក (ស្រេចចិត្ត)",
-      reviewPlaceholder: "សរសេរមតិយោបល់របស់អ្នកនៅទីនេះ...",
       readyTitle: "រួចរាល់ដើម្បីដាក់ស្នើការវាយតម្លៃទាំងអស់ហើយឬនៅ?",
       submitHint: "សូមបន្ថែមការវាយតម្លៃសម្រាប់ផលិតផលទាំង {{count}} មុនពេលដាក់ស្នើ។",
       submittingAll: "កំពុងដាក់ស្នើទាំងអស់...",
@@ -1019,7 +1015,7 @@ export const translations = {
         existing: "បានវាយតម្លៃរួចហើយ",
       },
       notices: {
-        alreadyRated: "អ្នកបានវាយតម្លៃផលិតផលនេះរួចហើយ។ អ្នកអាចផ្លាស់ប្តូរផ្កាយ ឬអត្ថបទមតិយោបល់ រួចធ្វើបច្ចុប្បន្នភាពការវាយតម្លៃ។",
+        alreadyRated: "អ្នកបានវាយតម្លៃផលិតផលនេះរួចហើយ។ អ្នកអាចផ្លាស់ប្តូរផ្កាយ រួចធ្វើបច្ចុប្បន្នភាពការវាយតម្លៃ។",
         submitted: "បានដាក់ស្នើការវាយតម្លៃសម្រាប់ផលិតផលនេះរួចហើយ។ អ្នកអាចបន្តទៅផលិតផលបន្ទាប់ ឬធ្វើបច្ចុប្បន្នភាពផលិតផលនេះ។",
       },
       success: {

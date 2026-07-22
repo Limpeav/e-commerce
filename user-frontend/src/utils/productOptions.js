@@ -27,6 +27,15 @@ export const BABY_SHOE_SIZES = [
   "EU 26",
 ];
 
+export const BABY_DIAPERING_CARE_SIZES = [
+  "NB",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+];
+
 export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_KEYWORDS = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
@@ -44,14 +53,12 @@ export const isClothingProduct = (product = {}) =>
   normalizeProductCategory(product.category) === "Clothing" || isShoeProduct(product);
 
 export const getProductSizes = (product = {}) => {
-  if (!isClothingProduct(product)) return [];
-
   const sizeStockSizes = Array.isArray(product.sizeStocks)
     ? [
         ...new Set(
           product.sizeStocks
-            .map((entry) => String(entry.size || "").trim())
-            .filter(Boolean)
+            .map((entry) => String(entry.size || "").trim().toUpperCase())
+            .filter((size) => size && size !== COLOR_ONLY_STOCK_SIZE)
         ),
       ]
     : [];
@@ -63,6 +70,8 @@ export const getProductSizes = (product = {}) => {
     : [];
 
   if (customSizes.length > 0) return customSizes;
+
+  if (!isClothingProduct(product)) return [];
 
   return isShoeProduct(product) ? BABY_SHOE_SIZES : BABY_CLOTHING_SIZES;
 };

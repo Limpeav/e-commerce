@@ -1,7 +1,11 @@
 import { normalizeProductCategory } from "../constants/productCategories.js";
-import { productSupportsColorOptions } from "./productOptions.js";
+import {
+  productSupportsColorOptions,
+  productSupportsOptionalSizeOptions,
+} from "./productOptions.js";
 
 const EXPIRY_CATEGORIES = new Set(["Milk", "Bath & Skin"]);
+const GENERAL_DETAIL_IMAGE_CATEGORIES = new Set(["Milk", "Diapering & Care"]);
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const PRODUCT_COLOR_OPTIONS = [
@@ -20,9 +24,15 @@ export const PRODUCT_COLOR_OPTIONS = [
   "Navy",
 ];
 export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
+export const GENERAL_PRODUCT_DETAIL_IMAGES_KEY = "Product";
+export const PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE =
+  "For full cover: upload 1200 x 1200 px square, minimum 900 x 900 px.";
 
 export const productSupportsExpiry = (category) =>
   EXPIRY_CATEGORIES.has(normalizeProductCategory(category));
+
+export const productSupportsGeneralDetailImages = (category) =>
+  GENERAL_DETAIL_IMAGE_CATEGORIES.has(normalizeProductCategory(category));
 
 export const getExpiryDateInputValue = (value) => {
   if (!value) return "";
@@ -58,18 +68,27 @@ export const formatProductColorList = (colors = []) =>
 
 export const buildProductRequestData = (form, { includeImage = false } = {}) => {
   const supportsColorOptions = productSupportsColorOptions(form);
+  const supportsOptionalSizeOptions = productSupportsOptionalSizeOptions(form);
+  const supportsGeneralDetailImages = productSupportsGeneralDetailImages(form.category);
   const colors = supportsColorOptions ? parseProductColorList(form.colors) : [];
+  const shouldSubmitSizeStocks =
+    !supportsOptionalSizeOptions || Boolean(form.trackSizeInventory);
   const colorImageEntries = colors
     .map((color) => ({
       color,
       image: String(form.colorImages?.[color] || "").trim(),
     }))
     .filter((entry) => entry.image);
-  const productDetailImageEntries = colors
-    .map((color) => ({
-      color,
-      images: (Array.isArray(form.productDetailImages?.[color])
-        ? form.productDetailImages[color]
+  const detailImageGroups = supportsColorOptions
+    ? colors
+    : supportsGeneralDetailImages
+      ? [GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
+      : [];
+  const productDetailImageEntries = detailImageGroups
+    .map((groupName) => ({
+      color: groupName,
+      images: (Array.isArray(form.productDetailImages?.[groupName])
+        ? form.productDetailImages[groupName]
         : [])
         .map((image) => String(image || "").trim())
         .filter(Boolean)
@@ -88,7 +107,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     colorImages: JSON.stringify(colorImageEntries),
     productDetailImages: JSON.stringify(productDetailImageEntries),
     sizeStocks: JSON.stringify(
-      supportsColorOptions && Array.isArray(form.sizeStocks)
+      shouldSubmitSizeStocks && Array.isArray(form.sizeStocks)
         ? form.sizeStocks
             .filter((entry) => String(entry.size || "").trim())
             .map((entry) => ({

@@ -125,7 +125,6 @@ export default function ReviewOrder() {
         if (!next[productId]) {
           next[productId] = {
             rating: existingReview ? Number(existingReview.rating) || 5 : 5,
-            comment: existingReview?.comment || "",
           };
         }
       });
@@ -154,16 +153,6 @@ export default function ReviewOrder() {
       [productId]: {
         ...current[productId],
         rating,
-      },
-    }));
-  };
-
-  const setComment = (productId, comment) => {
-    setForms((current) => ({
-      ...current,
-      [productId]: {
-        ...current[productId],
-        comment,
       },
     }));
   };
@@ -205,7 +194,7 @@ export default function ReviewOrder() {
         const form = forms[productId];
         const result = await ProductController.submitReview(productId, user, {
           rating: Number(form.rating),
-          comment: form.comment || "",
+          comment: "",
           orderId: id,
         });
         return { productId, result };
@@ -612,22 +601,6 @@ export default function ReviewOrder() {
                           onChange={(rating) => setRating(productId, rating)}
                           isDark={isDark}
                           name={`rating-${productId}`}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary" htmlFor={`review-${productId}`}>
-                          {t("reviewOrder.reviewLabel")}
-                        </label>
-                        <textarea
-                          id={`review-${productId}`}
-                          value={form.comment || ""}
-                          onChange={(event) => setComment(productId, event.target.value)}
-                          rows={4}
-                          placeholder={t("reviewOrder.reviewPlaceholder")}
-                          className={`w-full resize-none rounded-2xl border-2 p-4 text-sm font-bold text-text-main outline-none transition-colors focus:border-primary ${
-                            isDark ? "border-slate-700 bg-slate-800 placeholder:text-slate-500" : "border-stone-100 bg-stone-50 placeholder:text-stone-400"
-                          }`}
                         />
                       </div>
 
