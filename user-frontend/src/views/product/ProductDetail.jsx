@@ -3,14 +3,16 @@ import { useState } from "react";
 import { useCart } from "../../context/useCart";
 import { useAuth } from "../../context/useAuth";
 import { useWishlist } from "../../context/useWishlist";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin, ShieldCheck, Truck } from "lucide-react";
 import { useDarkMode } from "../../hooks";
 
 // Components
 import ProductImage from "../../components/product/ProductImage";
 import ProductInfo from "../../components/product/ProductInfo";
+import ProductPurchaseActions from "../../components/product/ProductPurchaseActions";
 import RelatedProducts from "../../components/product/RelatedProducts";
 import Loading from "../../components/common/Loading";
+import DualCurrencyPrice from "../../components/common/DualCurrencyPrice";
 import SEO from "../../components/seo/SEO";
 
 // Hooks
@@ -24,10 +26,11 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isDark] = useDarkMode();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   // State
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
 
   // Custom hooks
@@ -92,6 +95,11 @@ export default function ProductDetail() {
       reviewCount: product.numReviews || 0,
     } : undefined,
   } : null
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  const displayPrice = discountPrice > 0 && discountPrice < price ? discountPrice : price;
+  const isInStock = Number(product.stock || 0) > 0;
+
   return (
     <>
       <SEO
@@ -105,7 +113,7 @@ export default function ProductDetail() {
       <div className={`min-h-screen pt-14 sm:pt-16 md:pt-22 pb-16 md:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
 
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
+      <div className="mx-auto max-w-[1500px] px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6">
         {/* Back Button */}
         <div className="mb-3 sm:mb-4">
           <button
@@ -118,9 +126,9 @@ export default function ProductDetail() {
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-2 items-start gap-4 sm:gap-6 md:gap-10 mb-8 sm:mb-12">
+        <div className="grid items-start gap-4 sm:gap-6 lg:grid-cols-[minmax(300px,0.95fr)_minmax(0,1fr)] xl:grid-cols-[minmax(360px,43%)_minmax(0,1fr)_minmax(275px,320px)] xl:gap-7 2xl:gap-9 mb-8 sm:mb-12">
           {/* Product Image Section */}
-          <div className="min-w-0 space-y-3 sm:space-y-4">
+          <div className="min-w-0 space-y-3 sm:space-y-4 xl:sticky xl:top-[5.5rem] xl:z-10">
             <ProductImage
               product={product}
               selectedColor={selectedColor}
@@ -130,16 +138,76 @@ export default function ProductDetail() {
           </div>
 
           {/* Product Details Section */}
-          <ProductInfo
-            product={product}
-            quantity={quantity}
-            setQuantity={setQuantity}
-            onAddToCart={handleAddToCart}
-            onLoginRequired={() => navigate("/login")}
-            user={user}
-            selectedColor={selectedColor}
-            onColorChange={setSelectedColor}
-          />
+          <div className="min-w-0">
+            <ProductInfo
+              product={product}
+              quantity={quantity}
+              setQuantity={setQuantity}
+              onAddToCart={handleAddToCart}
+              onLoginRequired={() => navigate("/login")}
+              user={user}
+              selectedSize={selectedSize}
+              onSizeChange={setSelectedSize}
+              selectedColor={selectedColor}
+              onColorChange={setSelectedColor}
+              showCheckoutControls={false}
+            />
+          </div>
+
+          <aside className="min-w-0 lg:col-span-2 xl:sticky xl:top-[5.5rem] xl:col-span-1 xl:z-10">
+            <div className={`rounded-[1.35rem] border p-4 shadow-sm sm:p-5 xl:rounded-[1.15rem] ${
+              isDark
+                ? "border-slate-800 bg-slate-900"
+                : "border-stone-200 bg-white"
+            }`}>
+              <div className={`border-b pb-4 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
+                <DualCurrencyPrice
+                  amount={displayPrice}
+                  className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 font-display text-3xl font-black tracking-normal ${
+                    isDark ? "text-white" : "text-stone-900"
+                  }`}
+                  khrClassName="text-sm font-bold text-primary"
+                  separator=""
+                />
+                <p className={`mt-3 text-sm font-bold leading-6 ${isDark ? "text-slate-300" : "text-text-muted"}`}>
+                  {t("product.noImportChargesCheckout")}
+                </p>
+              </div>
+
+              <div className={`space-y-3 border-b py-4 text-sm font-bold ${isDark ? "border-slate-800 text-slate-300" : "border-stone-100 text-text-muted"}`}>
+                <div className="flex items-start gap-2.5">
+                  <Truck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>{t("product.fastLocalDeliveryCambodia")}</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>{t("product.deliverSavedAddressCheckout")}</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>{t("product.secureCheckoutProtectedPayment")}</span>
+                </div>
+              </div>
+
+              <p className={`py-4 text-xl font-black ${isInStock ? "text-primary-dark" : "text-rose-600"}`}>
+                {isInStock ? t("product.inStock") : t("product.outOfStock")}
+              </p>
+
+              <ProductPurchaseActions
+                product={product}
+                quantity={quantity}
+                setQuantity={setQuantity}
+                onAddToCart={handleAddToCart}
+                onLoginRequired={() => navigate("/login")}
+                user={user}
+                selectedSize={selectedSize}
+                onSizeChange={setSelectedSize}
+                selectedColor={selectedColor}
+                onColorChange={setSelectedColor}
+                showVariantOptions={false}
+              />
+            </div>
+          </aside>
         </div>
 
         {/* Related Products Section */}

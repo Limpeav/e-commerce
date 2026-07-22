@@ -18,10 +18,13 @@ const ProductInfo = ({
   onAddToCart,
   onLoginRequired,
   user,
+  selectedSize,
+  onSizeChange,
   selectedColor,
   onColorChange,
   showPurchaseActions = true,
-  showPurchaseActionsOnMobile = false,
+  showVariantOptions = true,
+  showCheckoutControls = true,
 }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
@@ -175,24 +178,13 @@ const ProductInfo = ({
           onAddToCart={onAddToCart}
           onLoginRequired={onLoginRequired}
           user={user}
+          selectedSize={selectedSize}
+          onSizeChange={onSizeChange}
           selectedColor={selectedColor}
           onColorChange={onColorChange}
+          showVariantOptions={showVariantOptions}
+          showCheckoutControls={showCheckoutControls}
         />
-      )}
-
-      {showPurchaseActionsOnMobile && (
-        <div className="lg:hidden">
-          <ProductPurchaseActions
-            product={product}
-            quantity={quantity}
-            setQuantity={setQuantity}
-            onAddToCart={onAddToCart}
-            onLoginRequired={onLoginRequired}
-            user={user}
-            selectedColor={selectedColor}
-            onColorChange={onColorChange}
-          />
-        </div>
       )}
     </div>
   );

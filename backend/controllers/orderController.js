@@ -974,6 +974,11 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Receipt image is required");
     }
 
+    if (!["admin", "seller"].includes(req.user?.role)) {
+        res.status(403);
+        throw new Error("Only admin or seller accounts can send order receipts to Telegram");
+    }
+
     const order = await Order.findById(req.params.id).populate("user", "name email");
 
     if (!order) {
@@ -981,7 +986,15 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         throw new Error("Order not found");
     }
 
-    if (order.receiptSent?.sentAt) {
+    const shouldResend =
+        req.query?.resend === "true" ||
+        req.body?.resend === "true" ||
+        req.body?.resend === true;
+    const previousReceiptSent = order.receiptSent?.sentAt
+        ? order.receiptSent.toObject?.() || order.receiptSent
+        : null;
+
+    if (order.receiptSent?.sentAt && !shouldResend) {
         return res.json({
             message: "Receipt was already sent to Telegram",
             telegram: { sent: true, type: "photo", alreadySent: true },
@@ -1030,7 +1043,13 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
         }
     } catch (error) {
         try {
-            await Order.findByIdAndUpdate(order._id, { $unset: { receiptSent: "" } });
+            if (previousReceiptSent) {
+                await Order.findByIdAndUpdate(order._id, {
+                    $set: { receiptSent: previousReceiptSent },
+                });
+            } else {
+                await Order.findByIdAndUpdate(order._id, { $unset: { receiptSent: "" } });
+            }
         } catch (rollbackError) {
             console.error(
                 `Receipt Telegram send failed and receipt rollback failed for order ${order._id}:`,
@@ -1045,8 +1064,8 @@ export const sendOrderReceiptToTelegram = asyncHandler(async (req, res) => {
     });
 
     res.json({
-        message: "Receipt sent to Telegram",
-        telegram: result,
+        message: shouldResend ? "Receipt resent to Telegram" : "Receipt sent to Telegram",
+        telegram: { ...result, resent: shouldResend },
         order: updatedOrder,
     });
 });

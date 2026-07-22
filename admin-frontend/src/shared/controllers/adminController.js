@@ -89,12 +89,12 @@ export class AdminController {
     }
   }
 
-  static async sendOrderReceiptToTelegram(orderId, receiptImage) {
+  static async sendOrderReceiptToTelegram(orderId, receiptImage, options = {}) {
     try {
       const formData = new FormData();
       formData.append("receipt", receiptImage, `order-${orderId}-receipt.png`);
 
-      const response = await adminService.sendOrderReceiptToTelegram(orderId, formData);
+      const response = await adminService.sendOrderReceiptToTelegram(orderId, formData, options);
       return { success: true, data: response.data };
     } catch (error) {
       return {

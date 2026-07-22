@@ -416,6 +416,11 @@ const OrderDetails = () => {
     const displayOrderId = order._id.slice(-8);
     const currentOrderStatus = normalizeOrderStatus(order.orderStatus);
     const currentProgressStatus = currentOrderStatus;
+    const receiptWasSent = Boolean(order.receiptSent?.sentAt);
+    const canResendReceipt =
+        (isSeller || adminUser?.role === "admin") &&
+        receiptWasSent &&
+        currentOrderStatus !== "Cancelled";
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
     const orderProgressStatuses = isDelivery
         ? ["Delivered"]
@@ -463,7 +468,14 @@ const OrderDetails = () => {
         window.open(mapUrl, "_blank");
     };
 
-    const handleSendReceiptToTelegram = async () => {
+    const handleSendReceiptToTelegram = async ({ resend = false } = {}) => {
+        if (
+            resend &&
+            !window.confirm("Send this receipt to Telegram again? This can create a duplicate message if the first one arrived late.")
+        ) {
+            return;
+        }
+
         setSendingReceipt(true);
 
         try {
@@ -480,7 +492,11 @@ const OrderDetails = () => {
                 displayedTotal,
                 formatCurrency,
             });
-            const result = await AdminController.sendOrderReceiptToTelegram(id, receiptImage);
+            const result = await AdminController.sendOrderReceiptToTelegram(
+                id,
+                receiptImage,
+                resend ? { resend: true } : {}
+            );
 
             if (!result.success) {
                 alert(result.error || "Failed to send receipt to Telegram");
@@ -493,7 +509,7 @@ const OrderDetails = () => {
                 await fetchOrderDetails();
             }
             window.dispatchEvent(new Event("admin-orders-updated"));
-            setReceiptNotice("Receipt photo sent to Telegram.");
+            setReceiptNotice(resend ? "Receipt photo resent to Telegram." : "Receipt photo sent to Telegram.");
             if (receiptNoticeTimeoutRef.current) {
                 window.clearTimeout(receiptNoticeTimeoutRef.current);
             }
@@ -600,7 +616,6 @@ const OrderDetails = () => {
             return null;
         }
 
-        const receiptWasSent = Boolean(order.receiptSent?.sentAt);
         const isWaitingForBakongPayment =
             order.paymentMethod === "BAKONG_KHQR" && order.paymentStatus !== "Paid";
 
@@ -645,6 +660,37 @@ const OrderDetails = () => {
                         {sendingReceipt ? "Sending..." : "Print Receipt"}
                     </button>
                 )}
+            </section>
+        );
+    };
+
+    const renderReceiptRecoverySection = () => {
+        if (!canResendReceipt || currentOrderStatus === "Pending") {
+            return null;
+        }
+
+        return (
+            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                <h2 className="mb-2 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                    <Printer className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                    Telegram Receipt
+                </h2>
+                <p className="mb-4 text-sm font-medium text-[var(--color-text-muted)]">
+                    This order is already confirmed. If the delivery Telegram group did not receive the receipt, resend it without changing the order status.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => handleSendReceiptToTelegram({ resend: true })}
+                    disabled={sendingReceipt}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-primary)] bg-[var(--color-bg-card)] px-4 font-bold text-[var(--color-primary-dark)] transition-colors hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {sendingReceipt ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Printer className="h-4 w-4" />
+                    )}
+                    {sendingReceipt ? "Resending..." : "Resend Receipt to Telegram"}
+                </button>
             </section>
         );
     };
@@ -892,13 +938,13 @@ const OrderDetails = () => {
                                     </h2>
                                     <button
                                         type="button"
-                                        onClick={handleSendReceiptToTelegram}
+                                        onClick={() => handleSendReceiptToTelegram({ resend: receiptWasSent })}
                                         disabled={sendingReceipt}
                                         className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-sm font-bold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)] disabled:cursor-not-allowed disabled:opacity-60"
-                                        title="Send receipt photo to Telegram"
+                                        title={receiptWasSent ? "Resend receipt photo to Telegram" : "Send receipt photo to Telegram"}
                                     >
                                         <Printer className="h-4 w-4" />
-                                        {sendingReceipt ? "Sending..." : "Print"}
+                                        {sendingReceipt ? "Sending..." : receiptWasSent ? "Resend" : "Print"}
                                     </button>
                                 </div>
                                 <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
@@ -1017,6 +1063,7 @@ const OrderDetails = () => {
                         {/* Update Order Status */}
                         {canManageOrderStatus && !isDelivery && renderOrderStatusSection()}
                         {renderSellerConfirmationSection()}
+                        {renderReceiptRecoverySection()}
 
                         {/* Update Payment Status */}
                         {(adminUser?.role === "admin" ||

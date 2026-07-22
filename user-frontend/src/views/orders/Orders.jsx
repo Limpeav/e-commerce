@@ -53,7 +53,7 @@ const Orders = () => {
       setError("");
       const token = getAuthToken();
       if (!token) {
-        throw new Error("Not authenticated");
+        throw new Error(t("ordersPage.errors.notAuthenticated"));
       }
 
       const response = await axios.get(`${API_URL}/orders/myorders`, {
@@ -65,12 +65,12 @@ const Orders = () => {
       setOrders(response.data);
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "Failed to fetch orders"
+        err.response?.data?.message || err.message || t("ordersPage.errors.fetchFailed")
       );
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -210,11 +210,13 @@ const Orders = () => {
         <div className={`text-center p-12 rounded-[3rem] shadow-2xl border ${cardClassName}`}>
           <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${isDark ? "text-rose-300" : "text-red-200"}`} />
           <h2 className="text-3xl font-black mb-3 font-display tracking-tight uppercase tracking-widest text-xs">
-            Identity Needed
+            {t("ordersPage.identityNeeded")}
           </h2>
-          <p className={`${mutedClassName} font-bold text-sm mb-8`}>Please enter your credentials to view history.</p>
+          <p className={`${mutedClassName} font-bold text-sm mb-8`}>
+            {t("ordersPage.identityMessage")}
+          </p>
           <button onClick={() => navigate("/login")} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl transition-all ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-text-main text-white hover:bg-primary"}`}>
-            Enter Vault
+            {t("ordersPage.enterVault")}
           </button>
         </div>
       </div>
@@ -222,7 +224,7 @@ const Orders = () => {
   }
 
   if (loading) {
-    return <Loading message="Syncing history..." />;
+    return <Loading message={t("ordersPage.loading")} />;
   }
 
   return (
@@ -261,7 +263,7 @@ const Orders = () => {
                           ? "border-slate-700 bg-slate-900/95 text-slate-300"
                           : "border-stone-200 bg-white/95 text-stone-600"
                       }`}
-                      aria-label="Go back"
+                      aria-label={t("ordersPage.goBack")}
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </button>
@@ -281,7 +283,7 @@ const Orders = () => {
                         onClick={() => navigate(-1)}
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all hover:border-primary hover:text-primary active:scale-90 ${isDark ? "border-slate-700 text-slate-400" : "border-stone-200 text-stone-500"}`}
                         style={{ borderColor: "var(--color-border)" }}
-                        aria-label="Go back"
+                        aria-label={t("ordersPage.goBack")}
                       >
                         <ArrowLeft className="h-4 w-4" />
                       </button>
@@ -290,19 +292,19 @@ const Orders = () => {
                           <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                             <ShoppingBag className="w-4 h-4" />
                           </div>
-                          <span className="text-primary font-bold text-xs uppercase tracking-wide">My Orders</span>
+                          <span className="text-primary font-bold text-xs uppercase tracking-wide">{t("ordersPage.myOrders")}</span>
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight">
-                          Order History
+                          {t("ordersPage.orderHistory")}
                         </h1>
                         <p className={`${mutedClassName} mt-1 font-medium text-sm`}>
-                          View details of your past orders
+                          {t("ordersPage.historySubtitle")}
                         </p>
                       </div>
                     </div>
                     <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border font-bold ${softPanelClassName}`}>
                       <Package className="w-4 h-4 text-primary" />
-                      <span className="text-sm">{orders.length} {orders.length === 1 ? 'Order' : 'Orders'} Placed</span>
+                      <span className="text-sm">{t("ordersPage.ordersPlaced", { count: orders.length })}</span>
                     </div>
                   </Motion.div>
                 )}
@@ -322,16 +324,16 @@ const Orders = () => {
                   <Package className={`w-8 h-8 ${isDark ? "text-slate-500" : "text-stone-300"}`} />
                 </div>
                 <h2 className="text-2xl font-bold mb-3">
-                  No Orders Found
+                  {t("ordersPage.noOrdersFound")}
                 </h2>
                 <p className={`${mutedClassName} mb-8 max-w-md mx-auto font-medium text-sm leading-relaxed`}>
-                  You haven't placed any orders yet. Start shopping to find the best essentials for your baby.
+                  {t("ordersPage.noOrdersMessage")}
                 </p>
                 <button
                   onClick={() => navigate("/customer")}
                   className={`px-8 py-4 rounded-xl transition-all font-bold text-sm shadow-md active:scale-95 ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-primary text-white hover:bg-primary-dark"}`}
                 >
-                  Start Shopping
+                  {t("ordersPage.startShopping")}
                 </button>
               </div>
             ) : (
@@ -366,13 +368,13 @@ const Orders = () => {
                             {order.paymentStatus && (
                               <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${getPaymentStatusDotClass(order.paymentStatus)}`}></div>
-                                Payment: <span className={getPaymentStatusClass(order.paymentStatus)}>{order.paymentStatus}</span>
+                                {t("orderDetail.paymentStatus")}: <span className={getPaymentStatusClass(order.paymentStatus)}>{getStatusLabel(order.paymentStatus)}</span>
                               </div>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className={`text-xs font-bold uppercase tracking-wide mb-1 mr-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>Total</span>
+                          <span className={`text-xs font-bold uppercase tracking-wide mb-1 mr-1 ${isDark ? "text-slate-500" : "text-stone-400"}`}>{t("orderDetail.total")}</span>
                           <div className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg ${invertedSurfaceClassName} ${isDark ? "shadow-slate-950/30" : "shadow-primary/10"}`}>
                             <span className="text-xl font-bold tracking-tight">
                               {formatCurrency(order.totalPrice)}
@@ -385,7 +387,7 @@ const Orders = () => {
                     {/* Order Items */}
                     <div className="p-6">
                       <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-4 ml-1">
-                        Items ({order.orderItems?.length || 0})
+                        {t("ordersPage.itemsCount", { count: order.orderItems?.length || 0 })}
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {order.orderItems?.map((item, index) => (
@@ -416,16 +418,16 @@ const Orders = () => {
                               </h5>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
-                                  Qty: {item.quantity}
+                                  {t("orderDetail.qty")}: {item.quantity}
                                 </span>
                                 {item.size && (
                                   <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
-                                    Size: {item.size}
+                                    {t("orderDetail.size")}: {item.size}
                                   </span>
                                 )}
                                 {item.color && (
                                   <span className={`text-xs font-medium px-2 py-0.5 rounded border ${isDark ? "text-slate-300 bg-slate-900 border-slate-700" : "text-stone-500 bg-white border-stone-100"}`}>
-                                    Color: {item.color}
+                                    {t("orderDetail.color")}: {item.color}
                                   </span>
                                 )}
                                 <span className="text-xs font-bold text-primary">
@@ -450,12 +452,12 @@ const Orders = () => {
                           {order.shippingAddress && (
                             <div className={`text-xs font-medium flex items-center gap-2 ${subtleTextClassName}`}>
                               <MapPin className="w-3.5 h-3.5 text-primary" />
-                              <span className={isDark ? "text-slate-100 font-bold" : "text-text-main font-bold"}>Shipping to:</span>{" "}
+                              <span className={isDark ? "text-slate-100 font-bold" : "text-text-main font-bold"}>{t("ordersPage.shippingTo")}:</span>{" "}
                               {[
                                 order.shippingAddress.street,
                                 order.shippingAddress.address,
                                 order.shippingAddress.city,
-                              ].filter(Boolean).join(", ") || "Map location selected"}
+                              ].filter(Boolean).join(", ") || t("ordersPage.mapLocationSelected")}
                             </div>
                           )}
                         </div>
@@ -490,7 +492,7 @@ const Orders = () => {
                             }`}
                           >
                             <Eye className="w-4 h-4" />
-                            View Details
+                            {t("ordersPage.viewDetails")}
                           </button>
                         </div>
                       </div>

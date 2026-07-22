@@ -85,8 +85,8 @@ export const adminService = {
   updatePaymentStatus: (orderId, paymentStatus) => api.put(`/orders/${orderId}/payment-status`, { paymentStatus }),
   uploadDeliveryProof: (orderId, fileData) =>
     api.put(`/orders/${orderId}/delivery-proof`, fileData),
-  sendOrderReceiptToTelegram: (orderId, fileData) =>
-    api.post(`/orders/${orderId}/receipt-telegram`, fileData),
+  sendOrderReceiptToTelegram: (orderId, fileData, options = {}) =>
+    api.post(`/orders/${orderId}/receipt-telegram`, fileData, { params: options }),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
   // Analytics

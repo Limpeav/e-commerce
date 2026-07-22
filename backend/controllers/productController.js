@@ -1463,9 +1463,20 @@ export const getProductById = async (req, res) => {
           const currentUser = await User.findById(review.user);
 
           if (currentUser) {
+            const reviewObject = review.toObject();
+            let commentKm = reviewObject.commentKm || "";
+
+            if (reviewObject.comment && !commentKm) {
+              commentKm = await translateToKhmer(reviewObject.comment);
+              if (commentKm) {
+                hasChanges = true;
+              }
+            }
+
             // Create review object with current user name
             const updatedReview = {
-              ...review.toObject(),
+              ...reviewObject,
+              commentKm,
               name: currentUser.name // Use current name from database
             };
 
@@ -1716,11 +1727,13 @@ export const createProductReview = async (req, res) => {
 
       const sentiment = classifyReviewSentiment({ rating, comment });
       const sentimentAnalyzedAt = new Date();
+      const commentKm = comment ? await translateToKhmer(comment) : "";
 
       if (alreadyReviewed) {
         alreadyReviewed.name = currentUser.name;
         alreadyReviewed.rating = Number(rating);
         alreadyReviewed.comment = comment;
+        alreadyReviewed.commentKm = commentKm;
         alreadyReviewed.order = reviewedOrder?._id || alreadyReviewed.order || null;
         alreadyReviewed.sentimentLabel = sentiment.label;
         alreadyReviewed.sentimentScore = sentiment.score;
@@ -1730,6 +1743,7 @@ export const createProductReview = async (req, res) => {
           name: currentUser.name, // Use current name from database
           rating: Number(rating),
           comment,
+          commentKm,
           sentimentLabel: sentiment.label,
           sentimentScore: sentiment.score,
           sentimentAnalyzedAt,

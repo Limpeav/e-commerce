@@ -83,8 +83,12 @@ const ProductPurchaseActions = ({
   onAddToCart,
   onLoginRequired,
   user,
+  selectedSize: controlledSelectedSize,
+  onSizeChange,
   selectedColor: controlledSelectedColor,
   onColorChange,
+  showVariantOptions = true,
+  showCheckoutControls = true,
 }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
@@ -93,10 +97,15 @@ const ProductPurchaseActions = ({
   const colorOptions = getProductColors(product);
   const needsSize = isClothingProduct(product);
   const needsColor = productHasColorOptions(product);
-  const [selectedSize, setSelectedSize] = useState("");
+  const [internalSelectedSize, setInternalSelectedSize] = useState("");
   const [internalSelectedColor, setInternalSelectedColor] = useState("");
   const [stockLimitDialog, setStockLimitDialog] = useState(null);
+  const selectedSize = controlledSelectedSize ?? internalSelectedSize;
   const selectedColor = controlledSelectedColor ?? internalSelectedColor;
+  const setSelectedSize = (size) => {
+    setInternalSelectedSize(size);
+    onSizeChange?.(size);
+  };
   const setSelectedColor = (color) => {
     setInternalSelectedColor(color);
     onColorChange?.(color);
@@ -138,6 +147,13 @@ const ProductPurchaseActions = ({
     setQuantity(requestedQuantity);
   };
 
+  const shouldShowSizeOptions = showVariantOptions && needsSize;
+  const shouldShowColorOptions = showVariantOptions && needsColor;
+
+  if (!showCheckoutControls && !shouldShowSizeOptions && !shouldShowColorOptions) {
+    return null;
+  }
+
   return (
     <div className="space-y-3 pt-1 sm:pt-2">
       {stockLimitDialog && (
@@ -174,7 +190,7 @@ const ProductPurchaseActions = ({
               <AlertTriangle className="h-7 w-7" />
             </div>
             <h3 className="mt-4 font-display text-xl font-black text-text-main">
-              Stock limit reached
+              {t("product.stockLimitReached")}
             </h3>
             <p className="mt-2 text-sm font-semibold leading-6 text-text-muted">
               {t("cart.stockLimitMessage", {
@@ -187,16 +203,16 @@ const ProductPurchaseActions = ({
               onClick={() => setStockLimitDialog(null)}
               className="mt-6 w-full rounded-2xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary-dark"
             >
-              OK
+              {t("product.ok")}
             </button>
           </div>
         </div>
       )}
 
-      {needsSize && (
+      {shouldShowSizeOptions && (
         <div className="space-y-2">
           <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>
-            Size
+            {t("product.size")}
           </label>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {sizeOptions.map((size) => {
@@ -223,9 +239,9 @@ const ProductPurchaseActions = ({
                         ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-primary"
                         : "border-stone-200 bg-white text-stone-700 hover:border-primary"
                   }`}
-                  aria-pressed={isSelected}
-                  title={isUnavailable ? "Out of stock" : `${availableForSize} available`}
-                >
+                    aria-pressed={isSelected}
+                    title={isUnavailable ? t("product.outOfStock") : t("product.availableCount", { count: availableForSize })}
+                  >
                   <span className="leading-none">{size}</span>
                   <span
                     className={`mt-1 text-[10px] font-extrabold leading-none ${
@@ -238,7 +254,7 @@ const ProductPurchaseActions = ({
                           : "text-text-muted"
                     }`}
                   >
-                    {isUnavailable ? "Out" : `qty ${availableForSize}`}
+                    {isUnavailable ? t("product.out") : t("product.qtyCount", { count: availableForSize })}
                   </span>
                 </button>
               );
@@ -247,10 +263,10 @@ const ProductPurchaseActions = ({
         </div>
       )}
 
-      {needsColor && (
+      {shouldShowColorOptions && (
         <div className="space-y-2">
           <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>
-            Color
+            {t("product.color")}
           </label>
           <div className="flex flex-wrap gap-2">
             {colorOptions.map((color) => {
@@ -281,7 +297,7 @@ const ProductPurchaseActions = ({
                         : "border-stone-200 bg-white text-stone-700 hover:border-primary"
                   }`}
                   aria-pressed={isSelected}
-                  title={isUnavailable ? "Out of stock" : `${availableForColor} available`}
+                  title={isUnavailable ? t("product.outOfStock") : t("product.availableCount", { count: availableForColor })}
                 >
                   <span
                     className="h-5 w-5 rounded-full border border-black/10 shadow-inner"
@@ -302,7 +318,7 @@ const ProductPurchaseActions = ({
                               : "text-text-muted"
                         }`}
                       >
-                        {isUnavailable ? "Out" : `qty ${availableForColor}`}
+                        {isUnavailable ? t("product.out") : t("product.qtyCount", { count: availableForColor })}
                       </span>
                     )}
                   </span>
@@ -313,81 +329,85 @@ const ProductPurchaseActions = ({
         </div>
       )}
 
-      <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>
-        Quantity
-      </label>
-      <div className="flex w-full items-stretch gap-2 sm:gap-4">
-        <div className={`flex shrink-0 items-center justify-between gap-0.5 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:gap-3 ${isDark ? "border-slate-700 bg-slate-900" : "border-stone-100 bg-white"}`}>
-          <button
-            type="button"
-            onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
-            className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
-            aria-label="Decrease quantity"
-          >
-            −
-          </button>
-          <span className={`w-7 text-center font-display text-lg font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
-            {quantity}
-          </span>
-          <button
-            type="button"
-            onClick={handleIncreaseQuantity}
-            className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
-            aria-label="Increase quantity"
-          >
-            +
-          </button>
-        </div>
+      {showCheckoutControls && (
+        <>
+          <label className={`block pl-1 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>
+            {t("product.quantity")}
+          </label>
+          <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row xl:flex-col">
+            <div className={`flex shrink-0 items-center justify-between gap-0.5 rounded-[1.15rem] border-2 p-1.5 shadow-sm sm:gap-3 xl:w-full ${isDark ? "border-slate-700 bg-slate-900" : "border-stone-100 bg-white"}`}>
+              <button
+                type="button"
+                onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
+                className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
+                aria-label={t("product.decreaseQuantity")}
+              >
+                −
+              </button>
+              <span className={`w-7 text-center font-display text-lg font-black sm:w-14 sm:text-2xl ${isDark ? "text-white" : "text-stone-900"}`}>
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={handleIncreaseQuantity}
+                className={`flex h-10 w-9 items-center justify-center rounded-xl border text-xl font-black transition-all active:scale-95 sm:w-10 ${isDark ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700" : "border-stone-100 bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-sm"}`}
+                aria-label={t("product.increaseQuantity")}
+              >
+                +
+              </button>
+            </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (!user) {
-              onLoginRequired?.();
-              return;
-            }
+            <button
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  onLoginRequired?.();
+                  return;
+                }
 
-            if (needsSize && !selectedSize) {
-              info(t("product.selectSize"), t("product.selectSizeMessage"));
-              return;
-            }
+                if (needsSize && !selectedSize) {
+                  info(t("product.selectSize"), t("product.selectSizeMessage"));
+                  return;
+                }
 
-            if (needsColor && !selectedColor) {
-              info("Choose a color", "Please choose a product color before adding it to your cart.");
-              return;
-            }
+                if (needsColor && !selectedColor) {
+                  info(t("product.chooseColor"), t("product.chooseColorMessage"));
+                  return;
+                }
 
-            onAddToCart({ size: selectedSize, color: selectedColor });
-          }}
-          className={`group relative flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-2 py-3 text-xs font-bold transition-all duration-300 active:scale-95 sm:gap-3 sm:px-4 sm:text-base ${
-            user
-              ? needsSize && !selectedSize
-                ? isDark
-                  ? "cursor-pointer border-slate-700 bg-slate-800 text-slate-300 hover:border-primary"
-                  : "cursor-pointer border-stone-200 bg-stone-100 text-stone-600 hover:border-primary"
-                : needsColor && !selectedColor
-                ? isDark
-                  ? "cursor-pointer border-slate-700 bg-slate-800 text-slate-300 hover:border-primary"
-                  : "cursor-pointer border-stone-200 bg-stone-100 text-stone-600 hover:border-primary"
-                : "cursor-pointer border-primary bg-primary text-white shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] hover:border-primary-dark hover:bg-primary-dark"
-              : isDark
-                ? "cursor-pointer border-primary/30 bg-primary/15 text-primary-light hover:bg-primary hover:text-slate-950"
-                : "cursor-pointer border-primary/25 bg-primary/10 text-primary hover:bg-primary hover:text-white"
-          }`}
-        >
-          {user ? (
-            <>
-              <ShoppingCart className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
-              <span className="truncate tracking-wide">Add to Cart</span>
-            </>
-          ) : (
-            <>
-              <Lock className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
-              <span className="truncate tracking-wide">Log in to Buy</span>
-            </>
-          )}
-        </button>
-      </div>
+                onAddToCart({ size: selectedSize, color: selectedColor });
+              }}
+              className={`group relative flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-2 py-3 text-xs font-bold transition-all duration-300 active:scale-95 sm:gap-3 sm:px-4 sm:text-base ${
+                user
+                  ? needsSize && !selectedSize
+                    ? isDark
+                      ? "cursor-pointer border-slate-700 bg-slate-800 text-slate-300 hover:border-primary"
+                      : "cursor-pointer border-stone-200 bg-stone-100 text-stone-600 hover:border-primary"
+                    : needsColor && !selectedColor
+                    ? isDark
+                      ? "cursor-pointer border-slate-700 bg-slate-800 text-slate-300 hover:border-primary"
+                      : "cursor-pointer border-stone-200 bg-stone-100 text-stone-600 hover:border-primary"
+                    : "cursor-pointer border-primary bg-primary text-white shadow-[0_20px_44px_-18px_rgba(122,150,126,0.42)] hover:border-primary-dark hover:bg-primary-dark"
+                  : isDark
+                    ? "cursor-pointer border-primary/30 bg-primary/15 text-primary-light hover:bg-primary hover:text-slate-950"
+                    : "cursor-pointer border-primary/25 bg-primary/10 text-primary hover:bg-primary hover:text-white"
+              }`}
+            >
+              {user ? (
+                <>
+                  <ShoppingCart className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
+                  <span className="truncate tracking-wide">{t("product.addToCart")}</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" strokeWidth={2.5} />
+                  <span className="truncate tracking-wide">{t("product.loginToBuy")}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
