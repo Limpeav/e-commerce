@@ -98,6 +98,7 @@ export default function ProductDetail() {
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
   const displayPrice = discountPrice > 0 && discountPrice < price ? discountPrice : price;
+  const purchaseTotal = displayPrice * Math.max(1, Number(quantity) || 1);
   const isInStock = Number(product.stock || 0) > 0;
 
   return (
@@ -162,7 +163,7 @@ export default function ProductDetail() {
             }`}>
               <div className={`border-b pb-4 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
                 <DualCurrencyPrice
-                  amount={displayPrice}
+                  amount={purchaseTotal}
                   className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 font-display text-3xl font-black tracking-normal ${
                     isDark ? "text-white" : "text-stone-900"
                   }`}

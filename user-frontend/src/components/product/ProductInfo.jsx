@@ -28,6 +28,7 @@ const ProductInfo = ({
 }) => {
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
+  const isKhmer = language === "kh";
   const [expandedDescriptionKey, setExpandedDescriptionKey] = useState(null);
   const localizedProduct = getLocalizedProductText(product, language);
   const descriptionKey = `${product._id}-${language}`;
@@ -64,7 +65,7 @@ const ProductInfo = ({
 
       {/* Product Title & Rating */}
       <div className="space-y-2.5">
-        <h1 data-no-static-translation className={`text-2xl sm:text-[2.2rem] lg:text-[2.8rem] font-black leading-[1.05] font-display tracking-tight ${isDark ? "text-slate-50" : "text-stone-900"}`}>
+        <h1 data-no-static-translation className={`text-2xl sm:text-[2.2rem] ${isKhmer ? "lg:text-[2rem]" : "lg:text-[2.25rem]"} font-black leading-[1.05] font-display tracking-tight ${isDark ? "text-slate-50" : "text-stone-900"}`}>
           {localizedProduct.title}
         </h1>
 
