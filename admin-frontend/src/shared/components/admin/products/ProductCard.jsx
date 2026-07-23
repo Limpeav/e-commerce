@@ -28,11 +28,11 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 group hover:-translate-y-1">
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden p-3">
         <img
           src={product.image}
           alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="h-full w-full object-contain transition-transform duration-300"
         />
         {(isOutOfStock || hasProductIssue) && (
           <span className="absolute right-3 top-3 rounded-full bg-[#FF3B30] px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-[#FF3B30]/30">

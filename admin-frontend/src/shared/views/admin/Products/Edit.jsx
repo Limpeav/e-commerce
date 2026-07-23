@@ -887,7 +887,7 @@ const EditProduct = () => {
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-64 object-cover rounded-2xl border-4 border-gray-200 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                    className="w-full h-64 object-contain rounded-2xl border-4 border-gray-200 bg-gray-50 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
                   />
                   <div className="absolute inset-x-4 bottom-4 flex items-center justify-end gap-2 rounded-2xl border border-white/20 bg-black/65 p-3 shadow-2xl backdrop-blur-md">
                     {(form.image || form.imageUrl) && (

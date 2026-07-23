@@ -8,6 +8,7 @@ const EXPIRY_CATEGORIES = new Set(["Milk", "Bath & Skin"]);
 const GENERAL_DETAIL_IMAGE_CATEGORIES = new Set([
   "Milk",
   "Diapering & Care",
+  "Bath & Skin",
   "Toy & Play",
 ]);
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

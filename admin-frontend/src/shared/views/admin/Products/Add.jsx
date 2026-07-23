@@ -555,7 +555,7 @@ const AddProduct = () => {
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-64 object-cover rounded-2xl border-4 border-gray-200 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                    className="w-full h-64 object-contain rounded-2xl border-4 border-gray-200 bg-gray-50 shadow-lg group-hover:shadow-xl transition-shadow duration-300"
                   />
                   <button
                     type="button"
