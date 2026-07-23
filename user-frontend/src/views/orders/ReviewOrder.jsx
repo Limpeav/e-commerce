@@ -125,6 +125,7 @@ export default function ReviewOrder() {
         if (!next[productId]) {
           next[productId] = {
             rating: existingReview ? Number(existingReview.rating) || 5 : 5,
+            comment: existingReview?.comment || "",
           };
         }
       });
@@ -153,6 +154,16 @@ export default function ReviewOrder() {
       [productId]: {
         ...current[productId],
         rating,
+      },
+    }));
+  };
+
+  const setComment = (productId, comment) => {
+    setForms((current) => ({
+      ...current,
+      [productId]: {
+        ...current[productId],
+        comment,
       },
     }));
   };
@@ -194,7 +205,7 @@ export default function ReviewOrder() {
         const form = forms[productId];
         const result = await ProductController.submitReview(productId, user, {
           rating: Number(form.rating),
-          comment: "",
+          comment: String(form.comment || "").trim(),
           orderId: id,
         });
         return { productId, result };
@@ -602,6 +613,31 @@ export default function ReviewOrder() {
                           isDark={isDark}
                           name={`rating-${productId}`}
                         />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor={`comment-${productId}`}
+                          className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary"
+                        >
+                          {t("reviewOrder.comment")}
+                        </label>
+                        <textarea
+                          id={`comment-${productId}`}
+                          value={form.comment || ""}
+                          onChange={(event) => setComment(productId, event.target.value)}
+                          rows={4}
+                          maxLength={600}
+                          placeholder={t("reviewOrder.commentPlaceholder")}
+                          className={`min-h-28 w-full resize-y rounded-2xl border px-4 py-3 text-sm font-bold leading-relaxed outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+                            isDark
+                              ? "border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500"
+                              : "border-stone-200 bg-white text-text-main placeholder:text-text-muted"
+                          }`}
+                        />
+                        <p className="mt-2 text-xs font-bold text-text-muted">
+                          {t("reviewOrder.commentHint")}
+                        </p>
                       </div>
 
                       {form.error && (
