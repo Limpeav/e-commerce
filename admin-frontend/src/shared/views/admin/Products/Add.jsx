@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductController } from "../../../controllers";
 import { useNavigate } from "react-router-dom";
 import {
@@ -65,6 +65,16 @@ const AddProduct = () => {
   const [detailImageUploading, setDetailImageUploading] = useState({});
   const [formMessage, setFormMessage] = useState(null);
   const [customColor, setCustomColor] = useState("");
+
+  useEffect(() => {
+    if (formMessage?.type !== "success") return undefined;
+
+    const timer = window.setTimeout(() => {
+      setFormMessage(null);
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [formMessage]);
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
