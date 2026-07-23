@@ -18,6 +18,7 @@ import SEO from "../../components/seo/SEO";
 // Hooks
 import { useProductDetail } from "../../hooks/useProductDetail";
 import { useLanguage } from "../../context/useLanguage";
+import { getProductColors } from "../../utils/productOptions";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -119,6 +120,9 @@ export default function ProductDetail() {
   const displayPrice = discountPrice > 0 && discountPrice < price ? discountPrice : price;
   const purchaseTotal = displayPrice * Math.max(1, Number(quantity) || 1);
   const isInStock = Number(product.stock || 0) > 0;
+  const colorOptions = getProductColors(product);
+  const effectiveSelectedColor =
+    colorOptions.find((color) => color === selectedColor) || colorOptions[0] || "";
 
   return (
     <>
@@ -151,7 +155,7 @@ export default function ProductDetail() {
           <div className="min-w-0 space-y-3 sm:space-y-4 xl:sticky xl:top-[5.5rem] xl:z-10">
             <ProductImage
               product={product}
-              selectedColor={selectedColor}
+              selectedColor={effectiveSelectedColor}
               onWishlist={handleWishlist}
               isInWishlist={isInWishlist(product._id)}
             />
@@ -168,7 +172,7 @@ export default function ProductDetail() {
               user={user}
               selectedSize={selectedSize}
               onSizeChange={setSelectedSize}
-              selectedColor={selectedColor}
+              selectedColor={effectiveSelectedColor}
               onColorChange={setSelectedColor}
               showCheckoutControls={false}
             />
@@ -222,7 +226,7 @@ export default function ProductDetail() {
                 user={user}
                 selectedSize={selectedSize}
                 onSizeChange={setSelectedSize}
-                selectedColor={selectedColor}
+                selectedColor={effectiveSelectedColor}
                 onColorChange={setSelectedColor}
                 showVariantOptions={false}
               />
