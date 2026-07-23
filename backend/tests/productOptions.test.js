@@ -52,6 +52,31 @@ test("product detail images accept diapering care details without color variants
   );
 });
 
+test("product detail images keep more than five images", () => {
+  const images = Array.from(
+    { length: 8 },
+    (_, index) => `https://example.com/product-detail-${index + 1}.jpg`
+  );
+
+  assert.deepEqual(
+    parseProductDetailImagesPayload(
+      JSON.stringify([
+        {
+          color: "Product",
+          images,
+        },
+      ]),
+      []
+    ),
+    [
+      {
+        color: "Product",
+        images,
+      },
+    ]
+  );
+});
+
 test("product detail images still reject unknown colors for color products", () => {
   assert.deepEqual(
     parseProductDetailImagesPayload(

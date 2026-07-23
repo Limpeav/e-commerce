@@ -90,12 +90,6 @@ const productDetailImageSchema = mongoose.Schema(
     images: {
       type: [String],
       default: [],
-      validate: {
-        validator(images) {
-          return Array.isArray(images) && images.length <= 5;
-        },
-        message: "Product detail images are limited to 5 per color",
-      },
     },
   },
   { _id: false }

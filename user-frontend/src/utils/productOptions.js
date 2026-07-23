@@ -40,7 +40,6 @@ export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_KEYWORDS = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
 const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
-export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 
 export const isShoeProduct = (product = {}) => {
   const category = normalizeProductCategory(product.category);
@@ -166,7 +165,6 @@ export const getProductDetailImagesForColor = (product = {}, color = "") => {
     ? detailImageEntry.images
         .map((image) => String(image || "").trim())
         .filter(Boolean)
-        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
     : [];
 };
 

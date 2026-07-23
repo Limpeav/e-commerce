@@ -12,7 +12,6 @@ import {
   formatProductColorList,
   GENERAL_PRODUCT_DETAIL_IMAGES_KEY,
   getExpiryDateInputValue,
-  MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR,
   parseProductColorList,
   PRODUCT_COLOR_OPTIONS,
   PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE,
@@ -51,7 +50,6 @@ const getProductDetailImagesFromEntry = (entry) =>
     ? entry.images
         .map((image) => String(image || "").trim())
         .filter(Boolean)
-        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR)
     : [];
 
 const findProductDetailImageEntry = (entries = [], groupName = "") =>
@@ -70,6 +68,15 @@ const shouldDefaultToTotalQuantity = (product = {}) => {
     `${product.title || ""} ${product.description || ""}`
   );
 };
+
+const DETAIL_IMAGE_SCROLL_THRESHOLD = 7;
+
+const getDetailImageGridClassName = (imageCount, marginClassName = "mt-3") =>
+  `${marginClassName} grid grid-cols-2 gap-2 sm:grid-cols-5 ${
+    imageCount > DETAIL_IMAGE_SCROLL_THRESHOLD
+      ? "max-h-72 overflow-y-auto pr-1 [scrollbar-width:thin]"
+      : ""
+  }`;
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -394,28 +401,12 @@ const EditProduct = () => {
 
     setSuccessMessage("");
     setErrorMessage("");
-    const currentImages = Array.isArray(form.productDetailImages?.[color])
-      ? form.productDetailImages[color]
-      : [];
-    const remainingSlots = MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR - currentImages.length;
-
-    if (remainingSlots <= 0) {
-      setErrorMessage(`You can upload up to ${MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} detail images for ${color}.`);
-      return;
-    }
-
-    const filesToUpload = selectedFiles.slice(0, remainingSlots);
-    if (selectedFiles.length > remainingSlots) {
-      setErrorMessage(
-        `Only ${remainingSlots} more detail image${remainingSlots === 1 ? "" : "s"} can be added for ${color}.`
-      );
-    }
 
     try {
       setDetailImageUploading((current) => ({ ...current, [color]: true }));
       const uploadedImageUrls = [];
 
-      for (const file of filesToUpload) {
+      for (const file of selectedFiles) {
         const uploadData = new FormData();
         uploadData.append("image", file);
 
@@ -436,10 +427,7 @@ const EditProduct = () => {
           ...currentForm,
           productDetailImages: {
             ...currentForm.productDetailImages,
-            [color]: [...existingImages, ...uploadedImageUrls].slice(
-              0,
-              MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR
-            ),
+            [color]: [...existingImages, ...uploadedImageUrls],
           },
         };
       });
@@ -592,8 +580,6 @@ const EditProduct = () => {
   )
     ? form.productDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
     : [];
-  const generalDetailImageLimitReached =
-    generalDetailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
   const availableColorOptions = PRODUCT_COLOR_OPTIONS.filter(
     (color) => !colorOptions.some((selectedColor) => selectedColor.toLowerCase() === color.toLowerCase())
   );
@@ -649,12 +635,11 @@ const EditProduct = () => {
               {PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE}
             </p>
             <p className="mt-1 text-xs font-medium text-gray-500">
-              {generalDetailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded
+              {generalDetailImages.length} uploaded
             </p>
           </div>
           <label
             className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
-              generalDetailImageLimitReached ||
               detailImageUploading[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
                 ? "cursor-not-allowed bg-gray-200 text-gray-500"
                 : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
@@ -671,7 +656,6 @@ const EditProduct = () => {
               accept="image/*"
               multiple
               disabled={
-                generalDetailImageLimitReached ||
                 Boolean(detailImageUploading[GENERAL_PRODUCT_DETAIL_IMAGES_KEY])
               }
               onChange={(event) => {
@@ -687,7 +671,7 @@ const EditProduct = () => {
         </div>
 
         {generalDetailImages.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className={getDetailImageGridClassName(generalDetailImages.length, "mt-4")}>
             {generalDetailImages.map((image, imageIndex) => (
               <div
                 key={`${image}-${imageIndex}`}
@@ -1110,8 +1094,6 @@ const EditProduct = () => {
                           const detailImages = Array.isArray(form.productDetailImages?.[color])
                             ? form.productDetailImages[color]
                             : [];
-                          const detailImageLimitReached =
-                            detailImages.length >= MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR;
 
                           return (
                             <div key={color} className="rounded-lg border border-gray-200 bg-white p-3">
@@ -1162,7 +1144,7 @@ const EditProduct = () => {
                                     <div>
                                       <p className="text-xs font-bold text-gray-700">Product Detail Images</p>
                                       <p className="mt-1 text-xs font-medium text-gray-500">
-                                        {detailImages.length}/{MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR} uploaded for {color}
+                                        {detailImages.length} uploaded for {color}
                                       </p>
                                       <p className="mt-1 text-xs font-semibold text-blue-700">
                                         {PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE}
@@ -1170,7 +1152,7 @@ const EditProduct = () => {
                                     </div>
                                     <label
                                       className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
-                                        detailImageLimitReached || detailImageUploading[color]
+                                        detailImageUploading[color]
                                           ? "cursor-not-allowed bg-gray-200 text-gray-500"
                                           : "cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
                                       }`}
@@ -1181,7 +1163,7 @@ const EditProduct = () => {
                                         type="file"
                                         accept="image/*"
                                         multiple
-                                        disabled={detailImageLimitReached || Boolean(detailImageUploading[color])}
+                                        disabled={Boolean(detailImageUploading[color])}
                                         onChange={(event) => {
                                           handleProductDetailImageUpload(color, event.target.files);
                                           event.target.value = "";
@@ -1192,7 +1174,7 @@ const EditProduct = () => {
                                   </div>
 
                                   {detailImages.length > 0 && (
-                                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                    <div className={getDetailImageGridClassName(detailImages.length)}>
                                       {detailImages.map((image, imageIndex) => (
                                         <div key={`${image}-${imageIndex}`} className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
                                           <img

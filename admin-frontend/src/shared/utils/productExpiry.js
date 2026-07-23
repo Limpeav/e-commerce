@@ -28,7 +28,6 @@ export const PRODUCT_COLOR_OPTIONS = [
   "Cream",
   "Navy",
 ];
-export const MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR = 5;
 export const GENERAL_PRODUCT_DETAIL_IMAGES_KEY = "Product";
 export const PRODUCT_DETAIL_IMAGE_SIZE_GUIDANCE =
   "For full cover: upload 1200 x 1200 px square, minimum 900 x 900 px.";
@@ -96,8 +95,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
         ? form.productDetailImages[groupName]
         : [])
         .map((image) => String(image || "").trim())
-        .filter(Boolean)
-        .slice(0, MAX_PRODUCT_DETAIL_IMAGES_PER_COLOR),
+        .filter(Boolean),
     }))
     .filter((entry) => entry.images.length > 0);
 

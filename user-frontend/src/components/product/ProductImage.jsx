@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Heart } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { ChevronDown, Heart } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { normalizeProductCategory } from '../../constants/productCategories';
 import {
@@ -7,8 +7,12 @@ import {
   getProductImageForColor,
 } from '../../utils/productOptions';
 
+const DETAIL_IMAGE_SCROLL_THRESHOLD = 7;
+
 const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist }) => {
   const [isDark] = useDarkMode();
+  const [selectedImage, setSelectedImage] = useState("");
+  const thumbnailRailRef = useRef(null);
   const imageSrc = getProductImageForColor(product, selectedColor);
   const defaultDetailColor = Array.isArray(product?.productDetailImages)
     ? product.productDetailImages.find((entry) => Array.isArray(entry?.images) && entry.images.length > 0)?.color || ""
@@ -22,7 +26,8 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
     () => [imageSrc, ...detailImages].filter(Boolean),
     [detailImages, imageSrc]
   );
-  const [selectedImage, setSelectedImage] = useState("");
+  const shouldScrollDetailImages =
+    galleryImages.length > DETAIL_IMAGE_SCROLL_THRESHOLD;
   const activeImage = galleryImages.includes(selectedImage) ? selectedImage : imageSrc;
   const productImageCoversFrame =
     normalizeProductCategory(product?.category) === "Diapering & Care";
@@ -31,15 +36,28 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
   const activeImageIsDetailImage =
     Boolean(selectedImage) && detailImages.includes(activeImage);
   const activeImageCoversFrame = productImageCoversFrame;
+  const scrollThumbnailRailDown = () => {
+    thumbnailRailRef.current?.scrollBy({
+      top: 84,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <div className="font-sans">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         {galleryImages.length > 1 && (
-          <div className={`order-2 overflow-hidden rounded-[1.25rem] border p-2 shadow-sm lg:order-1 lg:w-[4.75rem] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none ${
+          <div className={`relative order-2 overflow-hidden rounded-[1.25rem] border p-2 shadow-sm lg:order-1 lg:w-[4.75rem] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none ${
             isDark ? "border-slate-800 bg-slate-900" : "border-stone-200 bg-white"
           }`}>
-            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] lg:max-h-[610px] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:pb-0 lg:pr-1">
+            <div
+              ref={thumbnailRailRef}
+              className={`flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] lg:flex-col lg:overflow-x-visible lg:pb-0 lg:pr-1 ${
+              shouldScrollDetailImages
+                ? "lg:max-h-[32.75rem] lg:overflow-y-auto"
+                : "lg:overflow-y-visible"
+            }`}
+            >
               {galleryImages.map((image, index) => {
                 const isActive = image === (activeImage || imageSrc);
 
@@ -48,7 +66,7 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
                     type="button"
                     onClick={() => setSelectedImage(image)}
                     key={`${image}-${index}`}
-                    className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 transition-all sm:h-24 sm:w-24 lg:h-[4.25rem] lg:w-[4.25rem] lg:rounded-xl ${
+                    className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 transition-all sm:h-24 sm:w-24 lg:h-[4.25rem] lg:w-[4.25rem] lg:rounded-xl ${
                       isActive
                         ? isDark
                           ? "border-primary bg-slate-800 shadow-lg shadow-primary/10"
@@ -73,6 +91,20 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
                 );
               })}
             </div>
+            {shouldScrollDetailImages && (
+              <button
+                type="button"
+                onClick={scrollThumbnailRailDown}
+                className={`mt-2 hidden h-8 w-full items-center justify-center rounded-xl border transition-all hover:-translate-y-0.5 active:translate-y-0 lg:flex ${
+                  isDark
+                    ? "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                    : "border-stone-200 bg-white text-stone-700 shadow-sm hover:border-stone-300 hover:bg-stone-50"
+                }`}
+                aria-label="Scroll product images down"
+              >
+                <ChevronDown className="h-5 w-5" strokeWidth={2.75} />
+              </button>
+            )}
           </div>
         )}
 
