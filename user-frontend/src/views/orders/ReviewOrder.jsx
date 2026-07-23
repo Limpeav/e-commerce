@@ -556,14 +556,14 @@ export default function ReviewOrder() {
                 className={`rounded-2xl border p-5 shadow-sm sm:p-6 ${isDark ? "border-slate-800 bg-slate-900" : "border-stone-100 bg-white"}`}
               >
                 <div className="grid gap-5 md:grid-cols-[120px_1fr]">
-                  <div className={`aspect-square overflow-hidden rounded-2xl border ${isDark ? "border-slate-800 bg-slate-800" : "border-stone-100 bg-stone-50"}`}>
+                  <div className={`aspect-square overflow-hidden rounded-2xl border p-2 ${isDark ? "border-slate-800 bg-slate-800" : "border-stone-100 bg-stone-50"}`}>
                     {item.image ? (
                       <img
                         src={item.image}
                         alt={getProductName(item, t("reviewOrder.purchasedProduct"))}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
