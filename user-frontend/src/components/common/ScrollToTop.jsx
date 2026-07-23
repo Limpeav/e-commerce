@@ -67,6 +67,7 @@ export default function ScrollToTop() {
   const navigationType = useNavigationType();
   const hasHash = Boolean(location.hash);
   const shouldForceTop = location.state?.scrollToTop === true;
+  const shouldRestoreProductPosition = location.state?.restoreProductPosition === true;
   const scrollPositionKey = getScrollPositionKey(location);
 
   useEffect(() => {
@@ -83,7 +84,8 @@ export default function ScrollToTop() {
   useLayoutEffect(() => {
     const savedPosition = scrollPositions.get(scrollPositionKey);
     const shouldLetProductRestoreHandleScroll =
-      navigationType === "POP" && hasPendingProductReturnPosition();
+      (navigationType === "POP" || shouldRestoreProductPosition) &&
+      hasPendingProductReturnPosition();
     const shouldRestore = savedPosition !== null
       && savedPosition !== undefined
       && !hasHash
@@ -118,7 +120,7 @@ export default function ScrollToTop() {
       window.removeEventListener("pagehide", saveScrollPosition);
       window.removeEventListener(SAVE_SCROLL_POSITION_EVENT, saveScrollPosition);
     };
-  }, [hasHash, navigationType, scrollPositionKey, shouldForceTop]);
+  }, [hasHash, navigationType, scrollPositionKey, shouldForceTop, shouldRestoreProductPosition]);
 
   return null;
 }

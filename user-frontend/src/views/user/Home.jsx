@@ -117,6 +117,23 @@ const isReloadNavigation = () => {
     return navigationEntry?.type === "reload";
 };
 
+const getPageLoadStartTime = () => {
+    if (typeof window === "undefined") return 0;
+
+    return window.performance?.timeOrigin || 0;
+};
+
+const hasStaleProductReturnPosition = () => {
+    const returnPosition = readProductReturnPosition();
+
+    if (!returnPosition?.productId || !isReloadNavigation()) {
+        return false;
+    }
+
+    const createdAt = Number(returnPosition.createdAt);
+    return !Number.isFinite(createdAt) || createdAt < getPageLoadStartTime();
+};
+
 function ProductSection({
     section,
     sectionIndex,
@@ -311,12 +328,14 @@ export default function Home() {
         keepVisibleFocusSelector: "[data-product-search-input='true']",
     });
     const navigationType = useNavigationType();
+    const shouldRestoreProductPosition =
+        navigationType === "POP" || location.state?.restoreProductPosition === true;
     const prefersReducedMotion = useReducedMotion();
     
     const productsRef = useRef(null);
     const sectionScrollTimeoutRef = useRef(null);
-    const animateProducts = navigationType !== "POP" && !prefersReducedMotion;
-    const shouldSkipProductPositionRestore = useMemo(() => isReloadNavigation(), []);
+    const animateProducts = !shouldRestoreProductPosition && !prefersReducedMotion;
+    const shouldSkipProductPositionRestore = useMemo(() => hasStaleProductReturnPosition(), []);
 
     // Custom hooks
     const {
@@ -532,10 +551,13 @@ export default function Home() {
 
     useLayoutEffect(() => {
         if (!loading || location.hash) return undefined;
+        if (shouldRestoreProductPosition && readProductReturnPosition()?.productId) {
+            return undefined;
+        }
 
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         return undefined;
-    }, [loading, location.hash]);
+    }, [loading, location.hash, shouldRestoreProductPosition]);
 
     useLayoutEffect(() => {
         if (!shouldSkipProductPositionRestore) return undefined;
@@ -556,7 +578,7 @@ export default function Home() {
     useLayoutEffect(() => {
         if (
             shouldSkipProductPositionRestore ||
-            navigationType !== "POP" ||
+            !shouldRestoreProductPosition ||
             loading ||
             location.hash
         ) return undefined;
@@ -664,8 +686,8 @@ export default function Home() {
     }, [
         loading,
         location.hash,
-        navigationType,
         productSections.length,
+        shouldRestoreProductPosition,
         shouldSkipProductPositionRestore,
     ]);
 
@@ -738,7 +760,7 @@ export default function Home() {
                                     isInWishlist={isInWishlist}
                                     user={user}
                                     shouldRestoreProductRows={
-                                        navigationType === "POP" && !shouldSkipProductPositionRestore
+                                        shouldRestoreProductPosition && !shouldSkipProductPositionRestore
                                     }
                                 />
                             ))}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ArrowRight, Calendar } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { useDarkMode } from '../../hooks';
@@ -39,6 +39,7 @@ const ProductCard = ({
   const [isDark] = useDarkMode();
   const { language, t } = useLanguage();
   const localizedProduct = getLocalizedProductText(product, language);
+  const location = useLocation();
   const navigate = useNavigate();
   const cardRef = React.useRef(null);
   const imageRef = React.useRef(null);
@@ -46,6 +47,12 @@ const ProductCard = ({
   const imageSrc = product.image || product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image';
   const [isImageLoaded, setIsImageLoaded] = React.useState(false);
   const loadingBlockClass = isDark ? 'bg-slate-800' : 'bg-stone-100';
+  const productDetailPath = location.pathname.startsWith('/customer')
+    ? `/customer/products/${product._id}`
+    : `/products/${product._id}`;
+  const productDetailState = {
+    returnTo: `${location.pathname}${location.search}${location.hash}`,
+  };
 
   React.useEffect(() => {
     const image = imageRef.current;
@@ -76,6 +83,7 @@ const ProductCard = ({
           scrollerLeft: productScroller?.scrollLeft ?? null,
           scrollY: window.scrollY,
           cardTop: cardRect?.top ?? null,
+          createdAt: Date.now(),
         })
       );
     } catch {
@@ -87,7 +95,7 @@ const ProductCard = ({
     if (!isImageLoaded) return;
 
     saveReturnPosition();
-    navigate(`/products/${product._id}`);
+    navigate(productDetailPath, { state: productDetailState });
   };
 
   const handleAddClick = (event) => {
@@ -157,7 +165,8 @@ const ProductCard = ({
       {/* ═══ IMAGE SECTION (Square for consistency) ═══ */}
       <div className={`relative aspect-square overflow-hidden rounded-xl sm:rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-stone-50'}`}>
         <Link
-          to={`/products/${product._id}`}
+          to={productDetailPath}
+          state={productDetailState}
           onClick={(event) => {
             event.stopPropagation();
             saveReturnPosition();
@@ -221,7 +230,8 @@ const ProductCard = ({
         <div className="absolute -top-6 left-5 hidden md:block opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-75 z-20">
           {needsSize && user && !outOfStock ? (
             <Link
-              to={`/products/${product._id}`}
+              to={productDetailPath}
+              state={productDetailState}
               onClick={(event) => {
                 event.stopPropagation();
                 saveReturnPosition();
@@ -277,7 +287,8 @@ const ProductCard = ({
 
         {/* Title */}
         <Link
-          to={`/products/${product._id}`}
+          to={productDetailPath}
+          state={productDetailState}
           onClick={(event) => {
             event.stopPropagation();
             saveReturnPosition();
@@ -322,7 +333,8 @@ const ProductCard = ({
           {/* Mobile Only: Text Button */}
           {needsSize && user && !outOfStock ? (
             <Link
-              to={`/products/${product._id}`}
+              to={productDetailPath}
+              state={productDetailState}
               onClick={(event) => {
                 event.stopPropagation();
                 saveReturnPosition();
@@ -343,7 +355,8 @@ const ProductCard = ({
 
           {/* Desktop: View Details Arrow */}
           <Link
-            to={`/products/${product._id}`}
+            to={productDetailPath}
+            state={productDetailState}
             onClick={(event) => {
               event.stopPropagation();
               saveReturnPosition();

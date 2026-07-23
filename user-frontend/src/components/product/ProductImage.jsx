@@ -28,7 +28,9 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
     normalizeProductCategory(product?.category) === "Diapering & Care";
   const imageCoversFrame = (image = "") =>
     productImageCoversFrame || detailImages.includes(image);
-  const activeImageCoversFrame = imageCoversFrame(activeImage);
+  const activeImageIsDetailImage =
+    Boolean(selectedImage) && detailImages.includes(activeImage);
+  const activeImageCoversFrame = productImageCoversFrame;
 
   return (
     <div className="font-sans">
@@ -90,6 +92,8 @@ const ProductImage = ({ product, selectedColor = "", onWishlist, isInWishlist })
               className={
                 activeImageCoversFrame
                   ? "absolute inset-0 z-10 h-full w-full object-cover object-center transition-transform duration-500 hover:scale-[1.02]"
+                  : activeImageIsDetailImage
+                    ? "absolute inset-0 z-10 h-full w-full object-fill object-center transition-transform duration-500 hover:scale-[1.02]"
                   : `relative z-10 block max-h-[235px] w-auto max-w-full object-contain object-center transition-transform duration-500 hover:scale-[1.02] sm:max-h-[335px] lg:max-h-[450px] ${
                       isDark
                         ? "drop-shadow-[0_20px_32px_rgba(2,6,23,0.55)]"

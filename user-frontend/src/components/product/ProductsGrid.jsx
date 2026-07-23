@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigationType } from 'react-router-dom';
+import { useLocation, useNavigationType } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
 import ProductCard from './ProductCard';
@@ -47,10 +47,13 @@ const ProductsGrid = ({
 }) => {
   const [isDark] = useDarkMode();
   const { t } = useLanguage();
+  const location = useLocation();
   const navigationType = useNavigationType();
+  const shouldRestoreProductPosition =
+    navigationType === 'POP' || location.state?.restoreProductPosition === true;
   const returnPosition = readProductReturnPosition();
   const returnProductIndex = Number(returnPosition?.productIndex);
-  const returnInitialRows = navigationType === 'POP' && Number.isInteger(returnProductIndex)
+  const returnInitialRows = shouldRestoreProductPosition && Number.isInteger(returnProductIndex)
     ? Math.max(4, Math.ceil((returnProductIndex + 1) / 2))
     : 4;
   const { visibleCount, hasMoreProducts, showMoreProducts } = useVisibleProductRows({

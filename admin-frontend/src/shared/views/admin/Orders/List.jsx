@@ -58,17 +58,74 @@ const readCachedDeliveryViewState = () => {
     }
 };
 
+const normalizeOrderStatus = (status) => {
+    if (!status) return "Pending";
+
+    const trimmedStatus = String(status).trim();
+    if (!trimmedStatus) return "Pending";
+
+    const normalized = trimmedStatus.toLowerCase();
+    if (normalized === "canceled" || normalized === "cancelled") {
+        return "Cancelled";
+    }
+
+    if (normalized === "pending") return "Pending";
+    if (normalized === "processing") return "Processing";
+    // Legacy orders used "Shipped" for the active delivery stage.
+    if (normalized === "shipped") return "Processing";
+    if (normalized === "delivered") return "Delivered";
+
+    return trimmedStatus;
+};
+
+const getOrderDateKey = (createdAt) => {
+    const date = createdAt ? new Date(createdAt) : null;
+
+    if (!date || Number.isNaN(date.getTime())) {
+        return "unknown";
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
+const formatOrderDate = (dateKey) => {
+    if (dateKey === "unknown") {
+        return "Date unknown";
+    }
+
+    return new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
+const getOrderCreatedAtTime = (createdAt) => {
+    const time = createdAt ? new Date(createdAt).getTime() : 0;
+    return Number.isNaN(time) ? 0 : time;
+};
+
 const AdminOrders = ({ renderDelivery }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
-    const initialDeliveryOrders = isDelivery ? readCachedDeliveryOrders() : [];
-    const initialDeliveryViewState = isDelivery ? readCachedDeliveryViewState() : {};
+    const initialDeliveryOrders = useMemo(
+        () => (isDelivery ? readCachedDeliveryOrders() : []),
+        [isDelivery]
+    );
+    const initialDeliveryViewState = useMemo(
+        () => (isDelivery ? readCachedDeliveryViewState() : {}),
+        [isDelivery]
+    );
+    const hasCachedDeliveryOrders = isDelivery && initialDeliveryOrders.length > 0;
     const [orders, setOrders] = useState(initialDeliveryOrders);
-    const [filteredOrders, setFilteredOrders] = useState(initialDeliveryOrders);
-    const [loading, setLoading] = useState(!(isDelivery && initialDeliveryOrders.length > 0));
+    const [loading, setLoading] = useState(!hasCachedDeliveryOrders);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
     const initialStatus = searchParams.get("status") || initialDeliveryViewState.statusFilter || "All";
@@ -94,7 +151,6 @@ const AdminOrders = ({ renderDelivery }) => {
             }
             const response = await OrderController.getOrders();
             setOrders(response.data);
-            setFilteredOrders(response.data);
             if (isDelivery) {
                 sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(response.data));
             }
@@ -103,11 +159,11 @@ const AdminOrders = ({ renderDelivery }) => {
             setError(err.response?.data?.message || "Failed to fetch orders");
             setLoading(false);
         }
-    }, []);
+    }, [isDelivery]);
 
     useEffect(() => {
-        fetchOrders({ silent: isDelivery && initialDeliveryOrders.length > 0 });
-    }, [fetchOrders]);
+        fetchOrders({ silent: hasCachedDeliveryOrders });
+    }, [fetchOrders, hasCachedDeliveryOrders]);
 
     useEffect(() => {
         if (!isDelivery) return;
@@ -210,40 +266,35 @@ const AdminOrders = ({ renderDelivery }) => {
         };
     }, [fetchOrders]);
 
-    useEffect(() => {
-        filterOrders();
-    }, [searchTerm, statusFilter, selectedOrderDate, orders]);
+    const filteredOrders = useMemo(() => {
+        let filtered = isDelivery
+            ? orders.filter((order) =>
+                DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
+            )
+            : orders;
 
-    const getOrderDateKey = (createdAt) => {
-        const date = createdAt ? new Date(createdAt) : null;
-
-        if (!date || Number.isNaN(date.getTime())) {
-            return "unknown";
+        if (statusFilter !== "All") {
+            filtered = filtered.filter((order) => normalizeOrderStatus(order.orderStatus) === statusFilter);
         }
 
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    };
-
-    const formatOrderDate = (dateKey) => {
-        if (dateKey === "unknown") {
-            return "Date unknown";
+        if (selectedOrderDate) {
+            filtered = filtered.filter((order) => getOrderDateKey(order.createdAt) === selectedOrderDate);
         }
 
-        return new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
+        if (searchTerm) {
+            const normalizedSearchTerm = searchTerm.toLowerCase().replace(/^#/, "");
+            filtered = filtered.filter(
+                (order) =>
+                    order._id.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.user?.email?.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.user?.name?.toLowerCase().includes(normalizedSearchTerm) ||
+                    order.shippingAddress?.fullName?.toLowerCase().includes(normalizedSearchTerm) ||
+                    (!order.user && "deleted customer account deleted".includes(normalizedSearchTerm))
+            );
+        }
 
-    const getOrderCreatedAtTime = (createdAt) => {
-        const time = createdAt ? new Date(createdAt).getTime() : 0;
-        return Number.isNaN(time) ? 0 : time;
-    };
+        return filtered;
+    }, [isDelivery, orders, searchTerm, selectedOrderDate, statusFilter]);
 
     const groupedOrders = useMemo(() => {
         const groupsByDate = filteredOrders.reduce((groups, order) => {
@@ -299,38 +350,6 @@ const AdminOrders = ({ renderDelivery }) => {
             return next;
         });
     }, [groupedOrders]);
-
-    const filterOrders = () => {
-        let filtered = isDelivery
-            ? orders.filter((order) =>
-                DELIVERY_VISIBLE_STATUSES.includes(normalizeOrderStatus(order.orderStatus))
-            )
-            : orders;
-
-        // Filter by status
-        if (statusFilter !== "All") {
-            filtered = filtered.filter((order) => normalizeOrderStatus(order.orderStatus) === statusFilter);
-        }
-
-        if (selectedOrderDate) {
-            filtered = filtered.filter((order) => getOrderDateKey(order.createdAt) === selectedOrderDate);
-        }
-
-        // Search by order ID or user email
-        if (searchTerm) {
-            const normalizedSearchTerm = searchTerm.toLowerCase().replace(/^#/, "");
-            filtered = filtered.filter(
-                (order) =>
-                    order._id.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.user?.email?.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.user?.name?.toLowerCase().includes(normalizedSearchTerm) ||
-                    order.shippingAddress?.fullName?.toLowerCase().includes(normalizedSearchTerm) ||
-                    (!order.user && "deleted customer account deleted".includes(normalizedSearchTerm))
-            );
-        }
-
-        setFilteredOrders(filtered);
-    };
 
     const isOrderPaid = (order) =>
         order?.isPaid === true || order?.paymentStatus === "Paid";
@@ -485,26 +504,6 @@ const AdminOrders = ({ renderDelivery }) => {
             ...current,
             [dateKey]: !current[dateKey],
         }));
-    };
-
-    const normalizeOrderStatus = (status) => {
-        if (!status) return "Pending";
-
-        const trimmedStatus = String(status).trim();
-        if (!trimmedStatus) return "Pending";
-
-        const normalized = trimmedStatus.toLowerCase();
-        if (normalized === "canceled" || normalized === "cancelled") {
-            return "Cancelled";
-        }
-
-        if (normalized === "pending") return "Pending";
-        if (normalized === "processing") return "Processing";
-        // Legacy orders used "Shipped" for the active delivery stage.
-        if (normalized === "shipped") return "Processing";
-        if (normalized === "delivered") return "Delivered";
-
-        return trimmedStatus;
     };
 
     const getStatusLabel = (status) => {

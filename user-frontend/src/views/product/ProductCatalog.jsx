@@ -96,6 +96,23 @@ const isReloadNavigation = () => {
   return navigationEntry?.type === "reload";
 };
 
+const getPageLoadStartTime = () => {
+  if (typeof window === "undefined") return 0;
+
+  return window.performance?.timeOrigin || 0;
+};
+
+const hasStaleProductReturnPosition = () => {
+  const returnPosition = readProductReturnPosition();
+
+  if (!returnPosition?.productId || !isReloadNavigation()) {
+    return false;
+  }
+
+  const createdAt = Number(returnPosition.createdAt);
+  return !Number.isFinite(createdAt) || createdAt < getPageLoadStartTime();
+};
+
 export default function ProductCatalog() {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -105,13 +122,15 @@ export default function ProductCatalog() {
   const isSearchBarVisible = useScrollVisibility();
   const location = useLocation();
   const navigationType = useNavigationType();
+  const shouldRestoreProductPosition =
+    navigationType === "POP" || location.state?.restoreProductPosition === true;
   const [searchParams] = useSearchParams();
   const resultsRef = useRef(null);
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
   const [categoryRetryToken, setCategoryRetryToken] = useState(0);
-  const shouldSkipProductPositionRestore = useMemo(() => isReloadNavigation(), []);
+  const shouldSkipProductPositionRestore = useMemo(() => hasStaleProductReturnPosition(), []);
 
   const { products, loading, error, refetch } = useProducts(language);
   const {
@@ -205,17 +224,20 @@ export default function ProductCatalog() {
   const productCount = isCatalogLoading ? products.length : visibleProducts.length;
 
   useEffect(() => {
-    if (navigationType === "POP") return;
+    if (shouldRestoreProductPosition) return;
 
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [activeView, navigationType]);
+  }, [activeView, shouldRestoreProductPosition]);
 
   useLayoutEffect(() => {
     if (!isCatalogLoading || location.hash) return undefined;
+    if (shouldRestoreProductPosition && readProductReturnPosition()?.productId) {
+      return undefined;
+    }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     return undefined;
-  }, [isCatalogLoading, location.hash]);
+  }, [isCatalogLoading, location.hash, shouldRestoreProductPosition]);
 
   useLayoutEffect(() => {
     if (!shouldSkipProductPositionRestore) return undefined;
@@ -236,7 +258,7 @@ export default function ProductCatalog() {
   useLayoutEffect(() => {
     if (
       shouldSkipProductPositionRestore ||
-      navigationType !== "POP" ||
+      !shouldRestoreProductPosition ||
       isCatalogLoading ||
       location.hash
     ) return undefined;
@@ -328,7 +350,7 @@ export default function ProductCatalog() {
   }, [
     isCatalogLoading,
     location.hash,
-    navigationType,
+    shouldRestoreProductPosition,
     visibleProducts.length,
     shouldSkipProductPositionRestore,
   ]);

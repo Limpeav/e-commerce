@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "../../context/useCart";
 import { useAuth } from "../../context/useAuth";
@@ -21,6 +21,7 @@ import { useLanguage } from "../../context/useLanguage";
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user } = useAuth();
@@ -48,6 +49,24 @@ export default function ProductDetail() {
         addToWishlist(product);
       }
     }
+  };
+
+  const handleBack = () => {
+    const returnTo = location.state?.returnTo;
+
+    if (
+      typeof returnTo === "string" &&
+      returnTo.startsWith("/") &&
+      !returnTo.startsWith("//")
+    ) {
+      navigate(returnTo, {
+        replace: true,
+        state: { restoreProductPosition: true },
+      });
+      return;
+    }
+
+    navigate(-1);
   };
 
   if (loading) {
@@ -118,7 +137,7 @@ export default function ProductDetail() {
         {/* Back Button */}
         <div className="mb-3 sm:mb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm shadow-sm transition-all duration-300 group active:scale-95 ${isDark ? "bg-slate-900 border-slate-700 hover:bg-slate-800" : "bg-white border-stone-200 hover:shadow-md hover:border-stone-300"}`}
             aria-label="Go back"
           >
