@@ -40,6 +40,8 @@ export const CLOTHING_SIZES = BABY_CLOTHING_SIZES;
 
 const SHOE_KEYWORDS = ["shoe", "shoes", "sneaker", "sneakers", "sandal", "sandals", "boot", "boots", "footwear"];
 const COLOR_ONLY_STOCK_SIZE = "ONE SIZE";
+const isColorOnlyStockSize = (size = "") =>
+  String(size || "").trim().toUpperCase() === COLOR_ONLY_STOCK_SIZE;
 
 export const isShoeProduct = (product = {}) => {
   const category = normalizeProductCategory(product.category);
@@ -57,7 +59,7 @@ export const getProductSizes = (product = {}) => {
         ...new Set(
           product.sizeStocks
             .map((entry) => String(entry.size || "").trim().toUpperCase())
-            .filter((size) => size && size !== COLOR_ONLY_STOCK_SIZE)
+            .filter((size) => size && !isColorOnlyStockSize(size))
         ),
       ]
     : [];
@@ -65,7 +67,9 @@ export const getProductSizes = (product = {}) => {
   if (sizeStockSizes.length > 0) return sizeStockSizes;
 
   const customSizes = Array.isArray(product.sizes)
-    ? product.sizes.map((size) => String(size).trim()).filter(Boolean)
+    ? product.sizes
+        .map((size) => String(size).trim())
+        .filter((size) => size && !isColorOnlyStockSize(size))
     : [];
 
   if (customSizes.length > 0) return customSizes;
