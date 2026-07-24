@@ -1,5 +1,6 @@
 import { normalizeProductCategory } from "../constants/productCategories.js";
 import {
+  isSizedProduct,
   productSupportsColorOptions,
   productSupportsOptionalSizeOptions,
 } from "./productOptions.js";
@@ -75,8 +76,15 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
   const supportsOptionalSizeOptions = productSupportsOptionalSizeOptions(form);
   const supportsGeneralDetailImages = productSupportsGeneralDetailImages(form.category);
   const colors = supportsColorOptions ? parseProductColorList(form.colors) : [];
+  const hasColorOnlyInventory =
+    supportsColorOptions &&
+    !isSizedProduct(form) &&
+    !supportsOptionalSizeOptions &&
+    colors.length > 0;
   const shouldSubmitSizeStocks =
-    !supportsOptionalSizeOptions || Boolean(form.trackSizeInventory);
+    isSizedProduct(form) ||
+    hasColorOnlyInventory ||
+    (supportsOptionalSizeOptions && Boolean(form.trackSizeInventory));
   const colorImageEntries = colors
     .map((color) => ({
       color,

@@ -430,7 +430,10 @@ const AddProduct = () => {
   const usesOptionalSizeInventory =
     productSupportsOptionalSizeOptions(form) && form.trackSizeInventory;
   const usesSizeInventory = isSizedProduct(form) || usesOptionalSizeInventory;
-  const hasSizeStockInventory = form.sizeStocks.length > 0 && usesSizeInventory;
+  const usesColorOnlyInventory =
+    productSupportsColorOptions(form) && !usesSizeInventory && colorOptions.length > 0;
+  const hasSizeStockInventory =
+    form.sizeStocks.length > 0 && (usesSizeInventory || usesColorOnlyInventory);
   const showOptionalSizeInventoryPrompt =
     productSupportsOptionalSizeOptions(form) && !form.trackSizeInventory;
   const showOptionalSizeInventoryRemoval =
