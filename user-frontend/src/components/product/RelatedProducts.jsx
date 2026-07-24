@@ -4,21 +4,144 @@ import { useWishlist } from '../../context/useWishlist';
 import { useCart } from '../../context/useCart';
 import { useAuth } from '../../context/useAuth';
 import ProductCard from './ProductCard';
-import { Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
+import { normalizeProductCategory } from '../../constants/productCategories';
 
 import { motion as Motion } from 'framer-motion';
 
-const getStableProductRank = (productId = "", seed = "") => {
-    const value = `${seed}:${productId}`;
-    let hash = 0;
+const PRODUCTS_PER_ROW = 8;
+const MAX_RELATED_PRODUCTS = PRODUCTS_PER_ROW * 2;
 
-    for (let index = 0; index < value.length; index += 1) {
-        hash = (hash * 31 + value.charCodeAt(index)) % 1000003;
+const chunkProducts = (products = [], chunkSize = PRODUCTS_PER_ROW) => {
+    const rows = [];
+
+    for (let index = 0; index < products.length; index += chunkSize) {
+        rows.push(products.slice(index, index + chunkSize));
     }
 
-    return hash;
+    return rows;
+};
+
+const RelatedProductRow = ({
+    rowId,
+    products,
+    currentProductId,
+    addToCart,
+    toggleWishlist,
+    isInWishlist,
+    user,
+    isDark,
+    title,
+}) => {
+    const scrollRef = React.useRef(null);
+    const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+    const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+    const updateScrollState = React.useCallback(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        const remainingScroll = container.scrollWidth - container.clientWidth - container.scrollLeft;
+        setCanScrollPrev(container.scrollLeft > 4);
+        setCanScrollNext(remainingScroll > 4);
+    }, []);
+
+    React.useEffect(() => {
+        updateScrollState();
+        window.addEventListener("resize", updateScrollState);
+
+        return () => {
+            window.removeEventListener("resize", updateScrollState);
+        };
+    }, [products.length, updateScrollState]);
+
+    const scrollProducts = (direction) => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        const firstCard = container.querySelector("[data-product-card]");
+        const styles = window.getComputedStyle(container);
+        const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+        const cardWidth = firstCard?.getBoundingClientRect().width || container.clientWidth;
+        const visibleCards = window.matchMedia("(max-width: 639px)").matches ? 2 : 1;
+
+        container.scrollBy({
+            left: direction === "next" ? (cardWidth + gap) * visibleCards : -(cardWidth + gap) * visibleCards,
+            behavior: "smooth",
+        });
+    };
+
+    return (
+        <div className="relative">
+            {canScrollPrev && (
+                <button
+                    type="button"
+                    onClick={() => scrollProducts("prev")}
+                    className={`absolute left-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:left-2 sm:h-12 sm:w-12 ${
+                        isDark
+                            ? "border-primary/60 bg-slate-950/90 text-slate-200 shadow-xl shadow-primary/20 hover:border-primary hover:text-primary-light"
+                            : "border-primary/60 bg-white/95 text-text-muted shadow-xl shadow-primary/20 hover:border-primary hover:text-primary"
+                    }`}
+                    aria-label={`Scroll ${title} row ${rowId} left`}
+                >
+                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+            )}
+            {canScrollNext && (
+                <button
+                    type="button"
+                    onClick={() => scrollProducts("next")}
+                    className={`absolute right-1 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border transition-colors sm:right-2 sm:h-12 sm:w-12 ${
+                        isDark
+                            ? "border-primary/60 bg-slate-950/90 text-slate-200 shadow-xl shadow-primary/20 hover:border-primary hover:text-primary-light"
+                            : "border-primary/60 bg-white/95 text-text-muted shadow-xl shadow-primary/20 hover:border-primary hover:text-primary"
+                    }`}
+                    aria-label={`Scroll ${title} row ${rowId} right`}
+                >
+                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+            )}
+
+            <Motion.div
+                ref={scrollRef}
+                data-product-scroller={`related-products-${currentProductId}-${rowId}`}
+                onScroll={updateScrollState}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={{
+                    hidden: { opacity: 0 },
+                    show: {
+                        opacity: 1,
+                        transition: {
+                            staggerChildren: 0.05
+                        }
+                    }
+                }}
+                className="flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-5 pr-3 sm:gap-5 md:gap-6"
+            >
+                {products.map((product, index) => (
+                    <ProductCard
+                        key={`${rowId}-${product._id}`}
+                        product={product}
+                        onAddToCart={(p) => addToCart(p, 1)}
+                        onWishlistToggle={toggleWishlist}
+                        isInWishlist={isInWishlist}
+                        user={user}
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                        }}
+                        productSectionId={`related-products-${currentProductId}-${rowId}`}
+                        productIndex={index}
+                        className="h-[27rem] w-[calc((100%_-_1.5rem)*0.4545)] flex-none snap-start sm:h-[32rem] sm:w-56 md:h-[34rem] md:w-64 lg:w-72"
+                    />
+                ))}
+            </Motion.div>
+        </div>
+    );
 };
 
 const RelatedProducts = ({ currentProduct }) => {
@@ -32,29 +155,16 @@ const RelatedProducts = ({ currentProduct }) => {
     const relatedProducts = useMemo(() => {
         if (!products.length || !currentProduct) return [];
 
-        // Filter by same category, exclude current product
-        let related = products.filter(p =>
-            p._id !== currentProduct._id &&
-            p.category === currentProduct.category
-        );
+        const currentCategory = normalizeProductCategory(currentProduct.category);
 
-        // If not enough related products, fill with other products
-        if (related.length < 4) {
-            const otherProducts = products.filter(p =>
-                p._id !== currentProduct._id &&
-                p.category !== currentProduct.category
-            );
-            const shuffledOthers = [...otherProducts].sort(
-                (a, b) =>
-                    getStableProductRank(a._id, currentProduct._id) -
-                    getStableProductRank(b._id, currentProduct._id)
-            );
-            related = [...related, ...shuffledOthers];
-        }
-
-        // Slice to get 4 products (limit)
-        return related.slice(0, 4);
+        return products
+            .filter((product) =>
+                product._id !== currentProduct._id &&
+                normalizeProductCategory(product.category) === currentCategory
+            )
+            .slice(0, MAX_RELATED_PRODUCTS);
     }, [products, currentProduct]);
+    const relatedRows = useMemo(() => chunkProducts(relatedProducts), [relatedProducts]);
 
     if (loading || relatedProducts.length === 0) return null;
 
@@ -67,38 +177,22 @@ const RelatedProducts = ({ currentProduct }) => {
                 </h2>
             </div>
 
-            <Motion.div
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                variants={{
-                    hidden: { opacity: 0 },
-                    show: {
-                        opacity: 1,
-                        transition: {
-                            staggerChildren: 0.1
-                        }
-                    }
-                }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8"
-            >
-                {relatedProducts.map(product => (
-                    <ProductCard
-                        key={product._id}
-                        product={product}
-                        onAddToCart={(p) => addToCart(p, 1)}
-                        onWishlistToggle={toggleWishlist}
+            <div className="space-y-6 sm:space-y-8">
+                {relatedRows.map((rowProducts, index) => (
+                    <RelatedProductRow
+                        key={`related-row-${index + 1}`}
+                        rowId={index + 1}
+                        products={rowProducts}
+                        currentProductId={currentProduct._id}
+                        addToCart={addToCart}
+                        toggleWishlist={toggleWishlist}
                         isInWishlist={isInWishlist}
                         user={user}
-                        // Passing simplified variants as ProductCard expects them, 
-                        // though ProductCard handles hover effects internally.
-                        variants={{
-                            hidden: { opacity: 0, y: 20 },
-                            show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                        }}
+                        isDark={isDark}
+                        title={t("product.youMightAlsoLike")}
                     />
                 ))}
-            </Motion.div>
+            </div>
         </div>
     );
 };
