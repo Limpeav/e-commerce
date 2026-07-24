@@ -126,7 +126,7 @@ const RelatedProductRow = ({
                     <ProductCard
                         key={`${rowId}-${product._id}`}
                         product={product}
-                        onAddToCart={(p) => addToCart(p, 1)}
+                        onAddToCart={(p, options = {}) => addToCart(p, 1, options)}
                         onWishlistToggle={toggleWishlist}
                         isInWishlist={isInWishlist}
                         user={user}

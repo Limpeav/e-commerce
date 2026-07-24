@@ -358,7 +358,7 @@ const ProductPurchaseActions = ({
 
             <button
               type="button"
-              onClick={() => {
+              onClick={(event) => {
                 if (!user) {
                   onLoginRequired?.();
                   return;
@@ -374,7 +374,11 @@ const ProductPurchaseActions = ({
                   return;
                 }
 
-                onAddToCart({ size: selectedSize, color: selectedColor });
+                onAddToCart({
+                  size: selectedSize,
+                  color: selectedColor,
+                  sourceRect: event.currentTarget.getBoundingClientRect(),
+                });
               }}
               className={`group relative flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-[1.15rem] border-2 px-2 py-3 text-xs font-bold transition-all duration-300 active:scale-95 sm:gap-3 sm:px-4 sm:text-base ${
                 user

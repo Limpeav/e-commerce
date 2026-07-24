@@ -71,7 +71,9 @@ export const getProductSizes = (product = {}) => {
     ? product.sizes.map((size) => normalizeSelectedSize(size)).filter(Boolean)
     : [];
 
-  if (customSizes.length > 0) return customSizes;
+  const shopperSizes = customSizes.filter((size) => size !== COLOR_ONLY_STOCK_SIZE);
+
+  if (shopperSizes.length > 0) return shopperSizes;
 
   if (isShoeProduct(product)) return BABY_SHOE_SIZES;
   if (isClothingCategory(product.category)) return BABY_CLOTHING_SIZES;

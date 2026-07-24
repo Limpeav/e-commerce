@@ -402,9 +402,9 @@ export default function Home() {
         scrollToProductsArea("all-products");
     }, [scrollToProductsArea, setSelectedCategory]);
 
-    const handleAddToCart = useCallback((product) => {
+    const handleAddToCart = useCallback((product, options = {}) => {
         if (!user) return;
-        addToCart(product, 1);
+        addToCart(product, 1, options);
     }, [addToCart, user]);
 
     const handleRetry = useCallback(() => {

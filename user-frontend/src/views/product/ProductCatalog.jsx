@@ -368,9 +368,9 @@ export default function ProductCatalog() {
     return () => window.clearTimeout(scrollTimer);
   }, [searchQuery]);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = (product, options = {}) => {
     if (!user) return;
-    addToCart(product, 1);
+    addToCart(product, 1, options);
   };
 
   const handleRetry = () => {

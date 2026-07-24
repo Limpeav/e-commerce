@@ -107,7 +107,9 @@ const ProductCard = ({
       return;
     }
 
-    onAddToCart(product);
+    onAddToCart(product, {
+      sourceRect: event.currentTarget.getBoundingClientRect(),
+    });
   };
 
   return (

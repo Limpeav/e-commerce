@@ -123,3 +123,15 @@ test("color-only inventory rows do not become shopper size choices", () => {
     []
   );
 });
+
+test("color-only persisted sizes do not require a shopper size", () => {
+  const product = {
+    category: "Furniture",
+    sizes: ["ONE SIZE"],
+    colors: ["White"],
+    sizeStocks: [{ size: "ONE SIZE", color: "White", stock: 2 }],
+  };
+
+  assert.deepEqual(getProductSizes(product), []);
+  assert.equal(validateProductSize(product, ""), "");
+});

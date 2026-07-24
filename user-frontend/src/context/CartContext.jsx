@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useToast } from "./useToast";
 import { CartController } from "../controllers/cartController.js";
@@ -24,6 +24,7 @@ const isPortalRoute = (pathname = "") =>
 
 const normalizeCartSize = (size = "") => String(size || "").trim().toUpperCase();
 const normalizeCartColor = (color = "") => String(color || "").trim().toLowerCase();
+const CART_FLY_TARGET_SELECTOR = "[data-cart-target='true']";
 
 const isSameCartItem = (item, productId, size = "", color = "") =>
   item.product?._id === productId &&
@@ -33,9 +34,48 @@ const isSameCartItem = (item, productId, size = "", color = "") =>
 const hasNumericStock = (product) =>
   product?.stock !== undefined && product?.stock !== null && Number.isFinite(Number(product.stock));
 
+const isUsableRect = (rect) =>
+  rect &&
+  Number.isFinite(rect.left) &&
+  Number.isFinite(rect.top) &&
+  rect.width > 0 &&
+  rect.height > 0;
+
+const getRectCenter = (rect) => ({
+  x: rect.left + rect.width / 2,
+  y: rect.top + rect.height / 2,
+});
+
+const getVisibleCartTargetRect = () => {
+  if (typeof window === "undefined") return null;
+
+  const targets = Array.from(document.querySelectorAll(CART_FLY_TARGET_SELECTOR));
+  return (
+    targets
+      .map((target) => target.getBoundingClientRect())
+      .find(
+        (rect) =>
+          isUsableRect(rect) &&
+          rect.bottom > 0 &&
+          rect.right > 0 &&
+          rect.top < window.innerHeight &&
+          rect.left < window.innerWidth
+      ) || null
+  );
+};
+
+const getAddButtonSourceRect = (sourceRect) => {
+  if (isUsableRect(sourceRect)) return sourceRect;
+  if (typeof document === "undefined") return null;
+
+  const activeElementRect = document.activeElement?.getBoundingClientRect?.();
+  return isUsableRect(activeElementRect) ? activeElementRect : null;
+};
+
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [flyCartAnimation, setFlyCartAnimation] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const userToken = user?.token;
@@ -44,6 +84,20 @@ export const CartProvider = ({ children }) => {
   const canUseCustomerCart = Boolean(userToken) && !isPortalRoute(pathname);
   const { success, error: toastError, info } = useToast();
   const { t } = useLanguage();
+
+  const playCartFlyAnimation = useCallback((sourceRect) => {
+    if (typeof window === "undefined") return;
+
+    const targetRect = getVisibleCartTargetRect();
+    const startRect = getAddButtonSourceRect(sourceRect);
+    if (!targetRect || !startRect) return;
+
+    setFlyCartAnimation({
+      id: `${Date.now()}-${Math.random()}`,
+      start: getRectCenter(startRect),
+      target: getRectCenter(targetRect),
+    });
+  }, []);
 
   const refreshCart = useCallback(async () => {
     if (!canUseCustomerCart) {
@@ -115,7 +169,7 @@ export const CartProvider = ({ children }) => {
       }
 
       setCart(result.data || []);
-      setCartDrawerOpen(true);
+      playCartFlyAnimation(options.sourceRect);
 
       success(
         t("cart.addedTitle"),
@@ -237,6 +291,15 @@ export const CartProvider = ({ children }) => {
     >
       {children}
       <AnimatePresence>
+        {flyCartAnimation && (
+          <FlyingCartIcon
+            key={flyCartAnimation.id}
+            animation={flyCartAnimation}
+            onComplete={() => setFlyCartAnimation(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {cartDrawerOpen && (
           <CartPreviewDrawer
             cart={cart}
@@ -249,6 +312,29 @@ export const CartProvider = ({ children }) => {
     </CartContext.Provider>
   );
 };
+
+const FlyingCartIcon = ({ animation, onComplete }) => (
+  <Motion.div
+    className="pointer-events-none fixed z-[220] flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-2xl shadow-primary/35 ring-4 ring-white/80 dark:ring-slate-950/80"
+    style={{
+      left: animation.start.x - 22,
+      top: animation.start.y - 22,
+    }}
+    initial={{ opacity: 0, scale: 0.65, x: 0, y: 0 }}
+    animate={{
+      opacity: [0, 1, 1, 0],
+      scale: [0.65, 1, 0.88, 0.4],
+      x: animation.target.x - animation.start.x,
+      y: animation.target.y - animation.start.y,
+    }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.78, ease: [0.22, 1, 0.36, 1] }}
+    onAnimationComplete={onComplete}
+    aria-hidden="true"
+  >
+    <ShoppingCart className="h-5 w-5" strokeWidth={2.6} />
+  </Motion.div>
+);
 
 const CartPreviewDrawer = ({
   cart,
@@ -412,7 +498,7 @@ const CartPreviewDrawer = ({
                         alt={item.product.title || item.product.name || t("cart.cartProduct")}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     </Link>
 

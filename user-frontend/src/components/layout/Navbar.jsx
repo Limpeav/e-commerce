@@ -76,6 +76,7 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
   const isHomeActive = location.pathname === "/" || location.pathname === "/customer";
+  const isProductDetailPage = /^\/(?:customer\/)?products\/[^/]+\/?$/.test(location.pathname);
 
   const refreshActiveOrderAlert = useCallback(async () => {
     try {
@@ -174,7 +175,8 @@ export default function Navbar() {
   const nextTheme = themeConfig[nextThemeMode] || themeConfig.light;
   const handleThemeClick = () => setThemeMode(nextThemeMode);
   const homeLinkState = { scrollToTop: true };
-  const isNavbarVisible = isScrollNavbarVisible || showDropdown || showMobileMenu;
+  const isNavbarVisible =
+    isProductDetailPage || isScrollNavbarVisible || showDropdown || showMobileMenu;
   const navbarVisibilityClassName = isNavbarVisible
     ? "translate-y-0 opacity-100 shadow-sm"
     : "-translate-y-full opacity-0 shadow-none pointer-events-none";
@@ -263,6 +265,7 @@ export default function Navbar() {
 
                 <button
                   type="button"
+                  data-cart-target="true"
                   onClick={openCartDrawer}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 relative ${isActive("/customer/cart")
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
@@ -424,6 +427,7 @@ export default function Navbar() {
 
             <button
               type="button"
+              data-cart-target="true"
               onClick={openCartDrawer}
               className="relative rounded-full p-2 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary"
               aria-label={t("nav.cart")}
