@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { CashReportController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import {
     buildOrderSearchSuggestionValues,
@@ -212,6 +214,11 @@ const CashReport = () => {
             ),
         [report?.orders, searchTerm]
     );
+    const cashOrderPagination = useAdminPagination({
+        items: filteredOrders,
+        initialPageSize: 25,
+        resetKey: `${activeTab}:${selectedDate}:${viewMode}:${searchTerm}`,
+    });
 
     const handleExportCsv = async () => {
         try {
@@ -498,7 +505,7 @@ const CashReport = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {filteredOrders.map((order) => (
+                                    {cashOrderPagination.paginatedItems.map((order) => (
                                         <tr
                                             key={order.id}
                                             className="cursor-pointer hover:bg-gray-50"
@@ -526,6 +533,10 @@ const CashReport = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            <AdminPagination
+                                {...cashOrderPagination}
+                                itemLabel="orders"
+                            />
                         </div>
                     )}
                 </section>

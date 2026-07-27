@@ -1,3 +1,5 @@
+import { normalizeProductCategory } from "./productCategories.js";
+
 const SENTIMENT_LEXICON = {
   // Positive
   good: 1.2,
@@ -253,7 +255,7 @@ export const buildSentimentAnalytics = (products = []) => {
 
   for (const product of Array.isArray(products) ? products : []) {
     const reviews = Array.isArray(product.reviews) ? product.reviews : [];
-    const category = product.category || "Uncategorized";
+    const category = normalizeProductCategory(product.category) || "Uncategorized";
 
     reviews.forEach((review) => {
       allReviews.push({

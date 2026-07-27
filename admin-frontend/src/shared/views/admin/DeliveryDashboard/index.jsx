@@ -13,6 +13,7 @@ import {
   Search,
   User,
 } from "lucide-react";
+import AdminPagination from "../../../components/admin/AdminPagination";
 import OrdersList from "../Orders/List";
 
 const DeliveryDashboardView = ({ dashboard }) => {
@@ -44,6 +45,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
     searchTerm,
     searchSuggestions,
     openDatePicker,
+    pagination,
     setSelectedOrderDate,
     setSearchTerm,
     setStatusFilter,
@@ -316,6 +318,12 @@ const DeliveryDashboardView = ({ dashboard }) => {
                 </section>
               );
             })}
+            {pagination && (
+              <AdminPagination
+                {...pagination}
+                itemLabel="deliveries"
+              />
+            )}
           </div>
         )}
       </div>

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 import {
     buildUserSearchSuggestionValues,
@@ -152,6 +154,11 @@ const StaffManagement = () => {
             ),
         [searchTerm, users]
     );
+    const staffPagination = useAdminPagination({
+        items: staffUsers,
+        initialPageSize: 25,
+        resetKey: searchTerm,
+    });
 
     const staffCount = users.filter((user) => user.role === "seller").length;
     const deliveryCount = users.filter((user) => user.role === "delivery").length;
@@ -638,7 +645,7 @@ const StaffManagement = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    staffUsers.map((user) => (
+                                    staffPagination.paginatedItems.map((user) => (
                                         <tr key={user._id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
@@ -696,6 +703,10 @@ const StaffManagement = () => {
                             </tbody>
                         </table>
                     </div>
+                    <AdminPagination
+                        {...staffPagination}
+                        itemLabel="staff accounts"
+                    />
                 </div>
             </div>
 

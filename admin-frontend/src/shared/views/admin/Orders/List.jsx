@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { createReceiptImageBlob } from "../../../utils/orderReceiptImage";
 import {
     clearAdminSession,
@@ -296,8 +298,21 @@ const AdminOrders = ({ renderDelivery }) => {
         return filtered;
     }, [isDelivery, orders, searchTerm, selectedOrderDate, statusFilter]);
 
+    const sortedFilteredOrders = useMemo(
+        () =>
+            [...filteredOrders].sort(
+                (a, b) => getOrderCreatedAtTime(b.createdAt) - getOrderCreatedAtTime(a.createdAt)
+            ),
+        [filteredOrders]
+    );
+    const orderPagination = useAdminPagination({
+        items: sortedFilteredOrders,
+        initialPageSize: 25,
+        resetKey: `${isDelivery}:${searchTerm}:${selectedOrderDate}:${statusFilter}`,
+    });
+
     const groupedOrders = useMemo(() => {
-        const groupsByDate = filteredOrders.reduce((groups, order) => {
+        const groupsByDate = orderPagination.paginatedItems.reduce((groups, order) => {
             const dateKey = getOrderDateKey(order.createdAt);
 
             if (!groups[dateKey]) {
@@ -327,7 +342,7 @@ const AdminOrders = ({ renderDelivery }) => {
                 if (b.dateKey === "unknown") return -1;
                 return new Date(`${b.dateKey}T00:00:00`) - new Date(`${a.dateKey}T00:00:00`);
             });
-    }, [filteredOrders]);
+    }, [orderPagination.paginatedItems]);
 
     useEffect(() => {
         if (groupedOrders.length === 0) {
@@ -725,6 +740,7 @@ const AdminOrders = ({ renderDelivery }) => {
             selectedOrderDate,
             searchTerm,
             searchSuggestions: orderSearchSuggestions,
+            pagination: orderPagination,
             openDatePicker,
             setSelectedOrderDate,
             setSearchTerm,
@@ -949,6 +965,10 @@ const AdminOrders = ({ renderDelivery }) => {
                                     </section>
                                 );
                             })}
+                            <AdminPagination
+                                {...orderPagination}
+                                itemLabel="deliveries"
+                            />
                         </div>
                     )}
                 </div>
@@ -1299,6 +1319,10 @@ const AdminOrders = ({ renderDelivery }) => {
                         </tbody>
                     </table>
                 </div>
+                <AdminPagination
+                    {...orderPagination}
+                    itemLabel={isDelivery ? "deliveries" : "orders"}
+                />
             </div>
 
         </div>

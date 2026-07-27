@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { UserController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 import {
     buildUserSearchSuggestionValues,
@@ -55,6 +57,11 @@ const UserManagement = () => {
             ),
         [customerUsers, searchTerm]
     );
+    const customerPagination = useAdminPagination({
+        items: filteredUsers,
+        initialPageSize: 25,
+        resetKey: searchTerm,
+    });
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -229,7 +236,7 @@ const UserManagement = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredUsers.map((user) => (
+                                    customerPagination.paginatedItems.map((user) => (
                                         <tr key={user._id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
@@ -272,6 +279,10 @@ const UserManagement = () => {
                             </tbody>
                         </table>
                     </div>
+                    <AdminPagination
+                        {...customerPagination}
+                        itemLabel="customers"
+                    />
                 </div>
 
             </div>

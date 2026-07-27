@@ -80,3 +80,36 @@ test("buildSentimentAnalytics creates product, category, and trend insights", ()
   assert.equal(analytics.categoryInsights[0].category, "Diapering & Care");
   assert.equal(analytics.trend[0].month, "2026-07");
 });
+
+test("buildSentimentAnalytics normalizes category aliases", () => {
+  const analytics = buildSentimentAnalytics([
+    {
+      _id: "product-1",
+      title: "Nursery Shelf",
+      category: "Nursery & Decor",
+      reviews: [
+        {
+          rating: 5,
+          comment: "Excellent quality",
+          createdAt: "2026-07-01T00:00:00.000Z",
+        },
+      ],
+    },
+    {
+      _id: "product-2",
+      title: "Baby Crib",
+      category: "Furniture",
+      reviews: [
+        {
+          rating: 4,
+          comment: "Good and reliable",
+          createdAt: "2026-07-02T00:00:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(analytics.categoryInsights.length, 1);
+  assert.equal(analytics.categoryInsights[0].category, "Furniture");
+  assert.equal(analytics.categoryInsights[0].totalReviews, 2);
+});

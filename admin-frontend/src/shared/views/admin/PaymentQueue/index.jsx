@@ -9,6 +9,8 @@ import {
 import { AdminController } from "../../../controllers/adminController";
 import { OrderController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { getPortalOrderDetailsPath, getStoredAdminUser } from "../../../utils/adminSession";
 import {
     buildOrderSearchSuggestionValues,
@@ -89,6 +91,11 @@ const PaymentQueue = () => {
                 );
             });
     }, [baseQueuedOrders, searchTerm]);
+    const paymentQueuePagination = useAdminPagination({
+        items: queuedOrders,
+        initialPageSize: 25,
+        resetKey: searchTerm,
+    });
 
     const queueTotal = queuedOrders.reduce(
         (total, order) => total + Number(order.totalPrice || 0),
@@ -195,7 +202,7 @@ const PaymentQueue = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {queuedOrders.map((order) => (
+                                    {paymentQueuePagination.paginatedItems.map((order) => (
                                         <tr key={order._id} className="hover:bg-gray-50">
                                             <td className="whitespace-nowrap px-5 py-4 font-black text-gray-950">
                                                 #{order._id.slice(-8)}
@@ -239,6 +246,10 @@ const PaymentQueue = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            <AdminPagination
+                                {...paymentQueuePagination}
+                                itemLabel="orders"
+                            />
                         </div>
                     )}
                 </section>

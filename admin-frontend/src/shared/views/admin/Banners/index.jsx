@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { BannerController } from "../../../controllers";
+import AdminPagination from "../../../components/admin/AdminPagination";
+import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 export default function AdminBanners() {
@@ -15,6 +17,11 @@ export default function AdminBanners() {
     () => banners.filter((banner) => banner.isActive).length,
     [banners]
   );
+  const bannerPagination = useAdminPagination({
+    items: banners,
+    initialPageSize: 10,
+    resetKey: banners.length,
+  });
 
   const loadBanners = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -173,75 +180,81 @@ export default function AdminBanners() {
               No banners uploaded yet.
             </div>
           ) : (
-            <div className="grid gap-5 xl:grid-cols-2">
-              {banners.map((banner) => {
-                const isBusy = updatingId === banner._id;
+            <div>
+              <div className="grid gap-5 xl:grid-cols-2">
+                {bannerPagination.paginatedItems.map((banner) => {
+                  const isBusy = updatingId === banner._id;
 
-                return (
-                  <article key={banner._id} className="overflow-hidden rounded-3xl border border-gray-100 bg-gray-50">
-                    <img src={banner.image} alt="Promotional banner" className="h-52 w-full object-cover" />
+                  return (
+                    <article key={banner._id} className="overflow-hidden rounded-3xl border border-gray-100 bg-gray-50">
+                      <img src={banner.image} alt="Promotional banner" className="h-52 w-full object-cover" />
 
-                    <div className="space-y-4 p-4">
-                      <div
-                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
-                          banner.isActive
-                            ? "border-emerald-200 bg-emerald-50"
-                            : "border-gray-300 bg-gray-100"
-                        }`}
-                      >
-                        <div>
-                          <p className={`text-sm font-bold ${banner.isActive ? "text-emerald-900" : "text-gray-900"}`}>
-                            {banner.isActive ? "Active" : "Hidden"}
-                          </p>
-                          <p className={`text-xs font-medium ${banner.isActive ? "text-emerald-700" : "text-gray-600"}`}>
-                            {banner.isActive ? "Visible on the storefront" : "Not visible on the storefront"}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={banner.isActive}
-                          aria-label={`${banner.isActive ? "Hide" : "Show"} banner`}
-                          onClick={() => handleToggleActive(banner)}
-                          disabled={isBusy}
-                          className={`relative h-7 w-12 shrink-0 rounded-full border-2 transition ${
+                      <div className="space-y-4 p-4">
+                        <div
+                          className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
                             banner.isActive
-                              ? "border-emerald-700 bg-emerald-600"
-                              : "border-gray-500 bg-gray-400"
-                          } disabled:cursor-not-allowed disabled:opacity-60`}
+                              ? "border-emerald-200 bg-emerald-50"
+                              : "border-gray-300 bg-gray-100"
+                          }`}
                         >
-                          <span
-                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                              banner.isActive ? "left-5" : "left-0.5"
-                            }`}
-                          />
-                        </button>
-                      </div>
+                          <div>
+                            <p className={`text-sm font-bold ${banner.isActive ? "text-emerald-900" : "text-gray-900"}`}>
+                              {banner.isActive ? "Active" : "Hidden"}
+                            </p>
+                            <p className={`text-xs font-medium ${banner.isActive ? "text-emerald-700" : "text-gray-600"}`}>
+                              {banner.isActive ? "Visible on the storefront" : "Not visible on the storefront"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={banner.isActive}
+                            aria-label={`${banner.isActive ? "Hide" : "Show"} banner`}
+                            onClick={() => handleToggleActive(banner)}
+                            disabled={isBusy}
+                            className={`relative h-7 w-12 shrink-0 rounded-full border-2 transition ${
+                              banner.isActive
+                                ? "border-emerald-700 bg-emerald-600"
+                                : "border-gray-500 bg-gray-400"
+                            } disabled:cursor-not-allowed disabled:opacity-60`}
+                          >
+                            <span
+                              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                                banner.isActive ? "left-5" : "left-0.5"
+                              }`}
+                            />
+                          </button>
+                        </div>
 
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(banner)}
-                          disabled={isBusy}
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium text-gray-700 transition hover:border-blue-500 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {banner.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          {banner.isActive ? "Hide Banner" : "Show Banner"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(banner._id)}
-                          disabled={isBusy}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-3 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(banner)}
+                            disabled={isBusy}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium text-gray-700 transition hover:border-blue-500 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {banner.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {banner.isActive ? "Hide Banner" : "Show Banner"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(banner._id)}
+                            disabled={isBusy}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-3 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
+              </div>
+              <AdminPagination
+                {...bannerPagination}
+                itemLabel="banners"
+              />
             </div>
           )}
         </section>

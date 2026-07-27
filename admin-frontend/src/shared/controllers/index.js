@@ -6,6 +6,5 @@ export { CashReportController } from "./cashReportController.js";
 export { DashboardController } from "./dashboardController.js";
 export { OrderController } from "./orderController.js";
 export { ProductController } from "./productController.js";
-export { ReportController } from "./reportController.js";
 export { ReviewController } from "./reviewController.js";
 export { UserController } from "./userController.js";

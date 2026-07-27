@@ -53,6 +53,10 @@ const emptyProductForm = {
   trackSizeInventory: false,
 };
 
+const ADD_PRODUCT_DRAFT_STORAGE_KEY = "admin:add-product:draft:v1";
+const ADD_PRODUCT_DRAFT_IMAGE_DB = "admin-product-drafts";
+const ADD_PRODUCT_DRAFT_IMAGE_STORE = "files";
+const ADD_PRODUCT_DRAFT_MAIN_IMAGE_KEY = "main-product-image";
 const DETAIL_IMAGE_SCROLL_THRESHOLD = 7;
 
 const getDetailImageGridClassName = (imageCount, marginClassName = "mt-3") =>
@@ -62,10 +66,120 @@ const getDetailImageGridClassName = (imageCount, marginClassName = "mt-3") =>
       : ""
   }`;
 
+const canUseBrowserStorage = () =>
+  typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+const getSerializableProductForm = (form) => ({
+  ...form,
+  image: null,
+});
+
+const isEmptyDraftValue = (value) => {
+  if (value === null || value === undefined || value === "" || value === false) {
+    return true;
+  }
+
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+
+  return false;
+};
+
+const isProductDraftEmpty = (form) =>
+  !form.image &&
+  Object.values(getSerializableProductForm(form)).every((value) =>
+    isEmptyDraftValue(value)
+  );
+
+const normalizeDraftForm = (draftForm = {}) => ({
+  ...emptyProductForm,
+  ...draftForm,
+  image: null,
+  colorImages:
+    draftForm.colorImages && typeof draftForm.colorImages === "object"
+      ? draftForm.colorImages
+      : {},
+  productDetailImages:
+    draftForm.productDetailImages && typeof draftForm.productDetailImages === "object"
+      ? draftForm.productDetailImages
+      : {},
+  sizeStocks: Array.isArray(draftForm.sizeStocks) ? draftForm.sizeStocks : [],
+  trackSizeInventory: Boolean(draftForm.trackSizeInventory),
+});
+
+const openProductDraftImageDb = () =>
+  new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB is not available"));
+      return;
+    }
+
+    const request = window.indexedDB.open(ADD_PRODUCT_DRAFT_IMAGE_DB, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(ADD_PRODUCT_DRAFT_IMAGE_STORE)) {
+        db.createObjectStore(ADD_PRODUCT_DRAFT_IMAGE_STORE);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () =>
+      reject(request.error || new Error("Could not open product draft storage"));
+  });
+
+const runProductDraftImageTransaction = async (mode, action) => {
+  const db = await openProductDraftImageDb();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ADD_PRODUCT_DRAFT_IMAGE_STORE, mode);
+    const store = transaction.objectStore(ADD_PRODUCT_DRAFT_IMAGE_STORE);
+    const request = action(store);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Product draft image transaction failed"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Product draft image transaction aborted"));
+    };
+  });
+};
+
+const saveProductDraftImage = (file, preview) =>
+  runProductDraftImageTransaction("readwrite", (store) =>
+    store.put(
+      {
+        file,
+        preview,
+        name: file.name,
+        type: file.type,
+        lastModified: file.lastModified,
+        savedAt: new Date().toISOString(),
+      },
+      ADD_PRODUCT_DRAFT_MAIN_IMAGE_KEY
+    )
+  );
+
+const readProductDraftImage = () =>
+  runProductDraftImageTransaction("readonly", (store) =>
+    store.get(ADD_PRODUCT_DRAFT_MAIN_IMAGE_KEY)
+  );
+
+const deleteProductDraftImage = () =>
+  runProductDraftImageTransaction("readwrite", (store) =>
+    store.delete(ADD_PRODUCT_DRAFT_MAIN_IMAGE_KEY)
+  );
+
 const AddProduct = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [form, setForm] = useState(emptyProductForm);
+  const [draftReady, setDraftReady] = useState(false);
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -73,6 +187,90 @@ const AddProduct = () => {
   const [detailImageUploading, setDetailImageUploading] = useState({});
   const [formMessage, setFormMessage] = useState(null);
   const [customColor, setCustomColor] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreDraft = async () => {
+      if (!canUseBrowserStorage()) return;
+
+      const rawDraft = window.localStorage.getItem(ADD_PRODUCT_DRAFT_STORAGE_KEY);
+
+      if (rawDraft) {
+        try {
+          const parsedDraft = JSON.parse(rawDraft);
+          if (parsedDraft?.form && !isProductDraftEmpty(parsedDraft.form)) {
+            setForm(normalizeDraftForm(parsedDraft.form));
+          }
+        } catch {
+          window.localStorage.removeItem(ADD_PRODUCT_DRAFT_STORAGE_KEY);
+        }
+      }
+
+      try {
+        const imageDraft = await readProductDraftImage();
+        if (!isMounted || !imageDraft?.file) return;
+
+        const restoredImage =
+          typeof File !== "undefined" && imageDraft.file instanceof File
+            ? imageDraft.file
+            : new File([imageDraft.file], imageDraft.name || "product-image", {
+                type: imageDraft.type || imageDraft.file.type || "image/jpeg",
+                lastModified: imageDraft.lastModified || Date.now(),
+              });
+
+        setForm((currentForm) => ({
+          ...currentForm,
+          image: restoredImage,
+          imageUrl: "",
+        }));
+        setImagePreview(imageDraft.preview || URL.createObjectURL(restoredImage));
+      } catch {
+        // Draft text is still useful even when the browser cannot restore the image file.
+      }
+    };
+
+    restoreDraft().finally(() => {
+      if (isMounted) setDraftReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady || !canUseBrowserStorage()) return;
+
+    try {
+      if (isProductDraftEmpty(form)) {
+        window.localStorage.removeItem(ADD_PRODUCT_DRAFT_STORAGE_KEY);
+        return;
+      }
+
+      window.localStorage.setItem(
+        ADD_PRODUCT_DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          savedAt: new Date().toISOString(),
+          form: getSerializableProductForm(form),
+        })
+      );
+    } catch {
+      // Keep typing responsive even if private mode or quota limits block draft saves.
+    }
+  }, [draftReady, form]);
+
+  const clearSavedDraft = async () => {
+    if (canUseBrowserStorage()) {
+      window.localStorage.removeItem(ADD_PRODUCT_DRAFT_STORAGE_KEY);
+    }
+
+    try {
+      await deleteProductDraftImage();
+    } catch {
+      // Clearing text data is enough when IndexedDB is unavailable.
+    }
+  };
 
   useEffect(() => {
     if (formMessage?.type !== "success") return undefined;
@@ -452,7 +650,15 @@ const AddProduct = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result);
+      const preview = reader.result;
+      setImagePreview(preview);
+      saveProductDraftImage(file, preview).catch(() => {
+        setFormMessage({
+          type: "error",
+          title: "Image draft save failed",
+          text: "The product details were saved, but this browser could not save the selected image for refresh recovery.",
+        });
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -467,6 +673,7 @@ const AddProduct = () => {
       await ProductController.create(
         buildProductRequestData(form, { includeImage: true })
       );
+      await clearSavedDraft();
       setForm(emptyProductForm);
       setImagePreview(null);
       setFormMessage({
@@ -543,13 +750,18 @@ const AddProduct = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setImagePreview(null);
                       setForm((currentForm) => ({
                         ...currentForm,
                         image: null,
                         imageUrl: "",
                       }));
+                      try {
+                        await deleteProductDraftImage();
+                      } catch {
+                        // The in-memory image has already been removed.
+                      }
                     }}
                     className="absolute top-3 right-3 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 shadow-lg hover:bg-red-700 hover:shadow-xl transform hover:-translate-y-0.5"
                   >
