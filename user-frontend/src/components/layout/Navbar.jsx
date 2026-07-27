@@ -14,6 +14,7 @@ import {
   MapPin,
   HelpCircle,
   Info,
+  LifeBuoy,
   Moon,
   Sun,
   Languages,
@@ -351,6 +352,10 @@ export default function Navbar() {
                                   </span>
                                 )}
                               </Link>
+                              <Link to="/customer/support/tickets" onClick={() => setShowDropdown(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${mutedTextClassName} hover:bg-primary/10 hover:text-primary`}>
+                                <LifeBuoy className="w-4 h-4" />
+                                <span className="text-sm font-semibold">Support Tickets</span>
+                              </Link>
                               <div className="mx-4 my-2 h-px" style={{ backgroundColor: "var(--color-border)" }}></div>
                               <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-text-muted transition-colors hover:bg-secondary/15 hover:text-secondary">
                                 <LogOut className="w-4 h-4" /><span className="text-sm font-bold">{t("nav.logout")}</span>
@@ -543,6 +548,7 @@ export default function Navbar() {
                     {[
                       { to: "/customer/profile", icon: User, label: t("nav.profile") },
                       { to: "/customer/orders", icon: Package, label: t("nav.myOrders"), showPendingAlert: true },
+                      { to: "/customer/support/tickets", icon: LifeBuoy, label: "Support Tickets" },
                       { to: "/customer/settings", icon: Settings, label: t("nav.settings") },
                     ].map((item) => (
                       <Link

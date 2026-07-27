@@ -31,12 +31,26 @@ import {
     getAdminFinancialSettings,
     updateAdminFinancialSettings,
 } from "../controllers/settingsController.js";
+import {
+    addAdminInternalNote,
+    addAdminSupportReply,
+    getAdminTicket,
+    getSupportTickets,
+    reopenAdminTicket,
+    updateAdminSupportAssignment,
+    updateAdminSupportPriority,
+    updateSupportTicketStatus,
+} from "../controllers/supportController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { cleanupOrphanedReviews } from "../utils/cleanupReviews.js";
-import { createMemoryImageUpload } from "../middleware/upload.js";
+import {
+    createMemoryImageUpload,
+    createSupportAttachmentUpload,
+} from "../middleware/upload.js";
 
 const router = express.Router();
 const productImageUpload = createMemoryImageUpload();
+const supportAttachmentUpload = createSupportAttachmentUpload();
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
@@ -55,6 +69,18 @@ const adminResetLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
 });
+
+const uploadSupportAttachments = (req, res, next) => {
+    supportAttachmentUpload.array("attachments", 5)(req, res, (error) => {
+        if (error) {
+            res.status(400);
+            next(error);
+            return;
+        }
+
+        next();
+    });
+};
 
 // Auth routes
 router.post("/register", protect, admin, registerAdmin);
@@ -82,6 +108,47 @@ router.post(
     uploadProductImage
 );
 router.post("/translate", protect, admin, translateText);
+
+// Support ticket workflow
+router.get("/support/tickets", protect, admin, getSupportTickets);
+router.get("/support/tickets/:ticketNumber", protect, admin, getAdminTicket);
+router.post(
+    "/support/tickets/:ticketNumber/replies",
+    protect,
+    admin,
+    uploadSupportAttachments,
+    addAdminSupportReply
+);
+router.patch(
+    "/support/tickets/:ticketNumber/status",
+    protect,
+    admin,
+    updateSupportTicketStatus
+);
+router.patch(
+    "/support/tickets/:ticketNumber/priority",
+    protect,
+    admin,
+    updateAdminSupportPriority
+);
+router.patch(
+    "/support/tickets/:ticketNumber/assignment",
+    protect,
+    admin,
+    updateAdminSupportAssignment
+);
+router.post(
+    "/support/tickets/:ticketNumber/internal-notes",
+    protect,
+    admin,
+    addAdminInternalNote
+);
+router.post(
+    "/support/tickets/:ticketNumber/reopen",
+    protect,
+    admin,
+    reopenAdminTicket
+);
 
 // User management routes
 router.get("/users", protect, admin, getAllUsers);

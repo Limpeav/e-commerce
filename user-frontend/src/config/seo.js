@@ -91,6 +91,18 @@ export const routeMeta = {
     ogType: "website",
     noIndex: true,
   },
+  "/support/tickets": {
+    title: "Support Tickets",
+    description: "View and reply to your Cherish Baby Store support tickets.",
+    ogType: "website",
+    noIndex: true,
+  },
+  "/customer/support/tickets": {
+    title: "Support Tickets",
+    description: "View and reply to your Cherish Baby Store support tickets.",
+    ogType: "website",
+    noIndex: true,
+  },
   "/settings": {
     title: "Account Settings",
     description: "Update your Cherish Baby Store account settings, notifications, and preferences.",

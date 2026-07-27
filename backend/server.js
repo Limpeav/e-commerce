@@ -30,6 +30,10 @@ import {
   startBakongReconciliation,
   stopBakongReconciliation,
 } from "./services/bakongReconciliationService.js";
+import {
+  startSupportTicketAutomation,
+  stopSupportTicketAutomation,
+} from "./services/supportTicketScheduler.js";
 
 assertSecurityConfig();
 
@@ -156,7 +160,7 @@ const corsOptions = {
   origin: corsOrigin,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Support-Access-Token"],
   optionsSuccessStatus: 204,
 };
 
@@ -230,11 +234,13 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startBakongReconciliation();
+  startSupportTicketAutomation();
 });
 
 const shutdown = (signal) => {
   console.log(`${signal} received. Shutting down gracefully.`);
   stopBakongReconciliation();
+  stopSupportTicketAutomation();
 
   server.close(async () => {
     await mongoose.disconnect();

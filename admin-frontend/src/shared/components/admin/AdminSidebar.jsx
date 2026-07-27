@@ -11,11 +11,14 @@ import {
   LogOut,
   Menu,
   BriefcaseBusiness,
+  Images,
+  MessageSquareText,
   ReceiptText,
   WalletCards,
   Truck,
   User,
   Settings,
+  LifeBuoy,
   X,
 } from 'lucide-react'
 import { subscribeRealtimeDomains } from '../../services/realtime'
@@ -112,10 +115,28 @@ const AdminSidebar = () => {
       adminOnly: true
     },
     {
+      path: '/admin/reviews',
+      name: 'Reviews',
+      icon: MessageSquareText,
+      adminOnly: true
+    },
+    {
+      path: '/admin/banners',
+      name: 'Banners',
+      icon: Images,
+      adminOnly: true
+    },
+    {
       path: ordersPath,
       name: adminUser?.role === 'delivery' ? 'Deliveries' : 'Orders',
       icon: adminUser?.role === 'delivery' ? Truck : ShoppingCart,
       badge: orderCount
+    },
+    {
+      path: '/admin/support/tickets',
+      name: 'Support',
+      icon: LifeBuoy,
+      adminOnly: true
     },
     {
       path: paymentQueuePath,
@@ -229,7 +250,11 @@ const AdminSidebar = () => {
                 location.pathname === item.path ||
                 (item.path === ordersPath && location.pathname.startsWith(`${ordersPath}/`)) ||
                 (item.path === '/admin/products' &&
-                  location.pathname.startsWith('/admin/products/'))
+                  location.pathname.startsWith('/admin/products/')) ||
+                (item.path === '/admin/reviews' &&
+                  location.pathname.startsWith('/admin/reviews/')) ||
+                (item.path === '/admin/support/tickets' &&
+                  location.pathname.startsWith('/admin/support/tickets/'))
 
               return (
                 <Link

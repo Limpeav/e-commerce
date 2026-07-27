@@ -163,6 +163,12 @@ export default function AppView() {
   const currentRouteMeta = useMemo(() => {
     const path = location.pathname
     const customerPath = path.replace(/^\/customer/, "")
+    const supportTicketDetailRoute = /^\/(?:customer\/)?(?:support\/tickets|support\/ticket|support|ticket)\/[^/]+\/?$/.test(path)
+
+    if (supportTicketDetailRoute) {
+      return routeMeta["/support/tickets"]
+    }
+
     const candidates = [
       routeMeta[path],
       routeMeta[customerPath],

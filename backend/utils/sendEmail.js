@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import {
+  getAdminFrontendUrl,
+  getCustomerFrontendUrl,
+} from "./frontendUrls.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 
@@ -32,21 +36,6 @@ const escapeHtml = (value = "") =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-
-const normalizeUrl = (url = "") => String(url || "").trim().replace(/\/+$/, "");
-
-const getCustomerFrontendUrl = () => {
-  const frontendUrls = String(process.env.FRONTEND_URL || "http://localhost:5173")
-    .split(/[,\s]+/)
-    .map(normalizeUrl)
-    .filter((url) => /^https?:\/\//i.test(url));
-
-  return (
-    frontendUrls.find((url) => url.includes("cherishbabykhstore.store")) ||
-    frontendUrls[0] ||
-    "http://localhost:5173"
-  );
-};
 
 const sendLocalCapturedEmail = async (emailPayload) => {
   const transporter = nodemailer.createTransport({
@@ -636,6 +625,426 @@ ${message}
     throw new Error(err.message || "Failed to send support email");
   }
 };
+
+const getTicketDisplayNumber = (ticket = {}) =>
+  escapeHtml(ticket.ticketNumber || ticket._id?.toString?.() || "Support ticket");
+
+const formatSupportEmailDate = (value) => {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const buildSupportTicketEmail = ({
+  title,
+  intro,
+  details = [],
+  ctaLabel,
+  ctaUrl,
+  secondaryText = "",
+}) => {
+  const detailRows = details
+    .filter((item) => item?.label && item.value !== undefined && item.value !== null)
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding:10px 0;font-size:13px;color:#71717a;width:148px;">${escapeHtml(item.label)}</td>
+          <td style="padding:10px 0;font-size:14px;font-weight:800;color:#18181b;">${escapeHtml(item.value)}</td>
+        </tr>
+      `
+    )
+    .join("");
+  const safeCtaUrl = escapeHtml(ctaUrl || getCustomerFrontendUrl());
+  const button = ctaLabel
+    ? `
+      <table cellpadding="0" cellspacing="0" align="center" style="margin:26px auto 16px;">
+        <tr>
+          <td align="center" style="background:#8DAA91;border-radius:999px;">
+            <a href="${safeCtaUrl}" style="display:inline-block;padding:14px 24px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:900;">${escapeHtml(ctaLabel)}</a>
+          </td>
+        </tr>
+      </table>
+    `
+    : "";
+  const secondary = secondaryText
+    ? `<p style="margin:12px 0 0;font-size:13px;line-height:1.7;color:#71717a;">${escapeHtml(secondaryText)}</p>`
+    : "";
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${escapeHtml(title)}</title>
+    </head>
+    <body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+        <tr>
+          <td align="center">
+            <table width="100%" style="max-width:640px;background:#ffffff;border:1px solid #e4e4e7;border-radius:20px;overflow:hidden;">
+              <tr>
+                <td style="padding:28px 32px;border-bottom:1px solid #f4f4f5;">
+                  <p style="margin:0 0 6px;font-size:12px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#8DAA91;">Cherish Baby Store Support</p>
+                  <h1 style="margin:0;font-size:24px;line-height:1.25;color:#18181b;">${escapeHtml(title)}</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:28px 32px;">
+                  <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#3f3f46;">${escapeHtml(intro)}</p>
+                  ${
+                    detailRows
+                      ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${detailRows}</table>`
+                      : ""
+                  }
+                  ${button}
+                  ${secondary}
+                  <p style="margin:24px 0 0;font-size:13px;line-height:1.7;color:#71717a;">Regards,<br>${escapeHtml(FROM_NAME)} Support</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+};
+
+const buildSupportEmailPayload = ({
+  to,
+  subject,
+  title,
+  intro,
+  details,
+  ctaLabel,
+  ctaUrl,
+  secondaryText,
+  text,
+  replyTo,
+}) => {
+  const payload = {
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html: buildSupportTicketEmail({
+      title,
+      intro,
+      details,
+      ctaLabel,
+      ctaUrl,
+      secondaryText,
+    }),
+    text,
+  };
+
+  if (replyTo && !IS_RESEND_TEST_SENDER) {
+    payload.replyTo = replyTo;
+  }
+
+  return payload;
+};
+
+const getTicketDetails = (ticket = {}) => [
+  { label: "Ticket ID", value: ticket.ticketNumber || ticket._id?.toString?.() || "" },
+  { label: "Subject", value: ticket.subject || "" },
+  { label: "Topic", value: ticket.inquiryTopic || ticket.topic || "" },
+  { label: "Status", value: ticket.status || "" },
+];
+
+export const sendSupportTicketReceivedEmail = async ({ ticket, ticketUrl }) => {
+  const ticketNumber = getTicketDisplayNumber(ticket);
+  const subject = `We received your support request ${ticket.ticketNumber}`;
+  const intro =
+    "Thank you. Your support request has been received. Our support team will respond within one business day.";
+
+  return sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject,
+      title: "Support request received",
+      intro,
+      details: getTicketDetails(ticket),
+      ctaLabel: "View support ticket",
+      ctaUrl: ticketUrl,
+      secondaryText: `Ticket ID: ${ticketNumber}`,
+      text: `
+Thank you. Your support request has been received.
+
+Ticket ID: ${ticket.ticketNumber}
+
+Our support team will respond within one business day.
+
+View ticket:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support ticket received"
+  );
+};
+
+export const sendSupportTeamNewTicketEmail = async ({ ticket, adminUrl }) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: SUPPORT_EMAIL,
+      subject: `New support ticket ${ticket.ticketNumber}: ${ticket.subject}`,
+      title: "New support ticket",
+      intro: `${ticket.fullName || ticket.name} submitted a support request.`,
+      details: [
+        ...getTicketDetails(ticket),
+        { label: "Customer", value: ticket.fullName || ticket.name || "" },
+        { label: "Email", value: ticket.email || "" },
+        { label: "Order", value: ticket.orderNumber || "Not provided" },
+      ],
+      ctaLabel: "Open admin ticket",
+      ctaUrl: adminUrl || `${getAdminFrontendUrl()}/admin/support/tickets/${ticket.ticketNumber}`,
+      text: `
+New support ticket
+
+Ticket ID: ${ticket.ticketNumber}
+Subject: ${ticket.subject}
+Topic: ${ticket.inquiryTopic || ticket.topic}
+Customer: ${ticket.fullName || ticket.name}
+Email: ${ticket.email}
+Order: ${ticket.orderNumber || "Not provided"}
+
+Open admin ticket:
+${adminUrl || `${getAdminFrontendUrl()}/admin/support/tickets/${ticket.ticketNumber}`}
+      `,
+      replyTo: ticket.email,
+    }),
+    "support team new ticket"
+  );
+
+export const sendSupportReplyEmail = async ({ ticket, ticketUrl }) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `New reply for support ticket ${ticket.ticketNumber}`,
+      title: "Your support ticket has a new reply",
+      intro: `Hello ${ticket.fullName || ticket.name || "there"}, our support team replied to your ticket.`,
+      details: getTicketDetails(ticket),
+      ctaLabel: "View and reply",
+      ctaUrl: ticketUrl,
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+Our support team replied to ticket ${ticket.ticketNumber}.
+
+Subject: ${ticket.subject}
+
+View and reply:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support reply"
+  );
+
+export const sendSupportWaitingForCustomerEmail = async ({ ticket, ticketUrl }) => {
+  const autoCloseText = formatSupportEmailDate(ticket.autoCloseAt);
+
+  return sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `Action required for support ticket ${ticket.ticketNumber}`,
+      title: "Action required",
+      intro:
+        "Our support team needs additional information before we can continue with your request.",
+      details: [
+        ...getTicketDetails(ticket),
+        { label: "Auto-close date", value: autoCloseText || "Seven days from now" },
+      ],
+      ctaLabel: "Reply to ticket",
+      ctaUrl: ticketUrl,
+      secondaryText:
+        "If we do not receive a response, we will send a reminder after three days and automatically close the ticket after seven days.",
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+Our support team needs additional information before we can continue with your request.
+
+Ticket: ${ticket.ticketNumber}
+Subject: ${ticket.subject}
+
+Please reply through your account or use the secure ticket link:
+${ticketUrl}
+
+If we do not receive a response, we will send a reminder after three days and automatically close the ticket after seven days without a response.
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support waiting for customer"
+  );
+};
+
+export const sendSupportWaitingReminderEmail = async ({ ticket, ticketUrl }) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `Reminder: We are waiting for your response - ${ticket.ticketNumber}`,
+      title: "We are waiting for your response",
+      intro: `Hello ${ticket.fullName || ticket.name || "there"}, we are still waiting for the information requested for ticket ${ticket.ticketNumber}.`,
+      details: getTicketDetails(ticket),
+      ctaLabel: "Reply to ticket",
+      ctaUrl: ticketUrl,
+      secondaryText:
+        "Please reply within the next four days. If we do not receive a response, the ticket will be automatically closed.",
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+We are still waiting for the information requested for ticket ${ticket.ticketNumber}.
+
+Please reply within the next four days. If we do not receive a response, the ticket will be automatically closed.
+
+Reply here:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support waiting reminder"
+  );
+
+export const sendSupportAutoClosedEmail = async ({
+  ticket,
+  ticketUrl,
+  manual = false,
+}) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `Support ticket ${ticket.ticketNumber} has been closed`,
+      title: manual ? "Support ticket closed" : "Support ticket automatically closed",
+      intro: manual
+        ? `Ticket ${ticket.ticketNumber} has been closed by our support team.`
+        : `Ticket ${ticket.ticketNumber} was automatically closed because we did not receive a response within seven days.`,
+      details: [
+        ...getTicketDetails(ticket),
+        { label: "Closed reason", value: ticket.closedReason || "Closed" },
+      ],
+      ctaLabel: "View ticket",
+      ctaUrl: ticketUrl,
+      secondaryText:
+        "You may reopen the ticket within 30 days if you still need assistance. After 30 days, please create a new support request.",
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+Ticket ${ticket.ticketNumber} ${
+        manual
+          ? "has been closed by our support team."
+          : "was automatically closed because we did not receive a response within seven days."
+      }
+
+You may reopen the ticket within 30 days if you still need assistance. After 30 days, please create a new support request.
+
+View ticket:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    manual ? "support ticket closed" : "support ticket auto closed"
+  );
+
+export const sendSupportTicketReopenedEmail = async ({ ticket, ticketUrl }) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `Support ticket ${ticket.ticketNumber} has been reopened`,
+      title: "Support ticket reopened",
+      intro: `Ticket ${ticket.ticketNumber} has been reopened and our support team has been notified.`,
+      details: getTicketDetails(ticket),
+      ctaLabel: "View ticket",
+      ctaUrl: ticketUrl,
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+Ticket ${ticket.ticketNumber} has been reopened and our support team has been notified.
+
+View ticket:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support ticket reopened"
+  );
+
+export const sendSupportResolvedEmail = async ({ ticket, ticketUrl }) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: ticket.email,
+      subject: `Support ticket ${ticket.ticketNumber} has been resolved`,
+      title: "Support ticket resolved",
+      intro: `Ticket ${ticket.ticketNumber} has been marked resolved. You can still reply if you need follow-up help.`,
+      details: getTicketDetails(ticket),
+      ctaLabel: "View ticket",
+      ctaUrl: ticketUrl,
+      text: `
+Hello ${ticket.fullName || ticket.name || "there"},
+
+Ticket ${ticket.ticketNumber} has been marked resolved. You can still reply if you need follow-up help.
+
+View ticket:
+${ticketUrl}
+
+Regards,
+${FROM_NAME} Support
+      `,
+    }),
+    "support ticket resolved"
+  );
+
+export const sendSupportCustomerReplyNotificationEmail = async ({
+  ticket,
+  adminUrl,
+  subjectPrefix = "Customer replied to support ticket",
+}) =>
+  sendConfiguredEmail(
+    buildSupportEmailPayload({
+      to: SUPPORT_EMAIL,
+      subject: `${subjectPrefix} ${ticket.ticketNumber}`,
+      title: subjectPrefix,
+      intro: `${ticket.fullName || ticket.name} replied to support ticket ${ticket.ticketNumber}.`,
+      details: [
+        ...getTicketDetails(ticket),
+        { label: "Customer", value: ticket.fullName || ticket.name || "" },
+        { label: "Email", value: ticket.email || "" },
+      ],
+      ctaLabel: "Open admin ticket",
+      ctaUrl: adminUrl || `${getAdminFrontendUrl()}/admin/support/tickets/${ticket.ticketNumber}`,
+      text: `
+${subjectPrefix}
+
+Ticket ID: ${ticket.ticketNumber}
+Customer: ${ticket.fullName || ticket.name}
+Email: ${ticket.email}
+Subject: ${ticket.subject}
+
+Open admin ticket:
+${adminUrl || `${getAdminFrontendUrl()}/admin/support/tickets/${ticket.ticketNumber}`}
+      `,
+      replyTo: ticket.email,
+    }),
+    "support customer reply notification"
+  );
 
 // ─────────────────────────────────────────────────
 // Send Account Verification Code Email

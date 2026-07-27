@@ -333,6 +333,7 @@ export const emitNotificationCreated = (notification) => {
     message: notification.message,
     orderId: resolveUserId(notification.orderId),
     recipient: resolveUserId(notification.recipient),
+    link: notification.link,
     createdAt: notification.createdAt || new Date().toISOString(),
     isRead: Boolean(notification.isRead),
   };

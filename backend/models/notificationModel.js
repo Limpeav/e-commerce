@@ -8,6 +8,11 @@ const notificationSchema = new mongoose.Schema(
             enum: ["order", "user", "product", "system"],
             default: "order",
         },
+        audience: {
+            type: String,
+            enum: ["admin", "user", "broadcast"],
+            default: "admin",
+        },
         title: {
             type: String,
             required: true,
@@ -21,6 +26,10 @@ const notificationSchema = new mongoose.Schema(
             ref: "Order",
         },
         userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        recipient: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
         },

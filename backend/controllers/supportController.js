@@ -1,8 +1,19 @@
 import asyncHandler from "express-async-handler";
-import SupportTicket from "../models/supportTicketModel.js";
-import Notification from "../models/notificationModel.js";
-import { emitNotificationCreated } from "../realtime/socket.js";
-import { sendSupportContactEmail } from "../utils/sendEmail.js";
+import {
+  addCustomerReplyToTicket,
+  addInternalNoteToTicket,
+  addSupportReplyToTicket,
+  createSupportTicketRecord,
+  getAdminSupportTicket,
+  getCustomerSupportTicket,
+  listAdminSupportTickets,
+  listMySupportTickets,
+  reopenSupportTicket,
+  supportTicketLookups,
+  updateSupportTicketAssignment,
+  updateSupportTicketPriority,
+  updateSupportTicketStatus,
+} from "../services/supportTicketService.js";
 
 const FAQS = [
   {
@@ -52,6 +63,12 @@ const FAQS = [
   },
 ];
 
+const getAccessToken = (req) =>
+  req.body?.accessToken ||
+  req.query?.accessToken ||
+  req.headers["x-support-access-token"] ||
+  "";
+
 // @desc    Get FAQ entries
 // @route   GET /api/support/faqs
 // @access  Public
@@ -59,110 +76,184 @@ export const getFaqs = asyncHandler(async (req, res) => {
   res.json({ faqs: FAQS });
 });
 
-// @desc    Submit contact support form
+// @desc    Get support ticket dropdown values
+// @route   GET /api/support/lookups
+// @access  Public
+export const getSupportTicketLookups = asyncHandler(async (req, res) => {
+  res.json(supportTicketLookups);
+});
+
+// @desc    Submit contact support form / create support ticket
 // @route   POST /api/support/contact
+// @route   POST /api/support/tickets
 // @access  Public (optional auth)
 export const submitContactForm = asyncHandler(async (req, res) => {
-  const name = req.body.name?.toString().trim() || req.user?.name || "";
-  const email =
-    req.body.email?.toString().trim().toLowerCase() || req.user?.email || "";
-  const phone = req.body.phone?.toString().trim() || "";
-  const topic = req.body.topic?.toString().trim() || "General";
-  const message = req.body.message?.toString().trim();
-
-  if (!name || !email || !message) {
-    res.status(400);
-    throw new Error("Name, email, and message are required");
-  }
-
-  const ticket = await SupportTicket.create({
-    user: req.user?._id,
-    name,
-    email,
-    phone,
-    topic,
-    message,
+  const result = await createSupportTicketRecord({
+    body: req.body || {},
+    user: req.user,
+    files: req.files || [],
   });
-
-  let emailSent = false;
-  let emailErrorMessage = "";
-  try {
-    await sendSupportContactEmail({
-      name,
-      email,
-      phone,
-      topic,
-      message,
-      ticketId: ticket._id.toString(),
-    });
-    emailSent = true;
-  } catch (error) {
-    emailErrorMessage = error.message || "Failed to send support email";
-    console.error("Support email failed:", emailErrorMessage);
-  }
-
-  // Notify admin stream.
-  try {
-    const notification = await Notification.create({
-      type: "system",
-      audience: "admin",
-      title: "New Support Ticket",
-      message: `${name} submitted a support request: ${topic}`,
-      link: `/admin/reports`,
-      userId: req.user?._id,
-    });
-    emitNotificationCreated(notification);
-  } catch (error) {
-    console.error("Support notification failed:", error.message);
-  }
-
-  if (!emailSent) {
-    res.status(502).json({
-      message: `Support request was saved, but email failed: ${emailErrorMessage}`,
-      ticketId: ticket._id,
-      emailSent,
-    });
-    return;
-  }
 
   res.status(201).json({
     message: "Support request submitted successfully",
-    ticketId: ticket._id,
-    emailSent,
+    confirmation:
+      "Thank you. Your support request has been received. Our support team will respond within one business day.",
+    ticketId: result.ticket.id,
+    ticketNumber: result.ticket.ticketNumber,
+    ticket: result.ticket,
+    accessToken: result.accessToken || undefined,
+    ticketUrl: result.ticketUrl,
+    emailSent: result.customerEmailSent,
   });
 });
 
-// @desc    Get support tickets
+// @desc    Get authenticated customer's support tickets
+// @route   GET /api/support/tickets/my
+// @access  Private
+export const getMySupportTickets = asyncHandler(async (req, res) => {
+  const tickets = await listMySupportTickets(req.user);
+  res.json({ tickets });
+});
+
+// @desc    Get customer support ticket detail
+// @route   GET /api/support/tickets/:ticketNumber
+// @access  Private owner or signed guest ticket token
+export const getCustomerTicket = asyncHandler(async (req, res) => {
+  const ticket = await getCustomerSupportTicket({
+    ticketNumber: req.params.ticketNumber,
+    user: req.user,
+    accessToken: getAccessToken(req),
+  });
+
+  res.json({ ticket });
+});
+
+// @desc    Add a customer reply
+// @route   POST /api/support/tickets/:ticketNumber/replies
+// @access  Private owner or signed guest ticket token
+export const addCustomerTicketReply = asyncHandler(async (req, res) => {
+  const ticket = await addCustomerReplyToTicket({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+    accessToken: getAccessToken(req),
+    files: req.files || [],
+  });
+
+  res.status(201).json({ ticket });
+});
+
+// @desc    Reopen a customer ticket
+// @route   POST /api/support/tickets/:ticketNumber/reopen
+// @access  Private owner or signed guest ticket token
+export const reopenCustomerTicket = asyncHandler(async (req, res) => {
+  const ticket = await reopenSupportTicket({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+    accessToken: getAccessToken(req),
+    files: req.files || [],
+  });
+
+  res.json({ ticket });
+});
+
+// @desc    Get admin support tickets
+// @route   GET /api/admin/support/tickets
 // @route   GET /api/support/tickets
 // @access  Private/Admin
 export const getSupportTickets = asyncHandler(async (req, res) => {
-  const tickets = await SupportTicket.find({})
-    .populate("user", "name email")
-    .sort({ createdAt: -1 });
+  const result = await listAdminSupportTickets(req.query || {});
+  res.json(result);
+});
 
-  res.json(tickets);
+// @desc    Get admin support ticket detail
+// @route   GET /api/admin/support/tickets/:ticketNumber
+// @access  Private/Admin
+export const getAdminTicket = asyncHandler(async (req, res) => {
+  const ticket = await getAdminSupportTicket(req.params.ticketNumber);
+  res.json({ ticket });
+});
+
+// @desc    Add an admin support reply
+// @route   POST /api/admin/support/tickets/:ticketNumber/replies
+// @access  Private/Admin
+export const addAdminSupportReply = asyncHandler(async (req, res) => {
+  const ticket = await addSupportReplyToTicket({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+    files: req.files || [],
+  });
+
+  res.status(201).json({ ticket });
+});
+
+// @desc    Add an internal note
+// @route   POST /api/admin/support/tickets/:ticketNumber/internal-notes
+// @access  Private/Admin
+export const addAdminInternalNote = asyncHandler(async (req, res) => {
+  const ticket = await addInternalNoteToTicket({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+  });
+
+  res.status(201).json({ ticket });
 });
 
 // @desc    Update support ticket status
+// @route   PATCH /api/admin/support/tickets/:ticketNumber/status
 // @route   PUT /api/support/tickets/:id/status
 // @access  Private/Admin
-export const updateSupportTicketStatus = asyncHandler(async (req, res) => {
-  const ticket = await SupportTicket.findById(req.params.id);
-  if (!ticket) {
-    res.status(404);
-    throw new Error("Support ticket not found");
-  }
+export const updateSupportTicketStatusController = asyncHandler(async (req, res) => {
+  const ticket = await updateSupportTicketStatus({
+    ticketNumber: req.params.ticketNumber || req.params.id,
+    body: req.body || {},
+    user: req.user,
+  });
 
-  const status = req.body.status?.toString().trim();
-  const validStatuses = ["open", "in_progress", "resolved"];
-  if (!validStatuses.includes(status)) {
-    res.status(400);
-    throw new Error("Invalid support ticket status");
-  }
+  res.json({ ticket });
+});
 
-  ticket.status = status;
-  ticket.resolvedAt = status === "resolved" ? new Date() : undefined;
-  await ticket.save();
+// Backwards-compatible export name used by the original route file.
+export { updateSupportTicketStatusController as updateSupportTicketStatus };
 
-  res.json(ticket);
+// @desc    Update support ticket priority
+// @route   PATCH /api/admin/support/tickets/:ticketNumber/priority
+// @access  Private/Admin
+export const updateAdminSupportPriority = asyncHandler(async (req, res) => {
+  const ticket = await updateSupportTicketPriority({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+  });
+
+  res.json({ ticket });
+});
+
+// @desc    Update support ticket assignment
+// @route   PATCH /api/admin/support/tickets/:ticketNumber/assignment
+// @access  Private/Admin
+export const updateAdminSupportAssignment = asyncHandler(async (req, res) => {
+  const result = await updateSupportTicketAssignment({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    user: req.user,
+  });
+
+  res.json(result);
+});
+
+// @desc    Reopen an admin support ticket
+// @route   POST /api/admin/support/tickets/:ticketNumber/reopen
+// @access  Private/Admin
+export const reopenAdminTicket = asyncHandler(async (req, res) => {
+  const ticket = await reopenSupportTicket({
+    ticketNumber: req.params.ticketNumber,
+    body: req.body || {},
+    performedByUser: req.user,
+  });
+
+  res.json({ ticket });
 });

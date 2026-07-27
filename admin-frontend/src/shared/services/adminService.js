@@ -1,5 +1,26 @@
 import api from "./api.js";
 
+const hasAttachments = (payload = {}) =>
+  Array.isArray(payload.attachments) && payload.attachments.length > 0;
+
+const toFormData = (payload = {}) => {
+  const formData = new FormData();
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (key === "attachments" || value === undefined || value === null) return;
+    formData.append(key, value);
+  });
+
+  payload.attachments?.forEach((file) => {
+    formData.append("attachments", file);
+  });
+
+  return formData;
+};
+
+const supportPayload = (payload = {}) =>
+  hasAttachments(payload) ? toFormData(payload) : payload;
+
 // Admin API methods
 export const adminService = {
   // Authentication
@@ -101,6 +122,41 @@ export const adminService = {
   getReviewQueue: (params) => api.get("/admin/reviews", { params }),
   moderateReview: (productId, reviewId, payload) =>
     api.put(`/admin/reviews/${productId}/${reviewId}`, payload),
+
+  // Support tickets
+  getSupportTickets: (params) => api.get("/admin/support/tickets", { params }),
+  getSupportTicket: (ticketNumber) =>
+    api.get(`/admin/support/tickets/${encodeURIComponent(ticketNumber)}`),
+  replyToSupportTicket: (ticketNumber, payload) =>
+    api.post(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/replies`,
+      supportPayload(payload)
+    ),
+  updateSupportTicketStatus: (ticketNumber, payload) =>
+    api.patch(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/status`,
+      payload
+    ),
+  updateSupportTicketPriority: (ticketNumber, priority) =>
+    api.patch(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/priority`,
+      { priority }
+    ),
+  updateSupportTicketAssignment: (ticketNumber, assignedTo) =>
+    api.patch(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/assignment`,
+      { assignedTo }
+    ),
+  addSupportInternalNote: (ticketNumber, message) =>
+    api.post(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/internal-notes`,
+      { message }
+    ),
+  reopenSupportTicket: (ticketNumber, payload = {}) =>
+    api.post(
+      `/admin/support/tickets/${encodeURIComponent(ticketNumber)}/reopen`,
+      payload
+    ),
 };
 
 export default api;
