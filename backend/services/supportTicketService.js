@@ -31,6 +31,11 @@ import {
   SUPPORT_TICKET_SENDER_TYPES,
   SUPPORT_TICKET_STATUSES,
   SUPPORT_TICKET_TOPICS,
+  SUPPORT_TICKET_QUOTA_CODES,
+  getSupportTicketTopicsForOrder,
+  getSupportTicketQuotaIssue,
+  isSupportOrderNotApplicable,
+  normalizeSupportOrderReference,
   applyClosedTicketReopenFields,
   applyCustomerReplyFields,
   applyWaitingForCustomerFields,
@@ -281,12 +286,110 @@ const notifySupportTeam = async (ticket, title, message) => {
   }
 };
 
-const resolveRelatedOrder = async ({ orderNumber, user }) => {
-  if (!orderNumber || !user?._id || !mongoose.isValidObjectId(orderNumber)) {
+const populateSupportOrder = (query) =>
+  query
+    .select("_id orderStatus paymentStatus totalPrice createdAt updatedAt deliveredAt orderItems")
+    .populate("orderItems.product", "title titleKm warrantyPeriodDays")
+    .lean();
+
+const findOwnedOrderByReference = async ({ orderReference, user }) => {
+  if (!orderReference || !user?._id) {
     return null;
   }
 
-  return Order.findOne({ _id: orderNumber, user: user._id }).select("_id").lean();
+  if (mongoose.isValidObjectId(orderReference) && orderReference.length === 24) {
+    return populateSupportOrder(
+      Order.findOne({ _id: orderReference, user: user._id })
+    );
+  }
+
+  const normalizedReference = String(orderReference).toLowerCase();
+  const userOrders = await populateSupportOrder(
+    Order.find({ user: user._id }).sort({ createdAt: -1 }).limit(100)
+  );
+
+  return (
+    userOrders.find((order) =>
+      order._id?.toString?.().toLowerCase().endsWith(normalizedReference)
+    ) || null
+  );
+};
+
+const resolveRelatedOrder = async ({ orderNumber, user }) => {
+  const orderReference = normalizeSupportOrderReference(orderNumber);
+
+  if (isSupportOrderNotApplicable(orderReference)) {
+    return {
+      order: null,
+      orderNumber: "N/A",
+    };
+  }
+
+  if (!user?._id) {
+    return {
+      order: null,
+      orderNumber: orderReference,
+    };
+  }
+
+  const order = await findOwnedOrderByReference({ orderReference, user });
+
+  if (!order) {
+    const error = new Error("Selected order was not found in your order history");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    order,
+    orderNumber: `#${order._id.toString().slice(-8).toUpperCase()}`,
+  };
+};
+
+const getRequesterTicketFilter = ({ user, email }) => {
+  const requesterClauses = [];
+
+  if (user?._id) {
+    requesterClauses.push({ customer: user._id }, { user: user._id });
+  }
+
+  if (email) {
+    requesterClauses.push({ email });
+  }
+
+  if (requesterClauses.length === 0) {
+    return null;
+  }
+
+  return requesterClauses.length === 1
+    ? requesterClauses[0]
+    : { $or: requesterClauses };
+};
+
+const listRequesterQuotaTickets = async ({ user, email }) => {
+  const filter = getRequesterTicketFilter({ user, email });
+  if (!filter) return [];
+
+  return SupportTicket.find(filter)
+    .select("_id ticketNumber order orderNumber status createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+};
+
+const getQuotaErrorMessage = (issue) => {
+  const ticketReference = issue?.ticketNumber
+    ? ` (${issue.ticketNumber})`
+    : "";
+
+  if (issue?.code === SUPPORT_TICKET_QUOTA_CODES.GENERAL_DUPLICATE) {
+    return `You already have a general support request${ticketReference}. Please reply to that ticket instead.`;
+  }
+
+  if (issue?.code === SUPPORT_TICKET_QUOTA_CODES.ORDER_DUPLICATE) {
+    return `This order already has a support request${ticketReference}. Please reply to that ticket instead.`;
+  }
+
+  return "Support requests are limited to 2 per customer. Please reply to your existing support tickets instead.";
 };
 
 const populateTicket = (query) =>
@@ -403,7 +506,7 @@ const mapTicketForResponse = (ticket, { forAdmin = false } = {}) => {
   return response;
 };
 
-const buildNewTicketPayload = async ({ body, user, files }) => {
+const buildNewTicketPayload = async ({ body, user, files, now = new Date() }) => {
   const fullName = sanitizeSupportText(body.fullName || body.name || user?.name, {
     maxLength: 120,
   });
@@ -411,9 +514,7 @@ const buildNewTicketPayload = async ({ body, user, files }) => {
   const phoneNumber = sanitizeSupportText(body.phoneNumber || body.phone, {
     maxLength: 40,
   });
-  const orderNumber = sanitizeSupportText(body.orderNumber || body.orderId, {
-    maxLength: 80,
-  });
+  const rawOrderNumber = body.orderNumber || body.orderId;
   const inquiryTopic = normalizeSupportTicketTopic(body.inquiryTopic || body.topic);
   const subject = sanitizeSupportText(body.subject || inquiryTopic, {
     maxLength: 160,
@@ -433,15 +534,43 @@ const buildNewTicketPayload = async ({ body, user, files }) => {
     throw error;
   }
 
-  const relatedOrder = await resolveRelatedOrder({ orderNumber, user });
+  const relatedOrder = await resolveRelatedOrder({
+    orderNumber: rawOrderNumber,
+    user,
+  });
+  const allowedTopics = user
+    ? getSupportTicketTopicsForOrder(relatedOrder.order, now)
+    : SUPPORT_TICKET_TOPICS;
+
+  if (!allowedTopics.includes(inquiryTopic)) {
+    const error = new Error(
+      "Selected inquiry topic is not available for this order"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const existingTickets = await listRequesterQuotaTickets({ user, email });
+  const quotaIssue = getSupportTicketQuotaIssue({
+    existingTickets,
+    order: relatedOrder.order,
+    orderNumber: relatedOrder.orderNumber,
+  });
+
+  if (quotaIssue) {
+    const error = new Error(getQuotaErrorMessage(quotaIssue));
+    error.statusCode = 409;
+    throw error;
+  }
+
   const attachments = await uploadSupportAttachments(files);
 
   return {
     fullName,
     email,
     phoneNumber,
-    order: relatedOrder?._id,
-    orderNumber,
+    order: relatedOrder.order?._id,
+    orderNumber: relatedOrder.orderNumber,
     inquiryTopic,
     subject,
     message,
@@ -456,7 +585,7 @@ export const createSupportTicketRecord = async ({
   files = [],
   now = new Date(),
 } = {}) => {
-  const payload = await buildNewTicketPayload({ body, user, files });
+  const payload = await buildNewTicketPayload({ body, user, files, now });
   const { sequence, ticketNumber } = await getNextSupportTicketNumber();
 
   const ticket = await SupportTicket.create({

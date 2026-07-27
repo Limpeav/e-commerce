@@ -1105,6 +1105,7 @@ export const updateOrderToPaid = asyncHandler(async (req, res) => {
 // @access  Private
 export const getUserOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find({ user: req.user._id })
+        .populate("orderItems.product", "title titleKm warrantyPeriodDays")
         .sort({ createdAt: -1 })
         .lean();
     res.json(orders);

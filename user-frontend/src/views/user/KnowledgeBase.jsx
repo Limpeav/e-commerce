@@ -62,8 +62,8 @@ export default function KnowledgeBase() {
             category: t("help.paymentsBilling"),
             questions: [
                 {
-                    q: t("help.refundQuestion"),
-                    a: t("help.refundAnswer")
+                    q: t("help.warrantyQuestion"),
+                    a: t("help.warrantyAnswer")
                 },
                 {
                     q: t("help.declinedQuestion"),
@@ -79,7 +79,7 @@ export default function KnowledgeBase() {
         t("help.ordersProducts"),
         t("help.paymentsBilling"),
         t("help.tracking"),
-        t("help.refunds"),
+        t("help.warranty"),
     ];
     const searchSuggestions = getMatchingSearchSuggestions(
         [

@@ -97,7 +97,7 @@ const sections = [
     },
     {
         number: 5,
-        title: "Shipping & Returns",
+        title: "Shipping & Warranty Support",
         icon: Truck,
         content: (
             <div className="grid gap-5 sm:grid-cols-2">
@@ -109,10 +109,10 @@ const sections = [
                     </p>
                 </div>
                 <div className="rounded-2xl border bg-bg-card p-5 sm:p-6" style={{ borderColor: "var(--color-border)" }}>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Return Policy</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Warranty Support</h3>
                     <p className="mt-3 text-sm leading-6 text-text-muted">
-                        Items must be returned in original condition within 30 days of delivery.
-                        Certain products may be exempt from returns due to hygiene or safety regulations.
+                        Delivered orders can be reviewed within the product warranty period when one is available.
+                        Products without warranty coverage use a 7-day support window after delivery for product issues.
                     </p>
                 </div>
             </div>

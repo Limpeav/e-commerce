@@ -172,6 +172,11 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    warrantyPeriodDays: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
     issueQuantity: {
       type: Number,
       default: 0,

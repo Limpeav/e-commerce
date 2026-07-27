@@ -41,7 +41,7 @@ export const routeMeta = {
   },
   "/knowledge-base": {
     title: "Knowledge Base",
-    description: "Find helpful guides, FAQs, and resources about Cherish Baby Store products, orders, shipping, and returns.",
+    description: "Find helpful guides, FAQs, and resources about Cherish Baby Store products, orders, shipping, and warranty support.",
     ogType: "website",
   },
   "/location": {

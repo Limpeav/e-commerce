@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Clock,
@@ -17,8 +17,81 @@ import { useLanguage } from "../../context/useLanguage";
 import { useToast } from "../../context/useToast";
 import {
     SUPPORT_TICKET_TOPICS,
+    SUPPORT_ORDER_NOT_APPLICABLE,
+    DEFAULT_NON_WARRANTY_SUPPORT_DAYS,
+    MAX_SUPPORT_TICKETS_PER_REQUESTER,
+    SUPPORT_TICKET_QUOTA_CODES,
+    getOrderSupportEligibility,
+    getMySupportTickets,
+    getSupportTopicsForOrder,
+    getSupportTicketQuotaIssue,
     submitContactSupport,
 } from "../../services/supportService";
+import { getMyOrders } from "../../services/orderService";
+
+const getOrderDisplayNumber = (order = {}) =>
+    order?._id ? `#${String(order._id).slice(-8).toUpperCase()}` : "Order";
+
+const formatShortDate = (value) => {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
+const getOrderItemSummary = (order = {}) => {
+    const items = Array.isArray(order.orderItems) ? order.orderItems : [];
+    if (!items.length) return "No items";
+
+    const firstItemName = items[0]?.name || items[0]?.product?.title || "Item";
+    return items.length > 1 ? `${firstItemName} + ${items.length - 1} more` : firstItemName;
+};
+
+const getOrderOptionLabel = (order = {}, existingTickets = []) => {
+    const eligibility = getOrderSupportEligibility(order);
+    const quotaIssue = getSupportTicketQuotaIssue({
+        existingTickets,
+        order,
+        orderNumber: getOrderDisplayNumber(order),
+    });
+    const parts = [
+        getOrderDisplayNumber(order),
+        order.orderStatus || "Pending",
+        formatShortDate(order.createdAt),
+        getOrderItemSummary(order),
+    ].filter(Boolean);
+
+    if (eligibility.isOldOrder) {
+        parts.push("older support window");
+    }
+
+    if (quotaIssue?.code === SUPPORT_TICKET_QUOTA_CODES.ORDER_DUPLICATE) {
+        parts.push("ticket already created");
+    }
+
+    return parts.join(" - ");
+};
+
+const getQuotaIssueMessage = (issue) => {
+    const ticketReference = issue?.ticketNumber ? ` (${issue.ticketNumber})` : "";
+
+    if (issue?.code === SUPPORT_TICKET_QUOTA_CODES.GENERAL_DUPLICATE) {
+        return `You already have a general support request${ticketReference}. Please reply to that ticket instead.`;
+    }
+
+    if (issue?.code === SUPPORT_TICKET_QUOTA_CODES.ORDER_DUPLICATE) {
+        return `This order already has a support request${ticketReference}. Please reply to that ticket instead.`;
+    }
+
+    return `Support requests are limited to ${MAX_SUPPORT_TICKETS_PER_REQUESTER} per customer. Please reply to your existing support tickets instead.`;
+};
 
 export default function Contact() {
     const { user } = useAuth();
@@ -29,12 +102,18 @@ export default function Contact() {
         fullName: user?.name || "",
         email: user?.email || "",
         phoneNumber: user?.phone || "",
-        orderNumber: "",
+        orderNumber: user ? SUPPORT_ORDER_NOT_APPLICABLE : "",
         inquiryTopic: "Technical Support",
         subject: "",
         message: "",
         attachments: [],
     });
+    const [customerOrders, setCustomerOrders] = useState([]);
+    const [customerSupportTickets, setCustomerSupportTickets] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [ordersError, setOrdersError] = useState("");
+    const [supportTicketsLoading, setSupportTicketsLoading] = useState(false);
+    const [supportTicketsError, setSupportTicketsError] = useState("");
     const [confirmation, setConfirmation] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -44,8 +123,179 @@ export default function Contact() {
             fullName: current.fullName || user?.name || "",
             email: current.email || user?.email || "",
             phoneNumber: current.phoneNumber || user?.phone || "",
+            orderNumber: user
+                ? current.orderNumber || SUPPORT_ORDER_NOT_APPLICABLE
+                : current.orderNumber,
         }));
     }, [user]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!user) {
+            setCustomerOrders([]);
+            setCustomerSupportTickets([]);
+            setOrdersLoading(false);
+            setOrdersError("");
+            setSupportTicketsLoading(false);
+            setSupportTicketsError("");
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        setOrdersLoading(true);
+        setOrdersError("");
+        setSupportTicketsLoading(true);
+        setSupportTicketsError("");
+
+        Promise.allSettled([getMyOrders(), getMySupportTickets()])
+            .then(([ordersResult, ticketsResult]) => {
+                if (isMounted) {
+                    if (ordersResult.status === "fulfilled") {
+                        setCustomerOrders(
+                            Array.isArray(ordersResult.value) ? ordersResult.value : []
+                        );
+                    } else {
+                        setCustomerOrders([]);
+                        setOrdersError(
+                            ordersResult.reason?.response?.data?.message ||
+                            ordersResult.reason?.message ||
+                            "Order history could not be loaded"
+                        );
+                    }
+
+                    if (ticketsResult.status === "fulfilled") {
+                        setCustomerSupportTickets(
+                            Array.isArray(ticketsResult.value) ? ticketsResult.value : []
+                        );
+                    } else {
+                        setCustomerSupportTickets([]);
+                        setSupportTicketsError(
+                            ticketsResult.reason?.response?.data?.message ||
+                            ticketsResult.reason?.message ||
+                            "Support tickets could not be loaded"
+                        );
+                    }
+                }
+            })
+            .finally(() => {
+                if (isMounted) {
+                    setOrdersLoading(false);
+                    setSupportTicketsLoading(false);
+                }
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user]);
+
+    const selectedOrder = useMemo(
+        () =>
+            customerOrders.find(
+                (order) => String(order._id) === String(formData.orderNumber)
+            ) || null,
+        [customerOrders, formData.orderNumber]
+    );
+
+    const selectedOrderEligibility = useMemo(
+        () => (selectedOrder ? getOrderSupportEligibility(selectedOrder) : null),
+        [selectedOrder]
+    );
+
+    const availableTopics = useMemo(
+        () => (user ? getSupportTopicsForOrder(selectedOrder) : SUPPORT_TICKET_TOPICS),
+        [selectedOrder, user]
+    );
+
+    const supportQuotaIssue = useMemo(() => {
+        if (!user || supportTicketsLoading || supportTicketsError) {
+            return null;
+        }
+
+        return getSupportTicketQuotaIssue({
+            existingTickets: customerSupportTickets,
+            order: selectedOrder,
+            orderNumber: selectedOrder
+                ? getOrderDisplayNumber(selectedOrder)
+                : formData.orderNumber || SUPPORT_ORDER_NOT_APPLICABLE,
+        });
+    }, [
+        customerSupportTickets,
+        formData.orderNumber,
+        selectedOrder,
+        supportTicketsError,
+        supportTicketsLoading,
+        user,
+    ]);
+
+    const supportQuotaHelpText = useMemo(() => {
+        if (!user) {
+            return `Guest requests are checked by email. Limit: one general request, one per order, and ${MAX_SUPPORT_TICKETS_PER_REQUESTER} total.`;
+        }
+
+        if (supportTicketsLoading) {
+            return "Checking your existing support requests...";
+        }
+
+        if (supportTicketsError) {
+            return "Existing support requests could not be checked here. The server will validate the limit when you submit.";
+        }
+
+        if (supportQuotaIssue) {
+            return getQuotaIssueMessage(supportQuotaIssue);
+        }
+
+        return `Limit: one general request, one per order, and ${MAX_SUPPORT_TICKETS_PER_REQUESTER} total.`;
+    }, [supportQuotaIssue, supportTicketsError, supportTicketsLoading, user]);
+
+    const isQuotaBlocked = Boolean(user && supportQuotaIssue);
+    const isQuotaChecking = Boolean(user && supportTicketsLoading);
+
+    useEffect(() => {
+        if (availableTopics.includes(formData.inquiryTopic)) return;
+
+        setFormData((current) => ({
+            ...current,
+            inquiryTopic: availableTopics[0] || "Other",
+        }));
+    }, [availableTopics, formData.inquiryTopic]);
+
+    const orderFieldHelpText = useMemo(() => {
+        if (!user) {
+            return "Optional. Add your order number if this issue is tied to a previous order.";
+        }
+
+        if (ordersLoading) {
+            return "Loading your order history...";
+        }
+
+        if (ordersError) {
+            return "Order history could not be loaded. Choose N/A and include the order number in your message.";
+        }
+
+        if (!selectedOrder) {
+            return "Choose N/A for account, checkout, or technical issues that are not tied to an order.";
+        }
+
+        if (selectedOrder.orderStatus === "Delivered" && selectedOrderEligibility?.isOldOrder) {
+            return `This delivered order is outside its product support window. Products without warranty become old after ${DEFAULT_NON_WARRANTY_SUPPORT_DAYS} days.`;
+        }
+
+        if (selectedOrder.orderStatus === "Delivered") {
+            const supportEndsAt = formatShortDate(selectedOrderEligibility?.supportEndsAt);
+            return supportEndsAt
+                ? `Delivered-order support is available until ${supportEndsAt}, based on warranty when available or the ${DEFAULT_NON_WARRANTY_SUPPORT_DAYS}-day fallback.`
+                : `Delivered-order support uses warranty when available or the ${DEFAULT_NON_WARRANTY_SUPPORT_DAYS}-day fallback.`;
+        }
+
+        if (selectedOrder.orderStatus === "Cancelled") {
+            return "Cancelled orders allow order status, payment, and technical support topics only.";
+        }
+
+        return "Order-specific topics are available for the selected order status.";
+    }, [ordersError, ordersLoading, selectedOrder, selectedOrderEligibility, user]);
 
     const handleChange = (field) => (event) => {
         setFormData((current) => ({
@@ -66,7 +316,7 @@ export default function Contact() {
             fullName: user?.name || "",
             email: user?.email || "",
             phoneNumber: user?.phone || "",
-            orderNumber: "",
+            orderNumber: user ? SUPPORT_ORDER_NOT_APPLICABLE : "",
             inquiryTopic: "Technical Support",
             subject: "",
             message: "",
@@ -80,6 +330,16 @@ export default function Contact() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (isQuotaChecking) {
+            toastError(t("contact.sendFailedTitle"), "Please wait while we check your existing support requests.");
+            return;
+        }
+
+        if (isQuotaBlocked) {
+            toastError(t("contact.sendFailedTitle"), supportQuotaHelpText);
+            return;
+        }
 
         if (
             !formData.fullName.trim() ||
@@ -95,6 +355,9 @@ export default function Contact() {
         try {
             const result = await submitContactSupport(formData);
             setConfirmation(result);
+            if (user && result.ticket) {
+                setCustomerSupportTickets((current) => [result.ticket, ...current]);
+            }
 
             if (result.emailSent) {
                 success(t("contact.sendSuccessTitle"), `Ticket ${result.ticketNumber} was created.`);
@@ -251,14 +514,41 @@ export default function Contact() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Order Number</label>
-                                        <input
-                                            type="text"
-                                            value={formData.orderNumber}
-                                            onChange={handleChange("orderNumber")}
-                                            className="w-full rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
-                                            placeholder="Optional"
-                                        />
+                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Related Order</label>
+                                        {user ? (
+                                            <select
+                                                value={formData.orderNumber || SUPPORT_ORDER_NOT_APPLICABLE}
+                                                onChange={handleChange("orderNumber")}
+                                                className="w-full cursor-pointer appearance-none rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                <option value={SUPPORT_ORDER_NOT_APPLICABLE}>
+                                                    N/A - Not related to an order
+                                                </option>
+                                                {customerOrders.map((order) => (
+                                                    <option key={order._id} value={order._id}>
+                                                        {getOrderOptionLabel(order, customerSupportTickets)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={formData.orderNumber}
+                                                onChange={handleChange("orderNumber")}
+                                                className="w-full rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all placeholder:text-text-muted focus:ring-2 focus:ring-primary/20"
+                                                placeholder="Optional order number or N/A"
+                                            />
+                                        )}
+                                        <p className={`text-xs font-semibold leading-5 ${
+                                            ordersError ? "text-amber-700" : "text-text-muted"
+                                        }`}>
+                                            {orderFieldHelpText}
+                                        </p>
+                                        <p className={`text-xs font-semibold leading-5 ${
+                                            isQuotaBlocked ? "text-rose-700" : "text-text-muted"
+                                        }`}>
+                                            {supportQuotaHelpText}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -269,7 +559,7 @@ export default function Contact() {
                                         onChange={handleChange("inquiryTopic")}
                                         className="w-full cursor-pointer appearance-none rounded-xl border border-stone-100 bg-[color:var(--color-surface-soft)] px-4 py-3 text-sm font-medium text-text-main outline-none transition-all focus:ring-2 focus:ring-primary/20"
                                     >
-                                        {SUPPORT_TICKET_TOPICS.map((topic) => (
+                                        {availableTopics.map((topic) => (
                                             <option key={topic} value={topic}>{topic}</option>
                                         ))}
                                     </select>
@@ -321,10 +611,16 @@ export default function Contact() {
 
                                 <button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || isQuotaBlocked || isQuotaChecking}
                                     className="group flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border-2 border-primary bg-primary px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:border-primary-dark hover:bg-primary-dark hover:shadow-primary/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:py-4"
                                 >
-                                    {submitting ? t("contact.sending") : "Send Message"}
+                                    {submitting
+                                        ? t("contact.sending")
+                                        : isQuotaChecking
+                                            ? "Checking Requests"
+                                            : isQuotaBlocked
+                                                ? "Existing Ticket Required"
+                                                : "Send Message"}
                                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </button>
                             </form>
@@ -335,9 +631,7 @@ export default function Contact() {
                                 <SectionHeader title={t("contact.businessHours")} icon={Clock} />
                                 <div className="space-y-3 sm:space-y-4">
                                     {[
-                                        { day: t("contact.mondayFriday"), hours: "08:00 - 20:00" },
-                                        { day: t("contact.saturdaySunday"), hours: "10:00 - 16:00" },
-                                        { day: t("contact.publicHolidays"), hours: t("contact.closed") },
+                                        { day: t("contact.mondaySunday"), hours: "08:00 - 20:00" },
                                     ].map((item, idx) => (
                                         <div key={idx} className="flex flex-col gap-1 border-b border-stone-100 pb-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
                                             <span className="text-xs font-bold text-text-main">{item.day}</span>

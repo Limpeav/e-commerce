@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowDownUp,
   Calendar,
-  Eye,
   LifeBuoy,
   RefreshCw,
   Search,
@@ -23,8 +22,14 @@ const STATUSES = [
 const PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const TOPICS = [
   "Order Status",
+  "Cancel Order",
+  "Change Shipping Address",
   "Delivery Issue",
-  "Return and Refund",
+  "Tracking Problem",
+  "Damaged Item",
+  "Wrong Item Received",
+  "Missing Item",
+  "Warranty Support",
   "Product Inquiry",
   "Payment Problem",
   "Technical Support",
@@ -364,15 +369,12 @@ export default function AdminSupportTickets() {
                   <th className="px-6 py-3 text-left">
                     {sortButton("Created Date", "createdDate")}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-gray-500">
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {tickets.length === 0 ? (
                   <tr>
-                    <td colSpan="11" className="px-6 py-14 text-center">
+                    <td colSpan="10" className="px-6 py-14 text-center">
                       <LifeBuoy className="mx-auto mb-3 h-12 w-12 text-gray-300" />
                       <p className="text-sm font-bold text-gray-500">
                         No support tickets found
@@ -381,7 +383,19 @@ export default function AdminSupportTickets() {
                   </tr>
                 ) : (
                   tickets.map((ticket) => (
-                    <tr key={ticket.id || ticket.ticketNumber} className="hover:bg-gray-50">
+                    <tr
+                      key={ticket.id || ticket.ticketNumber}
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => navigate(`/admin/support/tickets/${ticket.ticketNumber}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          navigate(`/admin/support/tickets/${ticket.ticketNumber}`);
+                        }
+                      }}
+                      className="cursor-pointer transition hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                    >
                       <td className="whitespace-nowrap px-6 py-4 font-mono text-sm font-black text-blue-700">
                         {ticket.ticketNumber}
                       </td>
@@ -411,16 +425,6 @@ export default function AdminSupportTickets() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-600">
                         {formatDate(ticket.createdAt)}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/admin/support/tickets/${ticket.ticketNumber}`)}
-                          className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-black text-white transition hover:bg-blue-700"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </button>
                       </td>
                     </tr>
                   ))

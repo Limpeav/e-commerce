@@ -11,6 +11,10 @@ import {
   getCustomerFrontendUrl,
 } from "../utils/frontendUrls.js";
 import {
+  DEFAULT_NON_WARRANTY_SUPPORT_DAYS,
+  MAX_SUPPORT_TICKETS_PER_REQUESTER,
+  SUPPORT_TICKET_TOPICS,
+  SUPPORT_TICKET_QUOTA_CODES,
   SUPPORT_TICKET_STATUSES,
   applyClosedTicketReopenFields,
   applyCustomerReplyFields,
@@ -18,6 +22,9 @@ import {
   buildWaitingReminderClaimFilter,
   canManageSupportTickets,
   canReopenSupportTicket,
+  getOrderSupportEligibility,
+  getSupportTicketQuotaIssue,
+  getSupportTicketTopicsForOrder,
   normalizeSupportTicketStatus,
   normalizeSupportTicketTopic,
   shouldAutoCloseWaitingTicket,
@@ -335,5 +342,136 @@ test("legacy statuses and topics normalize to the new workflow values", () => {
   assert.equal(normalizeSupportTicketStatus("in_progress"), SUPPORT_TICKET_STATUSES.PENDING);
   assert.equal(normalizeSupportTicketStatus("waiting_for_customer"), SUPPORT_TICKET_STATUSES.WAITING_FOR_CUSTOMER);
   assert.equal(normalizeSupportTicketTopic("Billing & Finance"), "Payment Problem");
+  assert.equal(normalizeSupportTicketTopic("Return and Refund"), "Other");
   assert.equal(normalizeSupportTicketTopic("unknown topic"), "Other");
+});
+
+test("support topics include warranty support but no refund topic", () => {
+  assert.equal(SUPPORT_TICKET_TOPICS.includes("Warranty Support"), true);
+  assert.equal(SUPPORT_TICKET_TOPICS.includes("Return and Refund"), false);
+});
+
+test("delivered orders without product warranty use the seven day fallback window", () => {
+  const deliveredOrder = {
+    orderStatus: "Delivered",
+    deliveredAt: baseNow,
+    orderItems: [{ product: {} }],
+  };
+
+  assert.equal(DEFAULT_NON_WARRANTY_SUPPORT_DAYS, 7);
+  assert.equal(getOrderSupportEligibility(deliveredOrder, daysAfter(7)).isOldOrder, false);
+  assert.equal(getOrderSupportEligibility(deliveredOrder, daysAfter(8)).isOldOrder, true);
+  assert.deepEqual(
+    getSupportTicketTopicsForOrder(deliveredOrder, daysAfter(8)),
+    ["Product Inquiry", "Technical Support", "Other"]
+  );
+});
+
+test("delivered orders use the longest product warranty support window", () => {
+  const deliveredOrder = {
+    orderStatus: "Delivered",
+    deliveredAt: baseNow,
+    orderItems: [
+      { product: { warrantyPeriodDays: 14 } },
+      { product: { warrantyPeriodDays: 30 } },
+    ],
+  };
+
+  assert.equal(getOrderSupportEligibility(deliveredOrder, daysAfter(20)).isOldOrder, false);
+  assert.equal(getOrderSupportEligibility(deliveredOrder, daysAfter(31)).isOldOrder, true);
+  assert.equal(
+    getSupportTicketTopicsForOrder(deliveredOrder, daysAfter(20)).includes("Warranty Support"),
+    true
+  );
+});
+
+test("support quota allows one general ticket and one order ticket", () => {
+  const issue = getSupportTicketQuotaIssue({
+    existingTickets: [
+      {
+        ticketNumber: "CBS-000010",
+        orderNumber: "N/A",
+      },
+    ],
+    order: "64f000000000000000000001",
+    orderNumber: "#00000001",
+  });
+
+  assert.equal(MAX_SUPPORT_TICKETS_PER_REQUESTER, 2);
+  assert.equal(issue, null);
+});
+
+test("support quota allows two different order tickets", () => {
+  const issue = getSupportTicketQuotaIssue({
+    existingTickets: [
+      {
+        ticketNumber: "CBS-000011",
+        order: "64f000000000000000000001",
+        orderNumber: "#00000001",
+      },
+    ],
+    order: "64f000000000000000000002",
+    orderNumber: "#00000002",
+  });
+
+  assert.equal(issue, null);
+});
+
+test("support quota blocks a second general ticket", () => {
+  const issue = getSupportTicketQuotaIssue({
+    existingTickets: [
+      {
+        ticketNumber: "CBS-000012",
+        orderNumber: "N/A",
+      },
+    ],
+    orderNumber: "N/A",
+  });
+
+  assert.deepEqual(issue, {
+    code: SUPPORT_TICKET_QUOTA_CODES.GENERAL_DUPLICATE,
+    ticketNumber: "CBS-000012",
+  });
+});
+
+test("support quota blocks a second ticket for the same order", () => {
+  const issue = getSupportTicketQuotaIssue({
+    existingTickets: [
+      {
+        ticketNumber: "CBS-000013",
+        order: "64f000000000000000000001",
+        orderNumber: "#00000001",
+      },
+    ],
+    order: "64f000000000000000000001",
+    orderNumber: "#00000001",
+  });
+
+  assert.deepEqual(issue, {
+    code: SUPPORT_TICKET_QUOTA_CODES.ORDER_DUPLICATE,
+    ticketNumber: "CBS-000013",
+  });
+});
+
+test("support quota blocks a third ticket even when it uses a new order", () => {
+  const issue = getSupportTicketQuotaIssue({
+    existingTickets: [
+      {
+        ticketNumber: "CBS-000014",
+        orderNumber: "N/A",
+      },
+      {
+        ticketNumber: "CBS-000015",
+        order: "64f000000000000000000001",
+        orderNumber: "#00000001",
+      },
+    ],
+    order: "64f000000000000000000002",
+    orderNumber: "#00000002",
+  });
+
+  assert.deepEqual(issue, {
+    code: SUPPORT_TICKET_QUOTA_CODES.LIMIT_REACHED,
+    ticketNumber: "",
+  });
 });
