@@ -196,6 +196,10 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    outOfStockAlertSent: {
+      type: Boolean,
+      default: false,
+    },
     reviews: [reviewSchema],
     rating: {
       type: Number,

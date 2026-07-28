@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   attachReviewSentiment,
+  buildDashboardReviewHealth,
   buildSentimentAnalytics,
   classifyReviewSentiment,
   summarizeSentiment,
@@ -112,4 +113,62 @@ test("buildSentimentAnalytics normalizes category aliases", () => {
   assert.equal(analytics.categoryInsights.length, 1);
   assert.equal(analytics.categoryInsights[0].category, "Furniture");
   assert.equal(analytics.categoryInsights[0].totalReviews, 2);
+});
+
+test("buildDashboardReviewHealth returns negative category rates from review data", () => {
+  const reviewHealth = buildDashboardReviewHealth([
+    {
+      _id: "product-1",
+      title: "Stacking Toy",
+      category: "Toy",
+      reviews: [
+        {
+          rating: 1,
+          comment: "Broken and unsafe.",
+          createdAt: "2026-07-01T00:00:00.000Z",
+        },
+        {
+          rating: 2,
+          comment: "Poor quality and frustrating.",
+          createdAt: "2026-07-02T00:00:00.000Z",
+        },
+      ],
+    },
+    {
+      _id: "product-2",
+      title: "Baby Lotion",
+      category: "Bath & Skin",
+      reviews: [
+        {
+          rating: 5,
+          comment: "Gentle and excellent.",
+          createdAt: "2026-07-03T00:00:00.000Z",
+        },
+        {
+          rating: 3,
+          comment: "It is okay.",
+          createdAt: "2026-07-04T00:00:00.000Z",
+        },
+      ],
+    },
+    {
+      _id: "product-3",
+      title: "Unreviewed Product",
+      category: "Milk",
+      reviews: [],
+    },
+  ]);
+
+  assert.equal(reviewHealth.totalReviews, 4);
+  assert.equal(reviewHealth.sentimentCounts.Negative, 2);
+  assert.equal(reviewHealth.unratedProducts, 1);
+  assert.equal(reviewHealth.categoryRatings.length, 1);
+  assert.equal(reviewHealth.categoryRatings[0].name, "Toy & Play");
+  assert.equal(reviewHealth.categoryRatings[0].reviewCount, 2);
+  assert.equal(reviewHealth.categoryRatings[0].negative, 2);
+  assert.equal(reviewHealth.categoryRatings[0].negativeRate, 100);
+  assert.equal(
+    reviewHealth.ratingDistribution.find((item) => item.rating === 1).count,
+    1
+  );
 });

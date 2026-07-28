@@ -963,13 +963,14 @@ export const sendStorePromotionEmailBlast = async (req, res) => {
       discountRange,
       promotionCount,
     });
+    const { failedRecipients: _failedRecipients, ...emailSummary } = result;
 
     if (result.recipientCount > 0 && result.sentCount === 0 && result.failedCount > 0) {
       return res.status(502).json({
         message: "Promotion email could not be sent to any customers. Check email configuration and try again.",
         discountRange,
         promotionCount,
-        ...result,
+        ...emailSummary,
       });
     }
 
@@ -980,7 +981,7 @@ export const sendStorePromotionEmailBlast = async (req, res) => {
           : `Promotion email sent to ${result.sentCount} customer${result.sentCount === 1 ? "" : "s"}.`,
       promotionCount,
       discountRange,
-      ...result,
+      ...emailSummary,
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });

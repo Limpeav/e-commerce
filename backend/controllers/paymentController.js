@@ -2,7 +2,6 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Payment from "../models/paymentModel.js";
 import Order from "../models/orderModel.js";
-import Notification from "../models/notificationModel.js";
 import Cart from "../models/cartModel.js";
 import Product from "../models/Product.js";
 import QRCode from "qrcode";
@@ -10,10 +9,17 @@ import crypto from "crypto";
 import khqrPackage from "bakong-khqr";
 import {
     emitDomainChanged,
-    emitNotificationCreated,
     emitOrderCreated,
 } from "../realtime/socket.js";
-import { syncLowStockAlertFlag } from "../utils/stockAlerts.js";
+import {
+    getStockAlert,
+    syncLowStockAlertFlag,
+} from "../utils/stockAlerts.js";
+import {
+    createStockAlertPayload,
+    dispatchInventoryStockAlerts,
+} from "../utils/inventoryNotifications.js";
+import { createPaymentSuccessNotification } from "../utils/paymentNotifications.js";
 import {
     adjustProductInventory,
     getAvailableStock,
@@ -424,14 +430,16 @@ const generateBakongDeepLink = async (qrString, config = getBakongConfig()) => {
 
 const reducePaidOrderStockIfNeeded = async (order, session) => {
     if (order.stockReduced) {
-        return [];
+        return { productIds: [], stockAlerts: [] };
     }
 
     const quantityByProductSize = new Map();
+    const quantityByProduct = new Map();
     for (const item of order.orderItems) {
         const productId = String(item.product?._id || item.product);
         const size = String(item.size || "").trim().toUpperCase();
         const color = normalizeSelectedColor(item.color);
+        const quantity = Number(item.quantity || 0);
         const inventoryKey = `${productId}::${size}::${color.toLowerCase()}`;
         quantityByProductSize.set(
             inventoryKey,
@@ -441,8 +449,12 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
                 color,
                 quantity:
                     Number(quantityByProductSize.get(inventoryKey)?.quantity || 0)
-                    + Number(item.quantity || 0),
+                    + quantity,
             }
+        );
+        quantityByProduct.set(
+            productId,
+            Number(quantityByProduct.get(productId) || 0) + quantity
         );
     }
 
@@ -450,6 +462,16 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
     const products = await Product.find({ _id: { $in: productIds } }).session(session);
     const productById = new Map(
         products.map((product) => [product._id.toString(), product])
+    );
+    const previousStockByProduct = new Map(
+        products.map((product) => {
+            const productId = product._id.toString();
+            return [
+                productId,
+                getAvailableStock(product)
+                    + (order.stockReserved ? Number(quantityByProduct.get(productId) || 0) : 0),
+            ];
+        })
     );
 
     for (const { productId, size, color, quantity } of quantityByProductSize.values()) {
@@ -505,14 +527,39 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
             0,
             Number(product.totalSold || 0) + quantity
         );
+    }
+
+    const stockAlerts = [];
+    for (const productId of productIds) {
+        const product = productById.get(productId);
         syncLowStockAlertFlag(product);
+        const currentStock = getAvailableStock(product);
+        const stockAlert = getStockAlert({
+            previousStock: previousStockByProduct.get(productId),
+            currentStock,
+            lowStockAlertSent: product.lowStockAlertSent,
+            outOfStockAlertSent: product.outOfStockAlertSent,
+        });
+
+        if (stockAlert) {
+            product.lowStockAlertSent = stockAlert.lowStockAlertSent;
+            product.outOfStockAlertSent = stockAlert.outOfStockAlertSent;
+            stockAlerts.push(
+                createStockAlertPayload({
+                    product,
+                    stockAlert,
+                    stock: currentStock,
+                })
+            );
+        }
+
         await product.save({ session });
     }
 
     order.stockReduced = true;
     order.stockReserved = false;
     order.stockRestored = false;
-    return productIds;
+    return { productIds, stockAlerts };
 };
 
 const completeBakongPayment = async (payment, transactionData = {}) => {
@@ -523,6 +570,7 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
     let completedPayment;
     let paidOrder;
     let updatedProductIds = [];
+    let stockAlerts = [];
 
     try {
         await session.withTransaction(async () => {
@@ -541,10 +589,12 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
                 throw new Error("Order not found for Bakong payment");
             }
 
-            updatedProductIds = await reducePaidOrderStockIfNeeded(
+            const stockUpdate = await reducePaidOrderStockIfNeeded(
                 paidOrder,
                 session
             );
+            updatedProductIds = stockUpdate.productIds;
+            stockAlerts = stockUpdate.stockAlerts;
 
             completedPayment.status = "Completed";
             completedPayment.completedAt = completedAt;
@@ -585,26 +635,12 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
 
     if (completedPayment?.status === "Completed" && paidOrder) {
         await paidOrder.populate("user", "name email");
-        const shippingAddress = paidOrder.shippingAddress || {};
-        const googleMapsLink =
-            shippingAddress.latitude && shippingAddress.longitude
-                ? `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`
-                : "";
-        let notification = null;
 
         try {
-            notification = await Notification.create({
-                type: "order",
-                title: "New Paid Order Received",
-                message: `${paidOrder.user?.name || shippingAddress.fullName || "Customer"} paid for order #${paidOrder._id.toString().slice(-8).toUpperCase()} ($${Number(paidOrder.totalPrice || 0).toFixed(2)})`,
-                orderId: paidOrder._id,
-                userId: paidOrder.user?._id || paidOrder.user,
-                link: `/admin/orders/${paidOrder._id}`,
-                googleMapsLink,
-            });
+            await createPaymentSuccessNotification(paidOrder);
         } catch (notificationError) {
             console.error(
-                `Paid order notification creation failed for ${paidOrder._id}:`,
+                `KHQR payment notification creation failed for ${paidOrder._id}:`,
                 notificationError.message
             );
         }
@@ -618,9 +654,7 @@ const completeBakongPayment = async (payment, transactionData = {}) => {
             );
         }
         emitOrderCreated(paidOrder);
-        if (notification) {
-            emitNotificationCreated(notification);
-        }
+        dispatchInventoryStockAlerts(stockAlerts);
         dispatchPaidOrderTelegramAlert(paidOrder._id);
         dispatchPaidPaymentTelegramAlert(completedPayment._id);
         emitDomainChanged(

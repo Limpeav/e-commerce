@@ -1,26 +1,38 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Bell,
   CalendarDays,
+  Check,
+  CheckCheck,
   CheckCircle2,
   ChevronRight,
   CircleDollarSign,
+  Clock,
   Clock3,
   CreditCard,
   DollarSign,
   Download,
+  Inbox,
+  Info,
+  LifeBuoy,
+  Loader2,
   MessageSquareText,
   Package,
-  RefreshCw,
+  Search,
   ShoppingBag,
   ShoppingCart,
   Sparkles,
   Star,
   ThumbsUp,
   TrendingUp,
+  Trash2,
   Users,
+  UserPlus,
+  X,
 } from "lucide-react";
+import { NotificationController } from "../../../controllers";
 import { normalizeProductCategory } from "../../../constants/productCategories";
 import {
   getAvailableStock,
@@ -28,6 +40,7 @@ import {
   isProductIssue,
   LOW_STOCK_THRESHOLD,
 } from "../../../utils/adminProducts";
+import { subscribeRealtimeEvent } from "../../../services/realtime";
 import {
   DASHBOARD_CATEGORY_COLORS as CATEGORY_COLORS,
   DASHBOARD_PERIODS as PERIODS,
@@ -61,23 +74,209 @@ const getCustomerKey = (order) => {
 const getProductId = (item) =>
   typeof item?.product === "string" ? item.product : item?.product?._id;
 
-const getReviewSentimentLabel = (review) => {
-  if (["Positive", "Neutral", "Negative"].includes(review?.sentimentLabel)) {
-    return review.sentimentLabel;
-  }
+const SENTIMENT_LABELS = ["Positive", "Neutral", "Negative"];
+const NEGATIVE_CATEGORY_PREVIEW_LIMIT = 6;
+const MIN_VISIBLE_BAR_WIDTH = 3;
+const NOTIFICATION_UPDATED_EVENT = "admin-notifications-updated";
+const MARK_ALL_READ_NOTICE = "All notifications marked as read.";
 
-  const rating = Number(review?.rating || 0);
-  if (rating >= 4) return "Positive";
-  if (rating <= 2) return "Negative";
-  return "Neutral";
+const NOTIFICATION_CATEGORY_STYLES = {
+  orders: {
+    label: "Orders",
+    icon: ShoppingCart,
+    pill: "border-blue-200 bg-blue-50 text-blue-700",
+    iconBox: "bg-blue-100 text-blue-700",
+  },
+  payments: {
+    label: "Payments",
+    icon: CreditCard,
+    pill: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    iconBox: "bg-emerald-100 text-emerald-700",
+  },
+  stock: {
+    label: "Stock",
+    icon: Package,
+    pill: "border-orange-200 bg-orange-50 text-orange-700",
+    iconBox: "bg-orange-100 text-orange-700",
+  },
+  support: {
+    label: "Support",
+    icon: LifeBuoy,
+    pill: "border-violet-200 bg-violet-50 text-violet-700",
+    iconBox: "bg-violet-100 text-violet-700",
+  },
+  products: {
+    label: "Products",
+    icon: Package,
+    pill: "border-amber-200 bg-amber-50 text-amber-700",
+    iconBox: "bg-amber-100 text-amber-700",
+  },
+  users: {
+    label: "Users",
+    icon: UserPlus,
+    pill: "border-cyan-200 bg-cyan-50 text-cyan-700",
+    iconBox: "bg-cyan-100 text-cyan-700",
+  },
+  system: {
+    label: "System",
+    icon: Info,
+    pill: "border-gray-200 bg-gray-50 text-gray-700",
+    iconBox: "bg-gray-100 text-gray-700",
+  },
 };
 
-const getReviewSentimentScore = (review) => {
-  const score = Number(review?.sentimentScore);
-  if (Number.isFinite(score)) return score;
+const NOTIFICATION_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "unread", label: "Unread" },
+  { key: "read", label: "Read" },
+];
 
-  const rating = Number(review?.rating || 3);
-  return Math.max(-1, Math.min(1, (rating - 3) / 2));
+const NOTIFICATION_CATEGORY_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "orders", label: "Orders" },
+  { key: "payments", label: "Payments" },
+  { key: "stock", label: "Stock" },
+  { key: "support", label: "Support" },
+  { key: "products", label: "Products" },
+  { key: "users", label: "Users" },
+  { key: "system", label: "System" },
+];
+
+const toNumber = (value, fallback = 0) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+};
+
+const normalizePercent = (value) => Math.max(0, Math.min(100, toNumber(value)));
+
+const getNotificationEntityId = (value) => {
+  if (!value) return "";
+  if (typeof value === "object") return value._id || value.id || "";
+  return String(value);
+};
+
+const getNotificationPathFromLink = (link) => {
+  const trimmedLink = String(link || "").trim();
+  if (!trimmedLink) return "";
+
+  if (trimmedLink.startsWith("http://") || trimmedLink.startsWith("https://")) {
+    try {
+      const url = new URL(trimmedLink);
+      return `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return "";
+    }
+  }
+
+  return trimmedLink.startsWith("/") ? trimmedLink : "";
+};
+
+const getNotificationOrderIdFromPath = (path) => {
+  const match = path.match(/^\/(?:admin|seller|delivery)\/orders\/([^/?#]+)/);
+  return match?.[1] || "";
+};
+
+const normalizeNotificationAdminPath = (path) => {
+  if (!path) return "";
+
+  const orderId = getNotificationOrderIdFromPath(path);
+  if (orderId) {
+    return `/admin/orders/${orderId}`;
+  }
+
+  if (path === "/admin" || path.startsWith("/admin?") || path.startsWith("/admin#")) {
+    return path;
+  }
+
+  if (path.startsWith("/admin/") && !path.startsWith("/admin/login")) {
+    return path;
+  }
+
+  return "";
+};
+
+const getNotificationTarget = (notification) => {
+  const linkPath = normalizeNotificationAdminPath(
+    getNotificationPathFromLink(notification?.link)
+  );
+  if (linkPath) return linkPath;
+
+  const orderId = getNotificationEntityId(notification?.orderId);
+  if (orderId) return `/admin/orders/${orderId}`;
+
+  if (notification?.type === "user") return "/admin/users";
+  if (notification?.type === "product") return "/admin/products";
+
+  return "/admin";
+};
+
+const getNotificationCategory = (notification) => {
+  const title = String(notification?.title || "").toLowerCase();
+  const message = String(notification?.message || "").toLowerCase();
+  const link = String(notification?.link || "").toLowerCase();
+  const haystack = `${title} ${message} ${link}`;
+
+  if (haystack.includes("payment") || haystack.includes("paid by")) {
+    return "payments";
+  }
+
+  if (
+    haystack.includes("low stock") ||
+    haystack.includes("out of stock") ||
+    haystack.includes("stock threshold")
+  ) {
+    return "stock";
+  }
+
+  if (link.includes("/admin/support/tickets") || haystack.includes("support ticket")) {
+    return "support";
+  }
+
+  if (notification?.type === "order" || notification?.orderId) return "orders";
+  if (notification?.type === "product") return "products";
+  if (notification?.type === "user") return "users";
+
+  return "system";
+};
+
+const getNotificationPerson = (notification) => {
+  const user = notification?.userId;
+  if (!user || typeof user !== "object") return "";
+  return user.name || user.email || "";
+};
+
+const getNotificationTime = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Date unavailable";
+
+  const seconds = Math.round((date.getTime() - Date.now()) / 1000);
+  const absoluteSeconds = Math.abs(seconds);
+  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+  if (absoluteSeconds < 45) return "Just now";
+  if (absoluteSeconds < 3600) return formatter.format(Math.round(seconds / 60), "minute");
+  if (absoluteSeconds < 86400) return formatter.format(Math.round(seconds / 3600), "hour");
+  if (absoluteSeconds < 604800) return formatter.format(Math.round(seconds / 86400), "day");
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
+
+const getNotificationDateTitle = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
+const dispatchNotificationUpdate = () => {
+  window.dispatchEvent(new Event(NOTIFICATION_UPDATED_EVENT));
 };
 
 const formatDayLabel = (date, dayCount) =>
@@ -91,6 +290,76 @@ const changeFrom = (current, previous) => {
   return ((current - previous) / previous) * 100;
 };
 
+const getDashboardReviewHealth = (reviewHealth = {}, sentiment = {}) => {
+  const healthPayload =
+    reviewHealth && typeof reviewHealth === "object" ? reviewHealth : {};
+  const sentimentPayload =
+    sentiment && typeof sentiment === "object" ? sentiment : {};
+  const totalReviews = toNumber(healthPayload.totalReviews ?? sentimentPayload.total);
+  const sentimentCounts = {
+    Positive: toNumber(
+      healthPayload.sentimentCounts?.Positive ?? sentimentPayload.positive
+    ),
+    Neutral: toNumber(
+      healthPayload.sentimentCounts?.Neutral ?? sentimentPayload.neutral
+    ),
+    Negative: toNumber(
+      healthPayload.sentimentCounts?.Negative ?? sentimentPayload.negative
+    ),
+  };
+  const categorySource = Array.isArray(healthPayload.categoryRatings)
+    ? healthPayload.categoryRatings
+    : (sentimentPayload.categoryInsights || []).map((category) => {
+        const reviewCount = toNumber(category.totalReviews);
+        const negative = toNumber(category.negative);
+
+        return {
+          name: category.category || "Uncategorized",
+          reviewCount,
+          negative,
+          negativeRate: reviewCount ? (negative / reviewCount) * 100 : 0,
+          averageSentimentScore: toNumber(category.averageScore),
+        };
+      });
+
+  return {
+    totalReviews,
+    averageRating: toNumber(healthPayload.averageRating),
+    positiveReviewRate: toNumber(healthPayload.positiveReviewRate),
+    positiveSentimentRate: toNumber(
+      healthPayload.positiveSentimentRate ?? sentimentPayload.positiveRate
+    ),
+    negativeSentimentRate: toNumber(
+      healthPayload.negativeSentimentRate ?? sentimentPayload.negativeRate
+    ),
+    averageSentimentScore: toNumber(
+      healthPayload.averageSentimentScore ?? sentimentPayload.averageScore
+    ),
+    sentimentCounts,
+    lowReviews: toNumber(healthPayload.lowReviews),
+    unratedProducts: toNumber(healthPayload.unratedProducts),
+    ratingDistribution: Array.isArray(healthPayload.ratingDistribution)
+      ? healthPayload.ratingDistribution
+      : [],
+    categoryRatings: categorySource
+      .map((category) => ({
+        name: category.name || category.category || "Uncategorized",
+        reviewCount: toNumber(category.reviewCount ?? category.totalReviews),
+        negative: toNumber(category.negative),
+        negativeRate: normalizePercent(category.negativeRate),
+        averageSentimentScore: toNumber(category.averageSentimentScore),
+      }))
+      .filter((category) => category.negative > 0)
+      .sort(
+        (a, b) =>
+          b.negativeRate - a.negativeRate ||
+          b.negative - a.negative ||
+          a.averageSentimentScore - b.averageSentimentScore ||
+          b.reviewCount - a.reviewCount
+      ),
+  };
+};
+
 const DashboardPage = ({
   adminUser,
   stats,
@@ -98,10 +367,60 @@ const DashboardPage = ({
   products,
   period,
   setPeriod,
-  refreshing,
-  loadDashboard,
   navigateFromDashboard,
 }) => {
+  const backendReviewHealth = stats?.reviewHealth;
+  const backendSentiment = stats?.sentiment;
+  const [showAllNegativeCategories, setShowAllNegativeCategories] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(true);
+  const [notificationActionBusy, setNotificationActionBusy] = useState("");
+  const [notificationBulkBusy, setNotificationBulkBusy] = useState("");
+  const [notificationError, setNotificationError] = useState("");
+  const [notificationNotice, setNotificationNotice] = useState("");
+  const [notificationFilter, setNotificationFilter] = useState("all");
+  const [notificationCategory, setNotificationCategory] = useState("all");
+  const [notificationSearchTerm, setNotificationSearchTerm] = useState("");
+  const markAllNoticeTimerRef = useRef(null);
+
+  const loadNotifications = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setNotificationLoading(true);
+    setNotificationError("");
+
+    const result = await NotificationController.getNotifications();
+    if (result.success) {
+      setNotifications(Array.isArray(result.data) ? result.data : []);
+    } else {
+      setNotificationError(result.error);
+    }
+
+    if (!silent) setNotificationLoading(false);
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      loadNotifications();
+    });
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    const refreshFromRealtime = () => {
+      loadNotifications({ silent: true });
+      dispatchNotificationUpdate();
+    };
+
+    return subscribeRealtimeEvent("notification:created", refreshFromRealtime);
+  }, [loadNotifications]);
+
+  useEffect(
+    () => () => {
+      if (markAllNoticeTimerRef.current) {
+        window.clearTimeout(markAllNoticeTimerRef.current);
+      }
+    },
+    []
+  );
 
   const analytics = useMemo(() => {
     const now = new Date();
@@ -277,83 +596,10 @@ const DashboardPage = ({
     );
     const maxStatus = Math.max(...statusData.map((item) => item.count), 1);
     const paidRate = currentOrders.length ? (paidOrders.length / currentOrders.length) * 100 : 0;
-    const productReviewStats = products.map((product) => {
-      const reviews = Array.isArray(product.reviews) ? product.reviews : [];
-      const reviewCount = reviews.length;
-      const averageRating = reviewCount
-        ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount
-        : Number(product.rating || 0);
-      const lowRatingCount = reviews.filter((review) => Number(review.rating || 0) <= 2).length;
-      const negativeSentimentCount = reviews.filter(
-        (review) => getReviewSentimentLabel(review) === "Negative"
-      ).length;
-
-      return {
-        id: product._id,
-        title: product.title || "Product",
-        image: product.image,
-        category: normalizeProductCategory(product.category || "Uncategorized"),
-        reviewCount,
-        averageRating,
-        lowRatingCount,
-        negativeSentimentCount,
-      };
-    });
-    const allReviews = products.flatMap((product) =>
-      (Array.isArray(product.reviews) ? product.reviews : []).map((review) => ({
-        ...review,
-        productId: product._id,
-      }))
+    const reviewHealth = getDashboardReviewHealth(
+      backendReviewHealth,
+      backendSentiment
     );
-    const totalReviews = allReviews.length;
-    const averageRating = totalReviews
-      ? allReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviews
-      : 0;
-    const positiveReviews = allReviews.filter((review) => Number(review.rating || 0) >= 4).length;
-    const lowReviews = allReviews.filter((review) => Number(review.rating || 0) <= 2).length;
-    const sentimentCounts = allReviews.reduce(
-      (counts, review) => {
-        counts[getReviewSentimentLabel(review)] += 1;
-        return counts;
-      },
-      { Positive: 0, Neutral: 0, Negative: 0 }
-    );
-    const averageSentimentScore = totalReviews
-      ? allReviews.reduce((sum, review) => sum + getReviewSentimentScore(review), 0) / totalReviews
-      : 0;
-    const positiveReviewRate = totalReviews ? (positiveReviews / totalReviews) * 100 : 0;
-    const positiveSentimentRate = totalReviews ? (sentimentCounts.Positive / totalReviews) * 100 : 0;
-    const negativeSentimentRate = totalReviews ? (sentimentCounts.Negative / totalReviews) * 100 : 0;
-    const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-      const count = allReviews.filter((review) => Number(review.rating || 0) === rating).length;
-      return {
-        rating,
-        count,
-        percentage: totalReviews ? (count / totalReviews) * 100 : 0,
-      };
-    });
-    const categoryReviewMap = new Map();
-    productReviewStats.forEach((product) => {
-      if (!product.reviewCount) return;
-      const current = categoryReviewMap.get(product.category) || {
-        total: 0,
-        count: 0,
-        negative: 0,
-      };
-      current.total += product.averageRating * product.reviewCount;
-      current.count += product.reviewCount;
-      current.negative += product.negativeSentimentCount;
-      categoryReviewMap.set(product.category, current);
-    });
-    const categoryRatings = [...categoryReviewMap.entries()]
-      .map(([name, values]) => ({
-        name,
-        reviewCount: values.count,
-        averageRating: values.total / values.count,
-        negative: values.negative,
-        negativeRate: values.count ? (values.negative / values.count) * 100 : 0,
-      }))
-      .sort((a, b) => b.negativeRate - a.negativeRate || a.averageRating - b.averageRating);
     return {
       currentOrders,
       paidOrders,
@@ -373,17 +619,7 @@ const DashboardPage = ({
       inventoryUnits,
       inventoryValue,
       reviewHealth: {
-        totalReviews,
-        averageRating,
-        positiveReviewRate,
-        positiveSentimentRate,
-        negativeSentimentRate,
-        averageSentimentScore,
-        sentimentCounts,
-        lowReviews,
-        unratedProducts: productReviewStats.filter((product) => product.reviewCount === 0).length,
-        ratingDistribution,
-        categoryRatings,
+        ...reviewHealth,
       },
       statusData: statusData.map((item) => ({
         ...item,
@@ -396,11 +632,177 @@ const DashboardPage = ({
         units: changeFrom(units, previousUnits),
       },
     };
-  }, [orders, products, period]);
+  }, [backendReviewHealth, backendSentiment, orders, products, period]);
 
   const exportSummary = () => {
     exportDashboardSummary({ analytics, period });
   };
+
+  const unreadNotificationCount = useMemo(
+    () => notifications.filter((notification) => !notification.isRead).length,
+    [notifications]
+  );
+
+  const filteredNotifications = useMemo(() => {
+    const search = notificationSearchTerm.trim().toLowerCase();
+
+    return notifications.filter((notification) => {
+      if (notificationFilter === "unread" && notification.isRead) return false;
+      if (notificationFilter === "read" && !notification.isRead) return false;
+      if (
+        notificationCategory !== "all" &&
+        getNotificationCategory(notification) !== notificationCategory
+      ) {
+        return false;
+      }
+
+      if (!search) return true;
+
+      const person = getNotificationPerson(notification);
+      const category = getNotificationCategory(notification);
+      const searchableText = [
+        notification.title,
+        notification.message,
+        notification.type,
+        NOTIFICATION_CATEGORY_STYLES[category]?.label,
+        notification.audience,
+        notification._id,
+        getNotificationEntityId(notification.orderId),
+        person,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(search);
+    });
+  }, [notificationCategory, notificationFilter, notificationSearchTerm, notifications]);
+
+  const notificationCategoryCounts = useMemo(() => {
+    const counts = NOTIFICATION_CATEGORY_FILTERS.reduce(
+      (totals, category) => ({ ...totals, [category.key]: 0 }),
+      {}
+    );
+
+    notifications.forEach((notification) => {
+      if (notificationFilter === "unread" && notification.isRead) return;
+      if (notificationFilter === "read" && !notification.isRead) return;
+
+      const category = getNotificationCategory(notification);
+      counts.all += 1;
+      counts[category] = (counts[category] || 0) + 1;
+    });
+
+    return counts;
+  }, [notificationFilter, notifications]);
+
+  const markNotificationAsRead = useCallback(async (notificationId, { quiet = false } = {}) => {
+    if (!notificationId) return false;
+
+    setNotificationActionBusy(`read:${notificationId}`);
+    if (!quiet) {
+      setNotificationError("");
+      setNotificationNotice("");
+    }
+
+    const result = await NotificationController.markAsRead(notificationId);
+    setNotificationActionBusy("");
+
+    if (!result.success) {
+      if (!quiet) setNotificationError(result.error);
+      return false;
+    }
+
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) =>
+        notification._id === notificationId
+          ? { ...notification, ...(result.data || {}), isRead: true }
+          : notification
+      )
+    );
+    dispatchNotificationUpdate();
+
+    if (!quiet) setNotificationNotice("Notification marked as read.");
+    return true;
+  }, []);
+
+  const handleOpenNotification = async (notification) => {
+    const target = getNotificationTarget(notification);
+
+    if (!notification.isRead) {
+      await markNotificationAsRead(notification._id, { quiet: true });
+    }
+
+    setIsNotificationModalOpen(false);
+    navigateFromDashboard(target);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (unreadNotificationCount === 0 || notificationBulkBusy) return;
+
+    setNotificationBulkBusy("mark-all");
+    setNotificationError("");
+    setNotificationNotice("");
+
+    const result = await NotificationController.markAllAsRead();
+    setNotificationBulkBusy("");
+
+    if (!result.success) {
+      setNotificationError(result.error);
+      return;
+    }
+
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) => ({ ...notification, isRead: true }))
+    );
+    setNotificationNotice(MARK_ALL_READ_NOTICE);
+    if (markAllNoticeTimerRef.current) {
+      window.clearTimeout(markAllNoticeTimerRef.current);
+    }
+    markAllNoticeTimerRef.current = window.setTimeout(() => {
+      setNotificationNotice((currentNotice) =>
+        currentNotice === MARK_ALL_READ_NOTICE ? "" : currentNotice
+      );
+      markAllNoticeTimerRef.current = null;
+    }, 2000);
+    dispatchNotificationUpdate();
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    if (!notificationId) return;
+
+    setNotificationActionBusy(`delete:${notificationId}`);
+    setNotificationError("");
+    setNotificationNotice("");
+
+    const result = await NotificationController.deleteNotification(notificationId);
+    setNotificationActionBusy("");
+
+    if (!result.success) {
+      setNotificationError(result.error);
+      return;
+    }
+
+    setNotifications((currentNotifications) =>
+      currentNotifications.filter((notification) => notification._id !== notificationId)
+    );
+    setNotificationNotice("Notification deleted.");
+    dispatchNotificationUpdate();
+  };
+
+  const getNotificationBusy = (action, notificationId) =>
+    notificationActionBusy === `${action}:${notificationId}`;
+
+  const negativeCategoryRows = analytics.reviewHealth.categoryRatings;
+  const hasMoreNegativeCategories =
+    negativeCategoryRows.length > NEGATIVE_CATEGORY_PREVIEW_LIMIT;
+  const displayedNegativeCategories = showAllNegativeCategories
+    ? negativeCategoryRows
+    : negativeCategoryRows.slice(0, NEGATIVE_CATEGORY_PREVIEW_LIMIT);
+  const maxNegativeCategoryRate = Math.max(
+    ...displayedNegativeCategories.map((category) => category.negativeRate),
+    1
+  );
 
   const attentionItems = [
     analytics.outOfStock.length
@@ -453,6 +855,20 @@ const DashboardPage = ({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsNotificationModalOpen(true)}
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-primary-dark)]"
+              aria-label="Open notifications"
+              title="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                </span>
+              )}
+            </button>
             <label className="relative">
               <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
               <select
@@ -467,15 +883,6 @@ const DashboardPage = ({
                 ))}
               </select>
             </label>
-            <button
-              type="button"
-              onClick={() => loadDashboard({ refresh: true })}
-              disabled={refreshing}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-60"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
             <button
               type="button"
               onClick={exportSummary}
@@ -909,7 +1316,7 @@ const DashboardPage = ({
               </p>
               {analytics.reviewHealth.totalReviews ? (
                 <div className="mt-6 space-y-4">
-                  {["Positive", "Neutral", "Negative"].map((label) => {
+                  {SENTIMENT_LABELS.map((label) => {
                     const count = analytics.reviewHealth.sentimentCounts[label];
                     const percentage = analytics.reviewHealth.totalReviews
                       ? (count / analytics.reviewHealth.totalReviews) * 100
@@ -944,31 +1351,90 @@ const DashboardPage = ({
             </article>
 
             <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] sm:p-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Negative sentiment by category</h3>
-              <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
-                Categories ranked by customer dissatisfaction signals
-              </p>
-              {analytics.reviewHealth.categoryRatings.length ? (
-                <div className="mt-6 space-y-4">
-                  {analytics.reviewHealth.categoryRatings.slice(0, 6).map((category) => (
-                    <div key={category.name}>
-                      <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
-                        <span className="truncate font-bold">{category.name}</span>
-                        <span className="flex shrink-0 items-center gap-1 font-black">
-                          {category.negativeRate.toFixed(0)}%
-                          <span className="ml-1 text-xs text-[var(--color-text-muted)]">
-                            ({category.reviewCount})
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-[var(--color-text-main)]">Top negative sentiment categories</h3>
+                  <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                    Categories ranked by customer dissatisfaction signals
+                  </p>
+                </div>
+                {hasMoreNegativeCategories && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllNegativeCategories((current) => !current)}
+                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] px-3 text-xs font-black text-[var(--color-primary-dark)] transition hover:bg-[var(--color-surface-soft)]"
+                  >
+                    {showAllNegativeCategories
+                      ? "Show top 6"
+                      : `Show all ${negativeCategoryRows.length}`}
+                  </button>
+                )}
+              </div>
+              {negativeCategoryRows.length ? (
+                <div
+                  className="mt-6 space-y-4"
+                  aria-label="Horizontal bar chart of categories with negative review sentiment"
+                >
+                  <div className="hidden grid-cols-[minmax(130px,0.8fr)_minmax(160px,1.45fr)_minmax(132px,0.7fr)] gap-4 px-1 text-[11px] font-black uppercase tracking-wide text-[var(--color-text-muted)] sm:grid">
+                    <span>Category</span>
+                    <span>Negative rate</span>
+                    <span className="text-right">Reviews</span>
+                  </div>
+                  {displayedNegativeCategories.map((category) => {
+                    const scaledWidth = Math.max(
+                      (category.negativeRate / maxNegativeCategoryRate) * 100,
+                      MIN_VISIBLE_BAR_WIDTH
+                    );
+
+                    return (
+                      <div
+                        key={category.name}
+                        className="grid gap-2 rounded-xl border border-transparent px-1 py-1.5 transition hover:border-[var(--color-border)] hover:bg-[var(--color-surface-soft)] sm:grid-cols-[minmax(130px,0.8fr)_minmax(160px,1.45fr)_minmax(132px,0.7fr)] sm:items-center sm:gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-[var(--color-text-main)]">
+                            {category.name}
+                          </p>
+                          <p className="text-xs font-bold text-[var(--color-text-muted)] sm:hidden">
+                            {number(category.negative)} negative / {number(category.reviewCount)}
+                          </p>
+                        </div>
+                        <div className="relative h-8 min-w-0 overflow-hidden rounded-xl bg-[var(--color-surface-soft)]">
+                          <div className="pointer-events-none absolute inset-0 grid grid-cols-4">
+                            {[0, 1, 2, 3].map((index) => (
+                              <span
+                                key={index}
+                                className="border-r border-white/70 last:border-r-0"
+                              />
+                            ))}
+                          </div>
+                          <div
+                            className="relative h-full rounded-xl bg-[#ad6856] shadow-[inset_0_-1px_0_rgba(88,48,38,0.16)]"
+                            style={{ width: `${scaledWidth}%` }}
+                          />
+                          <span className="absolute inset-y-0 right-3 flex items-center text-xs font-black text-[var(--color-text-main)]">
+                            {category.negativeRate.toFixed(0)}%
                           </span>
-                        </span>
+                        </div>
+                        <div className="hidden text-right sm:block">
+                          <p className="text-sm font-black text-[var(--color-text-main)]">
+                            {number(category.negative)}
+                            <span className="text-xs text-[var(--color-text-muted)]">
+                              {" "}negative
+                            </span>
+                          </p>
+                          <p className="text-xs font-bold text-[var(--color-text-muted)]">
+                            {number(category.reviewCount)} total
+                          </p>
+                        </div>
                       </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
-                        <div
-                          className="h-full rounded-full bg-[#ad6856]"
-                          style={{ width: `${category.negativeRate}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {hasMoreNegativeCategories && !showAllNegativeCategories && (
+                    <p className="text-xs font-bold text-[var(--color-text-muted)]">
+                      Showing top {NEGATIVE_CATEGORY_PREVIEW_LIMIT} of {negativeCategoryRows.length} categories with negative reviews.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="mt-5">
@@ -980,6 +1446,262 @@ const DashboardPage = ({
 
         </section>
       </div>
+
+      {isNotificationModalOpen && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setIsNotificationModalOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dashboard-notifications-title"
+            className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="border-b border-[var(--color-border)] px-5 py-4 sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="mb-1 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-dark)]">
+                    <Bell className="h-4 w-4" />
+                    {unreadNotificationCount} unread
+                  </div>
+                  <h2
+                    id="dashboard-notifications-title"
+                    className="text-2xl font-black text-[var(--color-text-main)]"
+                  >
+                    Notifications
+                  </h2>
+                  <p className="mt-1 text-sm font-medium text-[var(--color-text-muted)]">
+                    Admin alerts and order activity.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationModalOpen(false)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
+                  aria-label="Close notifications"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="inline-flex w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-base)] p-1 sm:w-auto">
+                  {NOTIFICATION_FILTERS.map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      onClick={() => setNotificationFilter(filter.key)}
+                      className={`h-9 flex-1 rounded-lg px-4 text-sm font-black transition sm:flex-none ${
+                        notificationFilter === filter.key
+                          ? "bg-[var(--color-primary)] text-white"
+                          : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-text-main)]"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <label className="relative block w-full sm:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <input
+                      type="search"
+                      value={notificationSearchTerm}
+                      onChange={(event) => setNotificationSearchTerm(event.target.value)}
+                      placeholder="Search notifications"
+                      className="h-10 w-full rounded-xl border border-[var(--color-border)] bg-white px-10 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleMarkAllNotificationsRead}
+                    disabled={unreadNotificationCount === 0 || notificationBulkBusy === "mark-all"}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {notificationBulkBusy === "mark-all" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCheck className="h-4 w-4" />
+                    )}
+                    Mark All Read
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {NOTIFICATION_CATEGORY_FILTERS.map((category) => (
+                  <button
+                    key={category.key}
+                    type="button"
+                    onClick={() => setNotificationCategory(category.key)}
+                    className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-black transition ${
+                      notificationCategory === category.key
+                        ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                        : "border-[var(--color-border)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-dark)]"
+                    }`}
+                  >
+                    {category.label}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] ${
+                        notificationCategory === category.key
+                          ? "bg-white/20 text-white"
+                          : "bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
+                      }`}
+                    >
+                      {notificationCategoryCounts[category.key] || 0}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </header>
+
+            {(notificationError || notificationNotice) && (
+              <div className="space-y-2 border-b border-[var(--color-border)] px-5 py-3 sm:px-6">
+                {notificationError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {notificationError}
+                  </div>
+                )}
+                {notificationNotice && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                    {notificationNotice}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {notificationLoading ? (
+                <div className="flex min-h-72 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+                  <Loader2 className="h-7 w-7 animate-spin text-[var(--color-primary)]" />
+                  <p className="text-sm font-black text-[var(--color-text-muted)]">
+                    Loading notifications...
+                  </p>
+                </div>
+              ) : filteredNotifications.length === 0 ? (
+                <div className="flex min-h-72 flex-col items-center justify-center px-6 py-10 text-center">
+                  <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]">
+                    <Inbox className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-xl font-black text-[var(--color-text-main)]">
+                    No notifications found
+                  </h3>
+                  <p className="mt-2 max-w-md text-sm font-medium text-[var(--color-text-muted)]">
+                    {notifications.length === 0
+                      ? "New admin notifications will appear here."
+                      : "Try a different filter or search term."}
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-[var(--color-border)]">
+                  {filteredNotifications.map((notification) => {
+                    const notificationId = notification._id;
+                    const categoryKey = getNotificationCategory(notification);
+                    const categoryStyle =
+                      NOTIFICATION_CATEGORY_STYLES[categoryKey] ||
+                      NOTIFICATION_CATEGORY_STYLES.system;
+                    const CategoryIcon = categoryStyle.icon;
+                    const person = getNotificationPerson(notification);
+                    const createdAtTitle = getNotificationDateTitle(notification.createdAt);
+
+                    return (
+                      <li
+                        key={notificationId}
+                        className={`transition ${
+                          notification.isRead
+                            ? "bg-white"
+                            : "bg-[var(--color-secondary-light)]/45"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenNotification(notification)}
+                            className="group flex min-w-0 flex-1 gap-4 text-left"
+                          >
+                            <span
+                              className={`mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${categoryStyle.iconBox}`}
+                            >
+                              <CategoryIcon className="h-5 w-5" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="mb-2 flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex h-7 items-center rounded-full border px-3 text-[11px] font-black uppercase ${categoryStyle.pill}`}
+                                >
+                                  {categoryStyle.label}
+                                </span>
+                                {!notification.isRead && (
+                                  <span className="inline-flex h-6 items-center rounded-full bg-[var(--color-primary)] px-2.5 text-[10px] font-black uppercase text-white">
+                                    Unread
+                                  </span>
+                                )}
+                              </span>
+                              <span className="block truncate text-base font-black text-[var(--color-text-main)] group-hover:text-[var(--color-primary-dark)]">
+                                {notification.title || "Notification"}
+                              </span>
+                              <span className="mt-1 block text-sm font-medium leading-6 text-[var(--color-text-muted)]">
+                                {notification.message || "No message provided."}
+                              </span>
+                              <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-[var(--color-text-muted)]">
+                                <span className="inline-flex items-center gap-1" title={createdAtTitle}>
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {getNotificationTime(notification.createdAt)}
+                                </span>
+                                {person && <span>{person}</span>}
+                                <span className="text-[var(--color-primary-dark)]">
+                                  Open related page
+                                </span>
+                              </span>
+                            </span>
+                          </button>
+
+                          <div className="flex shrink-0 items-center gap-2 pl-[60px] sm:pl-0">
+                            {!notification.isRead && (
+                              <button
+                                type="button"
+                                onClick={() => markNotificationAsRead(notificationId)}
+                                disabled={getNotificationBusy("read", notificationId)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
+                                aria-label="Mark notification as read"
+                                title="Mark as read"
+                              >
+                                {getNotificationBusy("read", notificationId) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteNotification(notificationId)}
+                              disabled={getNotificationBusy("delete", notificationId)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                              aria-label="Delete notification"
+                              title="Delete notification"
+                            >
+                              {getNotificationBusy("delete", notificationId) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

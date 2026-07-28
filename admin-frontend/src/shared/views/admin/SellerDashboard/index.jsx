@@ -2,21 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowRight,
+    Bell,
     CheckCircle,
     Clock,
     ReceiptText,
     Search,
     WalletCards,
 } from "lucide-react";
-import { DashboardController } from "../../../controllers";
+import { DashboardController, NotificationController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
 import {
     getPortalCashReportPath,
+    getPortalNotificationsPath,
     getPortalOrderDetailsPath,
     getPortalPaymentQueuePath,
     getStoredAdminUser,
 } from "../../../utils/adminSession";
-import { subscribeRealtimeDomains } from "../../../services/realtime";
+import { subscribeRealtimeDomains, subscribeRealtimeEvent } from "../../../services/realtime";
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
@@ -31,6 +33,7 @@ const SellerDashboard = () => {
     const adminUser = getStoredAdminUser();
     const [orders, setOrders] = useState([]);
     const [cashReport, setCashReport] = useState(null);
+    const [notificationCount, setNotificationCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -52,6 +55,15 @@ const SellerDashboard = () => {
             }
     }, []);
 
+    const loadNotificationCount = useCallback(async () => {
+        const result = await NotificationController.getUnreadCount();
+        if (result.success) {
+            setNotificationCount(Number(result.data?.count || 0));
+        } else {
+            setNotificationCount(0);
+        }
+    }, []);
+
     useEffect(() => {
         loadDashboard();
         return subscribeRealtimeDomains(
@@ -59,6 +71,20 @@ const SellerDashboard = () => {
             () => loadDashboard({ silent: true })
         );
     }, [loadDashboard]);
+
+    useEffect(() => {
+        loadNotificationCount();
+        const unsubscribeRealtime = subscribeRealtimeEvent(
+            "notification:created",
+            loadNotificationCount
+        );
+        window.addEventListener("admin-notifications-updated", loadNotificationCount);
+
+        return () => {
+            unsubscribeRealtime();
+            window.removeEventListener("admin-notifications-updated", loadNotificationCount);
+        };
+    }, [loadNotificationCount]);
 
     const pendingConfirmationOrders = useMemo(() => {
         return orders
@@ -120,6 +146,20 @@ const SellerDashboard = () => {
                         </p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                            type="button"
+                            onClick={() => navigate(getPortalNotificationsPath(adminUser))}
+                            className="relative inline-flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-800 transition hover:border-[var(--color-primary)] hover:bg-gray-50 hover:text-[var(--color-primary)]"
+                            aria-label="Open notifications"
+                            title="Notifications"
+                        >
+                            <Bell className="h-5 w-5" />
+                            {notificationCount > 0 && (
+                                <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                                    {notificationCount > 99 ? "99+" : notificationCount}
+                                </span>
+                            )}
+                        </button>
                         <button
                             type="button"
                             onClick={() => navigate(getPortalPaymentQueuePath(adminUser))}

@@ -110,6 +110,13 @@ export const adminService = {
     api.post(`/orders/${orderId}/receipt-telegram`, fileData, { params: options }),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 
+  // Notifications
+  getNotifications: () => api.get("/notifications"),
+  getNotificationUnreadCount: () => api.get("/notifications/unread-count"),
+  markNotificationRead: (id) => api.put(`/notifications/${encodeURIComponent(id)}/read`),
+  markAllNotificationsRead: () => api.put("/notifications/mark-all-read"),
+  deleteNotification: (id) => api.delete(`/notifications/${encodeURIComponent(id)}`),
+
   // Analytics
   getSalesAnalytics: (period) => api.get(`/admin/analytics/sales?period=${period}`),
   getInventoryReport: () => api.get("/admin/reports/inventory"),

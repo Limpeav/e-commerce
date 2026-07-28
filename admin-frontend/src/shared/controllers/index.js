@@ -4,6 +4,7 @@ export { AuthController } from "./authController.js";
 export { BannerController } from "./bannerController.js";
 export { CashReportController } from "./cashReportController.js";
 export { DashboardController } from "./dashboardController.js";
+export { NotificationController } from "./notificationController.js";
 export { OrderController } from "./orderController.js";
 export { ProductController } from "./productController.js";
 export { ReviewController } from "./reviewController.js";

@@ -61,6 +61,18 @@ export const admin = (req, res, next) => {
   }
 };
 
+export const adminOrSeller = (req, res, next) => {
+  if (
+    req.user &&
+    ["admin", "seller"].includes(req.user.role) &&
+    req.auth?.type === "portal-session"
+  ) {
+    next();
+  } else {
+    res.status(403).json({ message: "Admin or seller access only" });
+  }
+};
+
 export const portalAccess = (req, res, next) => {
   if (
     req.user &&

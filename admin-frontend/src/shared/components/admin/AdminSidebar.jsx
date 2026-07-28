@@ -1,9 +1,10 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
-import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
-import { AuthController, OrderController } from '../../controllers'
+import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalNotificationsPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
+import { AuthController, NotificationController, OrderController } from '../../controllers'
 import {
+  Bell,
   LayoutDashboard,
   Package,
   Users,
@@ -11,7 +12,6 @@ import {
   LogOut,
   Menu,
   BriefcaseBusiness,
-  Images,
   MessageSquareText,
   ReceiptText,
   WalletCards,
@@ -21,7 +21,7 @@ import {
   LifeBuoy,
   X,
 } from 'lucide-react'
-import { subscribeRealtimeDomains } from '../../services/realtime'
+import { subscribeRealtimeDomains, subscribeRealtimeEvent } from '../../services/realtime'
 
 const AdminSidebar = () => {
   const location = useLocation()
@@ -29,6 +29,7 @@ const AdminSidebar = () => {
   const reduceMotion = useReducedMotion()
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
   const [orderCount, setOrderCount] = React.useState(0)
+  const [notificationCount, setNotificationCount] = React.useState(0)
 
   // Get admin user data
   const adminUser = getStoredAdminUser()
@@ -37,8 +38,10 @@ const AdminSidebar = () => {
   const ordersPath = getPortalOrdersPath(adminUser)
   const cashReportPath = getPortalCashReportPath(adminUser)
   const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
+  const notificationsPath = getPortalNotificationsPath(adminUser)
   const accountPath = getPortalAccountPath(adminUser)
   const isOrderDetail = /^\/(?:admin|seller|delivery)\/orders\/[^/]+/.test(location.pathname)
+  const canViewSidebarNotifications = adminUser?.role === 'admin'
 
   const normalizeStatus = React.useCallback((status) => {
     if (!status) return ''
@@ -95,6 +98,38 @@ const AdminSidebar = () => {
     }
   }, [getPendingOrderCount])
 
+  React.useEffect(() => {
+    if (!canViewSidebarNotifications) {
+      setNotificationCount(0)
+      return undefined
+    }
+
+    let isMounted = true
+
+    const loadNotificationCount = async () => {
+      try {
+        const result = await NotificationController.getUnreadCount()
+        if (isMounted) {
+          setNotificationCount(Number(result.data?.count || 0))
+        }
+      } catch {
+        if (isMounted) {
+          setNotificationCount(0)
+        }
+      }
+    }
+
+    loadNotificationCount()
+    const unsubscribeRealtime = subscribeRealtimeEvent('notification:created', loadNotificationCount)
+    window.addEventListener('admin-notifications-updated', loadNotificationCount)
+
+    return () => {
+      isMounted = false
+      unsubscribeRealtime()
+      window.removeEventListener('admin-notifications-updated', loadNotificationCount)
+    }
+  }, [canViewSidebarNotifications])
+
   const menuItems = [
     {
       path: dashboardPath,
@@ -121,16 +156,17 @@ const AdminSidebar = () => {
       adminOnly: true
     },
     {
-      path: '/admin/banners',
-      name: 'Banners',
-      icon: Images,
-      adminOnly: true
-    },
-    {
       path: ordersPath,
       name: adminUser?.role === 'delivery' ? 'Deliveries' : 'Orders',
       icon: adminUser?.role === 'delivery' ? Truck : ShoppingCart,
       badge: orderCount
+    },
+    {
+      path: notificationsPath,
+      name: 'Notifications',
+      icon: Bell,
+      badge: notificationCount,
+      hidden: !canViewSidebarNotifications,
     },
     {
       path: '/admin/support/tickets',
@@ -209,7 +245,7 @@ const AdminSidebar = () => {
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-[var(--color-border)] bg-[var(--color-surface-soft)]">
+          <div className="flex h-16 items-center justify-center border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-[var(--color-text-main)]">
                 {adminUser?.role === 'admin'
@@ -278,7 +314,7 @@ const AdminSidebar = () => {
                   )}
                   <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]'}`} />
-                    {(item.name === 'Orders' || item.name === 'Deliveries') && item.badge > 0 && (
+                    {item.badge > 0 && (
                       <span
                         className={`
                           absolute -right-3 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-sm ring-2

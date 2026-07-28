@@ -1,0 +1,91 @@
+import Notification from "../models/notificationModel.js";
+import Product from "../models/Product.js";
+import { emitNotificationCreated } from "../realtime/socket.js";
+import { sendLowStockTelegramAlert } from "./sendTelegramMessage.js";
+import { getLowStockThreshold } from "./stockAlerts.js";
+
+const getStockAlertCopy = (alert) => {
+  const stock = Math.max(0, Number(alert.stock || 0));
+
+  if (alert.kind === "out-of-stock") {
+    return {
+      title: "Product Out of Stock",
+      message: `${alert.title} is out of stock. Restock this product before accepting more orders.`,
+    };
+  }
+
+  return {
+    title: "Product Low Stock",
+    message: `${alert.title} has ${stock} item${stock === 1 ? "" : "s"} left. Low stock threshold is ${getLowStockThreshold()}.`,
+  };
+};
+
+export const createStockAlertPayload = ({ product, stockAlert, stock }) => {
+  if (!product || !stockAlert) return null;
+
+  return {
+    kind: stockAlert.kind,
+    productId: product._id,
+    title: product.title,
+    category: product.category,
+    stock,
+    imageUrl: product.image,
+    lowStockAlertSent: stockAlert.lowStockAlertSent,
+    outOfStockAlertSent: stockAlert.outOfStockAlertSent,
+  };
+};
+
+export const dispatchInventoryStockAlerts = (alerts = []) => {
+  const validAlerts = alerts.filter(Boolean);
+  if (validAlerts.length === 0) return;
+
+  setImmediate(async () => {
+    for (const alert of validAlerts) {
+      const copy = getStockAlertCopy(alert);
+
+      try {
+        const notification = await Notification.create({
+          type: "product",
+          title: copy.title,
+          message: copy.message,
+          link: `/admin/products/edit/${alert.productId}`,
+        });
+        emitNotificationCreated(notification);
+      } catch (notificationError) {
+        console.error(
+          `${copy.title} notification failed for product ${alert.productId}:`,
+          notificationError.message
+        );
+      }
+
+      try {
+        await Product.updateOne(
+          { _id: alert.productId },
+          {
+            $set: {
+              lowStockAlertSent: Boolean(alert.lowStockAlertSent),
+              outOfStockAlertSent: Boolean(alert.outOfStockAlertSent),
+            },
+          }
+        );
+      } catch (flagError) {
+        console.error(
+          `Stock alert flag update failed for product ${alert.productId}:`,
+          flagError.message
+        );
+      }
+
+      try {
+        await sendLowStockTelegramAlert({
+          title: alert.title,
+          category: alert.category,
+          stock: alert.stock,
+          productId: alert.productId.toString(),
+          imageUrl: alert.imageUrl,
+        });
+      } catch (telegramError) {
+        console.error("Telegram low stock alert failed:", telegramError.message);
+      }
+    }
+  });
+};

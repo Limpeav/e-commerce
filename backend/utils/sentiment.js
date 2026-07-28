@@ -344,3 +344,88 @@ export const buildSentimentAnalytics = (products = []) => {
       .sort((a, b) => a.month.localeCompare(b.month)),
   };
 };
+
+export const buildDashboardReviewHealth = (
+  products = [],
+  sentimentAnalytics = buildSentimentAnalytics(products)
+) => {
+  const productList = Array.isArray(products) ? products : [];
+  const sentiment =
+    sentimentAnalytics && typeof sentimentAnalytics === "object"
+      ? sentimentAnalytics
+      : buildSentimentAnalytics(productList);
+  const allReviews = productList.flatMap((product) =>
+    (Array.isArray(product.reviews) ? product.reviews : []).map((review) =>
+      attachReviewSentiment(review)
+    )
+  );
+  const totalReviews = Number(sentiment.total || 0);
+  const averageRating = totalReviews
+    ? allReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
+      totalReviews
+    : 0;
+  const positiveReviews = allReviews.filter(
+    (review) => Number(review.rating || 0) >= 4
+  ).length;
+  const lowReviews = allReviews.filter(
+    (review) => Number(review.rating || 0) <= 2
+  ).length;
+  const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
+    const count = allReviews.filter(
+      (review) => Number(review.rating || 0) === rating
+    ).length;
+
+    return {
+      rating,
+      count,
+      percentage: totalReviews ? Number(((count / totalReviews) * 100).toFixed(1)) : 0,
+    };
+  });
+  const categoryRatings = (sentiment.categoryInsights || [])
+    .map((category) => {
+      const reviewCount = Number(category.totalReviews || 0);
+      const negative = Number(category.negative || 0);
+
+      return {
+        name: category.category || "Uncategorized",
+        reviewCount,
+        positive: Number(category.positive || 0),
+        neutral: Number(category.neutral || 0),
+        negative,
+        averageSentimentScore: Number(category.averageScore || 0),
+        negativeRate: reviewCount
+          ? Number(((negative / reviewCount) * 100).toFixed(1))
+          : 0,
+      };
+    })
+    .filter((category) => category.negative > 0)
+    .sort(
+      (a, b) =>
+        b.negativeRate - a.negativeRate ||
+        b.negative - a.negative ||
+        a.averageSentimentScore - b.averageSentimentScore ||
+        b.reviewCount - a.reviewCount
+    );
+
+  return {
+    totalReviews,
+    averageRating: Number(averageRating.toFixed(2)),
+    positiveReviewRate: totalReviews
+      ? Number(((positiveReviews / totalReviews) * 100).toFixed(1))
+      : 0,
+    positiveSentimentRate: Number(sentiment.positiveRate || 0),
+    negativeSentimentRate: Number(sentiment.negativeRate || 0),
+    averageSentimentScore: Number(sentiment.averageScore || 0),
+    sentimentCounts: {
+      Positive: Number(sentiment.positive || 0),
+      Neutral: Number(sentiment.neutral || 0),
+      Negative: Number(sentiment.negative || 0),
+    },
+    lowReviews,
+    unratedProducts: productList.filter(
+      (product) => !Array.isArray(product.reviews) || product.reviews.length === 0
+    ).length,
+    ratingDistribution,
+    categoryRatings,
+  };
+};

@@ -10,14 +10,18 @@ import {
     emitOrderUpdated,
 } from "../realtime/socket.js";
 import {
-    shouldSendLowStockAlert,
+    getStockAlert,
     syncLowStockAlertFlag,
 } from "../utils/stockAlerts.js";
 import {
-    sendLowStockTelegramAlert,
     sendOrderTelegramAlert,
     sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
+import {
+    createStockAlertPayload,
+    dispatchInventoryStockAlerts,
+} from "../utils/inventoryNotifications.js";
+import { createPaymentSuccessNotification } from "../utils/paymentNotifications.js";
 import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
 import {
     normalizeSelectedColor,
@@ -180,7 +184,6 @@ const dispatchOrderAlerts = ({
     totalPrice,
     orderItems,
     googleMapsLink,
-    lowStockAlerts,
 }) => {
     setImmediate(async () => {
         if (paymentMethod !== "BAKONG_KHQR") {
@@ -208,25 +211,6 @@ const dispatchOrderAlerts = ({
                 });
             } catch (telegramError) {
                 console.error("Telegram order alert failed:", telegramError.message);
-            }
-        }
-
-        for (const alert of lowStockAlerts) {
-            try {
-                await sendLowStockTelegramAlert({
-                    title: alert.title,
-                    category: alert.category,
-                    stock: alert.stock,
-                    productId: alert.productId.toString(),
-                    imageUrl: alert.imageUrl,
-                });
-
-                await Product.updateOne(
-                    { _id: alert.productId },
-                    { $set: { lowStockAlertSent: true } }
-                );
-            } catch (telegramError) {
-                console.error("Telegram low stock alert failed:", telegramError.message);
             }
         }
     });
@@ -357,7 +341,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                 if (shouldReduceStockImmediately) {
                     for (const item of orderItems) {
                         const product = productMap.get(String(item.product));
-                        const previousStock = product.stock;
+                        const previousStock = getAvailableStock(product);
                         adjustProductInventory(product, {
                             size: item.size,
                             color: item.color,
@@ -369,23 +353,27 @@ export const createOrder = asyncHandler(async (req, res) => {
                             Number(product.totalSold || 0) + Number(item.quantity || 0)
                         );
                         syncLowStockAlertFlag(product);
-                        await product.save({ session });
+                        const currentStock = getAvailableStock(product);
+                        const stockAlert = getStockAlert({
+                            previousStock,
+                            currentStock,
+                            lowStockAlertSent: product.lowStockAlertSent,
+                            outOfStockAlertSent: product.outOfStockAlertSent,
+                        });
 
-                        if (
-                            shouldSendLowStockAlert({
-                                previousStock,
-                                currentStock: getAvailableStock(product),
-                                lowStockAlertSent: product.lowStockAlertSent,
-                            })
-                        ) {
-                            lowStockAlerts.push({
-                                productId: product._id,
-                                title: product.title,
-                                category: product.category,
-                                stock: getAvailableStock(product),
-                                imageUrl: product.image,
-                            });
+                        if (stockAlert) {
+                            product.lowStockAlertSent = stockAlert.lowStockAlertSent;
+                            product.outOfStockAlertSent = stockAlert.outOfStockAlertSent;
+                            lowStockAlerts.push(
+                                createStockAlertPayload({
+                                    product,
+                                    stockAlert,
+                                    stock: currentStock,
+                                })
+                            );
                         }
+
+                        await product.save({ session });
                     }
                 } else {
                     for (const { productId, size, color, quantity } of requestedQuantityByProductSize.values()) {
@@ -476,7 +464,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                         title: mergedIntoExistingOrder ? "Pending Order Updated" : "New Order Received",
                         message: mergedIntoExistingOrder
                             ? `${customerName} added items to pending order #${createdOrder._id.toString().slice(-8).toUpperCase()}. New total is $${Number(createdOrder.totalPrice || 0).toFixed(2)}`
-                            : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${totalWithoutShipping.toFixed(2)}`,
+                            : `${customerName} placed a new order #${createdOrder._id.toString().slice(-8).toUpperCase()} for $${Number(createdOrder.totalPrice || 0).toFixed(2)}`,
                         orderId: createdOrder._id,
                         userId: req.user._id,
                         link: `/admin/orders/${createdOrder._id}`,
@@ -530,8 +518,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                 totalPrice: createdOrder.totalPrice,
                 orderItems: createdOrder.orderItems,
                 googleMapsLink,
-                lowStockAlerts,
             });
+            dispatchInventoryStockAlerts(lowStockAlerts);
         } catch (error) {
             if (!res.headersSent) {
                 res.status(error.statusCode || 500).json({
@@ -870,6 +858,7 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
 
     if (order) {
         const { paymentStatus } = req.body;
+        const wasPaid = order.isPaid || order.paymentStatus === "Paid";
 
         // Validate payment status
         const validStatuses = ["Pending", "Paid", "Failed", "Refunded"];
@@ -906,6 +895,23 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         }
 
         const updatedOrder = await order.save();
+        await updatedOrder.populate("user", "name email");
+
+        if (
+            !wasPaid &&
+            updatedOrder.paymentStatus === "Paid" &&
+            updatedOrder.paymentMethod === "Cash on Delivery"
+        ) {
+            try {
+                await createPaymentSuccessNotification(updatedOrder);
+            } catch (notificationError) {
+                console.error(
+                    `Cash on Delivery payment notification failed for ${updatedOrder._id}:`,
+                    notificationError.message
+                );
+            }
+        }
+
         res.json(updatedOrder);
         emitOrderUpdated(updatedOrder, {
             paymentStatus: updatedOrder.paymentStatus,

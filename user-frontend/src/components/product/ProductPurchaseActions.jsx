@@ -127,7 +127,15 @@ const ProductPurchaseActions = ({
   };
 
   const handleSelectColor = (color, availableForColor) => {
+    const isSwitchingColor = selectedColor !== color;
+
     setSelectedColor(color);
+
+    if (isSwitchingColor) {
+      setQuantity(1);
+      return;
+    }
+
     clampQuantityToStock(availableForColor);
   };
 

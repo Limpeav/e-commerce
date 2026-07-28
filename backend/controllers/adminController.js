@@ -3,7 +3,10 @@ import User from "../models/userModel.js";
 import Product from "../models/Product.js";
 import Order from "../models/orderModel.js";
 import cloudinary from "../config/cloudinary.js";
-import { buildSentimentAnalytics } from "../utils/sentiment.js";
+import {
+  buildDashboardReviewHealth,
+  buildSentimentAnalytics,
+} from "../utils/sentiment.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -359,6 +362,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     .select("title category reviews")
     .lean();
   const sentiment = buildSentimentAnalytics(productsForSentiment);
+  const reviewHealth = buildDashboardReviewHealth(productsForSentiment, sentiment);
 
   // Get recent activity (users only – exclude admin actions)
   const recentOrders = await Order.find(ADMIN_VISIBLE_ORDER_FILTER)
@@ -425,6 +429,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     unpaidOrders: unpaidOrdersCount,
     cashToCollect: cashToCollectCount,
     sentiment,
+    reviewHealth,
     recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
   });
 });

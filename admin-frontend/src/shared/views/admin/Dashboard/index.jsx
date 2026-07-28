@@ -35,7 +35,6 @@ const AdminDashboard = () => {
     () => cachedDashboard?.products || []
   );
   const [loading, setLoading] = useState(() => !cachedDashboard);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const navigateFromDashboard = useCallback(
@@ -52,9 +51,8 @@ const AdminDashboard = () => {
   );
 
   const loadDashboard = useCallback(
-    async ({ refresh = false, silent = false } = {}) => {
-      if (refresh) setRefreshing(true);
-      if (!refresh && !silent) setLoading(true);
+    async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       setError("");
 
       try {
@@ -89,7 +87,6 @@ const AdminDashboard = () => {
         );
       } finally {
         setLoading(false);
-        setRefreshing(false);
       }
     },
     [adminToken]
@@ -193,8 +190,6 @@ const AdminDashboard = () => {
       products={products}
       period={period}
       setPeriod={setPeriod}
-      refreshing={refreshing}
-      loadDashboard={loadDashboard}
       navigateFromDashboard={navigateFromDashboard}
     />
   );

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, ImagePlus, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { BannerController } from "../../../controllers";
 import AdminPagination from "../../../components/admin/AdminPagination";
 import { useAdminPagination } from "../../../hooks/useAdminPagination";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 export default function AdminBanners() {
+  const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -117,10 +119,20 @@ export default function AdminBanners() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Banner Manager</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Upload slider images from admin and control which banners appear on the home page.
-          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/products")}
+            className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:border-blue-500 hover:text-blue-600"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Products
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Banner Manager</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Upload slider images from admin and control which banners appear on the home page.
+            </p>
+          </div>
         </div>
       </div>
 

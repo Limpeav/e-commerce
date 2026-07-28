@@ -6,15 +6,15 @@ import {
     markAllAsRead,
     deleteNotification,
 } from "../controllers/notificationController.js";
-import { protect, admin } from "../middleware/authMiddleware.js";
+import { protect, adminOrSeller } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All routes are admin only
-router.route("/").get(protect, admin, getAllNotifications);
-router.route("/unread-count").get(protect, admin, getUnreadCount);
-router.route("/mark-all-read").put(protect, admin, markAllAsRead);
-router.route("/:id/read").put(protect, admin, markAsRead);
-router.route("/:id").delete(protect, admin, deleteNotification);
+// Admins see every notification; sellers are scoped to order/payment notifications.
+router.route("/").get(protect, adminOrSeller, getAllNotifications);
+router.route("/unread-count").get(protect, adminOrSeller, getUnreadCount);
+router.route("/mark-all-read").put(protect, adminOrSeller, markAllAsRead);
+router.route("/:id/read").put(protect, adminOrSeller, markAsRead);
+router.route("/:id").delete(protect, adminOrSeller, deleteNotification);
 
 export default router;

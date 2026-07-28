@@ -16,6 +16,9 @@ const ShippingAddressSection = ({
   const mapAddress = [shippingAddress.street, shippingAddress.address, shippingAddress.city]
     .filter(Boolean)
     .join(", ");
+  const hasSelectedLocation =
+    Number.isFinite(Number(shippingAddress.latitude)) &&
+    Number.isFinite(Number(shippingAddress.longitude));
 
   return (
     <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
@@ -56,7 +59,7 @@ const ShippingAddressSection = ({
               {t("checkout.pinLocation")}
               <span className="text-red-500">*</span>
             </label>
-            {shippingAddress.latitude && shippingAddress.longitude && (
+            {hasSelectedLocation && (
               <span className="text-[10px] text-green-600 font-bold flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full border border-green-100 uppercase tracking-wide">
                 <CheckCircle className="w-3 h-3" />
                 {t("checkout.locationSelected")}
@@ -68,7 +71,7 @@ const ShippingAddressSection = ({
               onSelectLocation={onLocationSelect}
               isDark={isDark}
               initialLocation={
-                shippingAddress.latitude && shippingAddress.longitude
+                hasSelectedLocation
                   ? { lat: shippingAddress.latitude, lng: shippingAddress.longitude }
                   : null
               }

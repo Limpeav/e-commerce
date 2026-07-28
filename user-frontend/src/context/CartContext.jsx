@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Trash2, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, ShoppingCart, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { useToast } from "./useToast";
 import { CartController } from "../controllers/cartController.js";
@@ -305,6 +305,7 @@ export const CartProvider = ({ children }) => {
             cart={cart}
             onClose={() => setCartDrawerOpen(false)}
             onRemove={removeFromCart}
+            onClear={clearCart}
             onUpdateQuantity={updateQuantity}
           />
         )}
@@ -340,6 +341,7 @@ const CartPreviewDrawer = ({
   cart,
   onClose,
   onRemove,
+  onClear,
   onUpdateQuantity,
 }) => {
   const [isDark] = useDarkMode();
@@ -427,16 +429,27 @@ const CartPreviewDrawer = ({
             <p className="text-sm font-bold text-text-muted">{t("cart.drawerItemCount", { count: itemCount })}</p>
           </div>
 
-          <Link
-            to="/customer/wishlist"
-            onClick={onClose}
-            className={`rounded-full p-2 transition-colors ${
-              isDark ? "text-slate-300 hover:bg-slate-900 hover:text-white" : "text-stone-700 hover:bg-stone-100"
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                validCartItems.length > 0 &&
+                window.confirm(t("cart.confirmRemoveAllMessage"))
+              ) {
+                onClear();
+              }
+            }}
+            disabled={validCartItems.length === 0}
+            className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
+              isDark
+                ? "text-slate-300 hover:bg-red-950/40 hover:text-red-300"
+                : "text-stone-700 hover:bg-red-50 hover:text-red-600"
             }`}
-            aria-label={t("cart.openWishlist")}
+            aria-label={t("cart.removeAllItems")}
+            title={t("cart.removeAllItems")}
           >
-            <Heart className="h-6 w-6" />
-          </Link>
+            {t("cart.removeAllItems")}
+          </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">

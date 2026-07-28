@@ -29,7 +29,6 @@ const ProductList = () => {
   const [sendingPromotionEmails, setSendingPromotionEmails] = useState(false);
   const [promotionEmailStatus, setPromotionEmailStatus] = useState("");
   const [promotionEmailStatusType, setPromotionEmailStatusType] = useState("success");
-  const [promotionEmailFailures, setPromotionEmailFailures] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -166,23 +165,19 @@ const ProductList = () => {
     setSendingPromotionEmails(true);
     setPromotionEmailStatus("");
     setPromotionEmailStatusType("success");
-    setPromotionEmailFailures([]);
 
     const result = await AdminProductController.sendStorePromotionEmails();
     if (result.success) {
       const sentCount = result.data?.sentCount ?? 0;
-      const failedCount = result.data?.failedCount ?? 0;
       const recipientCount = result.data?.recipientCount ?? 0;
-      setPromotionEmailFailures(result.data?.failedRecipients || []);
       setPromotionEmailStatus(
         recipientCount === 0
           ? "No customers have promotional emails enabled."
-          : `Promotion email sent to ${sentCount} customer${sentCount === 1 ? "" : "s"}${failedCount ? `; ${failedCount} failed` : ""}.`
+          : `Promotion email sent to ${sentCount} customer${sentCount === 1 ? "" : "s"}.`
       );
     } else {
       setPromotionEmailStatusType("error");
       setPromotionEmailStatus(result.error);
-      setPromotionEmailFailures(result.data?.failedRecipients || []);
     }
 
     setSendingPromotionEmails(false);
@@ -238,18 +233,6 @@ const ProductList = () => {
             }`}
           >
             {promotionEmailStatus}
-            {promotionEmailFailures.length > 0 && (
-              <div className="mt-3 space-y-1 text-xs font-medium">
-                {promotionEmailFailures.slice(0, 6).map((failure) => (
-                  <p key={failure.email}>
-                    {failure.email}: {failure.reason}
-                  </p>
-                ))}
-                {promotionEmailFailures.length > 6 && (
-                  <p>And {promotionEmailFailures.length - 6} more failed recipients.</p>
-                )}
-              </div>
-            )}
           </div>
         )}
 

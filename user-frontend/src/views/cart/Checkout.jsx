@@ -386,14 +386,18 @@ const Checkout = () => {
   return (
     <div className={`min-h-screen pt-24 sm:pt-28 lg:pt-32 pb-16 lg:pb-0 font-sans transition-colors duration-300 ${isDark ? "bg-slate-950" : "bg-bg-base"}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-        <div className="mb-12">
+        <div className="mb-12 flex items-center gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => navigate("/customer/cart")}
-            className={`flex items-center gap-2 font-bold text-sm mb-8 transition-all px-5 py-2.5 rounded-full w-fit border ${isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-primary hover:bg-slate-800" : "bg-white border-stone-100 text-text-muted hover:text-primary hover:shadow-md"} `}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
+              isDark
+                ? "text-slate-300 hover:bg-slate-900 hover:text-primary"
+                : "text-text-muted hover:bg-white hover:text-primary hover:shadow-md"
+            }`}
+            aria-label="Back to cart"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Cart
+            <ArrowLeft className="h-7 w-7" strokeWidth={2.4} />
           </button>
           <h1 className="text-4xl md:text-5xl font-bold text-text-main font-display tracking-tight">
             Checkout
