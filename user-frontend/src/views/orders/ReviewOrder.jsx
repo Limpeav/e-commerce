@@ -292,235 +292,334 @@ export default function ReviewOrder() {
   }
 
   if (showThankYou) {
-    const celebrationStars = [
-      { x: -88, y: -56, delay: 0.08, size: "h-3.5 w-3.5" },
-      { x: -64, y: 58, delay: 0.16, size: "h-3 w-3" },
-      { x: 78, y: -66, delay: 0.22, size: "h-4 w-4" },
-      { x: 92, y: 38, delay: 0.28, size: "h-3 w-3" },
-      { x: -104, y: 8, delay: 0.34, size: "h-2.5 w-2.5" },
-      { x: 48, y: 78, delay: 0.4, size: "h-3.5 w-3.5" },
-    ];
     const submittedCount = reviewItems.length;
+
+    // Confetti particle data — generated once per render of this block
+    const confettiParticles = [
+      { x: -130, y: -90,  delay: 0.05, size: 8,  color: "#7a967e", rotate: 30  },
+      { x: -95,  y: 110,  delay: 0.1,  size: 6,  color: "#a8c5ac", rotate: -20 },
+      { x: 120,  y: -100, delay: 0.15, size: 10, color: "#5c8460", rotate: 15  },
+      { x: 145,  y: 60,   delay: 0.2,  size: 7,  color: "#d4a574", rotate: -40 },
+      { x: -160, y: 20,   delay: 0.25, size: 5,  color: "#b8dbbf", rotate: 25  },
+      { x: 60,   y: 130,  delay: 0.3,  size: 9,  color: "#7a967e", rotate: -15 },
+      { x: -60,  y: -130, delay: 0.08, size: 6,  color: "#e8c49a", rotate: 45  },
+      { x: 170,  y: -30,  delay: 0.18, size: 8,  color: "#a8c5ac", rotate: -35 },
+      { x: -180, y: -50,  delay: 0.28, size: 5,  color: "#7a967e", rotate: 60  },
+      { x: 100,  y: -150, delay: 0.12, size: 7,  color: "#5c8460", rotate: -50 },
+      { x: -40,  y: 160,  delay: 0.35, size: 9,  color: "#d4a574", rotate: 20  },
+      { x: 190,  y: 100,  delay: 0.22, size: 5,  color: "#b8dbbf", rotate: -10 },
+    ];
 
     return (
       <main
-        className={`relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-4 py-10 sm:px-6 ${
+        className={`relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-4 py-12 sm:px-6 ${
           isDark
-            ? "bg-[linear-gradient(135deg,#111412_0%,#1A1C1B_48%,#242823_100%)]"
-            : "bg-[linear-gradient(135deg,#FCF9F5_0%,#F7F1EA_47%,#FDF7F2_100%)]"
+            ? "bg-[linear-gradient(145deg,#0d1110_0%,#141816_50%,#1a2019_100%)]"
+            : "bg-[linear-gradient(145deg,#f0ede8_0%,#faf7f3_50%,#f5f0ea_100%)]"
         }`}
       >
+        {/* Animated background blobs */}
+        <Motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl"
+          animate={reduceMotion ? undefined : {
+            scale: [1, 1.18, 1],
+            opacity: [0.35, 0.6, 0.35],
+          }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <Motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-secondary/20 blur-3xl"
+          animate={reduceMotion ? undefined : {
+            scale: [1, 1.22, 1],
+            opacity: [0.3, 0.55, 0.3],
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+        />
+        <Motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/4 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/8 blur-3xl"
+          animate={reduceMotion ? undefined : {
+            y: [0, -20, 0],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+        />
+
+        {/* Subtle dot grid */}
         <div
           aria-hidden="true"
           className={`absolute inset-0 ${
             isDark
-              ? "bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)]"
-              : "bg-[linear-gradient(rgba(122,150,126,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(122,150,126,0.08)_1px,transparent_1px)]"
-          } bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_76%,transparent)]`}
+              ? "bg-[radial-gradient(rgba(255,255,255,0.04)_1px,transparent_1px)]"
+              : "bg-[radial-gradient(rgba(122,150,126,0.12)_1px,transparent_1px)]"
+          } bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black,transparent)]`}
         />
+
         <Motion.div
-          aria-hidden="true"
-          className={`absolute inset-x-0 top-0 h-24 ${
-            isDark ? "bg-primary/10" : "bg-primary/10"
-          }`}
-          initial={reduceMotion ? false : { opacity: 0, y: -40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        />
-
-        <Motion.section
-          initial={reduceMotion ? false : { opacity: 0, y: 30, scale: 0.97 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 32, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative w-full max-w-3xl overflow-hidden rounded-lg border shadow-2xl ${
-            isDark
-              ? "border-slate-800/90 bg-slate-900/95 shadow-black/35"
-              : "border-white/90 bg-white/95 shadow-stone-300/45"
-          }`}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full max-w-2xl"
         >
-          <Motion.div
-            aria-hidden="true"
-            className={`absolute left-0 right-0 top-0 h-1.5 ${isDark ? "bg-primary" : "bg-primary"}`}
-            initial={reduceMotion ? false : { scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: "left" }}
-          />
-
-          <div className="grid items-stretch md:grid-cols-[0.88fr_1.12fr]">
-            <div
-              className={`relative flex min-h-[260px] items-center justify-center overflow-hidden border-b p-8 md:border-b-0 md:border-r ${
-                isDark
-                  ? "border-slate-800 bg-slate-950/45"
-                  : "border-stone-100 bg-[linear-gradient(160deg,#F7F1EA,#FFFFFF)]"
-              }`}
-            >
-              <Motion.div
-                aria-hidden="true"
-                className="absolute -left-16 top-10 h-32 w-56 rotate-[-24deg] bg-secondary/25 blur-2xl"
-                animate={reduceMotion ? undefined : { x: [0, 16, 0], opacity: [0.45, 0.72, 0.45] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <Motion.div
-                aria-hidden="true"
-                className="absolute -right-20 bottom-8 h-32 w-64 rotate-[-20deg] bg-primary/18 blur-2xl"
-                animate={reduceMotion ? undefined : { x: [0, -18, 0], opacity: [0.38, 0.68, 0.38] }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-              />
-
-              <div className="relative h-44 w-44">
-            {!reduceMotion &&
-              celebrationStars.map((star, index) => (
-                <Motion.div
-                  key={index}
-                  aria-hidden="true"
-                  className="absolute left-1/2 top-1/2 text-secondary"
-                  initial={{ x: -6, y: -6, scale: 0, rotate: -30, opacity: 0 }}
-                  animate={{
-                    x: star.x,
-                    y: star.y,
-                    scale: [0, 1.05, 0.82],
-                    rotate: [0, 16, -8],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{ duration: 1.25, delay: star.delay, ease: "easeOut" }}
-                >
-                  <Star className={`${star.size} fill-current`} />
-                </Motion.div>
-              ))}
-
+          {/* Main card */}
+          <div
+            className={`relative overflow-hidden rounded-3xl border shadow-2xl ${
+              isDark
+                ? "border-white/8 bg-white/4 shadow-black/50 backdrop-blur-xl"
+                : "border-white/70 bg-white/80 shadow-stone-400/25 backdrop-blur-xl"
+            }`}
+          >
+            {/* Top accent bar with animated gradient */}
             <Motion.div
-                  aria-hidden="true"
-                  className="absolute inset-0 rounded-full border border-primary/20"
-                  initial={reduceMotion ? false : { scale: 0.78, opacity: 0 }}
-                  animate={{ scale: [0.78, 1, 1.08], opacity: [0, 0.7, 0] }}
-                  transition={{ duration: 1.5, delay: 0.22, ease: "easeOut" }}
-                />
-                <Motion.div
-                  aria-hidden="true"
-                  className="absolute inset-6 rounded-full border border-primary/25"
-                  initial={reduceMotion ? false : { scale: 0.8, opacity: 0 }}
-                  animate={{ scale: [0.8, 1, 1.12], opacity: [0, 0.8, 0] }}
-                  transition={{ duration: 1.55, delay: 0.34, ease: "easeOut" }}
-                />
+              aria-hidden="true"
+              className="absolute left-0 right-0 top-0 h-1 bg-[linear-gradient(90deg,#5c8460,#7a967e,#a8c5ac,#7a967e,#5c8460)] bg-[size:200%_100%]"
+              initial={reduceMotion ? false : { scaleX: 0, backgroundPosition: "0% 0%" }}
+              animate={{ scaleX: 1, backgroundPosition: "200% 0%" }}
+              transition={{ scaleX: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }, backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" } }}
+              style={{ transformOrigin: "left" }}
+            />
 
+            <div className="px-8 pb-8 pt-10 sm:px-12 sm:pb-10 sm:pt-12">
+              {/* Hero section */}
+              <div className="flex flex-col items-center text-center">
+
+                {/* Icon cluster with confetti */}
+                <div className="relative mb-8 h-36 w-36">
+                  {/* Confetti burst */}
+                  {!reduceMotion && confettiParticles.map((p, i) => (
+                    <Motion.div
+                      key={i}
+                      aria-hidden="true"
+                      className="absolute left-1/2 top-1/2 rounded-sm"
+                      style={{ width: p.size, height: p.size, backgroundColor: p.color }}
+                      initial={{ x: -p.size / 2, y: -p.size / 2, scale: 0, rotate: 0, opacity: 0 }}
+                      animate={{
+                        x: p.x,
+                        y: p.y,
+                        scale: [0, 1.2, 0.85],
+                        rotate: p.rotate,
+                        opacity: [0, 1, 0],
+                      }}
+                      transition={{ duration: 1.4, delay: p.delay, ease: "easeOut" }}
+                    />
+                  ))}
+
+                  {/* Pulsing rings */}
+                  {!reduceMotion && [0, 1, 2].map((i) => (
+                    <Motion.div
+                      key={i}
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full border border-primary/30"
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: [0.6, 1.5], opacity: [0.7, 0] }}
+                      transition={{ duration: 2, delay: i * 0.45 + 0.1, repeat: Infinity, ease: "easeOut" }}
+                    />
+                  ))}
+
+                  {/* Icon circle */}
+                  <Motion.div
+                    initial={reduceMotion ? false : { scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
+                    className="absolute inset-6 flex items-center justify-center rounded-full bg-primary text-white shadow-[0_20px_60px_rgba(92,132,96,0.45)]"
+                  >
+                    <Motion.div
+                      animate={reduceMotion ? undefined : { scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1 }}
+                    >
+                      <CheckCircle className="h-12 w-12" strokeWidth={2.25} />
+                    </Motion.div>
+                  </Motion.div>
+                </div>
+
+                {/* Badge */}
                 <Motion.div
-                  initial={reduceMotion ? false : { scale: 0, rotate: -12 }}
-              animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 230, damping: 18, delay: 0.12 }}
-                  className="absolute inset-10 flex items-center justify-center rounded-full bg-primary text-white shadow-[0_18px_45px_rgba(122,150,126,0.38)] ring-[14px] ring-primary/12"
-            >
+                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-primary"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {t("reviewOrder.success.badge")}
+                </Motion.div>
+
+                {/* Title */}
+                <Motion.h1
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.38 }}
+                  className="font-display text-4xl font-black leading-tight tracking-tight text-text-main sm:text-5xl"
+                >
+                  {t("reviewOrder.success.title")}
+                </Motion.h1>
+
+                {/* Message */}
+                <Motion.p
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.46 }}
+                  className="mx-auto mt-4 max-w-sm text-sm font-bold leading-7 text-text-muted sm:text-base"
+                >
+                  {t("reviewOrder.success.message")}
+                </Motion.p>
+              </div>
+
+              {/* Divider */}
               <Motion.div
-                    animate={reduceMotion ? undefined : { scale: [1, 1.08, 1] }}
-                    transition={{ duration: 1.35, repeat: Infinity, repeatDelay: 0.95 }}
-              >
-                    <CheckCircle className="h-14 w-14" strokeWidth={2.25} />
-              </Motion.div>
-            </Motion.div>
-          </div>
-            </div>
+                initial={reduceMotion ? false : { opacity: 0, scaleX: 0 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                transition={{ delay: 0.52, duration: 0.5 }}
+                className={`my-8 h-px origin-center ${isDark ? "bg-white/8" : "bg-stone-200/80"}`}
+              />
 
-            <div className="relative px-6 py-8 text-center sm:px-9 sm:py-10 md:text-left">
-          <Motion.p
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.22 }}
-                className="mb-3 inline-flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary sm:text-xs"
-          >
-                <Sparkles className="h-4 w-4" />
-            {t("reviewOrder.success.badge")}
-          </Motion.p>
-          <Motion.h1
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="font-display text-4xl font-black leading-tight tracking-tight text-text-main sm:text-5xl"
-          >
-            {t("reviewOrder.success.title")}
-          </Motion.h1>
-          <Motion.p
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.38 }}
-                className="mx-auto mt-4 max-w-md text-sm font-bold leading-6 text-text-muted sm:text-base sm:leading-7 md:mx-0"
-          >
-                {t("reviewOrder.success.message")}
-          </Motion.p>
-
-          <Motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1 }}
-                transition={{ delay: 0.48 }}
-                className={`mt-6 grid grid-cols-2 overflow-hidden rounded-lg border ${
-                  isDark ? "border-slate-800 bg-slate-950/30" : "border-stone-100 bg-stone-50/70"
-                }`}
-          >
-                <div className={`border-r p-4 ${isDark ? "border-slate-800" : "border-stone-100"}`}>
-                  <p className="text-2xl font-black text-text-main">{submittedCount}</p>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-text-muted">
+              {/* Reviewed products strip */}
+              {reviewItems.length > 0 && (
+                <Motion.div
+                  initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.56 }}
+                  className="mb-8"
+                >
+                  <p className="mb-4 text-center text-xs font-black uppercase tracking-[0.2em] text-primary">
                     {submittedCount === 1
                       ? t("reviewOrder.success.productReviewed")
                       : t("reviewOrder.success.productsReviewed")}
                   </p>
+                  <div className="flex flex-col gap-3">
+                    {reviewItems.map((item) => {
+                      const productId = String(getProductId(item));
+                      const form = forms[productId] || {};
+                      const stars = Number(form.rating) || 5;
+                      return (
+                        <div
+                          key={productId}
+                          className={`flex items-center gap-4 rounded-2xl border p-3.5 ${
+                            isDark
+                              ? "border-white/8 bg-white/4"
+                              : "border-stone-100 bg-stone-50/70"
+                          }`}
+                        >
+                          {/* Product image */}
+                          <div
+                            className={`h-12 w-12 shrink-0 overflow-hidden rounded-xl border ${
+                              isDark ? "border-white/10 bg-slate-800" : "border-stone-200 bg-white"
+                            }`}
+                          >
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={getProductName(item)}
+                                className="h-full w-full object-contain"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Package className="h-5 w-5 text-text-muted" />
+                              </div>
+                            )}
+                          </div>
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-black text-text-main">
+                              {getProductName(item, t("reviewOrder.purchasedProduct"))}
+                            </p>
+                            {/* Star display */}
+                            <div className="mt-1 flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`h-3.5 w-3.5 ${
+                                    s <= stars
+                                      ? "fill-amber-400 text-amber-400"
+                                      : isDark
+                                        ? "fill-slate-700 text-slate-700"
+                                        : "fill-stone-200 text-stone-200"
+                                  }`}
+                                />
+                              ))}
+                              <span className="ml-1.5 text-[11px] font-bold text-text-muted">
+                                {stars}/5
+                              </span>
+                            </div>
+                          </div>
+                          {/* Check badge */}
+                          <div className="shrink-0 rounded-full bg-primary/12 p-1.5">
+                            <CheckCircle className="h-4 w-4 text-primary" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Motion.div>
+              )}
+
+              {/* Progress bar — auto-return */}
+              <Motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.64 }}
+                className="mb-7"
+              >
+                <div className="mb-2.5 flex items-center justify-between text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+                  <span>{t("reviewOrder.success.returningHome")}</span>
+                  <span>{t("reviewOrder.success.almostThere")}</span>
                 </div>
-                <div className="p-4">
-                  <p className="text-2xl font-black text-text-main">3s</p>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-text-muted">
-                    {t("reviewOrder.success.autoReturn")}
-                  </p>
+                <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-white/8" : "bg-stone-200"}`}>
+                  <Motion.div
+                    className="h-full origin-left rounded-full bg-[linear-gradient(90deg,#5c8460,#7a967e)]"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: reduceMotion ? 0 : 3, ease: "linear" }}
+                  />
                 </div>
               </Motion.div>
 
+              {/* CTA buttons */}
               <Motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.58 }}
-                className="mt-6"
-              >
-                <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.12em] text-text-muted">
-                  <span>{t("reviewOrder.success.returningHome")}</span>
-                  <span>{t("reviewOrder.success.almostThere")}</span>
-            </div>
-                <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-slate-800" : "bg-stone-100"}`}>
-              <Motion.div
-                    className="h-full origin-left rounded-full bg-primary"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: reduceMotion ? 0 : 3, ease: "linear" }}
-              />
-            </div>
-          </Motion.div>
-
-              <Motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.68 }}
-                className="mt-7 flex flex-col gap-3 sm:flex-row"
+                transition={{ delay: 0.72 }}
+                className="flex flex-col gap-3 sm:flex-row"
               >
                 <button
                   type="button"
+                  id="review-success-continue-shopping"
                   onClick={() => navigate("/customer", { replace: true })}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary-dark active:translate-y-0"
+                  className="group relative inline-flex h-13 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-primary px-6 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 active:translate-y-0"
                 >
-                  <Home className="h-4 w-4" />
-                  {t("reviewOrder.success.continueShopping")}
-                  <ArrowRight className="h-4 w-4" />
+                  <span className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <Home className="h-4 w-4 shrink-0" />
+                  <span>{t("reviewOrder.success.continueShopping")}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
                 </button>
+
                 <Link
+                  id="review-success-view-orders"
                   to="/customer/orders"
-                  className={`inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-black transition-all hover:-translate-y-0.5 active:translate-y-0 ${
+                  className={`group inline-flex h-13 flex-1 items-center justify-center gap-2.5 rounded-2xl border px-6 text-sm font-black transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
                     isDark
-                      ? "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
-                      : "border-stone-200 bg-white text-text-main hover:bg-stone-50"
+                      ? "border-white/12 bg-white/5 text-slate-100 hover:bg-white/10"
+                      : "border-stone-200 bg-white text-text-main hover:bg-stone-50 hover:border-stone-300"
                   }`}
                 >
-                  <ShoppingBag className="h-4 w-4" />
-                  {t("reviewOrder.success.viewOrders")}
+                  <ShoppingBag className="h-4 w-4 shrink-0" />
+                  <span>{t("reviewOrder.success.viewOrders")}</span>
                 </Link>
               </Motion.div>
             </div>
           </div>
-        </Motion.section>
+
+          {/* Bottom attribution */}
+          <Motion.p
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9 }}
+            className="mt-6 text-center text-xs font-bold text-text-muted"
+          >
+            {t("reviewOrder.success.returningHome")} &mdash; {t("reviewOrder.success.almostThere")}
+          </Motion.p>
+        </Motion.div>
       </main>
     );
   }
