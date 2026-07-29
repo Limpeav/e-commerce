@@ -32,6 +32,50 @@ import {
 import { adminService } from "../../../services/adminService";
 import { config } from "../../../config";
 
+const getSafeReturnState = (state) =>
+    state?.returnState?.openNotifications === true
+        ? { openNotifications: true }
+        : undefined;
+
+const ORDER_CACHE_KEYS_BY_ROLE = {
+    admin: "adminOrdersCache",
+    seller: "sellerOrdersCache",
+    delivery: "adminDeliveryOrdersCache",
+};
+
+const getOrdersCacheKey = (role = "admin") =>
+    ORDER_CACHE_KEYS_BY_ROLE[role] || ORDER_CACHE_KEYS_BY_ROLE.admin;
+
+const cacheOrderInSession = (cacheKey, updatedOrder) => {
+    if (!updatedOrder?._id) {
+        return;
+    }
+
+    try {
+        const cachedOrders = JSON.parse(sessionStorage.getItem(cacheKey) || "[]");
+        if (!Array.isArray(cachedOrders)) {
+            return;
+        }
+
+        sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify(
+                cachedOrders.map((cachedOrder) =>
+                    cachedOrder._id === updatedOrder._id
+                        ? {
+                            ...cachedOrder,
+                            ...updatedOrder,
+                            user: updatedOrder.user || cachedOrder.user,
+                        }
+                        : cachedOrder
+                )
+            )
+        );
+    } catch {
+        // Cache is only a convenience for smoother back navigation.
+    }
+};
+
 const OrderDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -46,8 +90,10 @@ const OrderDetails = () => {
     const [usdToKhrRate, setUsdToKhrRate] = useState(config.USD_TO_KHR_RATE);
     const receiptNoticeTimeoutRef = useRef(null);
     const adminUser = getStoredAdminUser();
-    const isDelivery = adminUser?.role === "delivery";
-    const isSeller = adminUser?.role === "seller";
+    const adminRole = adminUser?.role;
+    const isDelivery = adminRole === "delivery";
+    const isSeller = adminRole === "seller";
+    const orderCacheKeyRef = useRef(getOrdersCacheKey(adminRole));
     const ordersPath = getPortalOrdersPath(adminUser);
     const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
     const returnTo =
@@ -56,6 +102,12 @@ const OrderDetails = () => {
             location.state.returnTo.startsWith(ordersPath))
             ? location.state.returnTo
             : ordersPath;
+    const returnState = getSafeReturnState(location.state);
+    const backLabel = returnState?.openNotifications
+        ? "Back to Notifications"
+        : returnTo === "/admin"
+            ? "Back to Dashboard"
+            : "Back to Orders";
 
     useEffect(() => {
         if (!isDelivery) return;
@@ -70,37 +122,6 @@ const OrderDetails = () => {
             });
     }, [isDelivery]);
 
-    const cacheDeliveryOrder = useCallback((updatedOrder) => {
-        if (!isDelivery || !updatedOrder?._id) {
-            return;
-        }
-
-        try {
-            const cacheKey = "adminDeliveryOrdersCache";
-            const cachedOrders = JSON.parse(sessionStorage.getItem(cacheKey) || "[]");
-            if (!Array.isArray(cachedOrders)) {
-                return;
-            }
-
-            sessionStorage.setItem(
-                cacheKey,
-                JSON.stringify(
-                    cachedOrders.map((cachedOrder) =>
-                        cachedOrder._id === updatedOrder._id
-                            ? {
-                                ...cachedOrder,
-                                ...updatedOrder,
-                                user: updatedOrder.user || cachedOrder.user,
-                            }
-                            : cachedOrder
-                    )
-                )
-            );
-        } catch {
-            // Cache is only a convenience for smoother back navigation.
-        }
-    }, [isDelivery]);
-
     const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
         if (!silent) {
             setLoading(true);
@@ -109,7 +130,7 @@ const OrderDetails = () => {
 
         if (result.success) {
             setOrder(result.data);
-            cacheDeliveryOrder(result.data);
+            cacheOrderInSession(orderCacheKeyRef.current, result.data);
             setError(null);
         } else {
             setError(result.error || "Failed to fetch order details");
@@ -118,7 +139,7 @@ const OrderDetails = () => {
         if (!silent) {
             setLoading(false);
         }
-    }, [cacheDeliveryOrder, id]);
+    }, [id]);
 
     useEffect(() => {
         fetchOrderDetails();
@@ -172,7 +193,7 @@ const OrderDetails = () => {
                     ),
                 };
 
-                cacheDeliveryOrder(updatedOrder);
+                cacheOrderInSession(orderCacheKeyRef.current, updatedOrder);
                 return updatedOrder;
             });
         };
@@ -186,7 +207,7 @@ const OrderDetails = () => {
             unsubscribeUpdated();
             unsubscribeCreated();
         };
-    }, [cacheDeliveryOrder, fetchOrderDetails, id]);
+    }, [fetchOrderDetails, id]);
 
     const handleBackToOrders = () => {
         if (shouldReturnToDeliveryHistory) {
@@ -194,7 +215,7 @@ const OrderDetails = () => {
             return;
         }
 
-        navigate(returnTo);
+        navigate(returnTo, returnState ? { state: returnState } : undefined);
     };
 
     const handleStatusUpdate = async (newStatus) => {
@@ -219,7 +240,7 @@ const OrderDetails = () => {
                 user: result.data?.user || currentOrder?.user,
                 orderStatus: result.data?.orderStatus || newStatus,
             };
-            cacheDeliveryOrder(updatedOrder);
+            cacheOrderInSession(orderCacheKeyRef.current, updatedOrder);
             return updatedOrder;
         });
         setUpdating(false);
@@ -281,7 +302,7 @@ const OrderDetails = () => {
         }
 
         setOrder(result.data);
-        cacheDeliveryOrder(result.data);
+        cacheOrderInSession(orderCacheKeyRef.current, result.data);
         window.dispatchEvent(new Event("admin-orders-updated"));
         setUploadingProof(false);
     };
@@ -401,7 +422,7 @@ const OrderDetails = () => {
                         onClick={handleBackToOrders}
                         className="mt-4 text-blue-600 hover:text-blue-800"
                     >
-                        ← Back to Orders
+                        ← {backLabel}
                     </button>
                 </div>
             </div>
@@ -733,7 +754,7 @@ const OrderDetails = () => {
                             <button
                                 onClick={handleBackToOrders}
                                 className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text-main)]"
-                                aria-label="Back to orders"
+                                aria-label={backLabel}
                             >
                                 <ArrowLeft className="h-5 w-5" />
                             </button>

@@ -332,6 +332,7 @@ export const emitNotificationCreated = (notification) => {
     title: notification.title,
     message: notification.message,
     orderId: resolveUserId(notification.orderId),
+    productId: resolveUserId(notification.productId),
     recipient: resolveUserId(notification.recipient),
     link: notification.link,
     createdAt: notification.createdAt || new Date().toISOString(),

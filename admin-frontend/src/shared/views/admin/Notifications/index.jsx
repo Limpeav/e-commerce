@@ -127,6 +127,35 @@ const getOrderIdFromPath = (path) => {
   return match?.[1] || "";
 };
 
+const PRODUCT_LIST_ROUTE_SEGMENTS = new Set([
+  "add",
+  "best-sellers",
+  "edit",
+  "new-arrivals",
+  "promotions",
+  "sold",
+]);
+
+const getProductIdFromPath = (path) => {
+  const match = path.match(/^\/(?:admin|seller|delivery)\/products\/(?:edit\/)?([^/?#]+)/);
+  const productId = match?.[1] || "";
+
+  return PRODUCT_LIST_ROUTE_SEGMENTS.has(productId) ? "" : productId;
+};
+
+const isStockNotification = (notification) => {
+  const title = String(notification?.title || "").toLowerCase();
+  const message = String(notification?.message || "").toLowerCase();
+  const link = String(notification?.link || "").toLowerCase();
+  const haystack = `${title} ${message} ${link}`;
+
+  return (
+    haystack.includes("low stock") ||
+    haystack.includes("out of stock") ||
+    haystack.includes("stock threshold")
+  );
+};
+
 const normalizeAdminPath = (path) => {
   if (!path) return "";
 
@@ -150,6 +179,18 @@ const getNotificationTarget = (notification, adminUser) => {
   const linkPath = normalizeAdminPath(getPathFromLink(notification?.link));
   const linkOrderId = getOrderIdFromPath(linkPath);
   if (linkOrderId) return getPortalOrderDetailsPath(linkOrderId, adminUser);
+
+  if (
+    adminUser?.role === "admin" &&
+    notification?.type === "product" &&
+    isStockNotification(notification)
+  ) {
+    const productId =
+      getEntityId(notification?.productId) || getProductIdFromPath(linkPath);
+
+    if (productId) return `/admin/products/${productId}`;
+  }
+
   if (linkPath && adminUser?.role === "admin") return linkPath;
 
   const orderId = getEntityId(notification?.orderId);
@@ -162,6 +203,18 @@ const getNotificationTarget = (notification, adminUser) => {
 
   return getPortalDashboardPath(adminUser);
 };
+
+const isNotificationDetailTarget = (target) =>
+  Boolean(
+    getOrderIdFromPath(target) ||
+      getProductIdFromPath(target) ||
+      target.match(/^\/admin\/support\/tickets\/[^/?#]+/)
+  );
+
+const getNotificationReturnState = (target, adminUser) =>
+  adminUser?.role === "admin" && isNotificationDetailTarget(target)
+    ? { returnTo: "/admin", returnState: { openNotifications: true } }
+    : undefined;
 
 const getNotificationCategory = (notification) => {
   const title = String(notification?.title || "").toLowerCase();
@@ -177,11 +230,7 @@ const getNotificationCategory = (notification) => {
     return "payments";
   }
 
-  if (
-    haystack.includes("low stock") ||
-    haystack.includes("out of stock") ||
-    haystack.includes("stock threshold")
-  ) {
+  if (isStockNotification(notification)) {
     return "stock";
   }
 
@@ -425,6 +474,7 @@ export default function AdminNotifications() {
 
   const handleOpenNotification = async (notification) => {
     const target = getNotificationTarget(notification, adminUser);
+    const returnState = getNotificationReturnState(target, adminUser);
 
     if (!notification.isRead) {
       await markNotificationAsRead(notification._id, { quiet: true });
@@ -435,15 +485,16 @@ export default function AdminNotifications() {
       return;
     }
 
-    navigate(target);
+    navigate(target, returnState ? { state: returnState } : undefined);
   };
 
   const handleOpenSelectedTarget = () => {
     if (!selectedNotification) return;
 
     const target = getNotificationTarget(selectedNotification, adminUser);
+    const returnState = getNotificationReturnState(target, adminUser);
     setSelectedNotification(null);
-    navigate(target);
+    navigate(target, returnState ? { state: returnState } : undefined);
   };
 
   const handleMarkAllAsRead = async () => {

@@ -187,6 +187,19 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
+const isSafeReturnPath = (path) =>
+  typeof path === "string" &&
+  !path.startsWith("//") &&
+  (path === "/admin" ||
+    path.startsWith("/admin?") ||
+    path.startsWith("/admin#") ||
+    /^\/admin\/(?:products|notifications)(?:[/?#]|$)/.test(path));
+
+const getSafeReturnState = (state) =>
+  state?.returnState?.openNotifications === true
+    ? { openNotifications: true }
+    : undefined;
+
 const AdminProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -195,12 +208,14 @@ const AdminProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const returnTo =
-    typeof location.state?.returnTo === "string" &&
-    location.state.returnTo.startsWith("/admin/products") &&
-    !location.state.returnTo.startsWith("//")
-      ? location.state.returnTo
-      : "/admin/products";
+  const returnTo = isSafeReturnPath(location.state?.returnTo)
+    ? location.state.returnTo
+    : "/admin/products";
+  const returnState = getSafeReturnState(location.state);
+  const backLabel =
+    returnState?.openNotifications || returnTo.startsWith("/admin/notifications")
+    ? "Back to Notifications"
+    : "Back to Products";
 
   const fetchProduct = useCallback(
     async ({ silent = false } = {}) => {
@@ -239,7 +254,7 @@ const AdminProductDetails = () => {
   }, [fetchProduct]);
 
   const handleBack = () => {
-    navigate(returnTo);
+    navigate(returnTo, returnState ? { state: returnState } : undefined);
   };
 
   const handleEdit = () => {
@@ -291,7 +306,7 @@ const AdminProductDetails = () => {
             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Products
+            {backLabel}
           </button>
         </div>
       </div>
@@ -339,7 +354,7 @@ const AdminProductDetails = () => {
             className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:border-blue-200 hover:text-blue-700"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Products
+            {backLabel}
           </button>
 
           <div className="flex flex-wrap items-center gap-2">

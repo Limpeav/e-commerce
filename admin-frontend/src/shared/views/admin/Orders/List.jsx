@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
     CalendarDays,
     ChevronDown,
@@ -41,19 +41,36 @@ import { config } from "../../../config";
 const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
 const DELIVERY_ORDERS_VIEW_STATE_KEY = "adminDeliveryOrdersViewState";
+const ORDER_CACHE_KEYS_BY_ROLE = {
+    admin: {
+        orders: "adminOrdersCache",
+        viewState: "adminOrdersViewState",
+    },
+    seller: {
+        orders: "sellerOrdersCache",
+        viewState: "sellerOrdersViewState",
+    },
+    delivery: {
+        orders: DELIVERY_ORDERS_CACHE_KEY,
+        viewState: DELIVERY_ORDERS_VIEW_STATE_KEY,
+    },
+};
 
-const readCachedDeliveryOrders = () => {
+const getOrderCacheKeys = (role = "admin") =>
+    ORDER_CACHE_KEYS_BY_ROLE[role] || ORDER_CACHE_KEYS_BY_ROLE.admin;
+
+const readCachedOrders = (cacheKey) => {
     try {
-        const cachedOrders = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_CACHE_KEY) || "[]");
+        const cachedOrders = JSON.parse(sessionStorage.getItem(cacheKey) || "[]");
         return Array.isArray(cachedOrders) ? cachedOrders : [];
     } catch {
         return [];
     }
 };
 
-const readCachedDeliveryViewState = () => {
+const readCachedOrdersViewState = (cacheKey) => {
     try {
-        const cachedState = JSON.parse(sessionStorage.getItem(DELIVERY_ORDERS_VIEW_STATE_KEY) || "{}");
+        const cachedState = JSON.parse(sessionStorage.getItem(cacheKey) || "{}");
         return cachedState && typeof cachedState === "object" ? cachedState : {};
     } catch {
         return {};
@@ -113,30 +130,35 @@ const getOrderCreatedAtTime = (createdAt) => {
 
 const AdminOrders = ({ renderDelivery }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
-    const initialDeliveryOrders = useMemo(
-        () => (isDelivery ? readCachedDeliveryOrders() : []),
-        [isDelivery]
+    const cacheKeys = useMemo(
+        () => getOrderCacheKeys(adminUser?.role),
+        [adminUser?.role]
     );
-    const initialDeliveryViewState = useMemo(
-        () => (isDelivery ? readCachedDeliveryViewState() : {}),
-        [isDelivery]
+    const initialCachedOrders = useMemo(
+        () => readCachedOrders(cacheKeys.orders),
+        [cacheKeys.orders]
     );
-    const hasCachedDeliveryOrders = isDelivery && initialDeliveryOrders.length > 0;
-    const [orders, setOrders] = useState(initialDeliveryOrders);
-    const [loading, setLoading] = useState(!hasCachedDeliveryOrders);
+    const initialCachedViewState = useMemo(
+        () => readCachedOrdersViewState(cacheKeys.viewState),
+        [cacheKeys.viewState]
+    );
+    const hasCachedOrders = initialCachedOrders.length > 0;
+    const [orders, setOrders] = useState(initialCachedOrders);
+    const [loading, setLoading] = useState(!hasCachedOrders);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState(initialDeliveryViewState.searchTerm || "");
-    const initialStatus = searchParams.get("status") || initialDeliveryViewState.statusFilter || "All";
+    const [searchTerm, setSearchTerm] = useState(initialCachedViewState.searchTerm || "");
+    const initialStatus = searchParams.get("status") || initialCachedViewState.statusFilter || "All";
     const [statusFilter, setStatusFilter] = useState(initialStatus);
     const [selectedOrderDate, setSelectedOrderDate] = useState(
-        initialDeliveryViewState.selectedOrderDate || ""
+        initialCachedViewState.selectedOrderDate || ""
     );
     const [expandedOrderDates, setExpandedOrderDates] = useState(
-        initialDeliveryViewState.expandedOrderDates || {}
+        initialCachedViewState.expandedOrderDates || {}
     );
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
@@ -153,19 +175,17 @@ const AdminOrders = ({ renderDelivery }) => {
             }
             const response = await OrderController.getOrders();
             setOrders(response.data);
-            if (isDelivery) {
-                sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(response.data));
-            }
+            sessionStorage.setItem(cacheKeys.orders, JSON.stringify(response.data));
             setLoading(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch orders");
             setLoading(false);
         }
-    }, [isDelivery]);
+    }, [cacheKeys.orders]);
 
     useEffect(() => {
-        fetchOrders({ silent: hasCachedDeliveryOrders });
-    }, [fetchOrders, hasCachedDeliveryOrders]);
+        fetchOrders({ silent: hasCachedOrders });
+    }, [fetchOrders, hasCachedOrders]);
 
     useEffect(() => {
         if (!isDelivery) return;
@@ -181,24 +201,20 @@ const AdminOrders = ({ renderDelivery }) => {
     }, [isDelivery]);
 
     useEffect(() => {
-        if (isDelivery) {
-            sessionStorage.setItem(DELIVERY_ORDERS_CACHE_KEY, JSON.stringify(orders));
-        }
-    }, [isDelivery, orders]);
+        sessionStorage.setItem(cacheKeys.orders, JSON.stringify(orders));
+    }, [cacheKeys.orders, orders]);
 
     useEffect(() => {
-        if (isDelivery) {
-            sessionStorage.setItem(
-                DELIVERY_ORDERS_VIEW_STATE_KEY,
-                JSON.stringify({
-                    searchTerm,
-                    statusFilter,
-                    selectedOrderDate,
-                    expandedOrderDates,
-                })
-            );
-        }
-    }, [expandedOrderDates, isDelivery, searchTerm, selectedOrderDate, statusFilter]);
+        sessionStorage.setItem(
+            cacheKeys.viewState,
+            JSON.stringify({
+                searchTerm,
+                statusFilter,
+                selectedOrderDate,
+                expandedOrderDates,
+            })
+        );
+    }, [cacheKeys.viewState, expandedOrderDates, searchTerm, selectedOrderDate, statusFilter]);
 
     useEffect(() => {
         return () => {
@@ -406,7 +422,10 @@ const AdminOrders = ({ renderDelivery }) => {
         }
 
         navigate(getPortalOrderDetailsPath(orderId, adminUser), {
-            state: isDelivery ? { fromDeliveryOrders: true } : undefined,
+            state: {
+                returnTo: `${location.pathname}${location.search}`,
+                ...(isDelivery ? { fromDeliveryOrders: true } : {}),
+            },
         });
     };
 

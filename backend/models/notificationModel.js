@@ -25,6 +25,10 @@ const notificationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Order",
         },
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Product",
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle,
@@ -73,9 +73,23 @@ const getReplyStyle = (reply) => {
   return "border-emerald-200 bg-emerald-50";
 };
 
+const isSafeReturnPath = (path) =>
+  typeof path === "string" &&
+  !path.startsWith("//") &&
+  (path === "/admin" ||
+    path.startsWith("/admin?") ||
+    path.startsWith("/admin#") ||
+    /^\/admin\/support\/tickets(?:[/?#]|$)/.test(path));
+
+const getSafeReturnState = (state) =>
+  state?.returnState?.openNotifications === true
+    ? { openNotifications: true }
+    : undefined;
+
 export default function AdminSupportTicketDetails() {
   const { ticketNumber } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const attachmentInputRef = useRef(null);
   const [ticket, setTicket] = useState(null);
   const [agents, setAgents] = useState([]);
@@ -91,6 +105,19 @@ export default function AdminSupportTicketDetails() {
   const [statusValue, setStatusValue] = useState("");
   const [priorityValue, setPriorityValue] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
+  const returnTo = isSafeReturnPath(location.state?.returnTo)
+    ? location.state.returnTo
+    : "/admin/support/tickets";
+  const returnState = getSafeReturnState(location.state);
+  const backLabel = returnState?.openNotifications
+    ? "Back to Notifications"
+    : returnTo === "/admin"
+      ? "Back to Dashboard"
+      : "Back to Support";
+
+  const handleBack = () => {
+    navigate(returnTo, returnState ? { state: returnState } : undefined);
+  };
 
   const fetchTicket = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -304,10 +331,10 @@ export default function AdminSupportTicketDetails() {
           <p className="font-bold">{error || "Support ticket not found"}</p>
           <button
             type="button"
-            onClick={() => navigate("/admin/support/tickets")}
+            onClick={handleBack}
             className="mt-4 rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white"
           >
-            Back to Support
+            {backLabel}
           </button>
         </div>
       </div>
@@ -320,11 +347,11 @@ export default function AdminSupportTicketDetails() {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <button
             type="button"
-            onClick={() => navigate("/admin/support/tickets")}
+            onClick={handleBack}
             className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-bold text-gray-600 transition hover:border-blue-300 hover:text-blue-700"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Support
+            {backLabel}
           </button>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>

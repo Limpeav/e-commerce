@@ -48,7 +48,8 @@ export const dispatchInventoryStockAlerts = (alerts = []) => {
           type: "product",
           title: copy.title,
           message: copy.message,
-          link: `/admin/products/edit/${alert.productId}`,
+          productId: alert.productId,
+          link: `/admin/products/${alert.productId}`,
         });
         emitNotificationCreated(notification);
       } catch (notificationError) {

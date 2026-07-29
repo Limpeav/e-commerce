@@ -446,7 +446,7 @@ const RatingReviewList = ({
                             product.sentimentCounts[label] > 0 ? (
                               <span
                                 key={label}
-                                className={`rounded-full border px-2.5 py-1 text-xs font-black ${sentimentClasses[label]}`}
+                                className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-black ${sentimentClasses[label]}`}
                               >
                                 {label}: {product.sentimentCounts[label]}
                               </span>
@@ -588,7 +588,7 @@ const RatingReviewList = ({
                       return (
                         <span
                           key={label}
-                          className={`rounded-full border px-3 py-1 text-xs font-black ${sentimentClasses[label]}`}
+                          className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-black ${sentimentClasses[label]}`}
                         >
                           {label}: {count}
                         </span>

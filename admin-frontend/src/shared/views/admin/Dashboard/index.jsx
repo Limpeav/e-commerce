@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { DashboardController } from "../../../controllers";
 import Loading from "../../../components/common/Loading";
@@ -71,6 +71,7 @@ const saveStoredDashboardFilter = (storageKey, filter) => {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const adminUser = getStoredAdminUser();
   const adminToken = getStoredAdminToken();
   const cachedDashboard =
@@ -262,6 +263,7 @@ const AdminDashboard = () => {
       dateRange={dateRange}
       setDateRange={setDateRange}
       navigateFromDashboard={navigateFromDashboard}
+      openNotificationModalOnLoad={location.state?.openNotifications === true}
     />
   );
 };

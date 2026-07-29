@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     BarChart3,
@@ -162,6 +162,7 @@ const CashReport = () => {
     const [exporting, setExporting] = useState(false);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const dateInputRef = useRef(null);
 
     const loadReport = useCallback(async ({ silent = false } = {}) => {
             try {
@@ -232,6 +233,22 @@ const CashReport = () => {
             setExporting(false);
         }
     };
+
+    const openDatePicker = useCallback(() => {
+        const input = dateInputRef.current;
+
+        if (!input) return;
+
+        input.focus();
+
+        if (typeof input.showPicker === "function") {
+            try {
+                input.showPicker();
+            } catch {
+                // Some browsers throw when the native picker is already opening.
+            }
+        }
+    }, []);
 
     if (loading) {
         return <Loading message="Loading cash report..." />;
@@ -322,16 +339,17 @@ const CashReport = () => {
                                 </button>
                             ))}
                         </div>
-                        <label className="relative block">
+                        <label className="relative block cursor-pointer" onClick={openDatePicker}>
                             <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                             <input
+                                ref={dateInputRef}
                                 type={viewMode === "month" && activeTab === "overview" ? "month" : "date"}
                                 value={viewMode === "month" && activeTab === "overview" ? selectedDate.slice(0, 7) : selectedDate}
                                 onChange={(event) => {
                                     const value = event.target.value;
                                     setSelectedDate(value.length === 7 ? `${value}-01` : value);
                                 }}
-                                className="h-12 rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-bold text-gray-800 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                                className="h-12 cursor-pointer rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-bold text-gray-800 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
                             />
                         </label>
                         <button

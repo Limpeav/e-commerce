@@ -261,6 +261,35 @@ const getNotificationOrderIdFromPath = (path) => {
   return match?.[1] || "";
 };
 
+const PRODUCT_LIST_ROUTE_SEGMENTS = new Set([
+  "add",
+  "best-sellers",
+  "edit",
+  "new-arrivals",
+  "promotions",
+  "sold",
+]);
+
+const getNotificationProductIdFromPath = (path) => {
+  const match = path.match(/^\/(?:admin|seller|delivery)\/products\/(?:edit\/)?([^/?#]+)/);
+  const productId = match?.[1] || "";
+
+  return PRODUCT_LIST_ROUTE_SEGMENTS.has(productId) ? "" : productId;
+};
+
+const isStockNotification = (notification) => {
+  const title = String(notification?.title || "").toLowerCase();
+  const message = String(notification?.message || "").toLowerCase();
+  const link = String(notification?.link || "").toLowerCase();
+  const haystack = `${title} ${message} ${link}`;
+
+  return (
+    haystack.includes("low stock") ||
+    haystack.includes("out of stock") ||
+    haystack.includes("stock threshold")
+  );
+};
+
 const normalizeNotificationAdminPath = (path) => {
   if (!path) return "";
 
@@ -284,6 +313,15 @@ const getNotificationTarget = (notification) => {
   const linkPath = normalizeNotificationAdminPath(
     getNotificationPathFromLink(notification?.link)
   );
+
+  if (notification?.type === "product" && isStockNotification(notification)) {
+    const productId =
+      getNotificationEntityId(notification?.productId) ||
+      getNotificationProductIdFromPath(linkPath);
+
+    if (productId) return `/admin/products/${productId}`;
+  }
+
   if (linkPath) return linkPath;
 
   const orderId = getNotificationEntityId(notification?.orderId);
@@ -295,6 +333,18 @@ const getNotificationTarget = (notification) => {
   return "/admin";
 };
 
+const isNotificationDetailTarget = (target) =>
+  Boolean(
+    getNotificationOrderIdFromPath(target) ||
+      getNotificationProductIdFromPath(target) ||
+      target.match(/^\/admin\/support\/tickets\/[^/?#]+/)
+  );
+
+const getNotificationReturnState = (target) =>
+  isNotificationDetailTarget(target)
+    ? { returnTo: "/admin", returnState: { openNotifications: true } }
+    : undefined;
+
 const getNotificationCategory = (notification) => {
   const title = String(notification?.title || "").toLowerCase();
   const message = String(notification?.message || "").toLowerCase();
@@ -305,11 +355,7 @@ const getNotificationCategory = (notification) => {
     return "payments";
   }
 
-  if (
-    haystack.includes("low stock") ||
-    haystack.includes("out of stock") ||
-    haystack.includes("stock threshold")
-  ) {
+  if (isStockNotification(notification)) {
     return "stock";
   }
 
@@ -455,12 +501,15 @@ const DashboardPage = ({
   dateRange,
   setDateRange,
   navigateFromDashboard,
+  openNotificationModalOnLoad = false,
 }) => {
   const backendReviewHealth = stats?.reviewHealth;
   const backendSentiment = stats?.sentiment;
   const [showAllNegativeCategories, setShowAllNegativeCategories] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(
+    Boolean(openNotificationModalOnLoad)
+  );
   const [notificationLoading, setNotificationLoading] = useState(true);
   const [notificationActionBusy, setNotificationActionBusy] = useState("");
   const [notificationBulkBusy, setNotificationBulkBusy] = useState("");
@@ -968,13 +1017,14 @@ const DashboardPage = ({
 
   const handleOpenNotification = async (notification) => {
     const target = getNotificationTarget(notification);
+    const returnState = getNotificationReturnState(target);
 
     if (!notification.isRead) {
       await markNotificationAsRead(notification._id, { quiet: true });
     }
 
     setIsNotificationModalOpen(false);
-    navigateFromDashboard(target);
+    navigateFromDashboard(target, returnState ? { state: returnState } : undefined);
   };
 
   const handleMarkAllNotificationsRead = async () => {
