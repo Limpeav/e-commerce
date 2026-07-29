@@ -227,6 +227,16 @@ const StaffManagement = () => {
         return subscribeRealtimeDomains(["users"], () => refresh(false));
     }, [fetchUsers, refresh]);
 
+    useEffect(() => {
+        if (staffFormMessage?.type !== "success") return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            setStaffFormMessage(null);
+        }, 2000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [staffFormMessage]);
+
     const handleStaffFormChange = (event) => {
         const { name, value } = event.target;
         setStaffForm((prev) => ({

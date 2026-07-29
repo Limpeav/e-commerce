@@ -4,8 +4,8 @@ import {
   Bell,
   Check,
   CheckCheck,
+  CircleDollarSign,
   Clock,
-  CreditCard,
   ExternalLink,
   Inbox,
   Info,
@@ -64,7 +64,7 @@ const CATEGORY_STYLES = {
   },
   payments: {
     label: "Payments",
-    icon: CreditCard,
+    icon: CircleDollarSign,
     pill: "border-emerald-200 bg-emerald-50 text-emerald-700",
     iconBox: "bg-emerald-600 text-white shadow-emerald-600/20",
   },
@@ -756,7 +756,7 @@ export default function AdminNotifications() {
                         <span
                           className={`mt-1 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${categoryStyle.iconBox}`}
                         >
-                          <CategoryIcon className="h-6 w-6" aria-hidden="true" />
+                          <CategoryIcon className="h-6 w-6" strokeWidth={2.5} aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="mb-2 flex flex-wrap items-center gap-2">

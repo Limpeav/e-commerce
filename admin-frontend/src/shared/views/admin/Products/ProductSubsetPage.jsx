@@ -1,6 +1,6 @@
 import { createElement, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import EmptyProductsState from "../../../components/admin/products/EmptyProductsState";
 import ProductCard from "../../../components/admin/products/ProductCard";
 import Loading from "../../../components/common/Loading";
@@ -97,6 +97,7 @@ const ProductSubsetPage = ({
   const [customSalesStartDate, setCustomSalesStartDate] = useState("");
   const [customSalesEndDate, setCustomSalesEndDate] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const styles = accentStyles[accent] || accentStyles.red;
   const todayInput = formatDateInput(new Date());
 
@@ -497,7 +498,16 @@ const ProductSubsetPage = ({
               <ProductCard
                 key={product._id}
                 product={product}
-                onEdit={(id) => navigate(`/admin/products/edit/${id}`)}
+                detailsState={{
+                  returnTo: `${location.pathname}${location.search}`,
+                }}
+                onEdit={(id) =>
+                  navigate(`/admin/products/edit/${id}`, {
+                    state: {
+                      returnTo: `${location.pathname}${location.search}`,
+                    },
+                  })
+                }
                 onDelete={handleDelete}
               />
             ))}

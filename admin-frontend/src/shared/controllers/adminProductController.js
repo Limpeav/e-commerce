@@ -25,6 +25,18 @@ export class AdminProductController {
     }
   }
 
+  static async getProductById(id) {
+    try {
+      const response = await adminService.getProductById(id);
+      return { success: true, data: response.data || {} };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Failed to fetch product",
+      };
+    }
+  }
+
   static async getSearchSuggestions(keyword) {
     try {
       const response = await adminService.getProductSearchSuggestions({ q: keyword });

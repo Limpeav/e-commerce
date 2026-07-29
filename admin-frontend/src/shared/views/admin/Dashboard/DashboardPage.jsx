@@ -174,9 +174,9 @@ const NOTIFICATION_CATEGORY_STYLES = {
   },
   payments: {
     label: "Payments",
-    icon: CreditCard,
+    icon: CircleDollarSign,
     pill: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    iconBox: "bg-emerald-100 text-emerald-700",
+    iconBox: "bg-emerald-600 text-white shadow-emerald-600/20",
   },
   stock: {
     label: "Stock",
@@ -1985,7 +1985,7 @@ const DashboardPage = ({
                     const categoryStyle =
                       NOTIFICATION_CATEGORY_STYLES[categoryKey] ||
                       NOTIFICATION_CATEGORY_STYLES.system;
-                    const CategoryIcon = categoryStyle.icon;
+                    const CategoryIcon = categoryStyle.icon || Bell;
                     const person = getNotificationPerson(notification);
                     const createdAtTitle = getNotificationDateTitle(notification.createdAt);
 
@@ -2007,7 +2007,7 @@ const DashboardPage = ({
                             <span
                               className={`mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${categoryStyle.iconBox}`}
                             >
-                              <CategoryIcon className="h-5 w-5" />
+                              <CategoryIcon className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="mb-2 flex flex-wrap items-center gap-2">

@@ -316,6 +316,9 @@ const ProductList = () => {
                 <ProductCard
                   key={product._id}
                   product={product}
+                  detailsState={{
+                    returnTo: `${location.pathname}${location.search}`,
+                  }}
                   onEdit={(id) =>
                     navigate(`/admin/products/edit/${id}`, {
                       state: {
