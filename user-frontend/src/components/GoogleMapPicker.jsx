@@ -14,11 +14,45 @@ const CAMBODIA_BOUNDS = {
   east: 107.6277,
 };
 
-const isWithinCambodiaBounds = ({ lat, lng }) =>
-  lat >= CAMBODIA_BOUNDS.south &&
-  lat <= CAMBODIA_BOUNDS.north &&
-  lng >= CAMBODIA_BOUNDS.west &&
-  lng <= CAMBODIA_BOUNDS.east;
+const toFiniteCoordinate = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const normalizeMapLocation = (location) => {
+  if (!location) return null;
+
+  const lat = toFiniteCoordinate(location.lat);
+  const lng = toFiniteCoordinate(location.lng);
+
+  if (lat === null || lng === null) return null;
+
+  return { lat, lng };
+};
+
+const getLatLngValue = (latLng, key) => {
+  const value = latLng?.[key];
+  return typeof value === "function" ? value.call(latLng) : value;
+};
+
+const normalizeLatLng = (latLng) =>
+  normalizeMapLocation({
+    lat: getLatLngValue(latLng, "lat"),
+    lng: getLatLngValue(latLng, "lng"),
+  });
+
+const isWithinCambodiaBounds = (location) => {
+  const normalizedLocation = normalizeMapLocation(location);
+  if (!normalizedLocation) return false;
+
+  const { lat, lng } = normalizedLocation;
+  return (
+    lat >= CAMBODIA_BOUNDS.south &&
+    lat <= CAMBODIA_BOUNDS.north &&
+    lng >= CAMBODIA_BOUNDS.west &&
+    lng <= CAMBODIA_BOUNDS.east
+  );
+};
 
 const getCityProvinceFromText = (value = "") => {
   const parts = String(value)
@@ -62,6 +96,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   const markerRef = useRef(null);
   const autocompleteRef = useRef(null);
   const searchInputRef = useRef(null);
+  const selectedLocationRef = useRef(DEFAULT_LOCATION);
   const resolvedInitialLocationRef = useRef("");
   const addressRequestIdRef = useRef(0);
 
@@ -70,6 +105,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   }, [t]);
 
   const extractLocationDetails = useCallback((result, fallbackLocation = selectedLocation) => {
+    const normalizedFallbackLocation =
+      normalizeMapLocation(fallbackLocation) || DEFAULT_LOCATION;
+    const resultLocation =
+      normalizeLatLng(result?.geometry?.location) || normalizedFallbackLocation;
     const addressComponents = result?.address_components || [];
     const getAddressComponent = (...types) =>
       addressComponents.find((component) =>
@@ -115,12 +154,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       formattedAddress || result?.formatted_address || result?.name || fallbackAddress;
 
     return {
-      lat:
-        result?.geometry?.location?.lat?.() ??
-        fallbackLocation.lat,
-      lng:
-        result?.geometry?.location?.lng?.() ??
-        fallbackLocation.lng,
+      lat: resultLocation.lat,
+      lng: resultLocation.lng,
       street: addressLine,
       address: fallbackAddress,
       city:
@@ -135,19 +170,20 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
   const reverseGeocodeLocation = useCallback((location) =>
     new Promise((resolve) => {
-      if (!window.google?.maps?.Geocoder) {
+      const normalizedLocation = normalizeMapLocation(location);
+      if (!normalizedLocation || !window.google?.maps?.Geocoder) {
         resolve(null);
         return;
       }
 
       try {
         const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location }, (results, status) => {
+        geocoder.geocode({ location: normalizedLocation }, (results, status) => {
           if (status === "OK" && results[0]) {
             resolve({
-              ...extractLocationDetails(results[0], location),
-              lat: location.lat,
-              lng: location.lng,
+              ...extractLocationDetails(results[0], normalizedLocation),
+              lat: normalizedLocation.lat,
+              lng: normalizedLocation.lng,
             });
             return;
           }
@@ -189,25 +225,38 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   }, [onSelectLocation, updateDraftLocationDetails]);
 
   const revealLocationOnMap = useCallback((location, { zoom = 17 } = {}) => {
+    const normalizedLocation = normalizeMapLocation(location);
+    if (!normalizedLocation) return;
+
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.panTo(location);
+      mapInstanceRef.current.panTo(normalizedLocation);
       mapInstanceRef.current.setZoom(zoom);
     }
 
     if (markerRef.current && window.google?.maps?.Animation) {
-      markerRef.current.setPosition(location);
+      markerRef.current.setPosition(normalizedLocation);
       markerRef.current.setAnimation(window.google.maps.Animation.BOUNCE);
       window.setTimeout(() => markerRef.current?.setAnimation(null), 750);
     }
   }, []);
 
   useEffect(() => {
+    selectedLocationRef.current =
+      normalizeMapLocation(selectedLocation) || DEFAULT_LOCATION;
+  }, [selectedLocation]);
+
+  useEffect(() => {
     if (isOpen) return;
     setSelectedLocation(DEFAULT_LOCATION);
   }, [isOpen]);
 
+  const getInitialLocation = useCallback(
+    () => normalizeMapLocation(initialLocation) || DEFAULT_LOCATION,
+    [initialLocation]
+  );
+
   const resetDraftState = () => {
-    setSelectedLocation(initialLocation || DEFAULT_LOCATION);
+    setSelectedLocation(getInitialLocation());
     setLocationError("");
     setShowBottomSheet(true);
     setSearchQuery("");
@@ -217,17 +266,18 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
   };
 
   useEffect(() => {
-    if (!isGoogleMapsLoaded || !initialLocation || hasAddressText(address)) {
+    const normalizedInitialLocation = normalizeMapLocation(initialLocation);
+    if (!isGoogleMapsLoaded || !normalizedInitialLocation || hasAddressText(address)) {
       return;
     }
 
-    const locationKey = `${initialLocation.lat}:${initialLocation.lng}`;
+    const locationKey = `${normalizedInitialLocation.lat}:${normalizedInitialLocation.lng}`;
     if (resolvedInitialLocationRef.current === locationKey) {
       return;
     }
 
     resolvedInitialLocationRef.current = locationKey;
-    reverseGeocodeLocation(initialLocation).then((details) => {
+    reverseGeocodeLocation(normalizedInitialLocation).then((details) => {
       if (details?.address || details?.city || details?.formattedAddress) {
         emitLocationSelection(details);
       }
@@ -381,9 +431,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     try {
       setIsMapLoading(true);
       const isMobile = window.innerWidth < 768;
+      const currentLocation =
+        normalizeMapLocation(selectedLocation) || DEFAULT_LOCATION;
 
       const map = new window.google.maps.Map(mapRef.current, {
-        center: selectedLocation,
+        center: currentLocation,
         zoom: 15,
         minZoom: 7,
         mapTypeControl: false,
@@ -417,7 +469,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
       // Create custom marker
       const marker = new window.google.maps.Marker({
-        position: selectedLocation,
+        position: currentLocation,
         map: map,
         draggable: true,
         animation: window.google.maps.Animation.DROP,
@@ -435,9 +487,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       markerRef.current = marker;
 
       const updateAddress = async (location) => {
+        const normalizedLocation = normalizeMapLocation(location);
+        if (!normalizedLocation) return;
+
         const requestId = addressRequestIdRef.current + 1;
         addressRequestIdRef.current = requestId;
-        const details = await reverseGeocodeLocation(location);
+        const details = await reverseGeocodeLocation(normalizedLocation);
         if (addressRequestIdRef.current !== requestId) {
           return;
         }
@@ -446,8 +501,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
           setLocationError("");
         } else {
           setSelectedDetails((prev) => prev || {
-            lat: location.lat,
-            lng: location.lng,
+            lat: normalizedLocation.lat,
+            lng: normalizedLocation.lng,
             address: "",
             city: "",
             formattedAddress: "",
@@ -457,16 +512,15 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
       // Handle map clicks
       map.addListener("click", (e) => {
-        const newLocation = {
-          lat: e.latLng.lat(),
-          lng: e.latLng.lng(),
-        };
+        const newLocation = normalizeLatLng(e.latLng);
+        if (!newLocation) return;
+
         if (!isWithinCambodiaBounds(newLocation)) {
           setCambodiaOnlyError();
           return;
         }
         setSelectedLocation(newLocation);
-        marker.setPosition(e.latLng);
+        marker.setPosition(newLocation);
         marker.setAnimation(window.google.maps.Animation.BOUNCE);
         setTimeout(() => marker.setAnimation(null), 750);
         updateAddress(newLocation);
@@ -475,13 +529,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
       // Handle marker drag
       marker.addListener("dragend", (e) => {
-        const newLocation = {
-          lat: e.latLng.lat(),
-          lng: e.latLng.lng(),
-        };
+        const newLocation = normalizeLatLng(e.latLng);
+        if (!newLocation) return;
+
         if (!isWithinCambodiaBounds(newLocation)) {
-          marker.setPosition(selectedLocation);
-          map.panTo(selectedLocation);
+          marker.setPosition(selectedLocationRef.current);
+          map.panTo(selectedLocationRef.current);
           setCambodiaOnlyError();
           return;
         }
@@ -507,10 +560,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
           autocomplete.addListener("place_changed", () => {
             const place = autocomplete.getPlace();
             if (place.geometry && place.geometry.location) {
-              const newLocation = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng(),
-              };
+              const newLocation = normalizeLatLng(place.geometry.location);
+              if (!newLocation) return;
+
               if (!isWithinCambodiaBounds(newLocation)) {
                 setCambodiaOnlyError();
                 return;
@@ -544,10 +596,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
             componentRestrictions: { country: CAMBODIA_COUNTRY_CODE },
           }, (results, status) => {
             if (status === "OK" && results[0]) {
-              const location = {
-                lat: results[0].geometry.location.lat(),
-                lng: results[0].geometry.location.lng(),
-              };
+              const location = normalizeLatLng(results[0].geometry.location);
+              if (!location) return;
+
               if (!isWithinCambodiaBounds(location)) {
                 setCambodiaOnlyError();
                 return;
@@ -568,7 +619,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
           console.warn("Initial address geocoding failed");
         }
       } else {
-        updateAddress(selectedLocation);
+        updateAddress(currentLocation);
       }
 
       setIsMapLoading(false);
@@ -607,8 +658,10 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     }
 
     const resizeMap = () => {
+      const currentLocation =
+        normalizeMapLocation(selectedLocation) || DEFAULT_LOCATION;
       window.google.maps.event.trigger(mapInstanceRef.current, "resize");
-      mapInstanceRef.current.setCenter(selectedLocation);
+      mapInstanceRef.current.setCenter(currentLocation);
     };
 
     const resizeTimeout = window.setTimeout(resizeMap, 150);
@@ -632,10 +685,16 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     setLocationError("");
 
     const applyDetectedLocation = (position) => {
-      const location = {
+      const location = normalizeMapLocation({
         lat: position.coords.latitude,
         lng: position.coords.longitude,
-      };
+      });
+      if (!location) {
+        setDetectingLocation(false);
+        setLocationError(t("mapPicker.detectionFailed"));
+        return;
+      }
+
       if (!isWithinCambodiaBounds(location)) {
         setDetectingLocation(false);
         setCambodiaOnlyError();
@@ -719,10 +778,11 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
         }
 
         const result = results[0];
-        const location = {
-          lat: result.geometry.location.lat(),
-          lng: result.geometry.location.lng(),
-        };
+        const location = normalizeLatLng(result.geometry.location);
+        if (!location) {
+          setLocationError(t("mapPicker.searchNotFound"));
+          return;
+        }
 
         if (!isWithinCambodiaBounds(location)) {
           setCambodiaOnlyError();
@@ -744,10 +804,12 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
   const handleConfirmLocation = async () => {
     setIsConfirmingLocation(true);
+    const currentLocation =
+      normalizeMapLocation(selectedLocation) || DEFAULT_LOCATION;
     let details = selectedDetails;
 
     if (!details?.address || !details?.city) {
-      const resolvedDetails = await reverseGeocodeLocation(selectedLocation);
+      const resolvedDetails = await reverseGeocodeLocation(currentLocation);
       if (resolvedDetails) {
         details = resolvedDetails;
       }
@@ -757,8 +819,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       const fallbackAddress = details?.formattedAddress || details?.address || addressName || "";
       details = {
         ...details,
-        lat: details?.lat ?? selectedLocation.lat,
-        lng: details?.lng ?? selectedLocation.lng,
+        lat: details?.lat ?? currentLocation.lat,
+        lng: details?.lng ?? currentLocation.lng,
         address: details?.address || fallbackAddress,
         city: details?.city || getCityProvinceFromText(fallbackAddress),
         formattedAddress: details?.formattedAddress || fallbackAddress,
@@ -767,8 +829,8 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
     emitLocationSelection({
       ...details,
-      lat: selectedLocation.lat,
-      lng: selectedLocation.lng,
+      lat: currentLocation.lat,
+      lng: currentLocation.lng,
     });
     setIsConfirmingLocation(false);
     cleanupMapInstance();
@@ -780,6 +842,9 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
     cleanupMapInstance();
     setIsOpen(false);
   };
+
+  const displayLocation = normalizeMapLocation(selectedLocation) || DEFAULT_LOCATION;
+  const hasInitialLocation = Boolean(normalizeMapLocation(initialLocation));
 
   return (
     <>
@@ -798,7 +863,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
       >
         <MapPin className="h-4 w-4 shrink-0" />
         <span className="truncate">
-          {initialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
+          {hasInitialLocation ? t("mapPicker.updateLocationOnMap") : t("mapPicker.selectLocationOnMap")}
         </span>
       </button>
 
@@ -960,7 +1025,7 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
                   <div className="mb-3 flex flex-col gap-2 md:mb-4 md:flex-row md:items-center md:justify-between">
                     <div className="w-fit rounded-lg bg-gray-100 px-3 py-1.5">
                       <p className="text-[10px] md:text-xs font-mono text-gray-500">
-                        📍 {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                        📍 {displayLocation.lat.toFixed(6)}, {displayLocation.lng.toFixed(6)}
                       </p>
                     </div>
                     <p className="text-[10px] text-gray-400 md:text-xs">

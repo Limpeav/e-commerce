@@ -494,7 +494,6 @@ export const buildOrderReceiptCaption = ({
     `<b>Payment</b>: ${safePaymentMethod}`,
     `<b>Status</b>: ${safePaymentStatus}`,
     "",
-    "<b>Items Ordered</b>",
     ...(itemLines.length ? itemLines : ["No items listed"]),
     ...(extraItemCount ? [`...and ${extraItemCount} more item${extraItemCount === 1 ? "" : "s"}`] : []),
     "",

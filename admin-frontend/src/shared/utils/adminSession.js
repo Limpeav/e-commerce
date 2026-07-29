@@ -172,14 +172,6 @@ export const getPortalCashReportPath = (admin = getStoredAdminUser()) => {
   return "/admin/cash-report";
 };
 
-export const getPortalPaymentQueuePath = (admin = getStoredAdminUser()) => {
-  if (admin?.role === "seller") {
-    return "/seller/payment-queue";
-  }
-
-  return "/admin/orders";
-};
-
 export const getPortalNotificationsPath = (admin = getStoredAdminUser()) => {
   if (admin?.role === "seller") {
     return "/seller/notifications";

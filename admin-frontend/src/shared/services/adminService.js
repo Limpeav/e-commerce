@@ -33,6 +33,7 @@ export const adminService = {
   logout: () => api.post("/admin/logout"),
   getCurrentAdmin: () => api.get("/admin/me"),
   updateCurrentAdmin: (payload) => api.put("/admin/me", payload),
+  changeCurrentPassword: (payload) => api.put("/admin/me/password", payload),
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),

@@ -41,6 +41,7 @@ const CSV_HEADER_ALIASES = {
   colorimages: "colorImages",
   productdetailimages: "productDetailImages",
   discountprice: "discountPrice",
+  costprice: "costPrice",
   descriptionkm: "descriptionKm",
   isnewarrival: "isNewArrival",
   hasproductissue: "hasProductIssue",
@@ -770,6 +771,9 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
   const discountPrice = data.discountPrice?.trim()
     ? Number.parseFloat(data.discountPrice)
     : null;
+  const costPrice = data.costPrice?.trim()
+    ? Number.parseFloat(data.costPrice)
+    : 0;
   const colors = parseProductColorsPayload(data.colors);
   const colorImages = parseProductColorImagesPayload(data.colorImages, colors);
   const productDetailImages = parseProductDetailImagesPayload(
@@ -815,6 +819,10 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     return `Row ${rowNumber}: discountPrice must be a valid non-negative number`;
   }
 
+  if (!Number.isFinite(costPrice) || costPrice < 0) {
+    return `Row ${rowNumber}: costPrice must be a valid non-negative number`;
+  }
+
   if (
     discountPrice !== null &&
     Number.isFinite(discountPrice) &&
@@ -836,6 +844,7 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
     titleKm,
     price,
     discountPrice,
+    costPrice,
     category,
     description,
     descriptionKm,
@@ -859,6 +868,7 @@ export const createProduct = async (req, res) => {
       title,
       price,
       discountPrice,
+      costPrice,
       category,
       description,
       stock,
@@ -892,11 +902,17 @@ export const createProduct = async (req, res) => {
     const submittedStock = sizeStockData.sizeStocks.length > 0
       ? sizeStockData.stock
       : Math.max(0, Number.parseInt(stock, 10) || 0);
+    const submittedCostPrice = parseOptionalNumber(costPrice) || 0;
+
+    if (submittedCostPrice < 0) {
+      return res.status(400).json({ message: "Product cost must be a non-negative number" });
+    }
 
     const productData = await applyAutoKhmerTranslation({
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
+      costPrice: submittedCostPrice,
       category: normalizedCategory,
       description,
       stock: submittedStock,
@@ -993,6 +1009,7 @@ export const getProducts = async (req, res) => {
     const isAdmin = req.user?.role === "admin";
     const filters = isAdmin ? {} : { stock: { $gt: 0 } };
     let products = await Product.find(filters)
+      .select(isAdmin ? "+costPrice" : "")
       .sort({ createdAt: -1, _id: -1 })
       .lean();
     products = products.map((p) =>
@@ -1031,6 +1048,7 @@ export const searchProducts = async (req, res) => {
       PRODUCT_SEARCH_LIMIT
     );
     let products = await Product.find(filters)
+      .select(req.user?.role === "admin" ? "+costPrice" : "")
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit)
       .lean();
@@ -1386,6 +1404,7 @@ export const upsertProductsFromCsv = async (req, res) => {
       if (existingProduct) {
         existingProduct.price = translatedProductData.price;
         existingProduct.discountPrice = translatedProductData.discountPrice;
+        existingProduct.costPrice = translatedProductData.costPrice;
         existingProduct.category = translatedProductData.category;
         existingProduct.titleKm = translatedProductData.titleKm;
         existingProduct.description = translatedProductData.description;
@@ -1433,7 +1452,8 @@ export const upsertProductsFromCsv = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+      .select(req.user?.role === "admin" ? "+costPrice" : "");
     if (!product)
       return res.status(404).json({ message: "Product not found" });
 
@@ -1605,6 +1625,13 @@ export const updateProduct = async (req, res) => {
     const submittedStock = sizeStockData.sizeStocks.length > 0
       ? sizeStockData.stock
       : Number.parseInt(req.body.stock, 10);
+    const submittedCostPrice = parseOptionalNumber(req.body.costPrice) || 0;
+
+    if (submittedCostPrice < 0) {
+      return res.status(400).json({
+        message: "Product cost must be a non-negative number",
+      });
+    }
 
     if (
       !Number.isInteger(requestedIssueQuantity) ||
@@ -1632,6 +1659,7 @@ export const updateProduct = async (req, res) => {
         title: req.body.title,
         price: req.body.price,
         discountPrice: parseOptionalNumber(req.body.discountPrice),
+        costPrice: submittedCostPrice,
         category: normalizedCategory,
         description: req.body.description,
         stock: submittedStock,
@@ -1652,6 +1680,7 @@ export const updateProduct = async (req, res) => {
     product.titleKm = translatedProductData.titleKm;
     product.price = translatedProductData.price;
     product.discountPrice = translatedProductData.discountPrice;
+    product.costPrice = translatedProductData.costPrice;
     product.category = normalizeProductCategory(translatedProductData.category);
     product.description = translatedProductData.description;
     product.descriptionKm = translatedProductData.descriptionKm;

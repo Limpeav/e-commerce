@@ -113,6 +113,12 @@ const productSchema = mongoose.Schema(
       type: Number,
       default: null,
     },
+    costPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
+    },
     category: {
       type: String,
       required: true,

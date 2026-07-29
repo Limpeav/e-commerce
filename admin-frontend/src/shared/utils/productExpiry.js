@@ -111,6 +111,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     title: form.title,
     price: form.price,
     discountPrice: form.discountPrice || "",
+    costPrice: form.costPrice || "",
     category: normalizeProductCategory(form.category),
     description: form.description,
     stock: form.stock,

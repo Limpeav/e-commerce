@@ -14,9 +14,60 @@ import {
   readDashboardScrollPosition,
   saveDashboardScrollPosition,
 } from "../../../utils/dashboardScroll";
+import {
+  DASHBOARD_PERIODS,
+  formatDateInputValue,
+  getDefaultDashboardDateRange,
+  parseDateInputValue,
+} from "./dashboardFormatters";
 import DashboardPage from "./DashboardPage";
 
 let dashboardCache = null;
+const DEFAULT_DASHBOARD_PERIOD = "30";
+
+const getDashboardFilterStorageKey = (adminUser) =>
+  `adminDashboardFilter:${adminUser?._id || adminUser?.email || "admin"}`;
+
+const isValidDashboardPeriod = (period) =>
+  DASHBOARD_PERIODS.some((item) => item.value === period);
+
+const normalizeStoredDateRange = (dateRange) => {
+  const startDate = parseDateInputValue(dateRange?.startDate);
+  const endDate = parseDateInputValue(dateRange?.endDate);
+
+  if (!startDate || !endDate) return getDefaultDashboardDateRange();
+
+  return {
+    startDate: formatDateInputValue(startDate),
+    endDate: formatDateInputValue(endDate),
+  };
+};
+
+const readStoredDashboardFilter = (storageKey) => {
+  try {
+    const rawFilter = window.localStorage.getItem(storageKey);
+    if (!rawFilter) return null;
+
+    const filter = JSON.parse(rawFilter);
+
+    return {
+      period: isValidDashboardPeriod(filter?.period)
+        ? filter.period
+        : DEFAULT_DASHBOARD_PERIOD,
+      dateRange: normalizeStoredDateRange(filter?.dateRange),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const saveStoredDashboardFilter = (storageKey, filter) => {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(filter));
+  } catch {
+    // Dashboard filter persistence is a convenience; ignore storage failures.
+  }
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -25,10 +76,24 @@ const AdminDashboard = () => {
   const cachedDashboard =
     dashboardCache?.token === adminToken ? dashboardCache : null;
   const dashboardScrollKey = getDashboardScrollKey(adminUser);
+  const dashboardFilterStorageKey = getDashboardFilterStorageKey(adminUser);
+  const storedDashboardFilter = readStoredDashboardFilter(dashboardFilterStorageKey);
   const restoredScrollRef = useRef(false);
   const hasCachedDashboardRef = useRef(Boolean(cachedDashboard));
-  const [period, setPeriod] = useState(() => cachedDashboard?.period || "30");
+  const [period, setPeriod] = useState(
+    () =>
+      cachedDashboard?.period ||
+      storedDashboardFilter?.period ||
+      DEFAULT_DASHBOARD_PERIOD
+  );
+  const [dateRange, setDateRange] = useState(
+    () =>
+      cachedDashboard?.dateRange ||
+      storedDashboardFilter?.dateRange ||
+      getDefaultDashboardDateRange()
+  );
   const periodRef = useRef(period);
+  const dateRangeRef = useRef(dateRange);
   const [stats, setStats] = useState(() => cachedDashboard?.stats || null);
   const [orders, setOrders] = useState(() => cachedDashboard?.orders || []);
   const [products, setProducts] = useState(
@@ -73,6 +138,7 @@ const AdminDashboard = () => {
         dashboardCache = {
           token: adminToken,
           period: periodRef.current,
+          dateRange: dateRangeRef.current,
           stats: nextStats,
           orders: nextOrders,
           products: nextProducts,
@@ -109,10 +175,13 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     periodRef.current = period;
+    dateRangeRef.current = dateRange;
     if (dashboardCache) {
       dashboardCache.period = period;
+      dashboardCache.dateRange = dateRange;
     }
-  }, [period]);
+    saveStoredDashboardFilter(dashboardFilterStorageKey, { period, dateRange });
+  }, [dashboardFilterStorageKey, dateRange, period]);
 
   useEffect(() => {
     if (loading || restoredScrollRef.current) return;
@@ -190,6 +259,8 @@ const AdminDashboard = () => {
       products={products}
       period={period}
       setPeriod={setPeriod}
+      dateRange={dateRange}
+      setDateRange={setDateRange}
       navigateFromDashboard={navigateFromDashboard}
     />
   );

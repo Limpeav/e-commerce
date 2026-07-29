@@ -37,4 +37,8 @@ export const AuthController = {
   async updateCurrentUser(payload) {
     return modelResponse(await adminService.updateCurrentAdmin(payload));
   },
+
+  async changeCurrentPassword(payload) {
+    return modelResponse(await adminService.changeCurrentPassword(payload));
+  },
 };

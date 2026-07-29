@@ -54,6 +54,7 @@ test("buildOrderReceiptCaption includes ordered items and escapes user content",
 
     assert.match(message, /ORDER RECEIPT/);
     assert.match(message, /Hour &lt;Test&gt;/);
+    assert.doesNotMatch(message, /Items Ordered/);
     assert.match(message, /Travel Bag &amp; Cover/);
     assert.match(message, /Size M, Color Black/);
     assert.match(message, /Qty 1 x \$7\.99/);

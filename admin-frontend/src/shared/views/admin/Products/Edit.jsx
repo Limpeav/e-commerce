@@ -94,6 +94,7 @@ const EditProduct = () => {
     title: "",
     price: "",
     discountPrice: "",
+    costPrice: "",
     category: "",
     description: "",
     image: null,
@@ -197,6 +198,7 @@ const EditProduct = () => {
           title: data.title || "",
           price: data.price || "",
           discountPrice: data.discountPrice || "",
+          costPrice: data.costPrice || "",
           category: normalizedCategory,
           description: data.description || "",
           stock: data.stock || "",
@@ -317,6 +319,7 @@ const EditProduct = () => {
     if (
       name === "price" ||
       name === "discountPrice" ||
+      name === "costPrice" ||
       name === "stock" ||
       name === "issueQuantity"
     ) {
@@ -1008,6 +1011,34 @@ const EditProduct = () => {
                 {form.discountPrice && form.price && parseFloat(form.discountPrice) >= parseFloat(form.price) && (
                   <p className="text-red-500 text-xs mt-1">Discount price must be less than regular price</p>
                 )}
+              </div>
+
+              {/* Product Cost */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Product Cost ($)
+                  <span className="text-xs text-gray-500 ml-2">(For profit)</span>
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="costPrice"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={form.costPrice}
+                    onChange={handleChange}
+                    onBlur={(e) => {
+                      const value = e.target.value.trim();
+                      if (value && !isNaN(value) && parseFloat(value) >= 0) {
+                        setForm({ ...form, costPrice: parseFloat(value).toFixed(2) });
+                      } else if (value === '') {
+                        setForm({ ...form, costPrice: '' });
+                      }
+                    }}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
               </div>
 
               {productSupportsColorOptions(form) && (

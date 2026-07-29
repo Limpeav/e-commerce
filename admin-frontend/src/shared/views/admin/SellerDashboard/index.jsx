@@ -6,7 +6,6 @@ import {
     CheckCircle,
     Clock,
     ReceiptText,
-    Search,
     WalletCards,
 } from "lucide-react";
 import { DashboardController, NotificationController } from "../../../controllers";
@@ -15,7 +14,6 @@ import {
     getPortalCashReportPath,
     getPortalNotificationsPath,
     getPortalOrderDetailsPath,
-    getPortalPaymentQueuePath,
     getStoredAdminUser,
 } from "../../../utils/adminSession";
 import { subscribeRealtimeDomains, subscribeRealtimeEvent } from "../../../services/realtime";
@@ -140,9 +138,9 @@ const SellerDashboard = () => {
                         <p className="text-sm font-bold uppercase tracking-wide text-[var(--color-primary)]">
                             Seller
                         </p>
-                        <h1 className="mt-1 text-3xl font-black text-gray-950">Cashier Dashboard</h1>
+                        <h1 className="mt-1 text-3xl font-black text-gray-950">Seller Dashboard</h1>
                         <p className="mt-2 text-sm font-medium text-gray-500">
-                            Track cash collection, payment queue, and daily reporting.
+                            Confirm new orders, print receipts, and review daily reporting.
                         </p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row">
@@ -159,14 +157,6 @@ const SellerDashboard = () => {
                                     {notificationCount > 99 ? "99+" : notificationCount}
                                 </span>
                             )}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigate(getPortalPaymentQueuePath(adminUser))}
-                            className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 text-sm font-black text-white hover:bg-[var(--color-primary-dark)]"
-                        >
-                            <Search className="h-4 w-4" />
-                            Open Queue
                         </button>
                         <button
                             type="button"

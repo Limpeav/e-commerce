@@ -38,6 +38,18 @@ const ProductInfo = ({
   const hasDiscount = discountPrice > 0 && discountPrice < price;
   const discountPercent = hasDiscount ? Math.round(((price - discountPrice) / price) * 100) : 0;
   const isInStock = Number(product.stock || 0) > 0;
+  const purchaseActionProps = {
+    product,
+    quantity,
+    setQuantity,
+    onAddToCart,
+    onLoginRequired,
+    user,
+    selectedSize,
+    onSizeChange,
+    selectedColor,
+    onColorChange,
+  };
 
   return (
     <div className="flex flex-col justify-center space-y-4 font-sans sm:space-y-4.5">
@@ -134,6 +146,14 @@ const ProductInfo = ({
         )}
       </div>
 
+      {showPurchaseActions && showVariantOptions && (
+        <ProductPurchaseActions
+          {...purchaseActionProps}
+          showSizeSelector={false}
+          showCheckoutControls={false}
+        />
+      )}
+
       {/* Description */}
       <div className={`prose prose-stone max-w-none rounded-[1.2rem] border p-4 shadow-sm ${isDark ? "bg-slate-900 border-slate-800" : "bg-stone-50/50 border-stone-100"}`}>
         <h3 className={`mb-2 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-slate-100" : "text-stone-900"}`}>Product Description</h3>
@@ -173,17 +193,9 @@ const ProductInfo = ({
 
       {showPurchaseActions && (
         <ProductPurchaseActions
-          product={product}
-          quantity={quantity}
-          setQuantity={setQuantity}
-          onAddToCart={onAddToCart}
-          onLoginRequired={onLoginRequired}
-          user={user}
-          selectedSize={selectedSize}
-          onSizeChange={onSizeChange}
-          selectedColor={selectedColor}
-          onColorChange={onColorChange}
+          {...purchaseActionProps}
           showVariantOptions={showVariantOptions}
+          showColorSelector={false}
           showCheckoutControls={showCheckoutControls}
         />
       )}

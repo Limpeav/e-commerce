@@ -1,10 +1,9 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion'
-import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalNotificationsPath, getPortalOrdersPath, getPortalPaymentQueuePath, getStoredAdminUser } from '../../utils/adminSession'
-import { AuthController, NotificationController, OrderController } from '../../controllers'
+import { clearAdminSession, getPortalAccountPath, getPortalCashReportPath, getPortalDashboardPath, getPortalLoginPath, getPortalOrdersPath, getStoredAdminUser } from '../../utils/adminSession'
+import { AuthController, OrderController } from '../../controllers'
 import {
-  Bell,
   LayoutDashboard,
   Package,
   Users,
@@ -14,14 +13,13 @@ import {
   BriefcaseBusiness,
   MessageSquareText,
   ReceiptText,
-  WalletCards,
   Truck,
   User,
   Settings,
   LifeBuoy,
   X,
 } from 'lucide-react'
-import { subscribeRealtimeDomains, subscribeRealtimeEvent } from '../../services/realtime'
+import { subscribeRealtimeDomains } from '../../services/realtime'
 
 const AdminSidebar = () => {
   const location = useLocation()
@@ -29,7 +27,6 @@ const AdminSidebar = () => {
   const reduceMotion = useReducedMotion()
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
   const [orderCount, setOrderCount] = React.useState(0)
-  const [notificationCount, setNotificationCount] = React.useState(0)
 
   // Get admin user data
   const adminUser = getStoredAdminUser()
@@ -37,11 +34,8 @@ const AdminSidebar = () => {
   const dashboardPath = getPortalDashboardPath(adminUser)
   const ordersPath = getPortalOrdersPath(adminUser)
   const cashReportPath = getPortalCashReportPath(adminUser)
-  const paymentQueuePath = getPortalPaymentQueuePath(adminUser)
-  const notificationsPath = getPortalNotificationsPath(adminUser)
   const accountPath = getPortalAccountPath(adminUser)
   const isOrderDetail = /^\/(?:admin|seller|delivery)\/orders\/[^/]+/.test(location.pathname)
-  const canViewSidebarNotifications = adminUser?.role === 'admin'
 
   const normalizeStatus = React.useCallback((status) => {
     if (!status) return ''
@@ -98,38 +92,6 @@ const AdminSidebar = () => {
     }
   }, [getPendingOrderCount])
 
-  React.useEffect(() => {
-    if (!canViewSidebarNotifications) {
-      setNotificationCount(0)
-      return undefined
-    }
-
-    let isMounted = true
-
-    const loadNotificationCount = async () => {
-      try {
-        const result = await NotificationController.getUnreadCount()
-        if (isMounted) {
-          setNotificationCount(Number(result.data?.count || 0))
-        }
-      } catch {
-        if (isMounted) {
-          setNotificationCount(0)
-        }
-      }
-    }
-
-    loadNotificationCount()
-    const unsubscribeRealtime = subscribeRealtimeEvent('notification:created', loadNotificationCount)
-    window.addEventListener('admin-notifications-updated', loadNotificationCount)
-
-    return () => {
-      isMounted = false
-      unsubscribeRealtime()
-      window.removeEventListener('admin-notifications-updated', loadNotificationCount)
-    }
-  }, [canViewSidebarNotifications])
-
   const menuItems = [
     {
       path: dashboardPath,
@@ -162,23 +124,10 @@ const AdminSidebar = () => {
       badge: orderCount
     },
     {
-      path: notificationsPath,
-      name: 'Notifications',
-      icon: Bell,
-      badge: notificationCount,
-      hidden: !canViewSidebarNotifications,
-    },
-    {
       path: '/admin/support/tickets',
       name: 'Support',
       icon: LifeBuoy,
       adminOnly: true
-    },
-    {
-      path: paymentQueuePath,
-      name: 'Payment Queue',
-      icon: WalletCards,
-      hidden: adminUser?.role !== 'seller',
     },
     {
       path: cashReportPath,

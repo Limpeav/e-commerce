@@ -44,6 +44,25 @@ const createHttpError = (statusCode, message) =>
 const resolveOrderItemProductId = (item) =>
     item?.product?._id?.toString?.() || item?.product?.toString?.() || null;
 
+const stripOrderCostPrices = (order) => {
+    const orderData = typeof order?.toObject === "function"
+        ? order.toObject()
+        : { ...(order || {}) };
+
+    return {
+        ...orderData,
+        orderItems: Array.isArray(orderData.orderItems)
+            ? orderData.orderItems.map((item) => {
+                const itemData = typeof item?.toObject === "function"
+                    ? item.toObject()
+                    : { ...(item || {}) };
+                delete itemData.costPrice;
+                return itemData;
+            })
+            : [],
+    };
+};
+
 const DELIVERY_ORDER_STATUSES = ["Delivered"];
 
 const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
@@ -221,6 +240,7 @@ const getOrderItemMergeKey = (item = {}) => [
     String(item.size || "").trim().toUpperCase(),
     normalizeSelectedColor(item.color).toLowerCase(),
     Number(item.price || 0).toFixed(2),
+    Number(item.costPrice || 0).toFixed(2),
 ].join("::");
 
 const mergeOrderItems = (currentItems = [], incomingItems = []) => {
@@ -282,7 +302,9 @@ export const createOrder = asyncHandler(async (req, res) => {
 
             await session.withTransaction(async () => {
                 const productIds = orderItems.map((item) => item.product);
-                const products = await Product.find({ _id: { $in: productIds } }).session(session);
+                const products = await Product.find({ _id: { $in: productIds } })
+                    .select("+costPrice")
+                    .session(session);
                 const productMap = new Map(
                     products.map((product) => [product._id.toString(), product])
                 );
@@ -323,6 +345,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                     }
                     item.color = normalizeSelectedColor(item.color);
                     item.image = getProductImageForColor(product, item.color);
+                    item.costPrice = Math.max(0, Number(product.costPrice || 0));
 
                     const size = String(item.size || "").trim().toUpperCase();
                     const color = normalizeSelectedColor(item.color);
@@ -509,7 +532,9 @@ export const createOrder = asyncHandler(async (req, res) => {
                 emitNotificationCreated(notification);
             }
 
-            res.status(mergedIntoExistingOrder ? 200 : 201).json(createdOrder);
+            res.status(mergedIntoExistingOrder ? 200 : 201).json(
+                stripOrderCostPrices(createdOrder)
+            );
 
             dispatchOrderAlerts({
                 createdOrder,
@@ -539,15 +564,20 @@ export const createOrder = asyncHandler(async (req, res) => {
 // @route   GET /api/orders
 // @access  Private/Admin
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find({
+    const ordersQuery = Order.find({
         $or: [
             { paymentMethod: { $ne: "BAKONG_KHQR" } },
             { paymentStatus: "Paid" },
         ],
     })
         .populate("user", "name email")
-        .sort({ createdAt: -1 })
-        .lean();
+        .sort({ createdAt: -1 });
+
+    if (req.user?.role === "admin") {
+        ordersQuery.select("+orderItems.costPrice");
+    }
+
+    const orders = await ordersQuery.lean();
     res.json(orders);
 });
 
@@ -555,9 +585,15 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 export const getOrderById = asyncHandler(async (req, res) => {
-    const order = await Order.findById(req.params.id)
+    const orderQuery = Order.findById(req.params.id)
         .populate("user", "name email")
         .populate("orderItems.product", "title titleKm name reviews");
+
+    if (req.user?.role === "admin") {
+        orderQuery.select("+orderItems.costPrice");
+    }
+
+    const order = await orderQuery;
 
     if (!order) {
         res.status(404);
@@ -572,7 +608,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
         throw new Error("Not authorized to view this order");
     }
 
-    res.json(order);
+    res.json(req.user?.role === "admin" ? order : stripOrderCostPrices(order));
 });
 
 // @desc    Track an order by full ID or displayed short ID
@@ -852,13 +888,18 @@ export const sendOrderReviewRequestEmail = asyncHandler(async (req, res) => {
 
 // @desc    Update payment status
 // @route   PUT /api/orders/:id/payment-status
-// @access  Private/Admin
+// @access  Private/Admin/Delivery
 export const updatePaymentStatus = asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
         const { paymentStatus } = req.body;
         const wasPaid = order.isPaid || order.paymentStatus === "Paid";
+
+        if (req.user?.role === "seller") {
+            res.status(403);
+            throw new Error("Seller accounts cannot update payment status");
+        }
 
         // Validate payment status
         const validStatuses = ["Pending", "Paid", "Failed", "Refunded"];
@@ -873,14 +914,6 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         ) {
             res.status(403);
             throw new Error("Delivery accounts can only mark cash on delivery orders as paid");
-        }
-
-        if (
-            req.user?.role === "seller" &&
-            (paymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
-        ) {
-            res.status(403);
-            throw new Error("Cashier accounts can only mark cash on delivery orders as paid");
         }
 
         order.paymentStatus = paymentStatus;

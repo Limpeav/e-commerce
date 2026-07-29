@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion as Motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
@@ -7,6 +8,7 @@ import {
   Check,
   CheckCheck,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   Clock,
@@ -45,8 +47,12 @@ import {
   DASHBOARD_CATEGORY_COLORS as CATEGORY_COLORS,
   DASHBOARD_PERIODS as PERIODS,
   exportDashboardSummary,
+  formatDashboardDateRangeLabel,
+  formatDateDisplayValue,
+  formatDateInputValue,
   formatMoney as money,
   formatNumber as number,
+  parseDateInputValue,
   formatRiel as riel,
 } from "./dashboardFormatters";
 import {
@@ -59,6 +65,59 @@ const startOfDay = (date) => {
   const result = new Date(date);
   result.setHours(0, 0, 0, 0);
   return result;
+};
+
+const endOfDay = (date) => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+};
+
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const getCalendarDayCount = (startDate, endDate) => {
+  const startUtc = Date.UTC(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate()
+  );
+  const endUtc = Date.UTC(
+    endDate.getFullYear(),
+    endDate.getMonth(),
+    endDate.getDate()
+  );
+
+  return Math.max(1, Math.floor((endUtc - startUtc) / 86400000) + 1);
+};
+
+const getDateRangeBounds = (dateRange = {}) => {
+  const parsedStartDate = parseDateInputValue(dateRange.startDate);
+  const parsedEndDate = parseDateInputValue(dateRange.endDate);
+  const startDate =
+    parsedStartDate && parsedEndDate && parsedStartDate > parsedEndDate
+      ? parsedEndDate
+      : parsedStartDate;
+  const endDate =
+    parsedStartDate && parsedEndDate && parsedStartDate > parsedEndDate
+      ? parsedStartDate
+      : parsedEndDate;
+  const currentStart = startDate ? startOfDay(startDate) : null;
+  const currentEnd = endDate ? endOfDay(endDate) : null;
+  const dayCount =
+    currentStart && currentEnd ? getCalendarDayCount(currentStart, currentEnd) : null;
+
+  return {
+    currentStart,
+    currentEnd,
+    dayCount,
+    previousStart: dayCount ? startOfDay(addDays(currentStart, -dayCount)) : null,
+    previousEnd: dayCount ? endOfDay(addDays(currentStart, -1)) : null,
+    hasComparableRange: Boolean(currentStart && currentEnd),
+  };
 };
 
 const getOrderDate = (order) => {
@@ -74,11 +133,37 @@ const getCustomerKey = (order) => {
 const getProductId = (item) =>
   typeof item?.product === "string" ? item.product : item?.product?._id;
 
+const getOrderItemQuantity = (item) => Number(item?.quantity || 0);
+
+const getOrderItemRevenue = (item) =>
+  Number(item?.price || 0) * getOrderItemQuantity(item);
+
+const getOrderItemCost = (item, productMap) => {
+  const quantity = getOrderItemQuantity(item);
+  const snapshotCost = Number(item?.costPrice);
+
+  if (
+    item?.costPrice !== undefined &&
+    item?.costPrice !== null &&
+    Number.isFinite(snapshotCost)
+  ) {
+    return Math.max(0, snapshotCost) * quantity;
+  }
+
+  const product = productMap.get(String(getProductId(item)));
+  const productCost = Number(product?.costPrice || 0);
+  return Math.max(0, Number.isFinite(productCost) ? productCost : 0) * quantity;
+};
+
+const getOrderItemProfit = (item, productMap) =>
+  getOrderItemRevenue(item) - getOrderItemCost(item, productMap);
+
 const SENTIMENT_LABELS = ["Positive", "Neutral", "Negative"];
 const NEGATIVE_CATEGORY_PREVIEW_LIMIT = 6;
 const MIN_VISIBLE_BAR_WIDTH = 3;
 const NOTIFICATION_UPDATED_EVENT = "admin-notifications-updated";
 const MARK_ALL_READ_NOTICE = "All notifications marked as read.";
+const DELETE_NOTIFICATION_NOTICE = "Notification deleted.";
 
 const NOTIFICATION_CATEGORY_STYLES = {
   orders: {
@@ -367,6 +452,8 @@ const DashboardPage = ({
   products,
   period,
   setPeriod,
+  dateRange,
+  setDateRange,
   navigateFromDashboard,
 }) => {
   const backendReviewHealth = stats?.reviewHealth;
@@ -382,7 +469,78 @@ const DashboardPage = ({
   const [notificationFilter, setNotificationFilter] = useState("all");
   const [notificationCategory, setNotificationCategory] = useState("all");
   const [notificationSearchTerm, setNotificationSearchTerm] = useState("");
-  const markAllNoticeTimerRef = useRef(null);
+  const notificationNoticeTimerRef = useRef(null);
+  const startDatePickerRef = useRef(null);
+  const endDatePickerRef = useRef(null);
+  const reduceMotion = useReducedMotion();
+  const todayInputValue = formatDateInputValue(new Date());
+  const selectedPeriodLabel = useMemo(
+    () =>
+      period === "custom"
+        ? formatDashboardDateRangeLabel(dateRange)
+        : PERIODS.find((item) => item.value === period)?.label || "Last 30 days",
+    [dateRange, period]
+  );
+
+  const handlePeriodChange = (event) => {
+    setPeriod(event.target.value);
+  };
+
+  const openDatePicker = (dateInputRef) => {
+    const dateInput = dateInputRef.current;
+    if (!dateInput) return;
+
+    if (typeof dateInput.showPicker === "function") {
+      try {
+        dateInput.showPicker();
+        return;
+      } catch {
+        // Fall back to focus/click for browsers that block showPicker.
+      }
+    }
+
+    dateInput.focus();
+    dateInput.click();
+  };
+
+  const handleDatePickerKeyDown = (event, dateInputRef) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    openDatePicker(dateInputRef);
+  };
+
+  const handleStartDateChange = (event) => {
+    const nextStartDate = event.target.value;
+
+    setDateRange((currentRange) => {
+      if (
+        nextStartDate &&
+        currentRange.endDate &&
+        nextStartDate > currentRange.endDate
+      ) {
+        return { startDate: nextStartDate, endDate: nextStartDate };
+      }
+
+      return { ...currentRange, startDate: nextStartDate };
+    });
+  };
+
+  const handleEndDateChange = (event) => {
+    const nextEndDate = event.target.value;
+
+    setDateRange((currentRange) => {
+      if (
+        nextEndDate &&
+        currentRange.startDate &&
+        nextEndDate < currentRange.startDate
+      ) {
+        return { startDate: nextEndDate, endDate: nextEndDate };
+      }
+
+      return { ...currentRange, endDate: nextEndDate };
+    });
+  };
 
   const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setNotificationLoading(true);
@@ -415,30 +573,74 @@ const DashboardPage = ({
 
   useEffect(
     () => () => {
-      if (markAllNoticeTimerRef.current) {
-        window.clearTimeout(markAllNoticeTimerRef.current);
+      if (notificationNoticeTimerRef.current) {
+        window.clearTimeout(notificationNoticeTimerRef.current);
       }
     },
     []
   );
 
+  const showTimedNotificationNotice = useCallback((message) => {
+    setNotificationNotice(message);
+
+    if (notificationNoticeTimerRef.current) {
+      window.clearTimeout(notificationNoticeTimerRef.current);
+    }
+
+    notificationNoticeTimerRef.current = window.setTimeout(() => {
+      setNotificationNotice((currentNotice) =>
+        currentNotice === message ? "" : currentNotice
+      );
+      notificationNoticeTimerRef.current = null;
+    }, 2000);
+  }, []);
+
   const analytics = useMemo(() => {
     const now = new Date();
-    const days = period === "all" ? null : Number(period);
-    const currentStart = days
-      ? startOfDay(new Date(now.getTime() - (days - 1) * 86400000))
-      : null;
-    const previousStart = days
-      ? startOfDay(new Date(currentStart.getTime() - days * 86400000))
-      : null;
+    const periodDays = period === "custom" || period === "all" ? null : Number(period);
+    const {
+      currentStart,
+      currentEnd,
+      dayCount,
+      previousStart,
+      previousEnd,
+      hasComparableRange,
+    } =
+      period === "custom"
+        ? getDateRangeBounds(dateRange)
+        : {
+            currentStart: periodDays
+              ? startOfDay(addDays(now, -(periodDays - 1)))
+              : null,
+            currentEnd: periodDays ? endOfDay(now) : null,
+            dayCount: periodDays,
+            previousStart: periodDays
+              ? startOfDay(addDays(addDays(now, -(periodDays - 1)), -periodDays))
+              : null,
+            previousEnd: periodDays
+              ? endOfDay(addDays(addDays(now, -(periodDays - 1)), -1))
+              : null,
+            hasComparableRange: Boolean(periodDays),
+          };
+    const chartByDay = Boolean(dayCount && dayCount <= 90);
 
     const isCurrent = (order) => {
       const date = getOrderDate(order);
-      return date && (!currentStart || date >= currentStart);
+      return (
+        date &&
+        (!currentStart || date >= currentStart) &&
+        (!currentEnd || date <= currentEnd)
+      );
     };
     const isPrevious = (order) => {
       const date = getOrderDate(order);
-      return date && previousStart && date >= previousStart && date < currentStart;
+      return (
+        date &&
+        previousStart &&
+        previousEnd &&
+        date >= previousStart &&
+        date <= previousEnd
+      );
     };
     const isPaid = (order) =>
       order.paymentStatus === "Paid" && order.orderStatus !== "Cancelled";
@@ -447,9 +649,28 @@ const DashboardPage = ({
     const previousOrders = orders.filter(isPrevious);
     const paidOrders = currentOrders.filter(isPaid);
     const previousPaidOrders = previousOrders.filter(isPaid);
+    const productMap = new Map(products.map((product) => [String(product._id), product]));
     const revenue = paidOrders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
     const previousRevenue = previousPaidOrders.reduce(
       (sum, order) => sum + Number(order.totalPrice || 0),
+      0
+    );
+    const profit = paidOrders.reduce(
+      (sum, order) =>
+        sum +
+        (order.orderItems || []).reduce(
+          (itemSum, item) => itemSum + getOrderItemProfit(item, productMap),
+          0
+        ),
+      0
+    );
+    const previousProfit = previousPaidOrders.reduce(
+      (sum, order) =>
+        sum +
+        (order.orderItems || []).reduce(
+          (itemSum, item) => itemSum + getOrderItemProfit(item, productMap),
+          0
+        ),
       0
     );
     const units = paidOrders.reduce(
@@ -476,23 +697,28 @@ const DashboardPage = ({
       : 0;
 
     const dailyMap = new Map();
-    if (days) {
-      for (let index = 0; index < days; index += 1) {
-        const date = new Date(currentStart.getTime() + index * 86400000);
-        const key = date.toISOString().slice(0, 10);
+    if (chartByDay) {
+      for (let index = 0; index < dayCount; index += 1) {
+        const date = addDays(currentStart, index);
+        const key = formatDateInputValue(date);
         dailyMap.set(key, {
           key,
-          label: formatDayLabel(date, days),
+          label: formatDayLabel(date, dayCount),
           revenue: 0,
+          profit: 0,
           orders: 0,
         });
       }
       paidOrders.forEach((order) => {
         const date = getOrderDate(order);
         if (!date) return;
-        const entry = dailyMap.get(date.toISOString().slice(0, 10));
+        const entry = dailyMap.get(formatDateInputValue(date));
         if (entry) {
           entry.revenue += Number(order.totalPrice || 0);
+          entry.profit += (order.orderItems || []).reduce(
+            (sum, item) => sum + getOrderItemProfit(item, productMap),
+            0
+          );
           entry.orders += 1;
         }
       });
@@ -501,9 +727,10 @@ const DashboardPage = ({
         .map((order) => ({ order, date: getOrderDate(order) }))
         .filter((entry) => entry.date)
         .sort((a, b) => a.date - b.date);
-      const firstDate = datedOrders[0]?.date || now;
+      const finalDate = currentEnd || now;
+      const firstDate = currentStart || datedOrders[0]?.date || finalDate;
       const cursor = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
-      const finalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const finalMonth = new Date(finalDate.getFullYear(), finalDate.getMonth(), 1);
 
       while (cursor <= finalMonth) {
         const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
@@ -511,6 +738,7 @@ const DashboardPage = ({
           key,
           label: cursor.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
           revenue: 0,
+          profit: 0,
           orders: 0,
         });
         cursor.setMonth(cursor.getMonth() + 1);
@@ -520,12 +748,15 @@ const DashboardPage = ({
         const entry = dailyMap.get(key);
         if (entry) {
           entry.revenue += Number(order.totalPrice || 0);
+          entry.profit += (order.orderItems || []).reduce(
+            (sum, item) => sum + getOrderItemProfit(item, productMap),
+            0
+          );
           entry.orders += 1;
         }
       });
     }
 
-    const productMap = new Map(products.map((product) => [String(product._id), product]));
     const productSales = new Map();
     const categorySales = new Map();
     paidOrders.forEach((order) => {
@@ -541,9 +772,11 @@ const DashboardPage = ({
           image: item.image || product?.image,
           quantity: 0,
           revenue: 0,
+          profit: 0,
         };
         existingProduct.quantity += itemQuantity;
         existingProduct.revenue += itemRevenue;
+        existingProduct.profit += getOrderItemProfit(item, productMap);
         productSales.set(productKey, existingProduct);
         categorySales.set(category, (categorySales.get(category) || 0) + itemRevenue);
       });
@@ -604,10 +837,12 @@ const DashboardPage = ({
       currentOrders,
       paidOrders,
       revenue,
+      profit,
       units,
       aov,
       paidRate,
       repeatRate,
+      hasComparableRange,
       dailyRevenue: [...dailyMap.values()],
       topProducts,
       categories: categories.map((category) => ({
@@ -627,15 +862,20 @@ const DashboardPage = ({
       })),
       changes: {
         revenue: changeFrom(revenue, previousRevenue),
+        profit: changeFrom(profit, previousProfit),
         orders: changeFrom(currentOrders.length, previousOrders.length),
         aov: changeFrom(aov, previousAov),
         units: changeFrom(units, previousUnits),
       },
     };
-  }, [backendReviewHealth, backendSentiment, orders, products, period]);
+  }, [backendReviewHealth, backendSentiment, dateRange, orders, period, products]);
 
   const exportSummary = () => {
-    exportDashboardSummary({ analytics, period });
+    exportDashboardSummary({
+      analytics,
+      period,
+      periodLabel: selectedPeriodLabel,
+    });
   };
 
   const unreadNotificationCount = useMemo(
@@ -755,16 +995,7 @@ const DashboardPage = ({
     setNotifications((currentNotifications) =>
       currentNotifications.map((notification) => ({ ...notification, isRead: true }))
     );
-    setNotificationNotice(MARK_ALL_READ_NOTICE);
-    if (markAllNoticeTimerRef.current) {
-      window.clearTimeout(markAllNoticeTimerRef.current);
-    }
-    markAllNoticeTimerRef.current = window.setTimeout(() => {
-      setNotificationNotice((currentNotice) =>
-        currentNotice === MARK_ALL_READ_NOTICE ? "" : currentNotice
-      );
-      markAllNoticeTimerRef.current = null;
-    }, 2000);
+    showTimedNotificationNotice(MARK_ALL_READ_NOTICE);
     dispatchNotificationUpdate();
   };
 
@@ -786,7 +1017,7 @@ const DashboardPage = ({
     setNotifications((currentNotifications) =>
       currentNotifications.filter((notification) => notification._id !== notificationId)
     );
-    setNotificationNotice("Notification deleted.");
+    showTimedNotificationNotice(DELETE_NOTIFICATION_NOTICE);
     dispatchNotificationUpdate();
   };
 
@@ -855,42 +1086,180 @@ const DashboardPage = ({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsNotificationModalOpen(true)}
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-primary-dark)]"
-              aria-label="Open notifications"
-              title="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
-                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                </span>
-              )}
-            </button>
-            <label className="relative">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
-              <select
-                value={period}
-                onChange={(event) => setPeriod(event.target.value)}
-                className="h-11 rounded-xl border border-[var(--color-border)] bg-white pl-10 pr-9 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+            {period === "custom" ? (
+              <Motion.div
+                key="custom-date-range"
+                initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  duration: 0.22,
+                  ease: [0.22, 1, 0.36, 1],
+                  staggerChildren: reduceMotion ? 0 : 0.05,
+                }}
+                className="flex flex-col items-stretch gap-3 sm:items-end"
               >
-                {PERIODS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={exportSummary}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--color-text-main)] px-4 text-sm font-bold text-white transition hover:opacity-90"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
+                <div className="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsNotificationModalOpen(true)}
+                    className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-primary-dark)]"
+                    aria-label="Open notifications"
+                    title="Notifications"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadNotificationCount > 0 && (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                        {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                      </span>
+                    )}
+                  </button>
+                  <Motion.div
+                    initial={reduceMotion ? false : { opacity: 0, scale: 0.985 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white text-[var(--color-text-main)] shadow-sm transition focus-within:border-[var(--color-primary)] sm:w-auto sm:flex-row sm:items-center"
+                    role="group"
+                    aria-label="Custom dashboard date range"
+                    title={selectedPeriodLabel}
+                  >
+                    <Motion.div
+                      initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDatePicker(startDatePickerRef)}
+                      onKeyDown={(event) =>
+                        handleDatePickerKeyDown(event, startDatePickerRef)
+                      }
+                      className="relative flex h-14 cursor-pointer items-center gap-4 px-4 transition hover:bg-[var(--color-surface-soft)]/55 focus:outline-none focus-visible:bg-[var(--color-surface-soft)]/55 sm:min-w-[13.5rem]"
+                    >
+                      <input
+                        ref={startDatePickerRef}
+                        type="date"
+                        value={dateRange.startDate || ""}
+                        max={dateRange.endDate || todayInputValue}
+                        onChange={handleStartDateChange}
+                        aria-label="From date"
+                        tabIndex={-1}
+                        className="pointer-events-none absolute inset-0 h-full w-full opacity-0 [color-scheme:light]"
+                      />
+                      <span className="text-xs font-black uppercase text-[var(--color-text-muted)]">
+                        From
+                      </span>
+                      <span className="min-w-[6.5rem] text-lg font-black tabular-nums text-[var(--color-text-main)]">
+                        {formatDateDisplayValue(dateRange.startDate)}
+                      </span>
+                      <CalendarDays className="ml-auto h-5 w-5 shrink-0 text-[var(--color-text-main)]" />
+                    </Motion.div>
+                    <span className="h-px bg-[var(--color-border)] sm:h-8 sm:w-px" />
+                    <Motion.div
+                      initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDatePicker(endDatePickerRef)}
+                      onKeyDown={(event) =>
+                        handleDatePickerKeyDown(event, endDatePickerRef)
+                      }
+                      className="relative flex h-14 cursor-pointer items-center gap-4 px-4 transition hover:bg-[var(--color-surface-soft)]/55 focus:outline-none focus-visible:bg-[var(--color-surface-soft)]/55 sm:min-w-[13.5rem]"
+                    >
+                      <input
+                        ref={endDatePickerRef}
+                        type="date"
+                        value={dateRange.endDate || ""}
+                        min={dateRange.startDate || undefined}
+                        max={todayInputValue}
+                        onChange={handleEndDateChange}
+                        aria-label="End date"
+                        tabIndex={-1}
+                        className="pointer-events-none absolute inset-0 h-full w-full opacity-0 [color-scheme:light]"
+                      />
+                      <span className="text-xs font-black uppercase text-[var(--color-text-muted)]">
+                        End
+                      </span>
+                      <span className="min-w-[6.5rem] text-lg font-black tabular-nums text-[var(--color-text-main)]">
+                        {formatDateDisplayValue(dateRange.endDate)}
+                      </span>
+                      <CalendarDays className="ml-auto h-5 w-5 shrink-0 text-[var(--color-text-main)]" />
+                    </Motion.div>
+                  </Motion.div>
+                  <Motion.label
+                    initial={reduceMotion ? false : { opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.18, ease: "easeOut", delay: reduceMotion ? 0 : 0.08 }}
+                    className="relative shrink-0"
+                  >
+                    <select
+                      value={period}
+                      onChange={handlePeriodChange}
+                      className="h-14 appearance-none rounded-2xl border border-[var(--color-border)] bg-white pl-4 pr-12 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+                      aria-label="Dashboard period"
+                    >
+                      {PERIODS.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-main)]" />
+                  </Motion.label>
+                </div>
+                <Motion.button
+                  type="button"
+                  onClick={exportSummary}
+                  initial={reduceMotion ? false : { opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, ease: "easeOut", delay: reduceMotion ? 0 : 0.1 }}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-text-main)] px-4 text-sm font-bold text-white transition hover:opacity-90 sm:w-auto"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Motion.button>
+              </Motion.div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationModalOpen(true)}
+                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white text-[var(--color-text-main)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-primary-dark)]"
+                  aria-label="Open notifications"
+                  title="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff7b7b] px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+                      {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                    </span>
+                  )}
+                </button>
+                <label className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                  <select
+                    value={period}
+                    onChange={handlePeriodChange}
+                    className="h-11 appearance-none rounded-xl border border-[var(--color-border)] bg-white pl-10 pr-12 text-sm font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-primary)]"
+                    aria-label="Dashboard period"
+                  >
+                    {PERIODS.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-main)]" />
+                </label>
+                <button
+                  type="button"
+                  onClick={exportSummary}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--color-text-main)] px-4 text-sm font-bold text-white transition hover:opacity-90"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </>
+            )}
           </div>
         </header>
 
@@ -899,15 +1268,25 @@ const DashboardPage = ({
             title="Net revenue"
             value={money(analytics.revenue)}
             secondaryValue={riel(analytics.revenue)}
-            change={period === "all" ? null : analytics.changes.revenue}
-            note={period === "all" ? "paid orders" : "vs previous period"}
+            change={
+              analytics.hasComparableRange ? analytics.changes.revenue : null
+            }
+            note={
+              analytics.hasComparableRange
+                ? period === "custom"
+                  ? "vs previous range"
+                  : "vs previous period"
+                : "from paid orders"
+            }
             icon={DollarSign}
             tone="sage"
           />
           <MetricCard
             title="Orders"
             value={number(analytics.currentOrders.length)}
-            change={period === "all" ? null : analytics.changes.orders}
+            change={
+              analytics.hasComparableRange ? analytics.changes.orders : null
+            }
             note={`${analytics.paidRate.toFixed(0)}% paid`}
             icon={ShoppingCart}
             tone="peach"
@@ -915,7 +1294,7 @@ const DashboardPage = ({
           <MetricCard
             title="Average order value"
             value={money(analytics.aov)}
-            change={period === "all" ? null : analytics.changes.aov}
+            change={analytics.hasComparableRange ? analytics.changes.aov : null}
             note="per paid order"
             icon={TrendingUp}
             tone="gold"
@@ -923,7 +1302,9 @@ const DashboardPage = ({
           <MetricCard
             title="Units sold"
             value={number(analytics.units)}
-            change={period === "all" ? null : analytics.changes.units}
+            change={
+              analytics.hasComparableRange ? analytics.changes.units : null
+            }
             note={`${analytics.repeatRate.toFixed(0)}% repeat buyers`}
             icon={ShoppingBag}
             tone="blue"

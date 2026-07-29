@@ -16,9 +16,15 @@ const ShippingAddressSection = ({
   const mapAddress = [shippingAddress.street, shippingAddress.address, shippingAddress.city]
     .filter(Boolean)
     .join(", ");
+  const selectedLatitude = Number(shippingAddress.latitude);
+  const selectedLongitude = Number(shippingAddress.longitude);
   const hasSelectedLocation =
-    Number.isFinite(Number(shippingAddress.latitude)) &&
-    Number.isFinite(Number(shippingAddress.longitude));
+    shippingAddress.latitude !== null &&
+    shippingAddress.latitude !== "" &&
+    shippingAddress.longitude !== null &&
+    shippingAddress.longitude !== "" &&
+    Number.isFinite(selectedLatitude) &&
+    Number.isFinite(selectedLongitude);
 
   return (
     <div className={`rounded-[2.5rem] border p-8 md:p-10 transition-colors duration-300 ${isDark ? "bg-slate-900 border-slate-800 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.9)]" : "bg-white border-stone-100 shadow-xl shadow-primary/5"}`}>
@@ -72,7 +78,7 @@ const ShippingAddressSection = ({
               isDark={isDark}
               initialLocation={
                 hasSelectedLocation
-                  ? { lat: shippingAddress.latitude, lng: shippingAddress.longitude }
+                  ? { lat: selectedLatitude, lng: selectedLongitude }
                   : null
               }
               address={mapAddress}

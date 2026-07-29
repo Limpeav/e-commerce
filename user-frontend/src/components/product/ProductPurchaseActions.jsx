@@ -87,6 +87,8 @@ const ProductPurchaseActions = ({
   selectedColor: controlledSelectedColor,
   onColorChange,
   showVariantOptions = true,
+  showSizeSelector = true,
+  showColorSelector = true,
   showCheckoutControls = true,
 }) => {
   const [isDark] = useDarkMode();
@@ -154,8 +156,8 @@ const ProductPurchaseActions = ({
     setQuantity(requestedQuantity);
   };
 
-  const shouldShowSizeOptions = showVariantOptions && needsSize;
-  const shouldShowColorOptions = showVariantOptions && needsColor;
+  const shouldShowSizeOptions = showVariantOptions && showSizeSelector && needsSize;
+  const shouldShowColorOptions = showVariantOptions && showColorSelector && needsColor;
 
   if (!showCheckoutControls && !shouldShowSizeOptions && !shouldShowColorOptions) {
     return null;

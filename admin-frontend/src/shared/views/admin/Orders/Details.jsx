@@ -232,6 +232,11 @@ const OrderDetails = () => {
     };
 
     const handlePaymentStatusUpdate = async (newPaymentStatus) => {
+        if (isSeller) {
+            alert("Seller accounts cannot update payment status.");
+            return;
+        }
+
         if (
             isDelivery &&
             (newPaymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
@@ -422,6 +427,9 @@ const OrderDetails = () => {
         receiptWasSent &&
         currentOrderStatus !== "Cancelled";
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
+    const canManagePaymentStatus =
+        adminUser?.role === "admin" ||
+        (isDelivery && order.paymentMethod === "Cash on Delivery");
     const orderProgressStatuses = isDelivery
         ? ["Delivered"]
         : ["Pending", "Processing", "Delivered"];
@@ -1066,8 +1074,7 @@ const OrderDetails = () => {
                         {renderReceiptRecoverySection()}
 
                         {/* Update Payment Status */}
-                        {(adminUser?.role === "admin" ||
-                            order.paymentMethod === "Cash on Delivery") && (
+                        {canManagePaymentStatus && (
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
                             <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
                                 <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />

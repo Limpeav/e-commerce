@@ -358,6 +358,57 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     { $group: { _id: null, totalRevenue: { $sum: "$totalPrice" } } },
   ]);
   const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+  const profitData = await Order.aggregate([
+    {
+      $match: {
+        paymentStatus: "Paid",
+        orderStatus: { $ne: "Cancelled" },
+      },
+    },
+    { $unwind: "$orderItems" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "orderItems.product",
+        foreignField: "_id",
+        as: "profitProduct",
+      },
+    },
+    {
+      $addFields: {
+        profitUnitCost: {
+          $ifNull: [
+            "$orderItems.costPrice",
+            {
+              $ifNull: [
+                { $arrayElemAt: ["$profitProduct.costPrice", 0] },
+                0,
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        productProfit: {
+          $sum: {
+            $multiply: [
+              {
+                $subtract: [
+                  "$orderItems.price",
+                  "$profitUnitCost",
+                ],
+              },
+              "$orderItems.quantity",
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  const productProfit = profitData.length > 0 ? profitData[0].productProfit : 0;
   const productsForSentiment = await Product.find({})
     .select("title category reviews")
     .lean();
@@ -421,6 +472,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     products: productsCount,
     orders: ordersCount,
     revenue: totalRevenue,
+    profit: productProfit,
     pendingOrders: pendingOrdersCount,
     processingOrders: processingOrdersCount,
     deliveredOrders: deliveredOrdersCount,

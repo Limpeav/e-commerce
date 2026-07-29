@@ -264,6 +264,54 @@ export const updatePortalProfile = async (req, res) => {
   }
 };
 
+export const changePortalPassword = async (req, res) => {
+  try {
+    if (!STAFF_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: "Staff password access only" });
+    }
+
+    const currentPassword = req.body.currentPassword;
+    const newPassword = req.body.newPassword;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required" });
+    }
+
+    const passwordCheck = validatePortalPassword(newPassword);
+    if (!passwordCheck.valid) {
+      return res.status(400).json({ message: passwordCheck.message });
+    }
+
+    const user = await User.findById(req.user._id).select("+tokenVersion");
+    if (!user || !STAFF_ROLES.includes(user.role)) {
+      return res.status(404).json({ message: "Staff account not found" });
+    }
+
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    if (await user.matchPassword(newPassword)) {
+      return res.status(400).json({ message: "New password must be different from current password" });
+    }
+
+    user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    const token = createPortalSessionToken(user);
+
+    return res.json({
+      message: "Password changed successfully",
+      token,
+      user: serializePortalProfile(user),
+    });
+  } catch (error) {
+    console.error("Portal password change error:", error);
+    return res.status(500).json({ message: "Unable to change password" });
+  }
+};
+
 export const forgotPortalPassword = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);

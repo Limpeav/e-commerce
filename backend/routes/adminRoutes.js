@@ -10,6 +10,7 @@ import {
     registerAdmin,
     loginAdmin,
     verifyAdminLogin,
+    changePortalPassword,
     forgotPortalPassword,
     getAdminProfile,
     logoutPortalSession,
@@ -93,6 +94,7 @@ router.post("/reset-password", adminResetLimiter, resetPortalPassword);
 router.post("/logout", protect, portalAccess, logoutPortalSession);
 router.get("/me", protect, portalAccess, getAdminProfile);
 router.put("/me", protect, portalAccess, updatePortalProfile);
+router.put("/me/password", protect, portalAccess, changePortalPassword);
 
 // Dashboard
 router.get("/dashboard", protect, portalAccess, getDashboardData);

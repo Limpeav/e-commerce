@@ -6,6 +6,7 @@ import {
   CheckCheck,
   Clock,
   CreditCard,
+  ExternalLink,
   Inbox,
   Info,
   LifeBuoy,
@@ -16,6 +17,7 @@ import {
   ShoppingCart,
   Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 import { NotificationController } from "../../../controllers";
@@ -28,6 +30,7 @@ import {
 
 const NOTIFICATION_UPDATED_EVENT = "admin-notifications-updated";
 const MARK_ALL_READ_NOTICE = "All notifications marked as read.";
+const DELETE_NOTIFICATION_NOTICE = "Notification deleted.";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -57,43 +60,43 @@ const CATEGORY_STYLES = {
     label: "Orders",
     icon: ShoppingCart,
     pill: "border-blue-200 bg-blue-50 text-blue-700",
-    iconBox: "bg-blue-100 text-blue-700",
+    iconBox: "bg-blue-600 text-white shadow-blue-600/20",
   },
   payments: {
     label: "Payments",
     icon: CreditCard,
     pill: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    iconBox: "bg-emerald-100 text-emerald-700",
+    iconBox: "bg-emerald-600 text-white shadow-emerald-600/20",
   },
   stock: {
     label: "Stock",
     icon: Package,
     pill: "border-orange-200 bg-orange-50 text-orange-700",
-    iconBox: "bg-orange-100 text-orange-700",
+    iconBox: "bg-orange-500 text-white shadow-orange-500/20",
   },
   support: {
     label: "Support",
     icon: LifeBuoy,
     pill: "border-violet-200 bg-violet-50 text-violet-700",
-    iconBox: "bg-violet-100 text-violet-700",
+    iconBox: "bg-violet-600 text-white shadow-violet-600/20",
   },
   products: {
     label: "Products",
     icon: Package,
     pill: "border-amber-200 bg-amber-50 text-amber-700",
-    iconBox: "bg-amber-100 text-amber-700",
+    iconBox: "bg-amber-500 text-white shadow-amber-500/20",
   },
   users: {
     label: "Users",
     icon: UserPlus,
     pill: "border-cyan-200 bg-cyan-50 text-cyan-700",
-    iconBox: "bg-cyan-100 text-cyan-700",
+    iconBox: "bg-cyan-600 text-white shadow-cyan-600/20",
   },
   system: {
     label: "System",
     icon: Info,
     pill: "border-gray-200 bg-gray-50 text-gray-700",
-    iconBox: "bg-gray-100 text-gray-700",
+    iconBox: "bg-gray-600 text-white shadow-gray-600/20",
   },
 };
 
@@ -248,7 +251,8 @@ export default function AdminNotifications() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const markAllNoticeTimerRef = useRef(null);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const noticeTimerRef = useRef(null);
 
   const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -281,21 +285,46 @@ export default function AdminNotifications() {
 
   useEffect(
     () => () => {
-      if (markAllNoticeTimerRef.current) {
-        window.clearTimeout(markAllNoticeTimerRef.current);
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
       }
     },
     []
   );
 
   useEffect(() => {
-    if (
-      isSeller &&
-      !categoryFilters.some((category) => category.key === activeCategory)
-    ) {
-      setActiveCategory("all");
+    if (!selectedNotification) return undefined;
+
+    const handleEscapeKey = (event) => {
+      if (event.key === "Escape") {
+        setSelectedNotification(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [selectedNotification]);
+
+  const showTimedNotice = useCallback((message) => {
+    setNotice(message);
+
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
     }
-  }, [activeCategory, categoryFilters, isSeller]);
+
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice((currentNotice) => (currentNotice === message ? "" : currentNotice));
+      noticeTimerRef.current = null;
+    }, 2000);
+  }, []);
+
+  const effectiveActiveCategory =
+    isSeller && !categoryFilters.some((category) => category.key === activeCategory)
+      ? "all"
+      : activeCategory;
 
   const visibleNotifications = useMemo(
     () =>
@@ -319,8 +348,8 @@ export default function AdminNotifications() {
       if (activeFilter === "unread" && notification.isRead) return false;
       if (activeFilter === "read" && !notification.isRead) return false;
       if (
-        activeCategory !== "all" &&
-        getNotificationCategory(notification) !== activeCategory
+        effectiveActiveCategory !== "all" &&
+        getNotificationCategory(notification) !== effectiveActiveCategory
       ) {
         return false;
       }
@@ -344,7 +373,7 @@ export default function AdminNotifications() {
 
       return searchableText.includes(search);
     });
-  }, [activeCategory, activeFilter, searchTerm, visibleNotifications]);
+  }, [effectiveActiveCategory, activeFilter, searchTerm, visibleNotifications]);
 
   const categoryCounts = useMemo(() => {
     const counts = categoryFilters.reduce(
@@ -401,6 +430,19 @@ export default function AdminNotifications() {
       await markNotificationAsRead(notification._id, { quiet: true });
     }
 
+    if (isSeller) {
+      setSelectedNotification({ ...notification, isRead: true });
+      return;
+    }
+
+    navigate(target);
+  };
+
+  const handleOpenSelectedTarget = () => {
+    if (!selectedNotification) return;
+
+    const target = getNotificationTarget(selectedNotification, adminUser);
+    setSelectedNotification(null);
     navigate(target);
   };
 
@@ -422,16 +464,7 @@ export default function AdminNotifications() {
     setNotifications((currentNotifications) =>
       currentNotifications.map((notification) => ({ ...notification, isRead: true }))
     );
-    setNotice(MARK_ALL_READ_NOTICE);
-    if (markAllNoticeTimerRef.current) {
-      window.clearTimeout(markAllNoticeTimerRef.current);
-    }
-    markAllNoticeTimerRef.current = window.setTimeout(() => {
-      setNotice((currentNotice) =>
-        currentNotice === MARK_ALL_READ_NOTICE ? "" : currentNotice
-      );
-      markAllNoticeTimerRef.current = null;
-    }, 2000);
+    showTimedNotice(MARK_ALL_READ_NOTICE);
     dispatchNotificationUpdate();
   };
 
@@ -453,7 +486,10 @@ export default function AdminNotifications() {
     setNotifications((currentNotifications) =>
       currentNotifications.filter((notification) => notification._id !== notificationId)
     );
-    setNotice("Notification deleted.");
+    setSelectedNotification((currentNotification) =>
+      currentNotification?._id === notificationId ? null : currentNotification
+    );
+    showTimedNotice(DELETE_NOTIFICATION_NOTICE);
     dispatchNotificationUpdate();
   };
 
@@ -476,6 +512,13 @@ export default function AdminNotifications() {
   };
 
   const getBusy = (action, notificationId) => actionBusy === `${action}:${notificationId}`;
+  const selectedCategoryKey = selectedNotification
+    ? getNotificationCategory(selectedNotification)
+    : "system";
+  const selectedCategoryStyle = CATEGORY_STYLES[selectedCategoryKey] || CATEGORY_STYLES.system;
+  const SelectedCategoryIcon = selectedCategoryStyle.icon || Bell;
+  const selectedPerson = getNotificationPerson(selectedNotification);
+  const selectedCreatedAtTitle = getNotificationDateTitle(selectedNotification?.createdAt);
 
   if (loading) {
     return <Loading message="Loading notifications..." />;
@@ -483,6 +526,81 @@ export default function AdminNotifications() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {selectedNotification && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-gray-950/50 px-4 py-6 backdrop-blur-sm"
+          onClick={() => setSelectedNotification(null)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-notification-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-5">
+              <div className="flex min-w-0 items-start gap-4">
+                <span
+                  className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${selectedCategoryStyle.iconBox}`}
+                >
+                  <SelectedCategoryIcon className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <span
+                    className={`mb-2 inline-flex h-7 items-center rounded-full border px-3 text-[11px] font-black uppercase ${selectedCategoryStyle.pill}`}
+                  >
+                    {selectedCategoryStyle.label}
+                  </span>
+                  <h2 id="seller-notification-title" className="text-xl font-black text-gray-950">
+                    {selectedNotification.title || "Notification"}
+                  </h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close notification"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-5">
+              <p className="text-base font-semibold leading-7 text-gray-700">
+                {selectedNotification.message || "No message provided."}
+              </p>
+
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-bold text-gray-500">
+                <span className="inline-flex items-center gap-1" title={selectedCreatedAtTitle}>
+                  <Clock className="h-4 w-4" />
+                  {getNotificationTime(selectedNotification.createdAt)}
+                </span>
+                {selectedPerson && <span>{selectedPerson}</span>}
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenSelectedTarget}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-black text-white shadow-lg shadow-[var(--color-primary)]/20 transition-colors hover:bg-[var(--color-primary-dark)]"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open related page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white shadow">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -577,7 +695,7 @@ export default function AdminNotifications() {
                 type="button"
                 onClick={() => handleCategoryChange(category.key)}
                 className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-black transition ${
-                  activeCategory === category.key
+                  effectiveActiveCategory === category.key
                     ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
                     : "border-gray-200 bg-white text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                 }`}
@@ -585,7 +703,7 @@ export default function AdminNotifications() {
                 {category.label}
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] ${
-                    activeCategory === category.key
+                    effectiveActiveCategory === category.key
                       ? "bg-white/20 text-white"
                       : "bg-gray-100 text-gray-500"
                   }`}
@@ -618,7 +736,7 @@ export default function AdminNotifications() {
                 const notificationId = notification._id;
                 const categoryKey = getNotificationCategory(notification);
                 const categoryStyle = CATEGORY_STYLES[categoryKey] || CATEGORY_STYLES.system;
-                const CategoryIcon = categoryStyle.icon;
+                const CategoryIcon = categoryStyle.icon || Bell;
                 const person = getNotificationPerson(notification);
                 const createdAtTitle = getNotificationDateTitle(notification.createdAt);
 
@@ -636,9 +754,9 @@ export default function AdminNotifications() {
                         className="group flex min-w-0 flex-1 gap-4 text-left"
                       >
                         <span
-                          className={`mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${categoryStyle.iconBox}`}
+                          className={`mt-1 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-lg ${categoryStyle.iconBox}`}
                         >
-                          <CategoryIcon className="h-5 w-5" />
+                          <CategoryIcon className="h-6 w-6" aria-hidden="true" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="mb-2 flex flex-wrap items-center gap-2">

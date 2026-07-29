@@ -21,6 +21,7 @@ const orderSchema = new mongoose.Schema(
                 color: { type: String, default: "", trim: true },
                 image: { type: String, required: true },
                 price: { type: Number, required: true },
+                costPrice: { type: Number, default: 0, min: 0, select: false },
             },
         ],
         shippingAddress: {
