@@ -256,7 +256,7 @@ export default function ReviewOrder() {
     }
 
     redirectTimeoutRef.current = window.setTimeout(() => {
-      navigate("/customer", { replace: true });
+      navigate("/", { replace: true });
     }, 3000);
   };
 
@@ -310,7 +310,7 @@ export default function ReviewOrder() {
           isDark ? "bg-slate-950" : "bg-[#f6f7fb]"
         }`}
       >
-        <AlreadyRatedCard onDismiss={() => navigate("/customer", { replace: true })} />
+        <AlreadyRatedCard onDismiss={() => navigate("/", { replace: true })} />
       </main>
     );
   }
@@ -609,7 +609,7 @@ export default function ReviewOrder() {
                 <button
                   type="button"
                   id="review-success-continue-shopping"
-                  onClick={() => navigate("/customer", { replace: true })}
+                  onClick={() => navigate("/", { replace: true })}
                   className="group relative inline-flex h-13 flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-primary px-6 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 active:translate-y-0"
                 >
                   <span className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />

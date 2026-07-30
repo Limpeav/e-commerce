@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+    buildLowStockMessage,
     buildOrderReceiptCaption,
     buildPaymentTelegramMessage,
 } from "../utils/sendTelegramMessage.js";
@@ -31,6 +32,58 @@ test("buildPaymentTelegramMessage formats KHR without decimals", () => {
     });
 
     assert.match(message, /51,250 KHR/);
+});
+
+test("buildLowStockMessage formats variant stock alerts", () => {
+    const message = buildLowStockMessage({
+        productId: "64abc123",
+        stockType: "Variant stock",
+        title: "Baby Shirt",
+        category: "Clothing",
+        variant: "M / Black",
+        stock: 2,
+    });
+
+    assert.equal(
+        message,
+        [
+            "<b>LOW STOCK ALERT</b>",
+            "",
+            "<b>Product ID</b>: <code>64abc123</code>",
+            "<b>Type</b>: Variant stock",
+            "<b>Product</b>: Baby Shirt",
+            "<b>Category</b>: Clothing",
+            "<b>Variant</b>: M / Black",
+            "<b>Stock Left</b>: 2",
+            "",
+            "<i>Restock this item soon.</i>",
+        ].join("\n")
+    );
+});
+
+test("buildLowStockMessage formats product stock alerts without variant", () => {
+    const message = buildLowStockMessage({
+        productId: "64def456",
+        stockType: "Product stock",
+        title: "Baby Lotion",
+        category: "Skincare",
+        stock: 5,
+    });
+
+    assert.equal(
+        message,
+        [
+            "<b>LOW STOCK ALERT</b>",
+            "",
+            "<b>Product ID</b>: <code>64def456</code>",
+            "<b>Type</b>: Product stock",
+            "<b>Product</b>: Baby Lotion",
+            "<b>Category</b>: Skincare",
+            "<b>Stock Left</b>: 5",
+            "",
+            "<i>Restock this item soon.</i>",
+        ].join("\n")
+    );
 });
 
 test("buildOrderReceiptCaption includes ordered items and escapes user content", () => {

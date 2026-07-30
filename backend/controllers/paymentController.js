@@ -12,7 +12,8 @@ import {
     emitOrderCreated,
 } from "../realtime/socket.js";
 import {
-    getStockAlert,
+    getInventoryStockAlert,
+    getStockAlertTargetStock,
     syncLowStockAlertFlag,
 } from "../utils/stockAlerts.js";
 import {
@@ -23,6 +24,7 @@ import { createPaymentSuccessNotification } from "../utils/paymentNotifications.
 import {
     adjustProductInventory,
     getAvailableStock,
+    hasSizeStock,
 } from "../utils/productInventory.js";
 import {
     sendOrderTelegramAlert,
@@ -473,6 +475,18 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
             ];
         })
     );
+    const previousStockByInventoryKey = new Map();
+
+    for (const [inventoryKey, { productId, size, color, quantity }] of quantityByProductSize) {
+        const product = productById.get(productId);
+        if (!product) continue;
+
+        previousStockByInventoryKey.set(
+            inventoryKey,
+            getStockAlertTargetStock(product, { size, color })
+                + (order.stockReserved ? quantity : 0)
+        );
+    }
 
     for (const { productId, size, color, quantity } of quantityByProductSize.values()) {
         const product = productById.get(productId);
@@ -530,29 +544,39 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
     }
 
     const stockAlerts = [];
-    for (const productId of productIds) {
+    const productAlertIds = new Set();
+
+    for (const [inventoryKey, { productId, size, color }] of quantityByProductSize) {
         const product = productById.get(productId);
+        const productHasVariants = hasSizeStock(product);
+        if (!productHasVariants && productAlertIds.has(productId)) continue;
+
         syncLowStockAlertFlag(product);
-        const currentStock = getAvailableStock(product);
-        const stockAlert = getStockAlert({
-            previousStock: previousStockByProduct.get(productId),
-            currentStock,
-            lowStockAlertSent: product.lowStockAlertSent,
-            outOfStockAlertSent: product.outOfStockAlertSent,
+        const stockAlertDetails = getInventoryStockAlert({
+            product,
+            previousStock: productHasVariants
+                ? previousStockByInventoryKey.get(inventoryKey)
+                : previousStockByProduct.get(productId),
+            size,
+            color,
         });
 
-        if (stockAlert) {
-            product.lowStockAlertSent = stockAlert.lowStockAlertSent;
-            product.outOfStockAlertSent = stockAlert.outOfStockAlertSent;
+        if (stockAlertDetails) {
             stockAlerts.push(
                 createStockAlertPayload({
                     product,
-                    stockAlert,
-                    stock: currentStock,
+                    ...stockAlertDetails,
                 })
             );
         }
 
+        if (!productHasVariants) {
+            productAlertIds.add(productId);
+        }
+    }
+
+    for (const productId of productIds) {
+        const product = productById.get(productId);
         await product.save({ session });
     }
 

@@ -1,7 +1,7 @@
 const normalizeUrl = (url) => String(url || "").replace(/\/+$/, "");
 
 const FALLBACK_ADMIN_URL = "https://admin-frontend-02jx.onrender.com";
-const FALLBACK_CUSTOMER_URL = "https://customer-frontend-728p.onrender.com";
+const FALLBACK_CUSTOMER_URL = "https://cherishbabykhstore.store";
 
 export const portalConfig = {
   portal: import.meta.env.VITE_APP_PORTAL || "all",

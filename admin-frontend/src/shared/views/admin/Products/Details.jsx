@@ -30,6 +30,7 @@ import {
   isLowStockProduct,
   isOutOfStockProduct,
   isProductIssue,
+  VARIANT_LOW_STOCK_THRESHOLD,
 } from "../../../utils/adminProducts";
 import {
   formatExpiryDate,
@@ -91,6 +92,14 @@ const getTotalReservedStock = (product = {}) => {
 
 const getVariantAvailableStock = (entry = {}) =>
   Math.max(0, Number(entry.stock || 0) - Number(entry.reservedStock || 0));
+
+const getVariantStockClassName = (entry = {}) => {
+  const availableStock = getVariantAvailableStock(entry);
+
+  if (availableStock <= 0) return "text-red-700";
+  if (availableStock <= VARIANT_LOW_STOCK_THRESHOLD) return "text-[#b45309]";
+  return "text-emerald-700";
+};
 
 const getMarginDetails = (product = {}) => {
   const price = Number(product.price || 0);
@@ -621,7 +630,9 @@ const AdminProductDetails = () => {
                           <td className="px-4 py-3 text-right text-sm font-bold text-blue-700">
                             {formatNumber(entry.reservedStock)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-bold text-emerald-700">
+                          <td
+                            className={`px-4 py-3 text-right text-sm font-bold ${getVariantStockClassName(entry)}`}
+                          >
                             {formatNumber(getVariantAvailableStock(entry))}
                           </td>
                         </tr>

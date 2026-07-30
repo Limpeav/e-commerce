@@ -4,23 +4,37 @@ import { emitNotificationCreated } from "../realtime/socket.js";
 import { sendLowStockTelegramAlert } from "./sendTelegramMessage.js";
 import { getLowStockThreshold } from "./stockAlerts.js";
 
+const getAlertItemTitle = (alert) =>
+  alert.variant?.label ? `${alert.title} - ${alert.variant.label}` : alert.title;
+
 const getStockAlertCopy = (alert) => {
   const stock = Math.max(0, Number(alert.stock || 0));
+  const threshold = Number.isFinite(Number(alert.threshold))
+    ? Number(alert.threshold)
+    : getLowStockThreshold();
+  const itemTitle = getAlertItemTitle(alert);
+  const subject = alert.variant?.label ? "Variant" : "Product";
 
   if (alert.kind === "out-of-stock") {
     return {
-      title: "Product Out of Stock",
-      message: `${alert.title} is out of stock. Restock this product before accepting more orders.`,
+      title: `${subject} Out of Stock`,
+      message: `${itemTitle} is out of stock. Restock this ${subject.toLowerCase()} before accepting more orders.`,
     };
   }
 
   return {
-    title: "Product Low Stock",
-    message: `${alert.title} has ${stock} item${stock === 1 ? "" : "s"} left. Low stock threshold is ${getLowStockThreshold()}.`,
+    title: `${subject} Low Stock`,
+    message: `${itemTitle} has ${stock} item${stock === 1 ? "" : "s"} left. Low stock threshold is ${threshold}.`,
   };
 };
 
-export const createStockAlertPayload = ({ product, stockAlert, stock }) => {
+export const createStockAlertPayload = ({
+  product,
+  stockAlert,
+  stock,
+  threshold,
+  variant,
+}) => {
   if (!product || !stockAlert) return null;
 
   return {
@@ -29,6 +43,8 @@ export const createStockAlertPayload = ({ product, stockAlert, stock }) => {
     title: product.title,
     category: product.category,
     stock,
+    threshold,
+    variant,
     imageUrl: product.image,
     lowStockAlertSent: stockAlert.lowStockAlertSent,
     outOfStockAlertSent: stockAlert.outOfStockAlertSent,
@@ -59,21 +75,23 @@ export const dispatchInventoryStockAlerts = (alerts = []) => {
         );
       }
 
-      try {
-        await Product.updateOne(
-          { _id: alert.productId },
-          {
-            $set: {
-              lowStockAlertSent: Boolean(alert.lowStockAlertSent),
-              outOfStockAlertSent: Boolean(alert.outOfStockAlertSent),
-            },
-          }
-        );
-      } catch (flagError) {
-        console.error(
-          `Stock alert flag update failed for product ${alert.productId}:`,
-          flagError.message
-        );
+      if (!alert.variant) {
+        try {
+          await Product.updateOne(
+            { _id: alert.productId },
+            {
+              $set: {
+                lowStockAlertSent: Boolean(alert.lowStockAlertSent),
+                outOfStockAlertSent: Boolean(alert.outOfStockAlertSent),
+              },
+            }
+          );
+        } catch (flagError) {
+          console.error(
+            `Stock alert flag update failed for product ${alert.productId}:`,
+            flagError.message
+          );
+        }
       }
 
       try {
@@ -82,6 +100,8 @@ export const dispatchInventoryStockAlerts = (alerts = []) => {
           category: alert.category,
           stock: alert.stock,
           productId: alert.productId.toString(),
+          stockType: alert.variant?.label ? "Variant stock" : "Product stock",
+          variant: alert.variant?.label || "",
           imageUrl: alert.imageUrl,
         });
       } catch (telegramError) {

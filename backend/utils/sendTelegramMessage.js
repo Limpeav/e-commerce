@@ -169,26 +169,43 @@ const sendTelegramPhotoOrMessage = async ({
   return { sent: true, type: "message" };
 };
 
-export const buildLowStockMessage = ({ title, stock, category, productId }) => {
+export const buildLowStockMessage = ({
+  title,
+  stock,
+  category,
+  productId,
+  stockType = "Product stock",
+  variant,
+}) => {
   const safeTitle = escapeHtml(title);
   const safeCategory = category ? escapeHtml(category) : null;
   const safeProductId = productId ? escapeHtml(productId) : null;
+  const safeStockType = escapeHtml(stockType);
+  const safeVariant = variant ? escapeHtml(variant) : null;
 
   const lines = [
     "<b>LOW STOCK ALERT</b>",
     "",
-    `<b>Product</b>: ${safeTitle}`,
-    `<b>Stock Left</b>: ${stock}`,
   ];
-
-  if (safeCategory) {
-    lines.push(`<b>Category</b>: ${safeCategory}`);
-  }
 
   if (safeProductId) {
     lines.push(`<b>Product ID</b>: <code>${safeProductId}</code>`);
   }
 
+  lines.push(
+    `<b>Type</b>: ${safeStockType}`,
+    `<b>Product</b>: ${safeTitle}`
+  );
+
+  if (safeCategory) {
+    lines.push(`<b>Category</b>: ${safeCategory}`);
+  }
+
+  if (safeVariant) {
+    lines.push(`<b>Variant</b>: ${safeVariant}`);
+  }
+
+  lines.push(`<b>Stock Left</b>: ${stock}`);
   lines.push("", "<i>Restock this item soon.</i>");
 
   return lines.join("\n");
@@ -238,6 +255,8 @@ export const sendLowStockTelegramAlert = async ({
   stock,
   category,
   productId,
+  stockType,
+  variant,
   imageUrl,
 }) => {
   const { botToken, chatId, threadId, enabled } = getTelegramConfig("low-stock");
@@ -251,6 +270,8 @@ export const sendLowStockTelegramAlert = async ({
     stock,
     category,
     productId,
+    stockType,
+    variant,
   });
 
   try {

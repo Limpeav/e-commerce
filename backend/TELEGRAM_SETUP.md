@@ -47,7 +47,8 @@ Update `backend/.env`:
 ```env
 TELEGRAM_BOT_TOKEN=your_real_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
-LOW_STOCK_THRESHOLD=2
+PRODUCT_LOW_STOCK_THRESHOLD=5
+VARIANT_LOW_STOCK_THRESHOLD=2
 ```
 
 ## 5. Restart the backend
@@ -56,16 +57,31 @@ After changing `.env`, restart the backend server.
 
 ## How alerts work
 
-- An alert is sent when stock crosses from above the threshold to at-or-below the threshold.
-- Example with threshold `2`: stock `3 -> 2` sends an alert.
-- Example with threshold `2`: stock `2 -> 1` does not send another alert.
-- If you restock above the threshold, alerts are reset for that product.
+- Product-level alerts are sent when total product stock crosses from above `5` to at-or-below `5`.
+- Variant-level alerts are sent when a size/color row crosses from above `2` to at-or-below `2`.
+- Example for a variant row: stock `3 -> 2` sends an alert.
+- Example for a variant row: stock `2 -> 1` does not send another low-stock alert.
+- If you restock above the matching threshold, alerts are reset for that product or variant.
 
 ## Example message
 
 ```text
-Low stock alert
+LOW STOCK ALERT
+
+Product ID: 64def456
+Type: Product stock
 Product: Baby Lotion
-Stock left: 3
-Category: skincare
+Category: Skincare
+Stock Left: 5
+```
+
+```text
+LOW STOCK ALERT
+
+Product ID: 64abc123
+Type: Variant stock
+Product: Baby Shirt
+Category: Clothing
+Variant: M / Black
+Stock Left: 2
 ```

@@ -57,7 +57,7 @@ export const parseSizeStocksPayload = (value) => {
 export const hasSizeStock = (product = {}) =>
   Array.isArray(product?.sizeStocks) && product.sizeStocks.length > 0;
 
-const findSizeStock = (product, size, color = "") => {
+export const findSizeStock = (product, size, color = "") => {
   const normalizedSize = normalizeSelectedSize(size);
   const normalizedColor = normalizeSelectedColor(color).toLowerCase();
   if (!hasSizeStock(product)) return null;

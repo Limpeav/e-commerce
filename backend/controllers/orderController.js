@@ -10,7 +10,8 @@ import {
     emitOrderUpdated,
 } from "../realtime/socket.js";
 import {
-    getStockAlert,
+    getInventoryStockAlert,
+    getStockAlertTargetStock,
     syncLowStockAlertFlag,
 } from "../utils/stockAlerts.js";
 import {
@@ -362,36 +363,35 @@ export const createOrder = asyncHandler(async (req, res) => {
                 }
 
                 if (shouldReduceStockImmediately) {
-                    for (const item of orderItems) {
-                        const product = productMap.get(String(item.product));
-                        const previousStock = getAvailableStock(product);
+                    for (const { productId, size, color, quantity } of requestedQuantityByProductSize.values()) {
+                        const product = productMap.get(productId);
+                        const previousStock = getStockAlertTargetStock(product, {
+                            size,
+                            color,
+                        });
                         adjustProductInventory(product, {
-                            size: item.size,
-                            color: item.color,
-                            quantity: item.quantity,
+                            size,
+                            color,
+                            quantity,
                             action: "reduce",
                         });
                         product.totalSold = Math.max(
                             0,
-                            Number(product.totalSold || 0) + Number(item.quantity || 0)
+                            Number(product.totalSold || 0) + quantity
                         );
                         syncLowStockAlertFlag(product);
-                        const currentStock = getAvailableStock(product);
-                        const stockAlert = getStockAlert({
+                        const stockAlertDetails = getInventoryStockAlert({
+                            product,
                             previousStock,
-                            currentStock,
-                            lowStockAlertSent: product.lowStockAlertSent,
-                            outOfStockAlertSent: product.outOfStockAlertSent,
+                            size,
+                            color,
                         });
 
-                        if (stockAlert) {
-                            product.lowStockAlertSent = stockAlert.lowStockAlertSent;
-                            product.outOfStockAlertSent = stockAlert.outOfStockAlertSent;
+                        if (stockAlertDetails) {
                             lowStockAlerts.push(
                                 createStockAlertPayload({
                                     product,
-                                    stockAlert,
-                                    stock: currentStock,
+                                    ...stockAlertDetails,
                                 })
                             );
                         }

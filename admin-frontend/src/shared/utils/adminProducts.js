@@ -3,7 +3,9 @@ import {
   normalizeProductCategory,
 } from "../constants/productCategories.js";
 
-export const LOW_STOCK_THRESHOLD = 2;
+export const PRODUCT_LOW_STOCK_THRESHOLD = 5;
+export const VARIANT_LOW_STOCK_THRESHOLD = 2;
+export const LOW_STOCK_THRESHOLD = PRODUCT_LOW_STOCK_THRESHOLD;
 export const INVENTORY_STATE_OPTIONS = [
   { value: "all", label: "All Inventory" },
   { value: "issues", label: "Product Issues" },
@@ -48,6 +50,19 @@ export const getAvailableStock = (product) => {
   return Math.max(0, Number(product?.stock || 0) - issueQuantity);
 };
 
+const hasVariantStock = (product) =>
+  Array.isArray(product?.sizeStocks) && product.sizeStocks.length > 0;
+
+export const getVariantAvailableStock = (entry = {}) =>
+  Math.max(0, Number(entry.stock || 0) - Number(entry.reservedStock || 0));
+
+export const getLowStockVariants = (product) =>
+  hasVariantStock(product)
+    ? product.sizeStocks.filter(
+        (entry) => getVariantAvailableStock(entry) <= VARIANT_LOW_STOCK_THRESHOLD
+      )
+    : [];
+
 export const isBestSellerProduct = (product) =>
   product?.isBestSeller === true;
 
@@ -85,7 +100,9 @@ export const getBestSellerProductsByCategory = (products = []) => {
 };
 
 export const isLowStockProduct = (product) =>
-  getAvailableStock(product) <= LOW_STOCK_THRESHOLD;
+  hasVariantStock(product)
+    ? getLowStockVariants(product).length > 0
+    : getAvailableStock(product) <= PRODUCT_LOW_STOCK_THRESHOLD;
 
 export const isOutOfStockProduct = (product) =>
   getAvailableStock(product) <= 0;

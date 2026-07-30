@@ -60,6 +60,14 @@ const sizeStockSchema = mongoose.Schema(
       default: 0,
       min: 0,
     },
+    lowStockAlertSent: {
+      type: Boolean,
+      default: false,
+    },
+    outOfStockAlertSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false }
 );

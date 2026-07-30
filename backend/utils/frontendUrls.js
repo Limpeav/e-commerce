@@ -1,5 +1,6 @@
 const LOCAL_CUSTOMER_FRONTEND_URL = "http://localhost:5173";
 const LOCAL_ADMIN_FRONTEND_URL = "http://localhost:5174";
+const PRODUCTION_CUSTOMER_FRONTEND_URL = "https://cherishbabykhstore.store";
 
 export const normalizeUrl = (url = "") =>
   String(url || "")
@@ -48,7 +49,7 @@ export const getCustomerFrontendUrl = () =>
       process.env.SUPPORT_FRONTEND_URL,
     configuredUrl: process.env.FRONTEND_URL,
     localFallback: LOCAL_CUSTOMER_FRONTEND_URL,
-    productionFallback: LOCAL_CUSTOMER_FRONTEND_URL,
+    productionFallback: PRODUCTION_CUSTOMER_FRONTEND_URL,
   });
 
 export const getAdminFrontendUrl = () =>
