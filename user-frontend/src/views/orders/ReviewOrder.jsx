@@ -8,6 +8,7 @@ import { useAuth } from "../../context/useAuth";
 import { useDarkMode } from "../../hooks";
 import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
+import AlreadyRatedCard from "../../components/ui/AlreadyRatedCard";
 import AnimatedStarRating from "../../components/ui/AnimatedStarRating";
 
 const getProductId = (item) => {
@@ -59,6 +60,7 @@ export default function ReviewOrder() {
   const [submittingAll, setSubmittingAll] = useState(false);
   const [submittedByProduct, setSubmittedByProduct] = useState({});
   const [showThankYou, setShowThankYou] = useState(false);
+  const [showAlreadyRated, setShowAlreadyRated] = useState(false);
   const redirectTimeoutRef = useRef(null);
   const focusedProductId = searchParams.get("product");
   const reduceMotion = useReducedMotion();
@@ -237,6 +239,16 @@ export default function ReviewOrder() {
       return next;
     });
     setSubmittingAll(false);
+
+    const onlyAlreadyRatedResults = results.every(({ result }) =>
+      result.data?.updated || result.data?.alreadyReviewed
+    );
+
+    if (onlyAlreadyRatedResults) {
+      setShowAlreadyRated(true);
+      return;
+    }
+
     setShowThankYou(true);
 
     if (redirectTimeoutRef.current) {
@@ -288,6 +300,18 @@ export default function ReviewOrder() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (showAlreadyRated) {
+    return (
+      <main
+        className={`flex min-h-[100dvh] items-center justify-center px-4 py-12 ${
+          isDark ? "bg-slate-950" : "bg-[#f6f7fb]"
+        }`}
+      >
+        <AlreadyRatedCard onDismiss={() => navigate("/customer", { replace: true })} />
+      </main>
     );
   }
 
