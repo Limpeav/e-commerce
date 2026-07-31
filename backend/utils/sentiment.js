@@ -25,6 +25,15 @@ const SENTIMENT_LEXICON = {
   affordable: 1.1,
   worth: 1.0,
   happy: 1.3,
+  ល្អ: 1.2,
+  ស្រឡាញ់: 2.0,
+  ពេញចិត្ត: 1.4,
+  ណែនាំ: 1.5,
+  សុវត្ថិភាព: 1.3,
+  ទន់: 1.2,
+  រហ័ស: 0.9,
+  ស្អាត: 0.8,
+  សមរម្យ: 1.1,
 
   // Negative
   bad: -1.4,
@@ -49,6 +58,18 @@ const SENTIMENT_LEXICON = {
   delay: -1.1,
   delayed: -1.1,
   expensive: -0.9,
+  អន់: -1.5,
+  អាក្រក់: -1.6,
+  ស្អប់: -2.1,
+  ខូច: -1.8,
+  យឺត: -1.0,
+  ថ្លៃ: -0.9,
+  ក្លែងក្លាយ: -1.8,
+  ហួសកំណត់: -2.0,
+  ធ្លាយ: -1.5,
+  កន្ទួល: -1.8,
+  រមាស់: -1.6,
+  ខកចិត្ត: -1.6,
 };
 
 const PHRASE_LEXICON = {
@@ -64,6 +85,19 @@ const PHRASE_LEXICON = {
   "too expensive": -1.3,
   "not safe": -2.0,
   "caused rash": -2.2,
+  "គុណភាពល្អ": 1.8,
+  "ល្អណាស់": 1.8,
+  "ប្រើបានល្អ": 1.4,
+  "តម្លៃសមរម្យ": 1.1,
+  "ដឹកជញ្ជូនលឿន": 1.3,
+  "អន់ណាស់": -2.0,
+  "គុណភាពអន់": -2.1,
+  "មិនល្អ": -2.0,
+  "មិនមានសុវត្ថិភាព": -2.0,
+  "ខូចគុណភាព": -2.0,
+  "ថ្លៃពេក": -1.3,
+  "ដឹកជញ្ជូនយឺត": -1.4,
+  "ធ្វើឲ្យកន្ទួល": -2.2,
 };
 
 const NEGATORS = new Set([
@@ -81,6 +115,9 @@ const NEGATORS = new Set([
   "isnt",
   "wasnt",
   "wont",
+  "មិន",
+  "អត់",
+  "គ្មាន",
 ]);
 
 const INTENSIFIERS = new Set([
@@ -92,14 +129,25 @@ const INTENSIFIERS = new Set([
   "too",
   "so",
   "quite",
+  "ណាស់",
+  "ខ្លាំង",
+  "ពិតជា",
 ]);
 
-const DAMPENERS = new Set(["slightly", "little", "somewhat", "kinda", "kindof"]);
+const DAMPENERS = new Set([
+  "slightly",
+  "little",
+  "somewhat",
+  "kinda",
+  "kindof",
+  "បន្តិច",
+  "តិចតួច",
+]);
 
 const normalizeText = (value = "") => value.toString().trim().toLowerCase();
 
 const tokenize = (text) => {
-  const normalized = normalizeText(text).replace(/[^a-z0-9\s']/g, " ");
+  const normalized = normalizeText(text).replace(/[^\p{L}\p{M}\p{N}\s']/gu, " ");
   return normalized.split(/\s+/).filter(Boolean);
 };
 

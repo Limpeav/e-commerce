@@ -28,6 +28,26 @@ test("classifyReviewSentiment returns negative for strong negative review", () =
   assert.ok(result.score < 0);
 });
 
+test("classifyReviewSentiment detects negative Khmer text even with five stars", () => {
+  const result = classifyReviewSentiment({
+    rating: 5,
+    comment: "គុណភាពអន់ណាស់ មិនល្អទេ",
+  });
+
+  assert.equal(result.label, "Negative");
+  assert.ok(result.score < 0);
+});
+
+test("classifyReviewSentiment handles spaced Khmer negation", () => {
+  const result = classifyReviewSentiment({
+    rating: 3,
+    comment: "មិន ល្អ",
+  });
+
+  assert.equal(result.label, "Negative");
+  assert.ok(result.score < 0);
+});
+
 test("summarizeSentiment aggregates counts and overall label", () => {
   const summary = summarizeSentiment([
     { sentimentLabel: "Positive", sentimentScore: 1.6 },
