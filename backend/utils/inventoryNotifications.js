@@ -1,6 +1,7 @@
 import Notification from "../models/notificationModel.js";
 import Product from "../models/Product.js";
 import { emitNotificationCreated } from "../realtime/socket.js";
+import { getProductImageForColor } from "./productOptions.js";
 import { sendLowStockTelegramAlert } from "./sendTelegramMessage.js";
 import { getLowStockThreshold } from "./stockAlerts.js";
 
@@ -36,6 +37,9 @@ export const createStockAlertPayload = ({
   variant,
 }) => {
   if (!product || !stockAlert) return null;
+  const imageUrl = variant?.color
+    ? getProductImageForColor(product, variant.color)
+    : product.image;
 
   return {
     kind: stockAlert.kind,
@@ -45,7 +49,7 @@ export const createStockAlertPayload = ({
     stock,
     threshold,
     variant,
-    imageUrl: product.image,
+    imageUrl,
     lowStockAlertSent: stockAlert.lowStockAlertSent,
     outOfStockAlertSent: stockAlert.outOfStockAlertSent,
   };

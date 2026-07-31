@@ -73,6 +73,19 @@ test("low stock alert does not fire for out of stock", () => {
   );
 });
 
+test("low stock alert can fire at confirmation even when previous stock was already at threshold", () => {
+  assert.equal(
+    shouldSendLowStockAlert({
+      previousStock: 5,
+      currentStock: 2,
+      lowStockAlertSent: false,
+      threshold: 5,
+      requireThresholdCross: false,
+    }),
+    true
+  );
+});
+
 test("out of stock alert fires when stock reaches zero", () => {
   assert.equal(
     shouldSendOutOfStockAlert({

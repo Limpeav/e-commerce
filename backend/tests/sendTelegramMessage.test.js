@@ -86,7 +86,7 @@ test("buildLowStockMessage formats product stock alerts without variant", () => 
     );
 });
 
-test("buildOrderReceiptCaption includes ordered items and escapes user content", () => {
+test("buildOrderReceiptCaption formats receipt summary without item titles", () => {
     const message = buildOrderReceiptCaption({
         orderId: "A98869EC",
         customerName: "Hour <Test>",
@@ -105,11 +105,18 @@ test("buildOrderReceiptCaption includes ordered items and escapes user content",
         ],
     });
 
-    assert.match(message, /ORDER RECEIPT/);
-    assert.match(message, /Hour &lt;Test&gt;/);
-    assert.doesNotMatch(message, /Items Ordered/);
-    assert.match(message, /Travel Bag &amp; Cover/);
-    assert.match(message, /Size M, Color Black/);
-    assert.match(message, /Qty 1 x \$7\.99/);
-    assert.match(message, /Total<\/b>: \$10\.13/);
+    assert.equal(
+        message,
+        [
+            "<b>ORDER RECEIPT</b>",
+            "",
+            "<b>Order</b>: <code>A98869EC</code>",
+            "<b>Customer</b>: Hour &lt;Test&gt;",
+            "<b>Phone</b>: 016568335",
+            "<b>Payment</b>: Cash on Delivery",
+            "<b>Status</b>: Pending",
+            "<b>Total</b>: $10.13",
+        ].join("\n")
+    );
+    assert.doesNotMatch(message, /Travel Bag/);
 });

@@ -57,10 +57,10 @@ After changing `.env`, restart the backend server.
 
 ## How alerts work
 
-- Product-level alerts are sent when total product stock crosses from above `5` to at-or-below `5`.
-- Variant-level alerts are sent when a size/color row crosses from above `2` to at-or-below `2`.
-- Example for a variant row: stock `3 -> 2` sends an alert.
-- Example for a variant row: stock `2 -> 1` does not send another low-stock alert.
+- Cash on Delivery orders reserve stock first; low-stock alerts are sent when the seller confirms the order as Processing.
+- Bakong KHQR orders reserve stock first; low-stock alerts are sent when payment is completed.
+- Product-level alerts are sent when total product stock is at-or-below `5` and that product has not already been alerted.
+- Variant-level alerts are sent when a size/color row is at-or-below `2` and that variant has not already been alerted.
 - If you restock above the matching threshold, alerts are reset for that product or variant.
 
 ## Example message

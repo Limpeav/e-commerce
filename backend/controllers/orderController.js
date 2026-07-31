@@ -33,6 +33,7 @@ import {
 import {
     adjustProductInventory,
     getAvailableStock,
+    hasSizeStock,
 } from "../utils/productInventory.js";
 import {
     calculateFinancialTotals,
@@ -44,6 +45,37 @@ const createHttpError = (statusCode, message) =>
 
 const resolveOrderItemProductId = (item) =>
     item?.product?._id?.toString?.() || item?.product?.toString?.() || null;
+
+const getOrderInventoryQuantities = (orderItems = []) => {
+    const quantityByProductSize = new Map();
+    const quantityByProduct = new Map();
+
+    for (const item of orderItems) {
+        const productId = String(item.product?._id || item.product);
+        const size = String(item.size || "").trim().toUpperCase();
+        const color = normalizeSelectedColor(item.color);
+        const quantity = Number(item.quantity || 0);
+        const inventoryKey = `${productId}::${size}::${color.toLowerCase()}`;
+
+        quantityByProductSize.set(
+            inventoryKey,
+            {
+                productId,
+                size,
+                color,
+                quantity:
+                    Number(quantityByProductSize.get(inventoryKey)?.quantity || 0)
+                    + quantity,
+            }
+        );
+        quantityByProduct.set(
+            productId,
+            Number(quantityByProduct.get(productId) || 0) + quantity
+        );
+    }
+
+    return { quantityByProductSize, quantityByProduct };
+};
 
 const stripOrderCostPrices = (order) => {
     const orderData = typeof order?.toObject === "function"
@@ -121,6 +153,108 @@ const restoreOrderStockIfNeeded = async (order, session) => {
     }
 
     order.stockRestored = true;
+};
+
+const reduceReservedOrderStockIfNeeded = async (order, session) => {
+    if (!order.stockReserved || order.stockReduced || order.stockRestored) {
+        return { productIds: [], stockAlerts: [] };
+    }
+
+    const { quantityByProductSize, quantityByProduct } =
+        getOrderInventoryQuantities(order.orderItems);
+    const productIds = [
+        ...new Set([...quantityByProductSize.values()].map((item) => item.productId)),
+    ];
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productById = new Map(
+        products.map((product) => [product._id.toString(), product])
+    );
+    const previousStockByProduct = new Map(
+        products.map((product) => {
+            const productId = product._id.toString();
+            return [
+                productId,
+                getAvailableStock(product)
+                    + Number(quantityByProduct.get(productId) || 0),
+            ];
+        })
+    );
+    const previousStockByInventoryKey = new Map();
+
+    for (const [inventoryKey, { productId, size, color, quantity }] of quantityByProductSize) {
+        const product = productById.get(productId);
+        if (!product) {
+            throw createHttpError(409, "A product in this order no longer exists");
+        }
+
+        previousStockByInventoryKey.set(
+            inventoryKey,
+            getStockAlertTargetStock(product, { size, color }) + quantity
+        );
+    }
+
+    for (const { productId, size, color, quantity } of quantityByProductSize.values()) {
+        const product = productById.get(productId);
+        adjustProductInventory(product, {
+            size,
+            color,
+            quantity,
+            action: "release",
+        });
+        adjustProductInventory(product, {
+            size,
+            color,
+            quantity,
+            action: "reduce",
+        });
+        product.totalSold = Math.max(
+            0,
+            Number(product.totalSold || 0) + quantity
+        );
+    }
+
+    const stockAlerts = [];
+    const productAlertIds = new Set();
+
+    for (const [inventoryKey, { productId, size, color }] of quantityByProductSize) {
+        const product = productById.get(productId);
+        const productHasVariants = hasSizeStock(product);
+        if (!productHasVariants && productAlertIds.has(productId)) continue;
+
+        syncLowStockAlertFlag(product);
+        const stockAlertDetails = getInventoryStockAlert({
+            product,
+            previousStock: productHasVariants
+                ? previousStockByInventoryKey.get(inventoryKey)
+                : previousStockByProduct.get(productId),
+            size,
+            color,
+            requireThresholdCross: false,
+        });
+
+        if (stockAlertDetails) {
+            stockAlerts.push(
+                createStockAlertPayload({
+                    product,
+                    ...stockAlertDetails,
+                })
+            );
+        }
+
+        if (!productHasVariants) {
+            productAlertIds.add(productId);
+        }
+    }
+
+    for (const productId of productIds) {
+        await productById.get(productId).save({ session });
+    }
+
+    order.stockReduced = true;
+    order.stockReserved = false;
+    order.stockRestored = false;
+
+    return { productIds, stockAlerts };
 };
 
 const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {}) => {
@@ -294,8 +428,7 @@ export const createOrder = asyncHandler(async (req, res) => {
         throw new Error("No order items");
     } else {
         const session = await mongoose.startSession();
-        const lowStockAlerts = [];
-        const shouldReduceStockImmediately = paymentMethod !== "BAKONG_KHQR";
+        const shouldReduceStockImmediately = false;
 
         try {
             let createdOrder;
@@ -417,6 +550,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                         orderStatus: "Pending",
                         paymentStatus: "Pending",
                         paymentMethod,
+                        stockReduced: false,
+                        stockReserved: true,
                         "receiptSent.sentAt": { $exists: false },
                         createdAt: {
                             $gte: new Date(Date.now() - PENDING_ORDER_MERGE_WINDOW_MS),
@@ -443,7 +578,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                         shippingPrice;
                     existingPendingOrder.totalPrice =
                         existingTotalWithoutShipping + subtotal + taxPrice + shippingPrice;
-                    existingPendingOrder.stockReduced = true;
+                    existingPendingOrder.stockReduced = false;
+                    existingPendingOrder.stockReserved = true;
                     existingPendingOrder.stockRestored = false;
 
                     createdOrder = await existingPendingOrder.save({ session });
@@ -544,7 +680,6 @@ export const createOrder = asyncHandler(async (req, res) => {
                 orderItems: createdOrder.orderItems,
                 googleMapsLink,
             });
-            dispatchInventoryStockAlerts(lowStockAlerts);
         } catch (error) {
             if (!res.headersSent) {
                 res.status(error.statusCode || 500).json({
@@ -667,6 +802,8 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     try {
         let updatedOrder;
         let previousStatus;
+        let committedStockProductIds = [];
+        let lowStockAlerts = [];
 
         await session.withTransaction(async () => {
             const order = await Order.findById(req.params.id).session(session);
@@ -739,6 +876,20 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 await restoreOrderStockIfNeeded(order, session);
             }
 
+            if (
+                previousStatus === "Pending" &&
+                nextStatus === "Processing" &&
+                order.stockReserved &&
+                !order.stockReduced
+            ) {
+                const stockUpdate = await reduceReservedOrderStockIfNeeded(
+                    order,
+                    session
+                );
+                committedStockProductIds = stockUpdate.productIds;
+                lowStockAlerts = stockUpdate.stockAlerts;
+            }
+
             updatedOrder = await order.save({ session });
         });
 
@@ -762,6 +913,15 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 { users: true }
             );
         }
+        if (committedStockProductIds.length > 0) {
+            emitDomainChanged(
+                "products",
+                "inventory-updated",
+                { productIds: committedStockProductIds },
+                { users: true }
+            );
+        }
+        dispatchInventoryStockAlerts(lowStockAlerts);
 
         if (
             req.user?.role === "seller" &&

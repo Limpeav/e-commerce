@@ -559,6 +559,7 @@ const reducePaidOrderStockIfNeeded = async (order, session) => {
                 : previousStockByProduct.get(productId),
             size,
             color,
+            requireThresholdCross: false,
         });
 
         if (stockAlertDetails) {

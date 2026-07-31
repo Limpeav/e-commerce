@@ -42,9 +42,10 @@ export const shouldSendLowStockAlert = ({
   currentStock,
   lowStockAlertSent,
   threshold = getLowStockThreshold(),
+  requireThresholdCross = true,
 }) => {
   return (
-    Number(previousStock) > threshold &&
+    (!requireThresholdCross || Number(previousStock) > threshold) &&
     isLowStock(currentStock, threshold) &&
     !isOutOfStock(currentStock) &&
     !lowStockAlertSent
@@ -57,6 +58,7 @@ export const getStockAlert = ({
   lowStockAlertSent,
   outOfStockAlertSent,
   threshold = getLowStockThreshold(),
+  requireThresholdCross = true,
 }) => {
   if (
     shouldSendOutOfStockAlert({
@@ -78,6 +80,7 @@ export const getStockAlert = ({
       currentStock,
       lowStockAlertSent,
       threshold,
+      requireThresholdCross,
     })
   ) {
     return {
@@ -149,6 +152,7 @@ export const getInventoryStockAlert = ({
   previousStock,
   size = "",
   color = "",
+  requireThresholdCross = true,
 }) => {
   const target = getStockAlertTarget(product, { size, color });
   const stockAlert = getStockAlert({
@@ -157,6 +161,7 @@ export const getInventoryStockAlert = ({
     lowStockAlertSent: target.lowStockAlertSent,
     outOfStockAlertSent: target.outOfStockAlertSent,
     threshold: target.threshold,
+    requireThresholdCross,
   });
 
   if (!stockAlert) return null;
