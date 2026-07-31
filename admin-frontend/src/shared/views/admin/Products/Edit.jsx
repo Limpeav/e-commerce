@@ -508,9 +508,11 @@ const EditProduct = () => {
   };
 
   const handleAddCustomColor = () => {
-    if (handleAddColor(customColor)) {
-      setCustomColor("");
-    }
+    const nextCustomColor = customColor.trim();
+    if (!nextCustomColor) return;
+
+    handleAddColor(nextCustomColor);
+    setCustomColor("");
   };
 
   const handleRemoveColor = (color) => {
