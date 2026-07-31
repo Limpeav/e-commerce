@@ -369,12 +369,10 @@ export const buildProductExpiryMessage = ({
   stock,
   price,
   discountPrice,
-  adminUrl,
 }) => {
   const safeTitle = escapeHtml(title || "Untitled product");
   const safeCategory = category ? escapeHtml(category) : null;
   const safeProductId = productId ? escapeHtml(productId) : null;
-  const safeAdminUrl = adminUrl ? escapeHtml(adminUrl) : null;
   const validDiscountPrice =
     Number(discountPrice) > 0 && Number(discountPrice) < Number(price);
   const actionText =
@@ -410,10 +408,6 @@ export const buildProductExpiryMessage = ({
     );
   }
 
-  if (safeAdminUrl) {
-    lines.push(`<b>Admin Link</b>: ${safeAdminUrl}`);
-  }
-
   lines.push("", `<i>${actionText}</i>`);
 
   return lines.join("\n");
@@ -428,7 +422,6 @@ export const sendProductExpiryTelegramAlert = async ({
   stock,
   price,
   discountPrice,
-  adminUrl,
   imageUrl,
 }) => {
   const { botToken, chatId, threadId, enabled } = getTelegramConfig("expiry");
@@ -446,7 +439,6 @@ export const sendProductExpiryTelegramAlert = async ({
     stock,
     price,
     discountPrice,
-    adminUrl,
   });
 
   try {

@@ -1,7 +1,6 @@
 import Notification from "../models/notificationModel.js";
 import Product from "../models/Product.js";
 import { emitNotificationCreated } from "../realtime/socket.js";
-import { getAdminFrontendUrl, normalizeUrl } from "../utils/frontendUrls.js";
 import { getAvailableStock } from "../utils/productInventory.js";
 import {
   getProductExpiryAlertCutoffDate,
@@ -27,9 +26,6 @@ const parsePositiveInteger = (value, fallback) => {
     ? parsedValue
     : fallback;
 };
-
-const buildAdminProductUrl = (productId) =>
-  `${normalizeUrl(getAdminFrontendUrl())}/admin/products/${productId}`;
 
 const getProductExpiryNotificationCopy = ({ product, status, stock }) => {
   if (status.kind === "expired") {
@@ -111,7 +107,6 @@ export const sendProductExpiryAlertForProduct = async (
   summary.eligible += 1;
 
   const productId = product._id.toString();
-  const adminUrl = buildAdminProductUrl(productId);
 
   try {
     const telegramResult = await sendProductExpiryTelegramAlert({
@@ -123,7 +118,6 @@ export const sendProductExpiryAlertForProduct = async (
       stock,
       price: product.price,
       discountPrice: product.discountPrice,
-      adminUrl,
       imageUrl: product.image,
     });
 

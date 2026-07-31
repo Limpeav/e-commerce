@@ -128,7 +128,6 @@ Stock Available: 18
 Expiry Date: Sep 29, 2026
 Time Left: 60 days left
 Price: $24.00
-Admin Link: http://localhost:5174/admin/products/64milk123
 
 Move this item to promotion or discount it before expiry.
 ```

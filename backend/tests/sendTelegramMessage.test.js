@@ -97,7 +97,6 @@ test("buildProductExpiryMessage formats near-expiry promotion alerts", () => {
         stock: 18,
         price: 24,
         discountPrice: 19.99,
-        adminUrl: "http://localhost:5174/admin/products/64milk123",
     });
 
     assert.equal(
@@ -113,7 +112,6 @@ test("buildProductExpiryMessage formats near-expiry promotion alerts", () => {
             "<b>Time Left</b>: 60 days left",
             "<b>Price</b>: $24.00",
             "<b>Current Promotion Price</b>: $19.99",
-            "<b>Admin Link</b>: http://localhost:5174/admin/products/64milk123",
             "",
             "<i>Move this item to promotion or discount it before expiry.</i>",
         ].join("\n")
