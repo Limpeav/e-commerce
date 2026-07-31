@@ -47,6 +47,16 @@ services:
         sync: false
       - key: TELEGRAM_THREAD_ID_4
         sync: false
+      - key: TELEGRAM_BOT_TOKEN_5
+        sync: false
+      - key: TELEGRAM_CHAT_ID_5
+        sync: false
+      - key: TELEGRAM_THREAD_ID_5
+        sync: false
+      - key: PRODUCT_EXPIRY_ALERT_DAYS
+        value: "60"
+      - key: PRODUCT_EXPIRY_ALERTS_ENABLED
+        value: "true"
       - key: USD_TO_KHR_RATE
         value: "4100"
       - key: BAKONG_RECONCILIATION_INTERVAL_MS

@@ -206,6 +206,14 @@ const productSchema = mongoose.Schema(
         message: "Expiry date is only supported for Milk and Bath & Skin products",
       },
     },
+    expiryAlertSent: {
+      type: Boolean,
+      default: false,
+    },
+    expiryAlertSentAt: {
+      type: Date,
+      default: null,
+    },
     lowStockAlertSent: {
       type: Boolean,
       default: false,
@@ -233,6 +241,7 @@ productSchema.index({ stock: 1, createdAt: -1, _id: -1 });
 productSchema.index({ category: 1, stock: 1, createdAt: -1 });
 productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
 productSchema.index({ hasProductIssue: 1, createdAt: -1 });
+productSchema.index({ expiryDate: 1, expiryAlertSent: 1, stock: 1 });
 productSchema.index({ totalSold: -1, rating: -1 });
 productSchema.index({ "sizeStocks.size": 1 });
 productSchema.index({ "sizeStocks.size": 1, "sizeStocks.color": 1 });

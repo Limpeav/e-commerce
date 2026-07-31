@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+    buildProductExpiryMessage,
     buildLowStockMessage,
     buildOrderReceiptCaption,
     buildPaymentTelegramMessage,
@@ -82,6 +83,39 @@ test("buildLowStockMessage formats product stock alerts without variant", () => 
             "<b>Stock Left</b>: 5",
             "",
             "<i>Restock this item soon.</i>",
+        ].join("\n")
+    );
+});
+
+test("buildProductExpiryMessage formats near-expiry promotion alerts", () => {
+    const message = buildProductExpiryMessage({
+        productId: "64milk123",
+        title: "Baby Formula <Stage 1>",
+        category: "Milk",
+        expiryDate: "2026-09-29T00:00:00.000Z",
+        daysUntilExpiry: 60,
+        stock: 18,
+        price: 24,
+        discountPrice: 19.99,
+        adminUrl: "http://localhost:5174/admin/products/64milk123",
+    });
+
+    assert.equal(
+        message,
+        [
+            "<b>PRODUCT EXPIRY ALERT</b>",
+            "",
+            "<b>Product ID</b>: <code>64milk123</code>",
+            "<b>Product</b>: Baby Formula &lt;Stage 1&gt;",
+            "<b>Category</b>: Milk",
+            "<b>Stock Available</b>: 18",
+            "<b>Expiry Date</b>: Sep 29, 2026",
+            "<b>Time Left</b>: 60 days left",
+            "<b>Price</b>: $24.00",
+            "<b>Current Promotion Price</b>: $19.99",
+            "<b>Admin Link</b>: http://localhost:5174/admin/products/64milk123",
+            "",
+            "<i>Move this item to promotion or discount it before expiry.</i>",
         ].join("\n")
     );
 });

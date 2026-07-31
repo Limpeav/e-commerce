@@ -66,6 +66,21 @@ const getTelegramConfig = (type = "default") => {
     };
   }
 
+  if (type === "expiry") {
+    const botToken =
+      process.env.TELEGRAM_BOT_TOKEN_5 || process.env.TELEGRAM_BOT_TOKEN;
+    const chatId =
+      process.env.TELEGRAM_CHAT_ID_5 || process.env.TELEGRAM_CHAT_ID;
+
+    return {
+      botToken,
+      chatId,
+      threadId:
+        process.env.TELEGRAM_THREAD_ID_5 || process.env.TELEGRAM_THREAD_ID,
+      enabled: Boolean(botToken && chatId),
+    };
+  }
+
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -76,6 +91,9 @@ const getTelegramConfig = (type = "default") => {
     enabled: Boolean(botToken && chatId),
   };
 };
+
+export const isTelegramAlertConfigured = (type = "default") =>
+  getTelegramConfig(type).enabled;
 
 export const sendTelegramMessage = async (message) => {
   const { botToken, chatId, threadId, enabled } = getTelegramConfig();
@@ -272,6 +290,163 @@ export const sendLowStockTelegramAlert = async ({
     productId,
     stockType,
     variant,
+  });
+
+  try {
+    return await sendTelegramPhotoOrMessage({
+      botToken,
+      chatId,
+      threadId,
+      caption,
+      imageUrl,
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+const formatExpiryDate = (value) => {
+  if (!value) {
+    return "N/A";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "N/A";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+};
+
+const formatExpiryTimeLeft = (daysUntilExpiry) => {
+  const days = Number(daysUntilExpiry);
+
+  if (!Number.isFinite(days)) {
+    return "N/A";
+  }
+
+  if (days < 0) {
+    const expiredDays = Math.abs(days);
+    return `Expired ${expiredDays} day${expiredDays === 1 ? "" : "s"} ago`;
+  }
+
+  if (days === 0) {
+    return "Expires today";
+  }
+
+  return `${days} day${days === 1 ? "" : "s"} left`;
+};
+
+const formatMoney = (value) => {
+  const amount = Number(value);
+
+  return Number.isFinite(amount) ? `$${amount.toFixed(2)}` : "N/A";
+};
+
+export const buildProductExpiryMessage = ({
+  title,
+  category,
+  productId,
+  expiryDate,
+  daysUntilExpiry,
+  stock,
+  price,
+  discountPrice,
+  adminUrl,
+}) => {
+  const safeTitle = escapeHtml(title || "Untitled product");
+  const safeCategory = category ? escapeHtml(category) : null;
+  const safeProductId = productId ? escapeHtml(productId) : null;
+  const safeAdminUrl = adminUrl ? escapeHtml(adminUrl) : null;
+  const validDiscountPrice =
+    Number(discountPrice) > 0 && Number(discountPrice) < Number(price);
+  const actionText =
+    Number(daysUntilExpiry) < 0
+      ? "Review this item immediately before selling."
+      : "Move this item to promotion or discount it before expiry.";
+
+  const lines = [
+    "<b>PRODUCT EXPIRY ALERT</b>",
+    "",
+  ];
+
+  if (safeProductId) {
+    lines.push(`<b>Product ID</b>: <code>${safeProductId}</code>`);
+  }
+
+  lines.push(`<b>Product</b>: ${safeTitle}`);
+
+  if (safeCategory) {
+    lines.push(`<b>Category</b>: ${safeCategory}`);
+  }
+
+  lines.push(
+    `<b>Stock Available</b>: ${Math.max(0, Number(stock || 0))}`,
+    `<b>Expiry Date</b>: ${escapeHtml(formatExpiryDate(expiryDate))}`,
+    `<b>Time Left</b>: ${escapeHtml(formatExpiryTimeLeft(daysUntilExpiry))}`,
+    `<b>Price</b>: ${escapeHtml(formatMoney(price))}`
+  );
+
+  if (validDiscountPrice) {
+    lines.push(
+      `<b>Current Promotion Price</b>: ${escapeHtml(formatMoney(discountPrice))}`
+    );
+  }
+
+  if (safeAdminUrl) {
+    lines.push(`<b>Admin Link</b>: ${safeAdminUrl}`);
+  }
+
+  lines.push("", `<i>${actionText}</i>`);
+
+  return lines.join("\n");
+};
+
+export const sendProductExpiryTelegramAlert = async ({
+  title,
+  category,
+  productId,
+  expiryDate,
+  daysUntilExpiry,
+  stock,
+  price,
+  discountPrice,
+  adminUrl,
+  imageUrl,
+}) => {
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig("expiry");
+
+  if (!enabled) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  const caption = buildProductExpiryMessage({
+    title,
+    category,
+    productId,
+    expiryDate,
+    daysUntilExpiry,
+    stock,
+    price,
+    discountPrice,
+    adminUrl,
   });
 
   try {

@@ -34,6 +34,10 @@ import {
   startSupportTicketAutomation,
   stopSupportTicketAutomation,
 } from "./services/supportTicketScheduler.js";
+import {
+  startProductExpiryAlerts,
+  stopProductExpiryAlerts,
+} from "./services/productExpiryAlertService.js";
 
 assertSecurityConfig();
 
@@ -235,12 +239,14 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startBakongReconciliation();
   startSupportTicketAutomation();
+  startProductExpiryAlerts();
 });
 
 const shutdown = (signal) => {
   console.log(`${signal} received. Shutting down gracefully.`);
   stopBakongReconciliation();
   stopSupportTicketAutomation();
+  stopProductExpiryAlerts();
 
   server.close(async () => {
     await mongoose.disconnect();

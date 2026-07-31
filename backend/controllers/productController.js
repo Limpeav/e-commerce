@@ -20,6 +20,7 @@ import {
 import { emitDomainChanged } from "../realtime/socket.js";
 import {
   parseProductExpiryDate,
+  syncProductExpiryAlertFlag,
 } from "../utils/productExpiry.js";
 import {
   getAvailableStock,
@@ -937,6 +938,7 @@ export const createProduct = async (req, res) => {
     syncTotalStockFromSizes(product);
 
     syncLowStockAlertFlag(product);
+    syncProductExpiryAlertFlag(product, null);
     const saved = await product.save();
     emitDomainChanged("products", "created", { productId: saved._id }, { users: true });
     res.status(201).json(saved);
@@ -1402,6 +1404,8 @@ export const upsertProductsFromCsv = async (req, res) => {
       );
 
       if (existingProduct) {
+        const previousExpiryDate = existingProduct.expiryDate;
+
         existingProduct.price = translatedProductData.price;
         existingProduct.discountPrice = translatedProductData.discountPrice;
         existingProduct.costPrice = translatedProductData.costPrice;
@@ -1422,11 +1426,13 @@ export const upsertProductsFromCsv = async (req, res) => {
         existingProduct.expiryDate = translatedProductData.expiryDate || null;
         existingProduct.markModified("expiryDate");
         syncLowStockAlertFlag(existingProduct);
+        syncProductExpiryAlertFlag(existingProduct, previousExpiryDate);
         await existingProduct.save();
         updatedCount += 1;
       } else {
         const product = new Product(translatedProductData);
         syncLowStockAlertFlag(product);
+        syncProductExpiryAlertFlag(product, null);
         await product.save();
         createdCount += 1;
       }
@@ -1597,6 +1603,7 @@ export const updateProduct = async (req, res) => {
     if (!product)
       return res.status(404).json({ message: "Product not found" });
 
+    const previousExpiryDate = product.expiryDate;
     const normalizedCategory = normalizeProductCategory(req.body.category);
     const parsedExpiryDate = parseProductExpiryDate(
       req.body.expiryDate,
@@ -1704,6 +1711,7 @@ export const updateProduct = async (req, res) => {
     }
 
     syncLowStockAlertFlag(product);
+    syncProductExpiryAlertFlag(product, previousExpiryDate);
     await product.save();
     emitDomainChanged("products", "updated", { productId: product._id }, { users: true });
     res.json(applyNewArrivalWindow(product.toObject()));
