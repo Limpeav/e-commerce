@@ -36,6 +36,7 @@ import {
   attachReviewSentiment,
   classifyReviewSentiment,
 } from "../utils/sentiment.js";
+import { dispatchProductExpiryAlertForProduct } from "../services/productExpiryAlertService.js";
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
@@ -941,6 +942,7 @@ export const createProduct = async (req, res) => {
     syncProductExpiryAlertFlag(product, null);
     const saved = await product.save();
     emitDomainChanged("products", "created", { productId: saved._id }, { users: true });
+    dispatchProductExpiryAlertForProduct(saved._id);
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -1329,6 +1331,9 @@ export const importProductsFromCsv = async (req, res) => {
       productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
     );
     const createdProducts = await Product.insertMany(translatedProducts);
+    createdProducts.forEach((product) =>
+      dispatchProductExpiryAlertForProduct(product._id)
+    );
     emitDomainChanged(
       "products",
       "imported",
@@ -1428,12 +1433,14 @@ export const upsertProductsFromCsv = async (req, res) => {
         syncLowStockAlertFlag(existingProduct);
         syncProductExpiryAlertFlag(existingProduct, previousExpiryDate);
         await existingProduct.save();
+        dispatchProductExpiryAlertForProduct(existingProduct._id);
         updatedCount += 1;
       } else {
         const product = new Product(translatedProductData);
         syncLowStockAlertFlag(product);
         syncProductExpiryAlertFlag(product, null);
         await product.save();
+        dispatchProductExpiryAlertForProduct(product._id);
         createdCount += 1;
       }
     }
@@ -1714,6 +1721,7 @@ export const updateProduct = async (req, res) => {
     syncProductExpiryAlertFlag(product, previousExpiryDate);
     await product.save();
     emitDomainChanged("products", "updated", { productId: product._id }, { users: true });
+    dispatchProductExpiryAlertForProduct(product._id);
     res.json(applyNewArrivalWindow(product.toObject()));
   } catch (err) {
     res.status(500).json({ message: err.message });

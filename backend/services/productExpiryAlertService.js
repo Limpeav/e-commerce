@@ -72,6 +72,146 @@ export const getProductExpiryAlertSchedulerConfig = () => ({
   ),
 });
 
+export const sendProductExpiryAlertForProduct = async (
+  product,
+  {
+    now = new Date(),
+    windowDays = getProductExpiryAlertWindowDays(),
+  } = {}
+) => {
+  const summary = {
+    checked: product ? 1 : 0,
+    eligible: 0,
+    processed: 0,
+    skipped: 0,
+    telegramSent: 0,
+    telegramSkipped: 0,
+    failed: 0,
+    windowDays,
+  };
+
+  if (!product) {
+    summary.skipped += 1;
+    return summary;
+  }
+
+  if (!isTelegramAlertConfigured("expiry")) {
+    summary.skippedReason = "missing-telegram-config";
+    return summary;
+  }
+
+  const status = getProductExpiryAlertStatus(product, { now, windowDays });
+  const stock = getAvailableStock(product);
+
+  if (!status?.eligible || stock <= 0 || product.expiryAlertSent) {
+    summary.skipped += 1;
+    return summary;
+  }
+
+  summary.eligible += 1;
+
+  const productId = product._id.toString();
+  const adminUrl = buildAdminProductUrl(productId);
+
+  try {
+    const telegramResult = await sendProductExpiryTelegramAlert({
+      title: product.title,
+      category: product.category,
+      productId,
+      expiryDate: product.expiryDate,
+      daysUntilExpiry: status.daysUntilExpiry,
+      stock,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      adminUrl,
+      imageUrl: product.image,
+    });
+
+    if (!telegramResult.sent) {
+      summary.telegramSkipped += 1;
+      return summary;
+    }
+
+    summary.telegramSent += 1;
+  } catch (telegramError) {
+    summary.failed += 1;
+    console.error(
+      `Telegram product expiry alert failed for product ${productId}:`,
+      telegramError.message
+    );
+    return summary;
+  }
+
+  const copy = getProductExpiryNotificationCopy({ product, status, stock });
+
+  try {
+    const notification = await Notification.create({
+      type: "product",
+      title: copy.title,
+      message: copy.message,
+      productId: product._id,
+      link: `/admin/products/${productId}`,
+    });
+    emitNotificationCreated(notification);
+  } catch (notificationError) {
+    console.error(
+      `Product expiry notification failed for product ${productId}:`,
+      notificationError.message
+    );
+  }
+
+  try {
+    const flagResult = await Product.updateOne(
+      { _id: product._id, expiryAlertSent: { $ne: true } },
+      {
+        $set: {
+          expiryAlertSent: true,
+          expiryAlertSentAt: new Date(),
+        },
+      }
+    );
+
+    if (flagResult.modifiedCount === 0 && flagResult.matchedCount === 0) {
+      summary.skipped += 1;
+      return summary;
+    }
+
+    summary.processed += 1;
+  } catch (flagError) {
+    summary.failed += 1;
+    console.error(
+      `Product expiry alert flag update failed for product ${productId}:`,
+      flagError.message
+    );
+  }
+
+  return summary;
+};
+
+export const dispatchProductExpiryAlertForProduct = (productOrProductId) => {
+  const productId = productOrProductId?._id || productOrProductId;
+
+  if (!productId) {
+    return;
+  }
+
+  setImmediate(async () => {
+    try {
+      const product = await Product.findById(productId);
+      const summary = await sendProductExpiryAlertForProduct(product);
+
+      if (summary.processed || summary.failed) {
+        console.log("Product expiry alert after product save:", summary);
+      }
+    } catch (error) {
+      console.error(
+        `Product expiry alert dispatch failed for product ${productId}:`,
+        error.message
+      );
+    }
+  });
+};
+
 export const processProductExpiryAlerts = async ({
   now = new Date(),
   batchSize = getProductExpiryAlertSchedulerConfig().batchSize,
@@ -106,84 +246,17 @@ export const processProductExpiryAlerts = async ({
   summary.checked = products.length;
 
   for (const product of products) {
-    const status = getProductExpiryAlertStatus(product, { now, windowDays });
-    const stock = getAvailableStock(product);
+    const productSummary = await sendProductExpiryAlertForProduct(product, {
+      now,
+      windowDays,
+    });
 
-    if (!status?.eligible || stock <= 0 || product.expiryAlertSent) {
-      summary.skipped += 1;
-      continue;
-    }
-
-    summary.eligible += 1;
-
-    const productId = product._id.toString();
-    const adminUrl = buildAdminProductUrl(productId);
-
-    try {
-      const telegramResult = await sendProductExpiryTelegramAlert({
-        title: product.title,
-        category: product.category,
-        productId,
-        expiryDate: product.expiryDate,
-        daysUntilExpiry: status.daysUntilExpiry,
-        stock,
-        price: product.price,
-        discountPrice: product.discountPrice,
-        adminUrl,
-        imageUrl: product.image,
-      });
-
-      if (!telegramResult.sent) {
-        summary.telegramSkipped += 1;
-        continue;
-      }
-
-      summary.telegramSent += 1;
-    } catch (telegramError) {
-      summary.failed += 1;
-      console.error(
-        `Telegram product expiry alert failed for product ${productId}:`,
-        telegramError.message
-      );
-      continue;
-    }
-
-    const copy = getProductExpiryNotificationCopy({ product, status, stock });
-
-    try {
-      const notification = await Notification.create({
-        type: "product",
-        title: copy.title,
-        message: copy.message,
-        productId: product._id,
-        link: `/admin/products/${productId}`,
-      });
-      emitNotificationCreated(notification);
-    } catch (notificationError) {
-      console.error(
-        `Product expiry notification failed for product ${productId}:`,
-        notificationError.message
-      );
-    }
-
-    try {
-      await Product.updateOne(
-        { _id: product._id, expiryAlertSent: { $ne: true } },
-        {
-          $set: {
-            expiryAlertSent: true,
-            expiryAlertSentAt: new Date(),
-          },
-        }
-      );
-      summary.processed += 1;
-    } catch (flagError) {
-      summary.failed += 1;
-      console.error(
-        `Product expiry alert flag update failed for product ${productId}:`,
-        flagError.message
-      );
-    }
+    summary.eligible += productSummary.eligible;
+    summary.processed += productSummary.processed;
+    summary.skipped += productSummary.skipped;
+    summary.telegramSent += productSummary.telegramSent;
+    summary.telegramSkipped += productSummary.telegramSkipped;
+    summary.failed += productSummary.failed;
   }
 
   return summary;
