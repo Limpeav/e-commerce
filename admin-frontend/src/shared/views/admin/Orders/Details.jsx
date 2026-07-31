@@ -93,6 +93,7 @@ const OrderDetails = () => {
     const adminRole = adminUser?.role;
     const isDelivery = adminRole === "delivery";
     const isSeller = adminRole === "seller";
+    const canProcessPendingOrders = ["admin", "seller"].includes(adminRole);
     const orderCacheKeyRef = useRef(getOrdersCacheKey(adminRole));
     const ordersPath = getPortalOrdersPath(adminUser);
     const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
@@ -590,17 +591,23 @@ const OrderDetails = () => {
                 {availableOrderActionStatuses.map(
                     ({ label, value }) => {
                         const isCurrent = currentOrderStatus === value;
+                        const isCompletedStage =
+                            orderProgressStatuses.indexOf(value) <
+                            orderProgressStatuses.indexOf(currentOrderStatus);
                         const requiresDeliveryProof =
                             value === "Delivered" && !order.deliveryProof?.imageUrl;
+                        const isDisabled = updating || isCurrent || isCompletedStage || requiresDeliveryProof;
 
                         return (
                         <button
                             key={label}
                             onClick={() => handleStatusUpdate(value)}
-                            disabled={updating || isCurrent || requiresDeliveryProof}
+                            disabled={isDisabled}
                             aria-label={
                                 isCurrent
                                     ? `Current order status: ${label}`
+                                    : isCompletedStage
+                                        ? `${label} is already completed`
                                     : requiresDeliveryProof
                                         ? "Upload a delivery proof photo before marking as delivered"
                                     : `Mark order as ${label}`
@@ -608,19 +615,21 @@ const OrderDetails = () => {
                             title={
                                 isCurrent
                                     ? `Current order status: ${label}`
+                                    : isCompletedStage
+                                        ? `${label} is already completed and cannot be selected again`
                                     : requiresDeliveryProof
                                         ? "Take or upload a delivery proof photo first"
                                     : `Mark as ${label}`
                             }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || requiresDeliveryProof
+                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || isCompletedStage || requiresDeliveryProof
                                 ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                 : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
                                 }`}
                         >
-                            {isCurrent ? (
+                            {isCurrent || isCompletedStage ? (
                                 <span className="flex items-center justify-center">
                                     <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                    {label}
+                                    {isCurrent ? label : `${label} Completed`}
                                 </span>
                             ) : updating ? (
                                 <span className="flex items-center justify-center">
@@ -640,8 +649,8 @@ const OrderDetails = () => {
         </section>
     );
 
-    const renderSellerConfirmationSection = () => {
-        if (!isSeller || currentOrderStatus !== "Pending") {
+    const renderOrderConfirmationSection = () => {
+        if (!canProcessPendingOrders || currentOrderStatus !== "Pending") {
             return null;
         }
 
@@ -1090,8 +1099,8 @@ const OrderDetails = () => {
                         )}
 
                         {/* Update Order Status */}
-                        {canManageOrderStatus && !isDelivery && renderOrderStatusSection()}
-                        {renderSellerConfirmationSection()}
+                        {canManageOrderStatus && !isDelivery && currentOrderStatus !== "Pending" && renderOrderStatusSection()}
+                        {renderOrderConfirmationSection()}
                         {renderReceiptRecoverySection()}
 
                         {/* Update Payment Status */}

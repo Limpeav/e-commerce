@@ -135,6 +135,7 @@ const AdminOrders = ({ renderDelivery }) => {
     const adminUser = getStoredAdminUser();
     const isDelivery = adminUser?.role === "delivery";
     const isSeller = adminUser?.role === "seller";
+    const canProcessPendingOrders = ["admin", "seller"].includes(adminUser?.role);
     const cacheKeys = useMemo(
         () => getOrderCacheKeys(adminUser?.role),
         [adminUser?.role]
@@ -1276,7 +1277,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                                     </td>
                                                     <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
-                                                            {isSeller &&
+                                                            {canProcessPendingOrders &&
                                                                 normalizeOrderStatus(order.orderStatus) === "Pending" &&
                                                                 (order.receiptSent?.sentAt ? (
                                                                     <button

@@ -97,6 +97,7 @@ const stripOrderCostPrices = (order) => {
 };
 
 const DELIVERY_ORDER_STATUSES = ["Delivered"];
+const ORDER_STATUS_SEQUENCE = ["Pending", "Processing", "Delivered"];
 
 const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
     if (nextStatus === "Processing") {
@@ -825,6 +826,27 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 throw new Error("Please take or upload a delivery proof photo before marking this order as delivered");
             }
 
+            if (order.orderStatus === "Delivered" && nextStatus !== "Delivered") {
+                res.status(400);
+                throw new Error("Delivered orders are complete and cannot move to an earlier status");
+            }
+
+            if (order.orderStatus === "Cancelled" && nextStatus !== "Cancelled") {
+                res.status(400);
+                throw new Error("Cancelled orders cannot be reopened");
+            }
+
+            const currentStatusIndex = ORDER_STATUS_SEQUENCE.indexOf(order.orderStatus);
+            const nextStatusIndex = ORDER_STATUS_SEQUENCE.indexOf(nextStatus);
+            if (
+                currentStatusIndex >= 0 &&
+                nextStatusIndex >= 0 &&
+                nextStatusIndex < currentStatusIndex
+            ) {
+                res.status(400);
+                throw new Error("Order status cannot move backward");
+            }
+
             if (req.user?.role === "seller") {
                 if (
                     order.orderStatus !== "Pending" ||
@@ -833,7 +855,13 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     res.status(403);
                     throw new Error("Cashier accounts can only confirm pending orders");
                 }
+            }
 
+            if (
+                ["admin", "seller"].includes(req.user?.role) &&
+                order.orderStatus === "Pending" &&
+                nextStatus === "Processing"
+            ) {
                 if (
                     order.paymentMethod === "BAKONG_KHQR" &&
                     order.paymentStatus !== "Paid"
