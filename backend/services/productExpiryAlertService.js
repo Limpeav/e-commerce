@@ -56,7 +56,7 @@ const getProductExpiryNotificationCopy = ({ product, status, stock }) => {
   };
 };
 
-export const getProductExpiryAlertSchedulerConfig = () => ({
+const getProductExpiryAlertSchedulerConfig = () => ({
   enabled: process.env.PRODUCT_EXPIRY_ALERTS_ENABLED !== "false",
   intervalMs: parsePositiveInteger(
     process.env.PRODUCT_EXPIRY_ALERT_INTERVAL_MS,
@@ -68,7 +68,7 @@ export const getProductExpiryAlertSchedulerConfig = () => ({
   ),
 });
 
-export const sendProductExpiryAlertForProduct = async (
+const sendProductExpiryAlertForProduct = async (
   product,
   {
     now = new Date(),

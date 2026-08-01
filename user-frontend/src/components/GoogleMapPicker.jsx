@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MapPin, X, Check, Search, Navigation } from "lucide-react";
 import { useLanguage } from "../context/useLanguage";
 
-// Google Maps API Key - Uses environment variable if available, otherwise uses the provided key
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || "";
 
 const DEFAULT_LOCATION = { lat: 11.5564, lng: 104.9282 };
 const CAMBODIA_COUNTRY_CODE = "kh";
@@ -357,6 +356,17 @@ const GoogleMapPicker = ({ onSelectLocation, initialLocation, address, isDark = 
 
     if (window.google && window.google.maps) {
       setIsGoogleMapsLoaded(true);
+      return () => {
+        window.gm_authFailure = previousAuthFailureHandler;
+      };
+    }
+
+    if (!GOOGLE_MAPS_API_KEY) {
+      const errorMessage = t("mapPicker.googleMapsMissingKey");
+      setMapAuthError(errorMessage);
+      setLocationError(errorMessage);
+      setIsGoogleMapsLoaded(false);
+      setIsMapLoading(false);
       return () => {
         window.gm_authFailure = previousAuthFailureHandler;
       };

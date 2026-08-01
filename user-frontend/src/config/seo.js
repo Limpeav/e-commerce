@@ -129,12 +129,6 @@ export const routeMeta = {
   },
 }
 
-export const productMeta = {
-  title: (name) => name,
-  description: (name, brand) => `Shop ${name}${brand ? ` by ${brand}` : ""} at Cherish Baby Store. Quality baby and kids products with fast delivery.`,
-  ogType: "product",
-}
-
 export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",

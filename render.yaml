@@ -99,6 +99,8 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false
+      - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false
       - key: VITE_CUSTOMER_URL
         value: https://cherishbabykhstore.store
     routes:

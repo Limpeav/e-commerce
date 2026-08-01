@@ -74,7 +74,7 @@ export const initializeSocket = (httpServer, corsOrigins) => {
 
       socket.user = user;
       return next();
-    } catch (error) {
+    } catch {
       return next(new Error("Not authorized"));
     }
   });
@@ -182,8 +182,6 @@ export const initializeSocket = (httpServer, corsOrigins) => {
   return ioInstance;
 };
 
-export const getSocket = () => ioInstance;
-
 export const emitToUser = (userId, eventName, payload) => {
   if (!ioInstance) {
     return;
@@ -195,14 +193,6 @@ export const emitToUser = (userId, eventName, payload) => {
   }
 
   ioInstance.to(`user:${resolvedUserId}`).emit(eventName, payload);
-};
-
-export const emitToAdmins = (eventName, payload) => {
-  if (!ioInstance) {
-    return;
-  }
-
-  ioInstance.to("role:admin").emit(eventName, payload);
 };
 
 export const emitToRoles = (roles = [], eventName, payload) => {

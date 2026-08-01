@@ -13,7 +13,8 @@
     "normalize:categories": "node scripts/normalizeProductCategories.js",
     "backfill:expiry": "node scripts/backfillExpiryDates.js",
     "backfill:sentiment": "node scripts/backfillReviewSentiment.js",
-    "translate:khmer": "node scripts/translateMissingProductsToKhmer.js"
+    "translate:khmer": "node scripts/translateMissingProductsToKhmer.js",
+    "seed:khmer-customers": "node scripts/seedTenKhmerCustomersOrdersReviews.js"
   },
   "keywords": [],
   "author": "",

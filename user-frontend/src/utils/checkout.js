@@ -1,7 +1,7 @@
 export const CAMBODIA_DIAL_CODE = "+855";
 export const ORDER_REQUEST_TIMEOUT_MS = 10000;
-export const SHIPPING_PRICE = 0;
-export const TAX_RATE = 0.08;
+const SHIPPING_PRICE = 0;
+const TAX_RATE = 0.08;
 export const DEFAULT_FINANCIAL_SETTINGS = {
   usdToKhrRate: 4100,
   khrToUsdRate: 1 / 4100,
@@ -21,8 +21,6 @@ const getProductImageForColor = (product = {}, color = "") => {
 
   return colorImage?.image || product.image || product.images?.[0] || "";
 };
-
-export const displayValue = (value, fallback) => value || fallback;
 
 export const toLocalPhoneDigits = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");

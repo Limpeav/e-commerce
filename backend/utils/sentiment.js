@@ -374,7 +374,11 @@ export const buildSentimentAnalytics = (products = []) => {
     monthMap.set(monthKey, monthEntry);
   });
 
-  const stripScoreTotal = ({ scoreTotal, ...entry }) => entry;
+  const stripScoreTotal = (entry) => {
+    const publicEntry = { ...entry };
+    delete publicEntry.scoreTotal;
+    return publicEntry;
+  };
 
   return {
     ...summary,

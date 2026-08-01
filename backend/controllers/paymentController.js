@@ -725,7 +725,7 @@ const performBakongReconciliation = async (paymentRef) => {
     return payment;
 };
 
-export const reconcileBakongPayment = async (paymentRef) => {
+const reconcileBakongPayment = async (paymentRef) => {
     const paymentId = String(paymentRef?._id || paymentRef || "");
 
     if (!paymentId) {

@@ -482,7 +482,11 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     cashToCollect: cashToCollectCount,
     sentiment,
     reviewHealth,
-    recentActivity: recentActivity.slice(0, 5).map(({ timestamp, ...activity }) => activity),
+    recentActivity: recentActivity.slice(0, 5).map((activity) => {
+      const publicActivity = { ...activity };
+      delete publicActivity.timestamp;
+      return publicActivity;
+    }),
   });
 });
 

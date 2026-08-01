@@ -24,6 +24,10 @@ import {
     buildUserSearchSuggestionValues,
     getMatchingSearchSuggestions,
 } from "../../../utils/searchSuggestions";
+import {
+    generateStrongPassword as generateSharedStrongPassword,
+    validateStrongPassword as validateSharedStrongPassword,
+} from "../../../utils/password";
 
 const STAFF_LOGIN_ROLES = [
     { value: "seller", label: "Seller" },
@@ -59,44 +63,14 @@ const shiftMeta = {
     },
 };
 
+const STAFF_PASSWORD_MIN_LENGTH = 12;
+const STAFF_GENERATED_PASSWORD_LENGTH = 16;
+
 const validateStrongPassword = (password = "") =>
-    password.length >= 12 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password) &&
-    /[^A-Za-z0-9]/.test(password);
+    validateSharedStrongPassword(password, { minLength: STAFF_PASSWORD_MIN_LENGTH });
 
-const generateStrongPassword = () => {
-    const requiredGroups = [
-        "ABCDEFGHJKLMNPQRSTUVWXYZ",
-        "abcdefghijkmnopqrstuvwxyz",
-        "23456789",
-        "!@#$%&*?",
-    ];
-    const allCharacters = requiredGroups.join("");
-    const randomIndex = (length) => {
-        const values = new Uint32Array(1);
-        window.crypto.getRandomValues(values);
-        return values[0] % length;
-    };
-    const characters = requiredGroups.map(
-        (group) => group[randomIndex(group.length)]
-    );
-
-    while (characters.length < 16) {
-        characters.push(allCharacters[randomIndex(allCharacters.length)]);
-    }
-
-    for (let index = characters.length - 1; index > 0; index -= 1) {
-        const swapIndex = randomIndex(index + 1);
-        [characters[index], characters[swapIndex]] = [
-            characters[swapIndex],
-            characters[index],
-        ];
-    }
-
-    return characters.join("");
-};
+const generateStrongPassword = () =>
+    generateSharedStrongPassword({ length: STAFF_GENERATED_PASSWORD_LENGTH });
 
 const StaffManagement = () => {
     const [users, setUsers] = useState([]);

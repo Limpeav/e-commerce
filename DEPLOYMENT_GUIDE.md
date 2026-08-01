@@ -9,7 +9,7 @@
 ## 2. Deploy Database (MongoDB Atlas)
 1.  Create a cluster on MongoDB Atlas (Free Tier).
 2.  Create a database user (username/password).
-3.  Whitelist "Allow Access from Anywhere" (0.0.0.0/0) in Network Access.
+3.  In Network Access, allow only your development IP and hosting provider outbound IPs when possible. Use `0.0.0.0/0` only temporarily for testing.
 4.  Get your **Connection String**: `mongodb+srv://<username>:<password>@cluster0.mongodb.net/ecommerce?retryWrites=true&w=majority`
 
 ## 3. Deploy Backend (Render)
@@ -20,7 +20,7 @@
 5.  **Start Command**: `node server.js`
 6.  **Environment Variables**:
     - `MONGO_URI`: Your MongoDB connection string.
-    - `JWT_SECRET`: A secret string (e.g., `mysecret123`).
+    - `JWT_SECRET`: A long random value, at least 32 characters. Generate it outside the repo, for example with `openssl rand -base64 48`.
     - `CLOUDINARY_...`: Your Cloudinary keys.
     - `REMOVE_BG_API_KEY`: remove.bg API key for automatic product image background removal.
     - `GOOGLE_...`: Your Google OAuth keys.

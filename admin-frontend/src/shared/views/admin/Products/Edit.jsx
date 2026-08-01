@@ -9,7 +9,6 @@ import AlertMessage from "../../../components/ui/AlertMessage";
 import { useLanguage } from "../../../context/useLanguage";
 import {
   buildProductRequestData,
-  formatProductColorList,
   GENERAL_PRODUCT_DETAIL_IMAGES_KEY,
   getExpiryDateInputValue,
   parseProductColorList,
@@ -19,13 +18,23 @@ import {
   productSupportsGeneralDetailImages,
 } from "../../../utils/productExpiry";
 import {
-  buildDefaultSizeStocks,
-  getSizeStocksTotal,
   isSizedProduct,
   normalizeSizeStocksForForm,
   productSupportsOptionalSizeOptions,
   productSupportsColorOptions,
 } from "../../../utils/productOptions";
+import {
+  getDetailImageGridClassName,
+  getNextProductFormAfterColorAdded,
+  getNextProductFormAfterColorRemoved,
+  getNextProductFormAfterDetailImageRemoved,
+  getNextProductFormAfterDetailImagesAdded,
+  getNextProductFormForColorImageChange,
+  getNextProductFormForFieldChange,
+  getNextProductFormForSizeStockChange,
+  getNextProductFormWithOptionalSizeInventoryDisabled,
+  getNextProductFormWithOptionalSizeInventoryEnabled,
+} from "../../../utils/productFormState";
 import {
   ArrowLeft,
   Upload,
@@ -68,15 +77,6 @@ const shouldDefaultToTotalQuantity = (product = {}) => {
     `${product.title || ""} ${product.description || ""}`
   );
 };
-
-const DETAIL_IMAGE_SCROLL_THRESHOLD = 7;
-
-const getDetailImageGridClassName = (imageCount, marginClassName = "mt-3") =>
-  `${marginClassName} grid grid-cols-2 gap-2 sm:grid-cols-5 ${
-    imageCount > DETAIL_IMAGE_SCROLL_THRESHOLD
-      ? "max-h-72 overflow-y-auto pr-1 [scrollbar-width:thin]"
-      : ""
-  }`;
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -233,103 +233,13 @@ const EditProduct = () => {
     setSuccessMessage("");
     setErrorMessage("");
 
-    if (type === "checkbox") {
-      setForm((currentForm) => ({ ...currentForm, [name]: checked }));
+    if (name === "colors" && !productSupportsColorOptions(form)) {
       return;
     }
 
-    if (name === "category") {
-      setForm((currentForm) => {
-        const shouldShowColorOptions = productSupportsColorOptions({ category: value });
-        const shouldShowGeneralDetailImages = productSupportsGeneralDetailImages(value);
-        const shouldUseOptionalSizeInventory =
-          productSupportsOptionalSizeOptions({ category: value }) &&
-          productSupportsOptionalSizeOptions(currentForm) &&
-          currentForm.trackSizeInventory;
-        const nextColors = shouldShowColorOptions
-          ? parseProductColorList(currentForm.colors)
-          : [];
-        const currentGeneralDetailImages = Array.isArray(
-          currentForm.productDetailImages?.[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
-        )
-          ? currentForm.productDetailImages[GENERAL_PRODUCT_DETAIL_IMAGES_KEY]
-          : [];
-        const nextSizeStocks =
-          shouldShowColorOptions || shouldUseOptionalSizeInventory
-            ? buildDefaultSizeStocks(value, currentForm.sizeStocks, nextColors)
-            : [];
-
-        return {
-          ...currentForm,
-          category: value,
-          colors: shouldShowColorOptions ? currentForm.colors : "",
-          colorImages: shouldShowColorOptions ? currentForm.colorImages : {},
-          productDetailImages: shouldShowColorOptions
-            ? currentForm.productDetailImages
-            : shouldShowGeneralDetailImages
-              ? { [GENERAL_PRODUCT_DETAIL_IMAGES_KEY]: currentGeneralDetailImages }
-              : {},
-          sizeStocks: nextSizeStocks,
-          trackSizeInventory: shouldUseOptionalSizeInventory,
-          stock: nextSizeStocks.length > 0
-            ? String(getSizeStocksTotal(nextSizeStocks))
-            : currentForm.stock,
-          expiryDate: productSupportsExpiry(value)
-            ? currentForm.expiryDate
-            : "",
-        };
-      });
-      return;
-    }
-
-    if (name === "colors") {
-      if (!productSupportsColorOptions(form)) return;
-
-      setForm((currentForm) => {
-        const nextColors = parseProductColorList(value);
-        const nextColorImages = {};
-        const nextProductDetailImages = {};
-        nextColors.forEach((color) => {
-          nextColorImages[color] = currentForm.colorImages?.[color] || "";
-          nextProductDetailImages[color] = Array.isArray(currentForm.productDetailImages?.[color])
-            ? currentForm.productDetailImages[color]
-            : [];
-        });
-        const nextSizeStocks = buildDefaultSizeStocks(
-          currentForm.category,
-          currentForm.sizeStocks,
-          nextColors
-        );
-
-        return {
-          ...currentForm,
-          colors: value,
-          colorImages: nextColorImages,
-          productDetailImages: nextProductDetailImages,
-          sizeStocks: nextSizeStocks,
-          stock: nextSizeStocks.length > 0
-            ? String(getSizeStocksTotal(nextSizeStocks))
-            : currentForm.stock,
-        };
-      });
-      return;
-    }
-
-    // For number fields, ensure we only store numeric values or empty string
-    if (
-      name === "price" ||
-      name === "discountPrice" ||
-      name === "costPrice" ||
-      name === "stock" ||
-      name === "issueQuantity"
-    ) {
-      // Allow empty string or valid number (including decimals)
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        setForm((currentForm) => ({ ...currentForm, [name]: value }));
-      }
-    } else {
-      setForm((currentForm) => ({ ...currentForm, [name]: value }));
-    }
+    setForm((currentForm) =>
+      getNextProductFormForFieldChange(currentForm, { name, value, checked, type })
+    );
   };
 
   const handleSizeStockChange = (size, color, value) => {
@@ -337,32 +247,17 @@ const EditProduct = () => {
 
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => {
-      const nextSizeStocks = currentForm.sizeStocks.map((entry) =>
-        entry.size === size && String(entry.color || "") === String(color || "")
-          ? { ...entry, stock: value }
-          : entry
-      );
-
-      return {
-        ...currentForm,
-        trackSizeInventory: true,
-        sizeStocks: nextSizeStocks,
-        stock: String(getSizeStocksTotal(nextSizeStocks)),
-      };
-    });
+    setForm((currentForm) =>
+      getNextProductFormForSizeStockChange(currentForm, { size, color, value })
+    );
   };
 
   const handleColorImageChange = (color, value) => {
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => ({
-      ...currentForm,
-      colorImages: {
-        ...currentForm.colorImages,
-        [color]: value,
-      },
-    }));
+    setForm((currentForm) =>
+      getNextProductFormForColorImageChange(currentForm, { color, value })
+    );
   };
 
   const handleColorImageUpload = async (color, file) => {
@@ -421,19 +316,12 @@ const EditProduct = () => {
         uploadedImageUrls.push(processedImageUrl);
       }
 
-      setForm((currentForm) => {
-        const existingImages = Array.isArray(currentForm.productDetailImages?.[color])
-          ? currentForm.productDetailImages[color]
-          : [];
-
-        return {
-          ...currentForm,
-          productDetailImages: {
-            ...currentForm.productDetailImages,
-            [color]: [...existingImages, ...uploadedImageUrls],
-          },
-        };
-      });
+      setForm((currentForm) =>
+        getNextProductFormAfterDetailImagesAdded(
+          currentForm,
+          { color, imageUrls: uploadedImageUrls }
+        )
+      );
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message ||
@@ -448,19 +336,9 @@ const EditProduct = () => {
   const handleRemoveProductDetailImage = (color, imageIndex) => {
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => {
-      const currentImages = Array.isArray(currentForm.productDetailImages?.[color])
-        ? currentForm.productDetailImages[color]
-        : [];
-
-      return {
-        ...currentForm,
-        productDetailImages: {
-          ...currentForm.productDetailImages,
-          [color]: currentImages.filter((_, index) => index !== imageIndex),
-        },
-      };
-    });
+    setForm((currentForm) =>
+      getNextProductFormAfterDetailImageRemoved(currentForm, { color, imageIndex })
+    );
   };
 
   const handleAddColor = (color) => {
@@ -473,36 +351,9 @@ const EditProduct = () => {
     setErrorMessage("");
     let wasAdded = false;
     setForm((currentForm) => {
-      const currentColors = parseProductColorList(currentForm.colors);
-      if (currentColors.some((currentColor) => currentColor.toLowerCase() === normalizedColor.toLowerCase())) {
-        return currentForm;
-      }
-
-      wasAdded = true;
-      const nextSizeStocks = buildDefaultSizeStocks(
-        currentForm.category,
-        currentForm.sizeStocks,
-        [...currentColors, normalizedColor]
-      );
-
-      return {
-        ...currentForm,
-        colors: formatProductColorList([...currentColors, normalizedColor]),
-        sizeStocks: nextSizeStocks,
-        stock: nextSizeStocks.length > 0
-          ? String(getSizeStocksTotal(nextSizeStocks))
-          : currentForm.stock,
-        colorImages: {
-          ...currentForm.colorImages,
-          [normalizedColor]: currentForm.colorImages?.[normalizedColor] || "",
-        },
-        productDetailImages: {
-          ...currentForm.productDetailImages,
-          [normalizedColor]: Array.isArray(currentForm.productDetailImages?.[normalizedColor])
-            ? currentForm.productDetailImages[normalizedColor]
-            : [],
-        },
-      };
+      const result = getNextProductFormAfterColorAdded(currentForm, normalizedColor);
+      wasAdded = result.wasAdded;
+      return result.nextForm;
     });
     return wasAdded;
   };
@@ -518,62 +369,21 @@ const EditProduct = () => {
   const handleRemoveColor = (color) => {
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => {
-      const nextColors = parseProductColorList(currentForm.colors).filter(
-        (currentColor) => currentColor.toLowerCase() !== color.toLowerCase()
-      );
-      const nextColorImages = { ...currentForm.colorImages };
-      const nextProductDetailImages = { ...currentForm.productDetailImages };
-      delete nextColorImages[color];
-      delete nextProductDetailImages[color];
-
-      const nextSizeStocks = buildDefaultSizeStocks(
-        currentForm.category,
-        currentForm.sizeStocks,
-        nextColors
-      );
-
-      return {
-        ...currentForm,
-        colors: formatProductColorList(nextColors),
-        sizeStocks: nextSizeStocks,
-        stock: nextSizeStocks.length > 0
-          ? String(getSizeStocksTotal(nextSizeStocks))
-          : currentForm.stock,
-        colorImages: nextColorImages,
-        productDetailImages: nextProductDetailImages,
-      };
-    });
+    setForm((currentForm) =>
+      getNextProductFormAfterColorRemoved(currentForm, color)
+    );
   };
 
   const handleEnableOptionalSizeInventory = () => {
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => {
-      const nextSizeStocks = buildDefaultSizeStocks(
-        currentForm.category,
-        currentForm.sizeStocks,
-        []
-      );
-
-      return {
-        ...currentForm,
-        trackSizeInventory: true,
-        sizeStocks: nextSizeStocks,
-        stock: String(getSizeStocksTotal(nextSizeStocks)),
-      };
-    });
+    setForm(getNextProductFormWithOptionalSizeInventoryEnabled);
   };
 
   const handleDisableOptionalSizeInventory = () => {
     setSuccessMessage("");
     setErrorMessage("");
-    setForm((currentForm) => ({
-      ...currentForm,
-      stock: String(getSizeStocksTotal(currentForm.sizeStocks)),
-      sizeStocks: [],
-      trackSizeInventory: false,
-    }));
+    setForm(getNextProductFormWithOptionalSizeInventoryDisabled);
   };
 
   const colorOptions = parseProductColorList(form.colors);

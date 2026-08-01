@@ -29,48 +29,13 @@ import {
   resetPassword,
   verifyResetCode,
 } from "../../services/authApi";
+import {
+  generateStrongPassword,
+  validateStrongPassword,
+} from "../../utils/password";
 
 const API_URL = config.API_BASE_URL;
 const CAMBODIA_DIAL_CODE = "+855";
-
-const validateStrongPassword = (password = "") =>
-  password.length >= 10
-  && /[a-z]/.test(password)
-  && /[A-Z]/.test(password)
-  && /\d/.test(password)
-  && /[^A-Za-z0-9]/.test(password);
-
-const generateStrongPassword = () => {
-  const requiredGroups = [
-    "ABCDEFGHJKLMNPQRSTUVWXYZ",
-    "abcdefghijkmnopqrstuvwxyz",
-    "23456789",
-    "!@#$%&*?",
-  ];
-  const allCharacters = requiredGroups.join("");
-  const randomIndex = (length) => {
-    const values = new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return values[0] % length;
-  };
-  const characters = requiredGroups.map(
-    (group) => group[randomIndex(group.length)]
-  );
-
-  while (characters.length < 14) {
-    characters.push(allCharacters[randomIndex(allCharacters.length)]);
-  }
-
-  for (let index = characters.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomIndex(index + 1);
-    [characters[index], characters[swapIndex]] = [
-      characters[swapIndex],
-      characters[index],
-    ];
-  }
-
-  return characters.join("");
-};
 
 const toLocalPhoneDigits = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");

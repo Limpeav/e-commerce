@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import {
+  PRODUCT_RETURN_POSITION_STORAGE_KEY,
+  SAVE_SCROLL_POSITION_EVENT,
+} from "../../utils/productReturnPosition";
 
 const scrollPositions = new Map();
 const HOME_PATHS = new Set(["/", "/customer"]);
-const SAVE_SCROLL_POSITION_EVENT = "scroll-position:save";
-const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
 
 const hasPendingProductReturnPosition = () => {
   try {

@@ -14,6 +14,10 @@ import {
   normalizeCambodiaMobilePhone,
   toCambodiaLocalPhoneDigits,
 } from "../../../utils/cambodiaPhone";
+import {
+  generateStrongPassword,
+  validateStrongPassword,
+} from "../../../utils/password";
 import { motion as Motion } from "framer-motion";
 import BrandLogo from "../../../components/common/BrandLogo";
 import PremiumCheckbox from "../../../components/ui/PremiumCheckbox";
@@ -35,47 +39,8 @@ import {
 
 const CUSTOMER_HOME_PATH = "/customer";
 
-const validateStrongPassword = (password = "") =>
-  password.length >= 10
-  && /[a-z]/.test(password)
-  && /[A-Z]/.test(password)
-  && /\d/.test(password)
-  && /[^A-Za-z0-9]/.test(password);
-
 const isGmailAddress = (email = "") =>
   /^[^\s@]+@gmail\.com$/.test(String(email).trim().toLowerCase());
-
-const generateStrongPassword = () => {
-  const requiredGroups = [
-    "ABCDEFGHJKLMNPQRSTUVWXYZ",
-    "abcdefghijkmnopqrstuvwxyz",
-    "23456789",
-    "!@#$%&*?",
-  ];
-  const allCharacters = requiredGroups.join("");
-  const randomIndex = (length) => {
-    const values = new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return values[0] % length;
-  };
-  const characters = requiredGroups.map(
-    (group) => group[randomIndex(group.length)]
-  );
-
-  while (characters.length < 14) {
-    characters.push(allCharacters[randomIndex(allCharacters.length)]);
-  }
-
-  for (let index = characters.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomIndex(index + 1);
-    [characters[index], characters[swapIndex]] = [
-      characters[swapIndex],
-      characters[index],
-    ];
-  }
-
-  return characters.join("");
-};
 
 const Register = () => {
   const [form, setForm] = useState({});

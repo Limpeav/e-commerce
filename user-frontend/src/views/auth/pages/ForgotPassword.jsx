@@ -21,46 +21,16 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
+import {
+  generateStrongPassword,
+  validateStrongPassword,
+} from "../../../utils/password";
 
 const STEPS = {
   FIND_ACCOUNT: 1,
   VERIFY_CODE: 2,
   NEW_PASSWORD: 3,
   SUCCESS: 4,
-};
-
-const validateStrongPassword = (value = "") =>
-  value.length >= 10 &&
-  /[a-z]/.test(value) &&
-  /[A-Z]/.test(value) &&
-  /\d/.test(value) &&
-  /[^A-Za-z0-9]/.test(value);
-
-const generateStrongPassword = () => {
-  const requiredGroups = [
-    "ABCDEFGHJKLMNPQRSTUVWXYZ",
-    "abcdefghijkmnopqrstuvwxyz",
-    "23456789",
-    "!@#$%&*?",
-  ];
-  const allCharacters = requiredGroups.join("");
-  const randomIndex = (length) => {
-    const values = new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return values[0] % length;
-  };
-  const characters = requiredGroups.map((group) => group[randomIndex(group.length)]);
-
-  while (characters.length < 14) {
-    characters.push(allCharacters[randomIndex(allCharacters.length)]);
-  }
-
-  for (let index = characters.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomIndex(index + 1);
-    [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
-  }
-
-  return characters.join("");
 };
 
 const ForgotPassword = () => {

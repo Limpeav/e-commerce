@@ -26,21 +26,15 @@ import {
     buildProductSearchSuggestionValues,
     getMatchingSearchSuggestions,
 } from "../../utils/searchSuggestions";
+import {
+    clearProductReturnPosition,
+    hasStaleProductReturnPosition,
+    readProductReturnPosition,
+    restoreProductReturnPosition,
+} from "../../utils/productReturnPosition";
 
 const HOME_SECTION_NAVIGATION_EVENT = "home-section:navigate";
 const HOME_PRODUCT_ORDER_STORAGE_KEY = "cherish-home-product-order-v1";
-const PRODUCT_RETURN_POSITION_STORAGE_KEY = "cherish-product-return-position-v1";
-
-const readProductReturnPosition = () => {
-    if (typeof window === "undefined") return null;
-
-    try {
-        const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-        return storedPosition ? JSON.parse(storedPosition) : null;
-    } catch {
-        return null;
-    }
-};
 
 const shuffleProducts = (products = []) => {
     const shuffled = [...products];
@@ -108,30 +102,30 @@ const sortProductsByStableOrder = (products = [], orderedProductIds = []) => {
     });
 };
 
-const isReloadNavigation = () => {
-    if (typeof window === "undefined" || !window.performance?.getEntriesByType) {
-        return false;
+const getHomeReturnTargetCard = (returnPosition) => {
+    const matchingCards = Array.from(document.querySelectorAll("[data-product-card]"))
+        .filter((card) => card.dataset.productId === String(returnPosition.productId));
+
+    if (!returnPosition.sectionId) {
+        return matchingCards[0];
     }
 
-    const navigationEntry = window.performance.getEntriesByType("navigation")?.[0];
-    return navigationEntry?.type === "reload";
+    return matchingCards.find((card) => (
+        card.dataset.productSection === String(returnPosition.sectionId) ||
+        card.closest("section[id]")?.id === String(returnPosition.sectionId)
+    )) || matchingCards[0];
 };
 
-const getPageLoadStartTime = () => {
-    if (typeof window === "undefined") return 0;
+const restoreHomeReturnScrollerPosition = ({ returnPosition, targetCard }) => {
+    const targetScroller = returnPosition.scrollerId
+        ? Array.from(document.querySelectorAll("[data-product-scroller]"))
+            .find((scroller) => scroller.dataset.productScroller === String(returnPosition.scrollerId))
+        : targetCard.closest("[data-product-scroller]");
+    const scrollerLeft = Number(returnPosition.scrollerLeft);
 
-    return window.performance?.timeOrigin || 0;
-};
-
-const hasStaleProductReturnPosition = () => {
-    const returnPosition = readProductReturnPosition();
-
-    if (!returnPosition?.productId || !isReloadNavigation()) {
-        return false;
+    if (targetScroller && Number.isFinite(scrollerLeft)) {
+        targetScroller.scrollLeft = scrollerLeft;
     }
-
-    const createdAt = Number(returnPosition.createdAt);
-    return !Number.isFinite(createdAt) || createdAt < getPageLoadStartTime();
 };
 
 function ProductSection({
@@ -562,11 +556,7 @@ export default function Home() {
     useLayoutEffect(() => {
         if (!shouldSkipProductPositionRestore) return undefined;
 
-        try {
-            window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-        } catch {
-            // Ignore storage failures; the page should still start from the top.
-        }
+        clearProductReturnPosition();
 
         if (!location.hash) {
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -583,106 +573,10 @@ export default function Home() {
             location.hash
         ) return undefined;
 
-        const returnPosition = readProductReturnPosition();
-
-        if (!returnPosition?.productId) return undefined;
-
-        let attempt = 0;
-        let correctionCount = 0;
-        let restoreTimer = null;
-        let frameId = null;
-        let isCancelled = false;
-        const maxCorrections = 6;
-        const correctionDelay = 60;
-        const finishRestore = ({ clearSavedPosition = true } = {}) => {
-            if (restoreTimer) {
-                window.clearTimeout(restoreTimer);
-                restoreTimer = null;
-            }
-            if (frameId) {
-                window.cancelAnimationFrame(frameId);
-                frameId = null;
-            }
-            if (!clearSavedPosition) return;
-
-            try {
-                window.sessionStorage.removeItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-            } catch {
-                // Ignore storage failures.
-            }
-        };
-        const cancelRestore = () => {
-            isCancelled = true;
-            finishRestore();
-        };
-
-        const restoreProductPosition = () => {
-            if (isCancelled) return;
-
-            const matchingCards = Array.from(document.querySelectorAll("[data-product-card]"))
-                .filter((card) => card.dataset.productId === String(returnPosition.productId));
-            const targetCard = returnPosition.sectionId
-                ? matchingCards.find((card) => (
-                    card.dataset.productSection === String(returnPosition.sectionId) ||
-                    card.closest("section[id]")?.id === String(returnPosition.sectionId)
-                )) || matchingCards[0]
-                : matchingCards[0];
-
-            if (targetCard) {
-                const targetScroller = returnPosition.scrollerId
-                    ? Array.from(document.querySelectorAll("[data-product-scroller]"))
-                        .find((scroller) => scroller.dataset.productScroller === String(returnPosition.scrollerId))
-                    : targetCard.closest("[data-product-scroller]");
-                const scrollerLeft = Number(returnPosition.scrollerLeft);
-
-                if (targetScroller && Number.isFinite(scrollerLeft)) {
-                    targetScroller.scrollLeft = scrollerLeft;
-                }
-
-                const cardRect = targetCard.getBoundingClientRect();
-                const cardTop = Number(returnPosition.cardTop);
-                const fallbackTop = Number(returnPosition.scrollY);
-                const nextTop = Number.isFinite(cardTop)
-                    ? window.scrollY + cardRect.top - cardTop
-                    : fallbackTop;
-
-                if (Number.isFinite(nextTop)) {
-                    window.scrollTo({ top: Math.max(0, nextTop), left: 0, behavior: "auto" });
-                }
-
-                if (correctionCount < maxCorrections) {
-                    correctionCount += 1;
-                    restoreTimer = window.setTimeout(() => {
-                        frameId = window.requestAnimationFrame(restoreProductPosition);
-                    }, correctionDelay);
-                    return;
-                }
-
-                finishRestore();
-                return;
-            }
-
-            if (attempt < 20) {
-                attempt += 1;
-                restoreTimer = window.setTimeout(() => {
-                    frameId = window.requestAnimationFrame(restoreProductPosition);
-                }, 100);
-            }
-        };
-
-        window.addEventListener("wheel", cancelRestore, { passive: true });
-        window.addEventListener("touchstart", cancelRestore, { passive: true });
-        window.addEventListener("pointerdown", cancelRestore, { passive: true });
-        window.addEventListener("keydown", cancelRestore);
-        frameId = window.requestAnimationFrame(restoreProductPosition);
-
-        return () => {
-            finishRestore({ clearSavedPosition: false });
-            window.removeEventListener("wheel", cancelRestore);
-            window.removeEventListener("touchstart", cancelRestore);
-            window.removeEventListener("pointerdown", cancelRestore);
-            window.removeEventListener("keydown", cancelRestore);
-        };
+        return restoreProductReturnPosition({
+            getTargetCard: getHomeReturnTargetCard,
+            onBeforeScroll: restoreHomeReturnScrollerPosition,
+        });
     }, [
         loading,
         location.hash,

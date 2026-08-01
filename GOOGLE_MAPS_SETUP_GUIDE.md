@@ -3,7 +3,7 @@
 ## Current Issue
 You're seeing an **"Invalid API Key"** error because the API key needs to be properly configured in Google Cloud Console.
 
-Your API Key: `AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c`
+Your API key should be stored only in your local `.env` file or hosting provider environment variables.
 
 ---
 
@@ -23,7 +23,7 @@ Your API Key: `AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c`
 
 ### Step 3: Configure API Key Restrictions (Important!)
 1. Go to: **APIs & Services** → **Credentials**
-2. Find your API key: `AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c`
+2. Find your Google Maps API key
 3. Click on the API key to edit it
 
 #### Set Application Restrictions:

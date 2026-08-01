@@ -61,12 +61,3 @@ export const cancelPayment = async (paymentId) => {
     );
     return response.data;
 };
-
-// Verify payment (webhook simulation - for testing)
-export const verifyPayment = async (paymentData) => {
-    const response = await axios.post(
-        `${API_URL}/payments/bakong/verify`,
-        paymentData
-    );
-    return response.data;
-};

@@ -6,19 +6,7 @@ import ProductCard from './ProductCard';
 import { useDarkMode } from '../../hooks';
 import { useLanguage } from '../../context/useLanguage';
 import { useVisibleProductRows } from '../../hooks/useVisibleProductRows';
-
-const PRODUCT_RETURN_POSITION_STORAGE_KEY = 'cherish-product-return-position-v1';
-
-const readProductReturnPosition = () => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const storedPosition = window.sessionStorage.getItem(PRODUCT_RETURN_POSITION_STORAGE_KEY);
-    return storedPosition ? JSON.parse(storedPosition) : null;
-  } catch {
-    return null;
-  }
-};
+import { readProductReturnPosition } from '../../utils/productReturnPosition';
 
 const container = {
   hidden: { opacity: 0 },

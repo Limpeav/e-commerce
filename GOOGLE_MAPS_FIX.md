@@ -74,9 +74,9 @@ Wrapped map initialization in try-catch block for better error feedback
 
 ## API Key Configuration
 
-Current API Key (from `.env`):
+Set the API key in `user-frontend/.env` or your hosting provider environment variables:
 ```
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyAUAOXsyEBFtdt4LHZ2Cbv12lyTwMLdO-c
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
 
 If map still doesn't load:

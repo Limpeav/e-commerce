@@ -11,10 +11,8 @@ import {
   formatExpiryDate,
   productSupportsExpiry,
 } from '../../utils/productExpiry';
+import { saveProductReturnPosition } from '../../utils/productReturnPosition';
 import DualCurrencyPrice from '../common/DualCurrencyPrice';
-
-const SAVE_SCROLL_POSITION_EVENT = 'scroll-position:save';
-const PRODUCT_RETURN_POSITION_STORAGE_KEY = 'cherish-product-return-position-v1';
 
 const ProductCard = ({
   product,
@@ -64,31 +62,12 @@ const ProductCard = ({
   }, [imageSrc]);
 
   const saveReturnPosition = () => {
-    window.dispatchEvent(new Event(SAVE_SCROLL_POSITION_EVENT));
-    const cardRect = cardRef.current?.getBoundingClientRect();
-    const sectionId =
-      productSectionId ||
-      cardRef.current?.closest('section[id]')?.id ||
-      null;
-    const productScroller = cardRef.current?.closest('[data-product-scroller]');
-
-    try {
-      window.sessionStorage.setItem(
-        PRODUCT_RETURN_POSITION_STORAGE_KEY,
-        JSON.stringify({
-          productId: product._id,
-          sectionId,
-          productIndex: Number.isInteger(productIndex) ? productIndex : null,
-          scrollerId: productScroller?.dataset.productScroller || null,
-          scrollerLeft: productScroller?.scrollLeft ?? null,
-          scrollY: window.scrollY,
-          cardTop: cardRect?.top ?? null,
-          createdAt: Date.now(),
-        })
-      );
-    } catch {
-      // Ignore storage failures; global scroll restoration still handles normal browsers.
-    }
+    saveProductReturnPosition({
+      productId: product._id,
+      productSectionId,
+      productIndex,
+      cardElement: cardRef.current,
+    });
   };
 
   const openProductDetails = () => {

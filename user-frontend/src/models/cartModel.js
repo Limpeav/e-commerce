@@ -1,4 +1,4 @@
-export class CartItemModel {
+class CartItemModel {
   constructor(data = {}) {
     const product = data.product || null;
 
