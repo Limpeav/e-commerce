@@ -102,6 +102,107 @@ test("buildSentimentAnalytics creates product, category, and trend insights", ()
   assert.equal(analytics.trend[0].month, "2026-07");
 });
 
+test("buildSentimentAnalytics filters reviews by date and sentiment", () => {
+  const analytics = buildSentimentAnalytics(
+    [
+      {
+        _id: "product-1",
+        title: "Baby Diaper",
+        category: "Diapering & Care",
+        reviews: [
+          {
+            rating: 5,
+            sentimentLabel: "Positive",
+            sentimentScore: 1.2,
+            comment: "Good quality",
+            createdAt: "2026-07-01T08:00:00.000Z",
+          },
+          {
+            rating: 1,
+            sentimentLabel: "Negative",
+            sentimentScore: -1.5,
+            comment: "Leaking and poor quality",
+            createdAt: "2026-07-02T08:00:00.000Z",
+          },
+          {
+            rating: 2,
+            sentimentLabel: "Negative",
+            sentimentScore: -1.1,
+            comment: "Delayed and damaged",
+            createdAt: "2026-07-05T08:00:00.000Z",
+          },
+        ],
+      },
+    ],
+    {
+      startDate: "2026-07-02T00:00:00.000Z",
+      endDate: "2026-07-03T00:00:00.000Z",
+      sentiment: "Negative",
+    }
+  );
+
+  assert.equal(analytics.total, 1);
+  assert.equal(analytics.negative, 1);
+  assert.equal(analytics.positive, 0);
+  assert.equal(analytics.productInsights[0].negativeRate, 100);
+});
+
+test("buildSentimentAnalytics ranks top negative products needing action", () => {
+  const analytics = buildSentimentAnalytics([
+    {
+      _id: "product-1",
+      title: "Training Cup",
+      category: "Feeding",
+      reviews: [
+        {
+          rating: 1,
+          sentimentLabel: "Negative",
+          sentimentScore: -1.8,
+          comment: "It leaks badly.",
+          createdAt: "2026-07-01T08:00:00.000Z",
+        },
+        {
+          rating: 1,
+          sentimentLabel: "Negative",
+          sentimentScore: -1.6,
+          comment: "Still leaking.",
+          createdAt: "2026-07-03T08:00:00.000Z",
+        },
+      ],
+    },
+    {
+      _id: "product-2",
+      title: "Baby Lotion",
+      category: "Bath & Skin",
+      reviews: [
+        {
+          rating: 2,
+          sentimentLabel: "Negative",
+          sentimentScore: -1,
+          comment: "Too expensive.",
+          createdAt: "2026-07-02T08:00:00.000Z",
+        },
+        {
+          rating: 5,
+          sentimentLabel: "Positive",
+          sentimentScore: 1.3,
+          comment: "Gentle and excellent.",
+          createdAt: "2026-07-04T08:00:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(analytics.topNegativeProducts.length, 2);
+  assert.equal(analytics.topNegativeProducts[0].productTitle, "Training Cup");
+  assert.equal(analytics.topNegativeProducts[0].negative, 2);
+  assert.equal(analytics.topNegativeProducts[0].negativeRate, 100);
+  assert.equal(
+    analytics.topNegativeProducts[0].latestNegativeReview.comment,
+    "Still leaking."
+  );
+});
+
 test("buildSentimentAnalytics normalizes category aliases", () => {
   const analytics = buildSentimentAnalytics([
     {

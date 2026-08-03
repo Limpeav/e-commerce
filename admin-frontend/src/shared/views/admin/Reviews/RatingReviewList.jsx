@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, Search, Star, X } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Download,
+  Filter,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/common/Loading";
 import AdminPagination from "../../../components/admin/AdminPagination";
 import { useAdminPagination } from "../../../hooks/useAdminPagination";
-import { ProductController } from "../../../controllers";
+import { ProductController, ReviewController } from "../../../controllers";
 import { getAvailableStock } from "../../../utils/adminProducts";
 import { getMatchingSearchSuggestions, uniqueSearchSuggestions } from "../../../utils/searchSuggestions";
 import { normalizeProductCategory } from "../../../constants/productCategories";
@@ -36,6 +44,73 @@ const getSentimentLabel = (review) => {
   return "Neutral";
 };
 
+const getReviewSentimentScore = (review) => {
+  const score = Number(review?.sentimentScore);
+
+  if (Number.isFinite(score)) {
+    return score;
+  }
+
+  const label = getSentimentLabel(review);
+  if (label === "Positive") return 1;
+  if (label === "Negative") return -1;
+  return 0;
+};
+
+const getReviewTime = (review = {}) => {
+  const timestamp = new Date(review.createdAt || review.updatedAt || 0).getTime();
+  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+};
+
+const buildDateRangeFilter = (dateFrom, dateTo) => {
+  const startDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+  const endDate = dateTo ? new Date(`${dateTo}T00:00:00`) : null;
+
+  if (endDate) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  return {
+    startTime:
+      startDate && !Number.isNaN(startDate.getTime()) ? startDate.getTime() : null,
+    endTime:
+      endDate && !Number.isNaN(endDate.getTime()) ? endDate.getTime() : null,
+  };
+};
+
+const isReviewWithinDateRange = (review, dateRange) => {
+  if (!dateRange.startTime && !dateRange.endTime) {
+    return true;
+  }
+
+  const reviewTime = getReviewTime(review);
+
+  if (!reviewTime) {
+    return false;
+  }
+
+  if (dateRange.startTime && reviewTime < dateRange.startTime) {
+    return false;
+  }
+
+  if (dateRange.endTime && reviewTime >= dateRange.endTime) {
+    return false;
+  }
+
+  return true;
+};
+
+const downloadBlob = (blob, fileName) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
 const sentimentClasses = {
   Positive: "border-green-200 bg-green-50 text-green-700",
   Neutral: "border-gray-200 bg-gray-50 text-gray-700",
@@ -58,9 +133,14 @@ const getProductSentimentSummary = (reviews = []) => {
   );
   const total =
     sentimentCounts.Positive + sentimentCounts.Neutral + sentimentCounts.Negative;
+  const scoreTotal = reviews.reduce(
+    (sum, review) => sum + getReviewSentimentScore(review),
+    0
+  );
   const score = total
     ? (sentimentCounts.Positive - sentimentCounts.Negative) / total
     : 0;
+  const averageScore = total ? Number((scoreTotal / total).toFixed(2)) : 0;
   let label = "Neutral";
 
   if (score >= 0.2) {
@@ -72,6 +152,7 @@ const getProductSentimentSummary = (reviews = []) => {
   return {
     label,
     score,
+    averageScore,
     total,
     counts: sentimentCounts,
   };
@@ -91,7 +172,18 @@ const RatingReviewList = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [productSentimentFilter, setProductSentimentFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const dateRange = useMemo(
+    () => buildDateRangeFilter(dateFrom, dateTo),
+    [dateFrom, dateTo]
+  );
+  const dateRangeError =
+    dateFrom && dateTo && dateFrom > dateTo
+      ? "Start date must be before or equal to end date."
+      : "";
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -135,7 +227,10 @@ const RatingReviewList = ({
         const productReviews = Array.isArray(product.reviews)
           ? product.reviews
           : [];
-        const matchingReviews = productReviews.filter((review) => {
+        const dateFilteredReviews = productReviews.filter((review) =>
+          isReviewWithinDateRange(review, dateRange)
+        );
+        const matchingReviews = dateFilteredReviews.filter((review) => {
           if (sentimentFilter === "all") return true;
           return getSentimentLabel(review) === sentimentFilter;
         });
@@ -147,7 +242,8 @@ const RatingReviewList = ({
             (sum, review) => sum + Number(review.rating || 0),
             0
           ) / matchingReviews.length;
-        const productSentiment = getProductSentimentSummary(productReviews);
+        const filteredProductSentiment =
+          getProductSentimentSummary(dateFilteredReviews);
 
         return [
           {
@@ -159,7 +255,7 @@ const RatingReviewList = ({
             averageRating,
             reviewCount: matchingReviews.length,
             matchingReviews,
-            productSentiment,
+            productSentiment: filteredProductSentiment,
             sentimentCounts: matchingReviews.reduce(
               (counts, review) => {
                 counts[getSentimentLabel(review)] += 1;
@@ -170,7 +266,7 @@ const RatingReviewList = ({
           },
         ];
       }),
-    [products, sentimentFilter]
+    [dateRange, products, sentimentFilter]
   );
 
   const filteredProducts = useMemo(() => {
@@ -238,8 +334,80 @@ const RatingReviewList = ({
   const reviewPagination = useAdminPagination({
     items: filteredProducts,
     initialPageSize: 25,
-    resetKey: `${sentimentFilter}:${categoryFilter}:${productSentimentFilter}:${searchTerm}`,
+    resetKey: `${sentimentFilter}:${categoryFilter}:${productSentimentFilter}:${searchTerm}:${dateFrom}:${dateTo}`,
   });
+  const reportSummary = useMemo(() => {
+    return {
+      productCount: filteredProducts.length,
+      reviewCount: filteredProducts.reduce(
+        (total, product) => total + product.matchingReviews.length,
+        0
+      ),
+    };
+  }, [filteredProducts]);
+  const reportParams = useMemo(
+    () => ({
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+      productSearch: searchTerm.trim() || undefined,
+      sentiment: sentimentFilter !== "all" ? sentimentFilter : undefined,
+      productSentiment:
+        productSentimentFilter !== "all" ? productSentimentFilter : undefined,
+    }),
+    [
+      categoryFilter,
+      dateFrom,
+      dateTo,
+      productSentimentFilter,
+      searchTerm,
+      sentimentFilter,
+    ]
+  );
+  const hasActiveReportFilters =
+    Boolean(dateFrom || dateTo || searchTerm.trim()) ||
+    categoryFilter !== "all" ||
+    productSentimentFilter !== "all";
+  const clearReportFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setSearchTerm("");
+    setCategoryFilter("all");
+    setProductSentimentFilter("all");
+  };
+  const handleExportReport = async () => {
+    if (dateRangeError) {
+      alert(dateRangeError);
+      return;
+    }
+
+    try {
+      setExporting(true);
+      const response = await ReviewController.exportSentimentReport(reportParams);
+      const rangeLabel =
+        dateFrom || dateTo
+          ? `${dateFrom || "start"}-to-${dateTo || "latest"}`
+          : "all-dates";
+
+      downloadBlob(response.data, `sentiment-report-${rangeLabel}.csv`);
+    } catch (requestError) {
+      alert(
+        requestError.response?.data?.message ||
+          requestError.message ||
+          "Failed to export sentiment report"
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+  const openDatePicker = (event) => {
+    event.currentTarget.showPicker?.();
+  };
+  const handleDatePickerKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.currentTarget.showPicker?.();
+    }
+  };
 
   if (loading) {
     return <Loading message="Loading product reviews..." />;
@@ -268,16 +436,39 @@ const RatingReviewList = ({
               <h1 className="text-3xl font-black text-gray-950">{title}</h1>
               <p className="mt-1 text-sm font-medium text-gray-600">{description}</p>
             </div>
-            <div className={`rounded-2xl border px-5 py-3 ${countClasses}`}>
-              <p className="text-xs font-bold uppercase tracking-wide">Products</p>
-              <p className="text-3xl font-black">{reviewedProducts.length}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleExportReport}
+                disabled={exporting || Boolean(dateRangeError)}
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+              >
+                <Download className="h-4 w-4" />
+                {exporting ? "Exporting..." : "Download CSV"}
+              </button>
+              <div className={`rounded-2xl border px-5 py-3 ${countClasses}`}>
+                <p className="text-xs font-bold uppercase tracking-wide">Filtered Products</p>
+                <p className="text-3xl font-black">{filteredProducts.length}</p>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wide text-gray-500">
+              Total reviews
+            </p>
+            <p className="mt-2 text-3xl font-black text-gray-950">
+              {reportSummary.reviewCount}
+            </p>
+            <p className="mt-1 text-xs font-bold text-gray-500">
+              across {reportSummary.productCount} product
+              {reportSummary.productCount === 1 ? "" : "s"}
+            </p>
+          </div>
           {["Positive", "Neutral", "Negative"].map((label) => (
             <button
               key={label}
@@ -309,7 +500,7 @@ const RatingReviewList = ({
         </section>
 
         <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px_220px]">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_230px_220px]">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
@@ -326,6 +517,30 @@ const RatingReviewList = ({
                 ))}
               </datalist>
             </div>
+            <label className="relative">
+              <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-900" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+                onClick={openDatePicker}
+                onKeyDown={handleDatePickerKeyDown}
+                className="admin-review-date-input h-full min-h-12 w-full cursor-pointer rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 font-bold text-gray-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                aria-label="Filter reviews from date"
+              />
+            </label>
+            <label className="relative">
+              <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-900" />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+                onClick={openDatePicker}
+                onKeyDown={handleDatePickerKeyDown}
+                className="admin-review-date-input h-full min-h-12 w-full cursor-pointer rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 font-bold text-gray-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                aria-label="Filter reviews to date"
+              />
+            </label>
             <label className="relative">
               <Filter className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <select
@@ -357,6 +572,27 @@ const RatingReviewList = ({
               </select>
             </label>
           </div>
+          {(dateRangeError || hasActiveReportFilters) && (
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={`text-sm font-bold ${
+                  dateRangeError ? "text-red-700" : "text-gray-500"
+                }`}
+              >
+                {dateRangeError || "Filters are applied to the visible report and CSV export."}
+              </p>
+              {hasActiveReportFilters && (
+                <button
+                  type="button"
+                  onClick={clearReportFilters}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4" />
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {error ? (

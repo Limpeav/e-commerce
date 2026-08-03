@@ -9,6 +9,14 @@ export const ReviewController = {
     );
   },
 
+  async getSentimentReport(params) {
+    return adminService.getSentimentReport(params);
+  },
+
+  async exportSentimentReport(params) {
+    return adminService.exportSentimentReport(params);
+  },
+
   async moderate(productId, reviewId, payload) {
     return adminService.moderateReview(productId, reviewId, payload);
   },

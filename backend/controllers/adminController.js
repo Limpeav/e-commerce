@@ -7,6 +7,7 @@ import {
   buildDashboardReviewHealth,
   buildSentimentAnalytics,
 } from "../utils/sentiment.js";
+import { normalizeProductCategory } from "../utils/productCategories.js";
 
 const ADMIN_VISIBLE_ORDER_FILTER = {
   $or: [
@@ -313,6 +314,322 @@ const buildCashReportCsv = (report) => {
     .join("\n");
 };
 
+const SENTIMENT_LABELS = new Set(["Positive", "Neutral", "Negative"]);
+
+const parseOptionalReportDateBoundary = (
+  dateString,
+  timezoneOffsetMinutes = 0,
+  isEndBoundary = false
+) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))) {
+    return null;
+  }
+
+  const offsetMinutes = Number.isFinite(Number(timezoneOffsetMinutes))
+    ? Number(timezoneOffsetMinutes)
+    : 0;
+  const [year, month, day] = String(dateString).split("-").map(Number);
+  const boundary = new Date(Date.UTC(year, month - 1, day, 0, offsetMinutes, 0, 0));
+
+  if (isEndBoundary) {
+    boundary.setUTCDate(boundary.getUTCDate() + 1);
+  }
+
+  return boundary;
+};
+
+const getReportReviewTimestamp = (review = {}) => {
+  const timestamp = new Date(review.createdAt || review.updatedAt || 0).getTime();
+  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+};
+
+const getReportReviewSentimentLabel = (review = {}) => {
+  if (SENTIMENT_LABELS.has(review.sentimentLabel)) {
+    return review.sentimentLabel;
+  }
+
+  const rating = Number(review.rating || 0);
+  if (rating >= 4) return "Positive";
+  if (rating <= 2) return "Negative";
+  return "Neutral";
+};
+
+const reviewMatchesDateRange = (review = {}, startDate, endDate) => {
+  if (!startDate && !endDate) {
+    return true;
+  }
+
+  const timestamp = getReportReviewTimestamp(review);
+  if (!timestamp) {
+    return false;
+  }
+
+  if (startDate && timestamp < startDate.getTime()) {
+    return false;
+  }
+
+  if (endDate && timestamp >= endDate.getTime()) {
+    return false;
+  }
+
+  return true;
+};
+
+const normalizeSentimentQueryLabel = (value) => {
+  const label = String(value || "").trim();
+  return SENTIMENT_LABELS.has(label) ? label : "";
+};
+
+const buildSentimentReportPayload = async (query = {}) => {
+  const dateFrom = /^\d{4}-\d{2}-\d{2}$/.test(String(query.dateFrom || ""))
+    ? String(query.dateFrom)
+    : "";
+  const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(String(query.dateTo || ""))
+    ? String(query.dateTo)
+    : "";
+  const startDate = parseOptionalReportDateBoundary(
+    dateFrom,
+    query.timezoneOffset,
+    false
+  );
+  const endDate = parseOptionalReportDateBoundary(
+    dateTo,
+    query.timezoneOffset,
+    true
+  );
+
+  if (startDate && endDate && startDate >= endDate) {
+    const error = new Error("Start date must be before or equal to end date");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const selectedCategory = normalizeProductCategory(query.category);
+  const category =
+    selectedCategory && selectedCategory.toLowerCase() !== "all"
+      ? selectedCategory
+      : "";
+  const productId = String(query.productId || "").trim();
+  const productSearch = String(query.productSearch || query.search || "").trim();
+  const normalizedProductSearch = productSearch.toLowerCase();
+  const sentiment = normalizeSentimentQueryLabel(query.sentiment);
+  const productSentiment = normalizeSentimentQueryLabel(query.productSentiment);
+
+  const products = await Product.find({})
+    .select("title category image reviews rating numReviews")
+    .lean();
+
+  const filteredProducts = products.flatMap((product) => {
+    const productCategory =
+      normalizeProductCategory(product.category) || "Uncategorized";
+    const productKey = String(product._id || "");
+
+    if (category && productCategory !== category) {
+      return [];
+    }
+
+    if (productId && productKey !== productId) {
+      return [];
+    }
+
+    if (
+      normalizedProductSearch &&
+      ![
+        product.title,
+        productCategory,
+        productKey,
+      ].some((value) =>
+        String(value || "").toLowerCase().includes(normalizedProductSearch)
+      )
+    ) {
+      return [];
+    }
+
+    const dateFilteredReviews = (Array.isArray(product.reviews)
+      ? product.reviews
+      : []
+    ).filter((review) => reviewMatchesDateRange(review, startDate, endDate));
+
+    if (
+      productSentiment &&
+      !dateFilteredReviews.some(
+        (review) => getReportReviewSentimentLabel(review) === productSentiment
+      )
+    ) {
+      return [];
+    }
+
+    const reportReviews = sentiment
+      ? dateFilteredReviews.filter(
+          (review) => getReportReviewSentimentLabel(review) === sentiment
+        )
+      : dateFilteredReviews;
+
+    return [
+      {
+        ...product,
+        category: productCategory,
+        reviews: reportReviews,
+      },
+    ];
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    filters: {
+      dateFrom,
+      dateTo,
+      category,
+      productId,
+      productSearch,
+      sentiment,
+      productSentiment,
+    },
+    sentiment: buildSentimentAnalytics(filteredProducts, {
+      negativeProductLimit: 10,
+    }),
+  };
+};
+
+const buildSentimentReportCsv = (report) => {
+  const sentiment = report.sentiment || {};
+  const filters = report.filters || {};
+  const rows = [
+    ["Generated At", report.generatedAt],
+    ["Date From", filters.dateFrom || "All"],
+    ["Date To", filters.dateTo || "All"],
+    ["Category", filters.category || "All"],
+    ["Product Search", filters.productSearch || "All"],
+    ["Review Sentiment", filters.sentiment || "All"],
+    ["Product Sentiment", filters.productSentiment || "All"],
+    [],
+    ["Summary"],
+    ["Total Reviews", sentiment.total || 0],
+    ["Positive Reviews", sentiment.positive || 0],
+    ["Neutral Reviews", sentiment.neutral || 0],
+    ["Negative Reviews", sentiment.negative || 0],
+    ["Positive Rate", `${Number(sentiment.positiveRate || 0).toFixed(1)}%`],
+    ["Negative Rate", `${Number(sentiment.negativeRate || 0).toFixed(1)}%`],
+    ["Average Sentiment Score", Number(sentiment.averageScore || 0).toFixed(2)],
+    ["Overall Label", sentiment.label || "Neutral"],
+    [],
+    ["Top Negative Products Needing Action"],
+    [
+      "Product ID",
+      "Product",
+      "Category",
+      "Total Reviews",
+      "Negative Reviews",
+      "Negative Rate",
+      "Average Rating",
+      "Average Sentiment Score",
+      "Priority Score",
+      "Latest Negative Review Date",
+      "Latest Negative Review Rating",
+      "Latest Negative Review",
+    ],
+    ...(sentiment.topNegativeProducts || []).map((product) => [
+      product.productId,
+      product.productTitle,
+      product.category,
+      product.totalReviews,
+      product.negative,
+      `${Number(product.negativeRate || 0).toFixed(1)}%`,
+      Number(product.averageRating || 0).toFixed(2),
+      Number(product.averageScore || 0).toFixed(2),
+      Number(product.actionPriority || 0).toFixed(2),
+      product.latestNegativeReview?.createdAt
+        ? new Date(product.latestNegativeReview.createdAt).toISOString()
+        : "",
+      product.latestNegativeReview?.rating || "",
+      product.latestNegativeReview?.comment || "",
+    ]),
+    [],
+    ["Product Insights"],
+    [
+      "Product ID",
+      "Product",
+      "Category",
+      "Total Reviews",
+      "Positive",
+      "Neutral",
+      "Negative",
+      "Negative Rate",
+      "Average Rating",
+      "Average Sentiment Score",
+    ],
+    ...(sentiment.productInsights || []).map((product) => [
+      product.productId,
+      product.productTitle,
+      product.category,
+      product.totalReviews,
+      product.positive,
+      product.neutral,
+      product.negative,
+      `${Number(product.negativeRate || 0).toFixed(1)}%`,
+      Number(product.averageRating || 0).toFixed(2),
+      Number(product.averageScore || 0).toFixed(2),
+    ]),
+    [],
+    ["Category Insights"],
+    [
+      "Category",
+      "Total Reviews",
+      "Positive",
+      "Neutral",
+      "Negative",
+      "Negative Rate",
+      "Average Rating",
+      "Average Sentiment Score",
+    ],
+    ...(sentiment.categoryInsights || []).map((category) => [
+      category.category,
+      category.totalReviews,
+      category.positive,
+      category.neutral,
+      category.negative,
+      `${Number(category.negativeRate || 0).toFixed(1)}%`,
+      Number(category.averageRating || 0).toFixed(2),
+      Number(category.averageScore || 0).toFixed(2),
+    ]),
+    [],
+    ["Trend"],
+    [
+      "Month",
+      "Total Reviews",
+      "Positive",
+      "Neutral",
+      "Negative",
+      "Negative Rate",
+      "Average Rating",
+      "Average Sentiment Score",
+    ],
+    ...(sentiment.trend || []).map((month) => [
+      month.month,
+      month.totalReviews,
+      month.positive,
+      month.neutral,
+      month.negative,
+      `${Number(month.negativeRate || 0).toFixed(1)}%`,
+      Number(month.averageRating || 0).toFixed(2),
+      Number(month.averageScore || 0).toFixed(2),
+    ]),
+  ];
+
+  return rows
+    .map((row) => row.map(formatCsvValue).join(","))
+    .join("\n");
+};
+
+const getSentimentReportFileName = (filters = {}) => {
+  const dateRange =
+    filters.dateFrom || filters.dateTo
+      ? `${filters.dateFrom || "start"}-to-${filters.dateTo || "latest"}`
+      : "all-dates";
+
+  return `sentiment-report-${dateRange}.csv`;
+};
+
 // @desc    Admin dashboard data
 // @route   GET /api/admin/dashboard
 // @access  Private/Admin
@@ -494,14 +811,20 @@ export const getDashboardData = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/sentiment-report
 // @access  Private/Portal
 export const getSentimentReport = asyncHandler(async (req, res) => {
-  const products = await Product.find({})
-    .select("title category image reviews rating numReviews")
-    .lean();
+  const report = await buildSentimentReportPayload(req.query);
 
-  res.json({
-    generatedAt: new Date().toISOString(),
-    sentiment: buildSentimentAnalytics(products),
-  });
+  if (req.query.format === "csv") {
+    const csv = buildSentimentReportCsv(report);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${getSentimentReportFileName(report.filters)}"`
+    );
+    res.send(csv);
+    return;
+  }
+
+  res.json(report);
 });
 
 // @desc    Daily cash report for admin and cashier accounts

@@ -298,7 +298,40 @@ export const summarizeSentiment = (reviews = []) => {
   return summary;
 };
 
-export const buildSentimentAnalytics = (products = []) => {
+const getReviewTimestamp = (review = {}) => {
+  const timestamp = new Date(review.createdAt || review.updatedAt || 0).getTime();
+  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+};
+
+const isSupportedSentimentLabel = (label) =>
+  ["Positive", "Neutral", "Negative"].includes(label);
+
+const getDateFilterTimestamp = (value) => {
+  if (!value) return null;
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const getSentimentRate = (count, total) =>
+  total ? Number(((Number(count || 0) / total) * 100).toFixed(1)) : 0;
+
+const getActionPriority = (entry = {}) => {
+  const negative = Number(entry.negative || 0);
+  const negativeRate = Number(entry.negativeRate || 0);
+  const averageScore = Number(entry.averageScore || 0);
+
+  return Number(
+    (negative * 2 + negativeRate / 20 + Math.max(0, -averageScore)).toFixed(2)
+  );
+};
+
+export const buildSentimentAnalytics = (products = [], options = {}) => {
+  const startTimestamp = getDateFilterTimestamp(options.startDate);
+  const endTimestamp = getDateFilterTimestamp(options.endDate);
+  const sentimentFilter = isSupportedSentimentLabel(options.sentiment)
+    ? options.sentiment
+    : null;
   const allReviews = [];
 
   for (const product of Array.isArray(products) ? products : []) {
@@ -306,8 +339,23 @@ export const buildSentimentAnalytics = (products = []) => {
     const category = normalizeProductCategory(product.category) || "Uncategorized";
 
     reviews.forEach((review) => {
+      const reviewWithSentiment = attachReviewSentiment(review);
+      const reviewTimestamp = getReviewTimestamp(reviewWithSentiment);
+
+      if (startTimestamp !== null && (!reviewTimestamp || reviewTimestamp < startTimestamp)) {
+        return;
+      }
+
+      if (endTimestamp !== null && (!reviewTimestamp || reviewTimestamp >= endTimestamp)) {
+        return;
+      }
+
+      if (sentimentFilter && reviewWithSentiment.sentimentLabel !== sentimentFilter) {
+        return;
+      }
+
       allReviews.push({
-        ...attachReviewSentiment(review),
+        ...reviewWithSentiment,
         productId: product._id,
         productTitle: product.title,
         category,
@@ -335,7 +383,10 @@ export const buildSentimentAnalytics = (products = []) => {
       neutral: 0,
       negative: 0,
       averageScore: 0,
+      averageRating: 0,
       scoreTotal: 0,
+      ratingTotal: 0,
+      latestNegativeReview: null,
     };
     const categoryEntry = categoryMap.get(review.category) || {
       category: review.category || "Uncategorized",
@@ -344,7 +395,9 @@ export const buildSentimentAnalytics = (products = []) => {
       neutral: 0,
       negative: 0,
       averageScore: 0,
+      averageRating: 0,
       scoreTotal: 0,
+      ratingTotal: 0,
     };
     const date = new Date(review.createdAt || review.updatedAt || Date.now());
     const monthKey = Number.isNaN(date.getTime())
@@ -357,17 +410,41 @@ export const buildSentimentAnalytics = (products = []) => {
       neutral: 0,
       negative: 0,
       averageScore: 0,
+      averageRating: 0,
       scoreTotal: 0,
+      ratingTotal: 0,
     };
 
     [productEntry, categoryEntry, monthEntry].forEach((entry) => {
       entry.totalReviews += 1;
       entry.scoreTotal += Number(review.sentimentScore || 0);
+      entry.ratingTotal += Number(review.rating || 0);
       if (review.sentimentLabel === "Positive") entry.positive += 1;
       else if (review.sentimentLabel === "Negative") entry.negative += 1;
       else entry.neutral += 1;
       entry.averageScore = Number((entry.scoreTotal / entry.totalReviews).toFixed(2));
+      entry.averageRating = Number((entry.ratingTotal / entry.totalReviews).toFixed(2));
+      entry.positiveRate = getSentimentRate(entry.positive, entry.totalReviews);
+      entry.neutralRate = getSentimentRate(entry.neutral, entry.totalReviews);
+      entry.negativeRate = getSentimentRate(entry.negative, entry.totalReviews);
     });
+
+    if (review.sentimentLabel === "Negative") {
+      const reviewTime = getReviewTimestamp(review);
+      const latestTime = productEntry.latestNegativeReview
+        ? getReviewTimestamp(productEntry.latestNegativeReview)
+        : null;
+
+      if (reviewTime && (!latestTime || reviewTime >= latestTime)) {
+        productEntry.latestNegativeReview = {
+          reviewId: review._id,
+          name: review.name || "Customer",
+          rating: Number(review.rating || 0),
+          comment: review.comment || "",
+          createdAt: review.createdAt || review.updatedAt || null,
+        };
+      }
+    }
 
     productMap.set(productKey, productEntry);
     categoryMap.set(review.category, categoryEntry);
@@ -377,20 +454,60 @@ export const buildSentimentAnalytics = (products = []) => {
   const stripScoreTotal = (entry) => {
     const publicEntry = { ...entry };
     delete publicEntry.scoreTotal;
+    delete publicEntry.ratingTotal;
     return publicEntry;
   };
+
+  const productInsights = [...productMap.values()]
+    .map((entry) => ({
+      ...stripScoreTotal(entry),
+      actionPriority: getActionPriority(entry),
+    }))
+    .sort(
+      (a, b) =>
+        b.negative - a.negative ||
+        b.negativeRate - a.negativeRate ||
+        a.averageScore - b.averageScore
+    );
+
+  const topNegativeProducts = productInsights
+    .filter((product) => Number(product.negative || 0) > 0)
+    .map((product) => ({
+      productId: product.productId,
+      productTitle: product.productTitle,
+      category: product.category,
+      totalReviews: product.totalReviews,
+      negative: product.negative,
+      negativeRate: product.negativeRate,
+      averageScore: product.averageScore,
+      averageRating: product.averageRating,
+      actionPriority: product.actionPriority,
+      latestNegativeReview: product.latestNegativeReview,
+    }))
+    .sort(
+      (a, b) =>
+        b.actionPriority - a.actionPriority ||
+        b.negative - a.negative ||
+        b.negativeRate - a.negativeRate ||
+        a.averageScore - b.averageScore
+    )
+    .slice(0, Number(options.negativeProductLimit || 10));
 
   return {
     ...summary,
     positiveRate: Number(positiveRate.toFixed(1)),
     neutralRate: Number(neutralRate.toFixed(1)),
     negativeRate: Number(negativeRate.toFixed(1)),
-    productInsights: [...productMap.values()]
-      .map(stripScoreTotal)
-      .sort((a, b) => b.negative - a.negative || a.averageScore - b.averageScore),
+    topNegativeProducts,
+    productInsights,
     categoryInsights: [...categoryMap.values()]
       .map(stripScoreTotal)
-      .sort((a, b) => a.averageScore - b.averageScore),
+      .sort(
+        (a, b) =>
+          b.negativeRate - a.negativeRate ||
+          b.negative - a.negative ||
+          a.averageScore - b.averageScore
+      ),
     trend: [...monthMap.values()]
       .map(stripScoreTotal)
       .sort((a, b) => a.month.localeCompare(b.month)),

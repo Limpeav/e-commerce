@@ -193,19 +193,6 @@ const AdminSidebar = () => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex h-16 items-center justify-center border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-[var(--color-text-main)]">
-                {adminUser?.role === 'admin'
-                  ? 'Admin Panel'
-                  : adminUser?.role === 'delivery'
-                    ? 'Delivery Panel'
-                    : 'Staff Panel'}
-              </h1>
-            </div>
-          </div>
-
           {/* User info */}
           <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-bg-card)]">
             <div className="flex items-center space-x-3">

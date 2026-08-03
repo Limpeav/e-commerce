@@ -71,6 +71,14 @@ body {
     opacity: 1;
 }
 
+.admin-review-date-input {
+    color-scheme: light;
+}
+
+.admin-review-date-input::-webkit-calendar-picker-indicator {
+    opacity: 0;
+}
+
 /* Use a familiar neutral-blue highlight instead of the warm page palette. */
 ::selection {
     background-color: #2563EB;

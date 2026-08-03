@@ -37,7 +37,16 @@ export const adminService = {
 
   // Dashboard
   getDashboardStats: () => api.get("/admin/dashboard"),
-  getSentimentReport: () => api.get("/admin/sentiment-report"),
+  getSentimentReport: (params) => api.get("/admin/sentiment-report", { params }),
+  exportSentimentReport: (params) =>
+    api.get("/admin/sentiment-report", {
+      params: {
+        ...params,
+        timezoneOffset: new Date().getTimezoneOffset(),
+        format: "csv",
+      },
+      responseType: "blob",
+    }),
   getFinancialSettings: () => api.get("/admin/financial-settings"),
   getPublicFinancialSettings: () => api.get("/settings/financial"),
   updateFinancialSettings: (payload) => api.put("/admin/financial-settings", payload),
