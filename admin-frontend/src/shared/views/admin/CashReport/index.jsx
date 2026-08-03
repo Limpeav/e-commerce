@@ -23,11 +23,35 @@ import {
 } from "../../../utils/searchSuggestions";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
-const getTodayDate = () => {
-    const today = new Date();
-    const timezoneOffsetMs = today.getTimezoneOffset() * 60 * 1000;
+const formatDateInputValue = (date) => {
+    const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
 
-    return new Date(today.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+    return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+};
+
+const getTodayDate = () => {
+    return formatDateInputValue(new Date());
+};
+
+const addDaysToDateValue = (value, days) => {
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+        return getTodayDate();
+    }
+
+    date.setDate(date.getDate() + days);
+
+    return formatDateInputValue(date);
+};
+
+const getDefaultTrendDateRange = () => {
+    const endDate = getTodayDate();
+
+    return {
+        startDate: addDaysToDateValue(endDate, -29),
+        endDate,
+    };
 };
 
 const getReportPeriod = (activeTab, viewMode) => {
@@ -62,6 +86,12 @@ const formatDisplayDate = (value) => {
     });
 };
 
+const formatDateRangeLabel = (startDate, endDate) => {
+    if (!startDate || !endDate) return "Selected range";
+
+    return `${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}`;
+};
+
 const formatMonthLabel = (value) => {
     if (!value) return "Selected month";
 
@@ -87,6 +117,13 @@ const CashTrendChart = ({ data }) => {
     const chartHeight = 208;
     const maxCash = Math.max(...data.map((day) => day.totalCash), 0);
     const hoveredDay = hoveredIndex === null ? null : data[hoveredIndex];
+    const tickInterval =
+        data.length > 62
+            ? Math.ceil(data.length / 12)
+            : data.length > 31
+                ? Math.ceil(data.length / 16)
+                : 1;
+    const chartMinWidth = Math.max(680, data.length * (data.length > 31 ? 36 : 28));
 
     if (!data.length) {
         return (
@@ -108,13 +145,22 @@ const CashTrendChart = ({ data }) => {
                 </div>
             )}
 
-            <div className="flex h-[240px] min-w-[680px] items-end gap-1.5 sm:gap-2">
+            <div
+                className="flex h-[240px] items-end gap-1.5 sm:gap-2"
+                style={{ minWidth: `${chartMinWidth}px` }}
+            >
                 {data.map((day, index) => {
                     const barHeight =
                         maxCash > 0 && day.totalCash > 0
                             ? Math.max(8, (day.totalCash / maxCash) * chartHeight)
                             : 2;
                     const isHovered = hoveredIndex === index;
+                    const shouldShowTick =
+                        index === 0 || index === data.length - 1 || index % tickInterval === 0;
+                    const tickLabel =
+                        data.length > 31
+                            ? formatDisplayDate(day.date)
+                            : new Date(`${day.date}T00:00:00`).getDate();
 
                     return (
                         <button
@@ -138,10 +184,10 @@ const CashTrendChart = ({ data }) => {
                                 }`}
                                 style={{ height: `${barHeight}px` }}
                             />
-                            <span className={`text-[10px] font-bold ${
+                            <span className={`h-4 whitespace-nowrap text-[10px] font-bold ${
                                 isHovered ? "text-gray-950" : "text-gray-400"
                             }`}>
-                                {new Date(`${day.date}T00:00:00`).getDate()}
+                                {shouldShowTick ? tickLabel : ""}
                             </span>
                         </button>
                     );
@@ -155,6 +201,7 @@ const CashReport = () => {
     const navigate = useNavigate();
     const adminUser = getStoredAdminUser();
     const [selectedDate, setSelectedDate] = useState(getTodayDate());
+    const [trendDateRange, setTrendDateRange] = useState(getDefaultTrendDateRange);
     const [viewMode, setViewMode] = useState("day");
     const [activeTab, setActiveTab] = useState("overview");
     const [report, setReport] = useState(null);
@@ -163,24 +210,37 @@ const CashReport = () => {
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const dateInputRef = useRef(null);
+    const trendStartInputRef = useRef(null);
+    const trendEndInputRef = useRef(null);
 
     const loadReport = useCallback(async ({ silent = false } = {}) => {
-            try {
-                if (!silent) setLoading(true);
-                setError("");
-                const response = await CashReportController.get(
-                    selectedDate,
-                    getReportPeriod(activeTab, viewMode)
-                );
+        try {
+            if (!silent) setLoading(true);
+            setError("");
+            const reportPeriod = getReportPeriod(activeTab, viewMode);
+            const reportDate =
+                activeTab === "trends" ? trendDateRange.endDate : selectedDate;
+            const reportOptions =
+                activeTab === "trends"
+                    ? {
+                        dateFrom: trendDateRange.startDate,
+                        dateTo: trendDateRange.endDate,
+                    }
+                    : {};
+            const response = await CashReportController.get(
+                reportDate,
+                reportPeriod,
+                reportOptions
+            );
 
-                setReport(response.data);
-            } catch (err) {
-                setError(err.response?.data?.message || "Failed to load cash report");
-                setReport(null);
-            } finally {
-                if (!silent) setLoading(false);
-            }
-    }, [activeTab, selectedDate, viewMode]);
+            setReport(response.data);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to load cash report");
+            setReport(null);
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }, [activeTab, selectedDate, trendDateRange.endDate, trendDateRange.startDate, viewMode]);
 
     useEffect(() => {
         loadReport();
@@ -218,15 +278,27 @@ const CashReport = () => {
     const cashOrderPagination = useAdminPagination({
         items: filteredOrders,
         initialPageSize: 25,
-        resetKey: `${activeTab}:${selectedDate}:${viewMode}:${searchTerm}`,
+        resetKey: `${activeTab}:${selectedDate}:${trendDateRange.startDate}:${trendDateRange.endDate}:${viewMode}:${searchTerm}`,
     });
 
     const handleExportCsv = async () => {
         try {
             setExporting(true);
             const period = getReportPeriod(activeTab, viewMode);
-            const response = await CashReportController.export(selectedDate, period);
-            downloadBlob(response.data, `cash-report-${period}-${selectedDate}.csv`);
+            const reportDate = activeTab === "trends" ? trendDateRange.endDate : selectedDate;
+            const reportOptions =
+                activeTab === "trends"
+                    ? {
+                        dateFrom: trendDateRange.startDate,
+                        dateTo: trendDateRange.endDate,
+                    }
+                    : {};
+            const response = await CashReportController.export(reportDate, period, reportOptions);
+            const fileName =
+                activeTab === "trends"
+                    ? `cash-report-trend-${trendDateRange.startDate}-to-${trendDateRange.endDate}.csv`
+                    : `cash-report-${period}-${selectedDate}.csv`;
+            downloadBlob(response.data, fileName);
         } catch (err) {
             alert(err.response?.data?.message || "Failed to export cash report");
         } finally {
@@ -234,8 +306,8 @@ const CashReport = () => {
         }
     };
 
-    const openDatePicker = useCallback(() => {
-        const input = dateInputRef.current;
+    const openDatePicker = useCallback((inputRef = dateInputRef) => {
+        const input = inputRef.current;
 
         if (!input) return;
 
@@ -250,6 +322,32 @@ const CashReport = () => {
         }
     }, []);
 
+    const handleTrendStartDateChange = (event) => {
+        const value = event.target.value;
+        if (!value) return;
+
+        setTrendDateRange((currentRange) => ({
+            startDate: value,
+            endDate:
+                currentRange.endDate && currentRange.endDate < value
+                    ? value
+                    : currentRange.endDate,
+        }));
+    };
+
+    const handleTrendEndDateChange = (event) => {
+        const value = event.target.value;
+        if (!value) return;
+
+        setTrendDateRange((currentRange) => ({
+            startDate:
+                currentRange.startDate && currentRange.startDate > value
+                    ? value
+                    : currentRange.startDate,
+            endDate: value,
+        }));
+    };
+
     if (loading) {
         return <Loading message="Loading cash report..." />;
     }
@@ -257,6 +355,10 @@ const CashReport = () => {
     const summary = report?.summary || {};
     const dailyBreakdown = report?.dailyBreakdown || [];
     const reportPeriod = getReportPeriod(activeTab, viewMode);
+    const trendRangeLabel = formatDateRangeLabel(
+        trendDateRange.startDate,
+        trendDateRange.endDate
+    );
     const reportTitle =
         activeTab === "trends"
             ? "Cash Flow Trends"
@@ -265,7 +367,7 @@ const CashReport = () => {
                 : "Daily Cash Report";
     const reportDescription =
         activeTab === "trends"
-            ? "Cash flow across the last 30 days ending on the selected date."
+            ? `Cash flow for ${trendRangeLabel}.`
             : viewMode === "month"
                 ? `Cash on delivery orders marked paid during ${formatMonthLabel(selectedDate)}.`
                 : "Cash on delivery orders marked paid for the selected day.";
@@ -281,7 +383,7 @@ const CashReport = () => {
         {
             label: "Paid Cash Orders",
             value: summary.orderCount || 0,
-            hint: reportPeriod === "trend" ? "last 30 days" : reportPeriod,
+            hint: reportPeriod === "trend" ? "selected range" : reportPeriod,
             tone: "text-blue-700",
             bg: "bg-blue-50",
             icon: ShoppingCart,
@@ -318,40 +420,84 @@ const CashReport = () => {
                         </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                        <div className="grid h-12 grid-cols-2 rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-                            {["day", "month"].map((mode) => (
-                                <button
-                                    key={mode}
-                                    type="button"
-                                    onClick={() => {
-                                        setViewMode(mode);
-                                        setActiveTab("overview");
-                                        setSearchTerm("");
-                                    }}
-                                    className={`rounded-md px-4 text-sm font-black capitalize transition-colors ${
-                                        viewMode === mode && activeTab === "overview"
-                                            ? "bg-[var(--color-primary)] text-white shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-50"
-                                    }`}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        {activeTab === "trends" ? (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <label
+                                    className="flex h-12 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 shadow-sm transition focus-within:border-[var(--color-primary)] focus-within:ring-4 focus-within:ring-[var(--color-primary)]/10"
+                                    onClick={() => openDatePicker(trendStartInputRef)}
                                 >
-                                    {mode}
-                                </button>
-                            ))}
-                        </div>
-                        <label className="relative block cursor-pointer" onClick={openDatePicker}>
-                            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                            <input
-                                ref={dateInputRef}
-                                type={viewMode === "month" && activeTab === "overview" ? "month" : "date"}
-                                value={viewMode === "month" && activeTab === "overview" ? selectedDate.slice(0, 7) : selectedDate}
-                                onChange={(event) => {
-                                    const value = event.target.value;
-                                    setSelectedDate(value.length === 7 ? `${value}-01` : value);
-                                }}
-                                className="h-12 cursor-pointer rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-bold text-gray-800 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
-                            />
-                        </label>
+                                    <CalendarDays className="h-5 w-5 shrink-0 text-gray-400" />
+                                    <span className="text-xs font-black uppercase text-gray-500">
+                                        Start
+                                    </span>
+                                    <input
+                                        ref={trendStartInputRef}
+                                        type="date"
+                                        value={trendDateRange.startDate}
+                                        max={trendDateRange.endDate}
+                                        onChange={handleTrendStartDateChange}
+                                        className="w-[8.5rem] cursor-pointer bg-transparent text-sm font-bold text-gray-800 focus:outline-none [color-scheme:light]"
+                                    />
+                                </label>
+                                <label
+                                    className="flex h-12 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 shadow-sm transition focus-within:border-[var(--color-primary)] focus-within:ring-4 focus-within:ring-[var(--color-primary)]/10"
+                                    onClick={() => openDatePicker(trendEndInputRef)}
+                                >
+                                    <CalendarDays className="h-5 w-5 shrink-0 text-gray-400" />
+                                    <span className="text-xs font-black uppercase text-gray-500">
+                                        End
+                                    </span>
+                                    <input
+                                        ref={trendEndInputRef}
+                                        type="date"
+                                        value={trendDateRange.endDate}
+                                        min={trendDateRange.startDate}
+                                        onChange={handleTrendEndDateChange}
+                                        className="w-[8.5rem] cursor-pointer bg-transparent text-sm font-bold text-gray-800 focus:outline-none [color-scheme:light]"
+                                    />
+                                </label>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid h-12 grid-cols-2 rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+                                    {["day", "month"].map((mode) => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => {
+                                                setViewMode(mode);
+                                                setActiveTab("overview");
+                                                setSearchTerm("");
+                                            }}
+                                            className={`rounded-md px-4 text-sm font-black capitalize transition-colors ${
+                                                viewMode === mode && activeTab === "overview"
+                                                    ? "bg-[var(--color-primary)] text-white shadow-sm"
+                                                    : "text-gray-600 hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            {mode}
+                                        </button>
+                                    ))}
+                                </div>
+                                <label
+                                    className="relative block cursor-pointer"
+                                    onClick={() => openDatePicker(dateInputRef)}
+                                >
+                                    <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        ref={dateInputRef}
+                                        type={viewMode === "month" && activeTab === "overview" ? "month" : "date"}
+                                        value={viewMode === "month" && activeTab === "overview" ? selectedDate.slice(0, 7) : selectedDate}
+                                        onChange={(event) => {
+                                            const value = event.target.value;
+                                            setSelectedDate(value.length === 7 ? `${value}-01` : value);
+                                        }}
+                                        className="h-12 cursor-pointer rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-bold text-gray-800 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)]/10"
+                                    />
+                                </label>
+                            </>
+                        )}
                         <button
                             type="button"
                             onClick={handleExportCsv}
@@ -432,7 +578,7 @@ const CashReport = () => {
                                     <ReceiptText className="h-5 w-5 text-[var(--color-primary)]" />
                                 )}
                                 {activeTab === "trends"
-                                    ? "Last 30 Days"
+                                    ? "Selected Date Range"
                                     : viewMode === "month"
                                         ? "Daily Breakdown"
                                         : "Paid Cash Orders"}

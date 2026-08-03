@@ -21,6 +21,19 @@ const toFormData = (payload = {}) => {
 const supportPayload = (payload = {}) =>
   hasAttachments(payload) ? toFormData(payload) : payload;
 
+const buildCashReportParams = (date, period = "day", options = {}) => {
+  const params = {
+    date,
+    period,
+    timezoneOffset: new Date().getTimezoneOffset(),
+  };
+
+  if (options.dateFrom) params.dateFrom = options.dateFrom;
+  if (options.dateTo) params.dateTo = options.dateTo;
+
+  return params;
+};
+
 // Admin API methods
 export const adminService = {
   // Authentication
@@ -50,20 +63,14 @@ export const adminService = {
   getFinancialSettings: () => api.get("/admin/financial-settings"),
   getPublicFinancialSettings: () => api.get("/settings/financial"),
   updateFinancialSettings: (payload) => api.put("/admin/financial-settings", payload),
-  getDailyCashReport: (date, period = "day") =>
+  getDailyCashReport: (date, period = "day", options = {}) =>
     api.get("/admin/cash-report", {
-      params: {
-        date,
-        period,
-        timezoneOffset: new Date().getTimezoneOffset(),
-      },
+      params: buildCashReportParams(date, period, options),
     }),
-  exportDailyCashReport: (date, period = "day") =>
+  exportDailyCashReport: (date, period = "day", options = {}) =>
     api.get("/admin/cash-report", {
       params: {
-        date,
-        period,
-        timezoneOffset: new Date().getTimezoneOffset(),
+        ...buildCashReportParams(date, period, options),
         format: "csv",
       },
       responseType: "blob",

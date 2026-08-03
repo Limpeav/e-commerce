@@ -44,8 +44,17 @@ const uploadImageBuffer = (file, folder) =>
     uploadStream.end(file.buffer);
   });
 
+const createReportError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const isReportDateValue = (value) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+
 const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
-  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))
+  const selectedDate = isReportDateValue(dateString)
     ? String(dateString)
     : new Date().toISOString().slice(0, 10);
   const offsetMinutes = Number.isFinite(Number(timezoneOffsetMinutes))
@@ -99,8 +108,37 @@ const parseMonthlyReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
   };
 };
 
-const parseTrendReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
-  const { selectedDate, end } = parseReportDateRange(dateString, timezoneOffsetMinutes);
+const parseTrendReportDateRange = ({
+  date,
+  dateFrom,
+  dateTo,
+  timezoneOffsetMinutes = 0,
+} = {}) => {
+  const rawDateFrom = String(dateFrom || "").trim();
+  const rawDateTo = String(dateTo || "").trim();
+
+  if (rawDateFrom || rawDateTo) {
+    if (!isReportDateValue(rawDateFrom) || !isReportDateValue(rawDateTo)) {
+      throw createReportError("Start and end date are required for trend cash reports");
+    }
+
+    const startRange = parseReportDateRange(rawDateFrom, timezoneOffsetMinutes);
+    const endRange = parseReportDateRange(rawDateTo, timezoneOffsetMinutes);
+
+    if (startRange.start > endRange.start) {
+      throw createReportError("Start date must be before or equal to end date");
+    }
+
+    return {
+      selectedDate: endRange.selectedDate,
+      start: startRange.start,
+      end: endRange.end,
+      dateFrom: startRange.selectedDate,
+      dateTo: endRange.selectedDate,
+    };
+  }
+
+  const { selectedDate, end } = parseReportDateRange(date, timezoneOffsetMinutes);
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - 30);
 
@@ -149,13 +187,24 @@ const formatCsvValue = (value) => {
     : normalized;
 };
 
-const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) => {
+const buildCashReportPayload = async ({
+  date,
+  timezoneOffset,
+  period = "day",
+  dateFrom,
+  dateTo,
+}) => {
   const normalizedPeriod = ["day", "month", "trend"].includes(period) ? period : "day";
   const range =
     normalizedPeriod === "month"
       ? parseMonthlyReportDateRange(date, timezoneOffset)
       : normalizedPeriod === "trend"
-        ? parseTrendReportDateRange(date, timezoneOffset)
+        ? parseTrendReportDateRange({
+            date,
+            dateFrom,
+            dateTo,
+            timezoneOffsetMinutes: timezoneOffset,
+          })
         : parseReportDateRange(date, timezoneOffset);
   const { selectedDate, start, end } = range;
   const paidCashMatch = {
@@ -236,11 +285,23 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
 
   return {
     date: selectedDate,
+    ...(range.dateFrom && range.dateTo
+      ? {
+          dateFrom: range.dateFrom,
+          dateTo: range.dateTo,
+        }
+      : {}),
     period: normalizedPeriod,
     generatedAt: new Date().toISOString(),
     range: {
       start: start.toISOString(),
       end: end.toISOString(),
+      ...(range.dateFrom && range.dateTo
+        ? {
+            dateFrom: range.dateFrom,
+            dateTo: range.dateTo,
+          }
+        : {}),
     },
     summary: {
       totalCash: Number(summary.totalCash || 0),
@@ -269,7 +330,9 @@ const buildCashReportPayload = async ({ date, timezoneOffset, period = "day" }) 
 
 const buildCashReportCsv = (report) => {
   const rows = [
-    ["Date", report.date],
+    report.dateFrom && report.dateTo
+      ? ["Date Range", `${report.dateFrom} to ${report.dateTo}`]
+      : ["Date", report.date],
     ["Generated At", report.generatedAt],
     ["Total Cash", report.summary.totalCash.toFixed(2)],
     ["Paid Cash Orders", report.summary.orderCount],
@@ -312,6 +375,14 @@ const buildCashReportCsv = (report) => {
   return rows
     .map((row) => row.map(formatCsvValue).join(","))
     .join("\n");
+};
+
+const getCashReportFileName = (report) => {
+  if (report.period === "trend" && report.dateFrom && report.dateTo) {
+    return `cash-report-trend-${report.dateFrom}-to-${report.dateTo}.csv`;
+  }
+
+  return `cash-report-${report.date}.csv`;
 };
 
 const SENTIMENT_LABELS = new Set(["Positive", "Neutral", "Negative"]);
@@ -838,6 +909,8 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
 
   const report = await buildCashReportPayload({
     date: req.query.date,
+    dateFrom: req.query.dateFrom,
+    dateTo: req.query.dateTo,
     timezoneOffset: req.query.timezoneOffset,
     period: req.query.period,
   });
@@ -847,7 +920,7 @@ export const getDailyCashReport = asyncHandler(async (req, res) => {
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="cash-report-${report.date}.csv"`
+      `attachment; filename="${getCashReportFileName(report)}"`
     );
     res.send(csv);
     return;
