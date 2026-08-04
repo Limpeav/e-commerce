@@ -177,6 +177,7 @@ const OrderDetails = () => {
                             orderStatus: payload.orderStatus,
                             paymentStatus: payload.paymentStatus,
                             isPaid: payload.isPaid,
+                            paidAt: payload.paidAt,
                             isDelivered: payload.isDelivered,
                             processedAt: payload.processedAt,
                             shippedAt: payload.shippedAt,
@@ -254,8 +255,8 @@ const OrderDetails = () => {
     };
 
     const handlePaymentStatusUpdate = async (newPaymentStatus) => {
-        if (isSeller) {
-            alert("Seller accounts cannot update payment status.");
+        if (!isDelivery) {
+            alert("Admin and seller accounts can only view payment status.");
             return;
         }
 
@@ -449,9 +450,8 @@ const OrderDetails = () => {
         receiptWasSent &&
         currentOrderStatus !== "Cancelled";
     const canManageOrderStatus = adminUser?.role === "admin" || isDelivery;
-    const canManagePaymentStatus =
-        adminUser?.role === "admin" ||
-        (isDelivery && order.paymentMethod === "Cash on Delivery");
+    const canViewPaymentStatusCard = adminUser?.role === "admin";
+    const canCollectCashPayment = isDelivery && order.paymentMethod === "Cash on Delivery";
     const orderProgressStatuses = isDelivery
         ? ["Delivered"]
         : ["Pending", "Processing", "Delivered"];
@@ -462,7 +462,7 @@ const OrderDetails = () => {
             { label: "Processing", value: "Processing" },
             { label: "Delivered", value: "Delivered" },
         ];
-    const paymentStatuses = isDelivery ? ["Paid"] : ["Pending", "Paid"];
+    const paymentActionStatuses = ["Paid"];
     const deliveryLatitude = order.shippingAddress?.latitude;
     const deliveryLongitude = order.shippingAddress?.longitude;
     const orderItems = order.orderItems || [];
@@ -1103,57 +1103,73 @@ const OrderDetails = () => {
                         {renderOrderConfirmationSection()}
                         {renderReceiptRecoverySection()}
 
-                        {/* Update Payment Status */}
-                        {canManagePaymentStatus && (
-                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
-                            <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
-                                <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
-                                {isDelivery ? "Collect Cash Payment" : "Update Payment Status"}
-                            </h2>
-                            <div className="grid gap-2">
-                                {paymentStatuses.map(
-                                    (paymentStatus) => (
-                                        <button
-                                            key={paymentStatus}
-                                            onClick={() => handlePaymentStatusUpdate(paymentStatus)}
-                                            disabled={updating || order.paymentStatus === paymentStatus}
-                                            aria-label={
-                                                order.paymentStatus === paymentStatus
-                                                    ? `Current payment status: ${paymentStatus}`
-                                                    : `Mark payment as ${paymentStatus}`
-                                            }
-                                            title={
-                                                order.paymentStatus === paymentStatus
-                                                    ? `Current payment status: ${paymentStatus}`
-                                                    : `Mark as ${paymentStatus}`
-                                            }
-                                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${order.paymentStatus === paymentStatus
+                        {/* Payment Status */}
+                        {(canViewPaymentStatusCard || canCollectCashPayment) && (
+                            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                                <h2 className="mb-4 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                                    <CreditCard className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                    {isDelivery ? "Collect Cash Payment" : "Payment Status"}
+                                </h2>
+                                {isDelivery ? (
+                                    <div className="grid gap-2">
+                                        {paymentActionStatuses.map((paymentStatus) => (
+                                            <button
+                                                key={paymentStatus}
+                                                onClick={() => handlePaymentStatusUpdate(paymentStatus)}
+                                                disabled={updating || order.paymentStatus === paymentStatus}
+                                                aria-label={
+                                                    order.paymentStatus === paymentStatus
+                                                        ? `Current payment status: ${paymentStatus}`
+                                                        : `Mark payment as ${paymentStatus}`
+                                                }
+                                                title={
+                                                    order.paymentStatus === paymentStatus
+                                                        ? `Current payment status: ${paymentStatus}`
+                                                        : `Mark as ${paymentStatus}`
+                                                }
+                                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${
+                                                    order.paymentStatus === paymentStatus
                                                         ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
-                                                        : paymentStatus === "Paid"
-                                                            ? "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                                            : paymentStatus === "Failed"
-                                                                ? "bg-[var(--color-secondary)] text-white hover:opacity-90"
-                                                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                                    }`}
+                                                        : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                                                }`}
                                             >
-                                            {order.paymentStatus === paymentStatus ? (
-                                                <span className="flex items-center justify-center">
-                                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                                    {paymentStatus}
-                                                </span>
-                                            ) : updating ? (
-                                                <span className="flex items-center justify-center">
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-                                                    Updating...
-                                                </span>
-                                            ) : (
-                                                `Mark as ${paymentStatus}`
-                                            )}
-                                        </button>
-                                    )
+                                                {order.paymentStatus === paymentStatus ? (
+                                                    <span className="flex items-center justify-center">
+                                                        <CheckCircle className="mr-2 h-5 w-5" aria-hidden="true" />
+                                                        {paymentStatus}
+                                                    </span>
+                                                ) : updating ? (
+                                                    <span className="flex items-center justify-center">
+                                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                                                        Updating...
+                                                    </span>
+                                                ) : (
+                                                    `Mark as ${paymentStatus}`
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-3">
+                                        <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
+                                            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Status</p>
+                                            <span
+                                                className={`mt-2 inline-flex rounded-md border px-2.5 py-1 text-sm font-bold ${getPaymentStatusColor(getDisplayPaymentStatus(order))}`}
+                                            >
+                                                {getDisplayPaymentStatus(order)}
+                                            </span>
+                                        </div>
+                                        {order.isPaid && (
+                                            <div className="rounded-lg bg-[var(--color-surface-soft)] p-4">
+                                                <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-muted)]">Paid At</p>
+                                                <p className="mt-1 font-bold text-[var(--color-text-main)]">
+                                                    {new Date(order.paidAt).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
-                            </div>
-                        </section>
+                            </section>
                         )}
 
                         {isDelivery && (

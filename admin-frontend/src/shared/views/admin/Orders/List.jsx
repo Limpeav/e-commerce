@@ -247,6 +247,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                     orderStatus: payload.orderStatus,
                                     paymentStatus: payload.paymentStatus,
                                     isPaid: payload.isPaid,
+                                    paidAt: payload.paidAt,
                                     isDelivered: payload.isDelivered,
                                     processedAt: payload.processedAt,
                                     shippedAt: payload.shippedAt,

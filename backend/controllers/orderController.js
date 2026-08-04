@@ -1076,7 +1076,7 @@ export const sendOrderReviewRequestEmail = asyncHandler(async (req, res) => {
 
 // @desc    Update payment status
 // @route   PUT /api/orders/:id/payment-status
-// @access  Private/Admin/Delivery
+// @access  Private/Delivery
 export const updatePaymentStatus = asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
 
@@ -1084,9 +1084,9 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
         const { paymentStatus } = req.body;
         const wasPaid = order.isPaid || order.paymentStatus === "Paid";
 
-        if (req.user?.role === "seller") {
+        if (req.user?.role !== "delivery") {
             res.status(403);
-            throw new Error("Seller accounts cannot update payment status");
+            throw new Error("Admin and seller accounts can only view payment status");
         }
 
         // Validate payment status
@@ -1096,10 +1096,12 @@ export const updatePaymentStatus = asyncHandler(async (req, res) => {
             throw new Error("Invalid payment status");
         }
 
-        if (
-            req.user?.role === "delivery" &&
-            (paymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery")
-        ) {
+        if (wasPaid && paymentStatus !== "Paid") {
+            res.status(400);
+            throw new Error("Paid orders cannot be marked as unpaid");
+        }
+
+        if (paymentStatus !== "Paid" || order.paymentMethod !== "Cash on Delivery") {
             res.status(403);
             throw new Error("Delivery accounts can only mark cash on delivery orders as paid");
         }
