@@ -260,6 +260,7 @@ export const emitOrderCreated = (order) => {
     isPaid: Boolean(order.isPaid),
     isDelivered: Boolean(order.isDelivered),
     totalPrice: order.totalPrice,
+    exchangeRate: order.exchangeRate,
     createdAt: order.createdAt || new Date().toISOString(),
     updatedAt: order.updatedAt || new Date().toISOString(),
   };
@@ -290,6 +291,7 @@ export const emitOrderUpdated = (order, details = {}) => {
     paymentStatus: order.paymentStatus,
     isPaid: Boolean(order.isPaid),
     isDelivered: Boolean(order.isDelivered),
+    exchangeRate: order.exchangeRate,
     updatedAt: order.updatedAt || new Date().toISOString(),
     ...details,
   };

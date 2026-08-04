@@ -18,14 +18,17 @@ export const AdminModels = {
       ...payload,
       summary: {
         totalCash: Number(summary.totalCash || 0),
+        totalCashKhr: Number(summary.totalCashKhr || 0),
         orderCount: Number(summary.orderCount || 0),
         averageOrderValue: Number(summary.averageOrderValue || 0),
         pendingCashCount: Number(summary.pendingCashCount || 0),
         pendingCashAmount: Number(summary.pendingCashAmount || 0),
+        pendingCashAmountKhr: Number(summary.pendingCashAmountKhr || 0),
       },
       dailyBreakdown: asArray(payload.dailyBreakdown).map((day) => ({
         ...day,
         totalCash: Number(day.totalCash || 0),
+        totalCashKhr: Number(day.totalCashKhr || 0),
         orderCount: Number(day.orderCount || 0),
         averageOrderValue: Number(day.averageOrderValue || 0),
       })),

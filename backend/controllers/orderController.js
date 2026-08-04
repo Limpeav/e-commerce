@@ -420,6 +420,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     );
     const financialSettings = await getFinancialSettings();
     const calculatedTotals = calculateFinancialTotals(subtotal, financialSettings);
+    const exchangeRate = Number(financialSettings.usdToKhrRate) || 4100;
     const taxPrice = Number(calculatedTotals.taxPrice.toFixed(2));
     const shippingPrice = Number(calculatedTotals.shippingPrice.toFixed(2));
     const calculatedTotalPrice = Number(calculatedTotals.totalPrice.toFixed(2));
@@ -579,6 +580,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                         shippingPrice;
                     existingPendingOrder.totalPrice =
                         existingTotalWithoutShipping + subtotal + taxPrice + shippingPrice;
+                    existingPendingOrder.exchangeRate = exchangeRate;
                     existingPendingOrder.stockReduced = false;
                     existingPendingOrder.stockReserved = true;
                     existingPendingOrder.stockRestored = false;
@@ -594,6 +596,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                         taxPrice,
                         shippingPrice,
                         totalPrice: calculatedTotalPrice,
+                        exchangeRate,
                         stockReduced: shouldReduceStockImmediately,
                         stockReserved: !shouldReduceStockImmediately,
                         stockRestored: false,
@@ -649,6 +652,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                     taxPrice: createdOrder.taxPrice,
                     shippingPrice: createdOrder.shippingPrice,
                     totalPrice: createdOrder.totalPrice,
+                    exchangeRate: createdOrder.exchangeRate,
                 });
             } else {
                 emitOrderCreated(createdOrder);

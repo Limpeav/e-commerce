@@ -39,7 +39,9 @@ export const createReceiptImageBlob = ({
     deliveryFee,
     taxPrice,
     displayedTotal,
+    exchangeRate,
     formatCurrency,
+    formatKhrCurrency,
 }) => {
     const logicalWidth = 1000;
     const padding = 48;
@@ -90,7 +92,7 @@ export const createReceiptImageBlob = ({
         (itemRows.length
             ? 42 + itemRows.reduce((total, row) => total + row.height, 0) + 22
             : 0) +
-        44 * 3 +
+        44 * 4 +
         104 +
         42;
     const scale = 2;
@@ -178,10 +180,12 @@ export const createReceiptImageBlob = ({
         y += 44;
     }
 
+    const displayExchangeRate = Number(exchangeRate) || 4100;
     const totalRows = [
         ["Subtotal:", formatCurrency(subtotal)],
         ["Delivery Fee:", formatCurrency(deliveryFee)],
         ["Tax:", formatCurrency(taxPrice)],
+        ["Exchange Rate:", `1 USD = ${displayExchangeRate.toLocaleString("en-US")} KHR`],
     ];
 
     totalRows.forEach(([label, value]) => {
@@ -204,6 +208,11 @@ export const createReceiptImageBlob = ({
     context.fillText("Total:", padding + 24, y + 50);
     context.textAlign = "right";
     context.fillText(formatCurrency(displayedTotal), rightEdge - 24, y + 50);
+    if (typeof formatKhrCurrency === "function") {
+        context.fillStyle = "#536f59";
+        context.font = "700 19px Inter, Arial, sans-serif";
+        context.fillText(formatKhrCurrency(displayedTotal, exchangeRate), rightEdge - 24, y + 74);
+    }
 
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {

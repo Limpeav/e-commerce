@@ -387,7 +387,8 @@ export default function BakongPayment() {
 
   // ── Main Payment Page ─────────────────────────────────────────────────────
   const amountUSD = order ? Number(order.totalPrice).toFixed(2) : "—";
-  const amountKHR = order ? Math.round(order.totalPrice * exchangeRate).toLocaleString() : "—";
+  const orderExchangeRate = Number(order?.exchangeRate) || Number(exchangeRate) || 4100;
+  const amountKHR = order ? Math.round(order.totalPrice * orderExchangeRate).toLocaleString() : "—";
   const primaryAmount =
     payment?.currency === "KHR"
       ? `៛${Number(payment.amount).toLocaleString()}`

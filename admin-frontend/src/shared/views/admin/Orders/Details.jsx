@@ -111,8 +111,6 @@ const OrderDetails = () => {
             : "Back to Orders";
 
     useEffect(() => {
-        if (!isDelivery) return;
-
         adminService.getPublicFinancialSettings()
             .then((response) => {
                 const configuredRate = Number(response.data?.usdToKhrRate);
@@ -121,7 +119,7 @@ const OrderDetails = () => {
             .catch((settingsError) => {
                 console.error("Failed to load financial settings:", settingsError);
             });
-    }, [isDelivery]);
+    }, []);
 
     const fetchOrderDetails = useCallback(async ({ silent = false } = {}) => {
         if (!silent) {
@@ -189,6 +187,7 @@ const OrderDetails = () => {
                             taxPrice: payload.taxPrice,
                             shippingPrice: payload.shippingPrice,
                             totalPrice: payload.totalPrice,
+                            exchangeRate: payload.exchangeRate,
                             deliveryProof: payload.deliveryProof,
                             updatedAt: payload.updatedAt,
                         }).filter(([, value]) => value !== undefined)
@@ -378,8 +377,8 @@ const OrderDetails = () => {
             : currentOrder?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
-    const formatKhrCurrency = (amount) =>
-        `៛${Math.round(Number(amount || 0) * usdToKhrRate).toLocaleString("en-US")} KHR`;
+    const formatKhrCurrency = (amount, exchangeRate = usdToKhrRate) =>
+        `៛${Math.round(Number(amount || 0) * (Number(exchangeRate) || 4100)).toLocaleString("en-US")} KHR`;
 
     const getDeliveryFee = (currentOrder) => {
         const storedFee = Number(currentOrder?.shippingPrice || 0);
@@ -438,6 +437,7 @@ const OrderDetails = () => {
     const deliveryFee = getDeliveryFee(order);
     const taxPrice = Number(order.taxPrice || 0);
     const displayedTotal = subtotal + taxPrice + deliveryFee;
+    const orderExchangeRate = Number(order.exchangeRate) || Number(usdToKhrRate) || 4100;
     const customerName = order.shippingAddress?.fullName || order.user?.name || "N/A";
     const customerPhone = formatPhoneNumber(order.shippingAddress?.phone);
     const fullAddress = formatAddress(order.shippingAddress);
@@ -490,6 +490,7 @@ const OrderDetails = () => {
         ["Subtotal", formatCurrency(subtotal)],
         ["Delivery Fee", formatCurrency(deliveryFee)],
         ["Tax", formatCurrency(taxPrice)],
+        ["Exchange Rate", `1 USD = ${orderExchangeRate.toLocaleString("en-US")} KHR`],
         ["Total", formatCurrency(displayedTotal)],
     ];
 
@@ -520,7 +521,9 @@ const OrderDetails = () => {
                 deliveryFee,
                 taxPrice,
                 displayedTotal,
+                exchangeRate: orderExchangeRate,
                 formatCurrency,
+                formatKhrCurrency,
             });
             const result = await AdminController.sendOrderReceiptToTelegram(
                 id,
@@ -1038,15 +1041,19 @@ const OrderDetails = () => {
                                             <span>Tax:</span>
                                             <span className="font-bold text-[var(--color-text-main)]">{formatCurrency(taxPrice)}</span>
                                         </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span>Exchange Rate:</span>
+                                            <span className="font-bold text-[var(--color-text-main)]">
+                                                1 USD = {orderExchangeRate.toLocaleString("en-US")} KHR
+                                            </span>
+                                        </div>
                                         <div className="mt-4 flex justify-between gap-4 rounded-lg bg-[var(--color-surface-soft)] p-4 text-lg font-bold text-[var(--color-text-main)]">
                                             <span>Total:</span>
                                             <span className="flex flex-wrap items-baseline justify-end gap-x-2">
                                                 <span>{formatCurrency(displayedTotal)}</span>
-                                                {isDelivery && (
-                                                    <span className="text-sm font-bold tracking-wide text-blue-700">
-                                                        ({formatKhrCurrency(displayedTotal)})
-                                                    </span>
-                                                )}
+                                                <span className="text-sm font-bold tracking-wide text-blue-700">
+                                                    ({formatKhrCurrency(displayedTotal, orderExchangeRate)})
+                                                </span>
                                             </span>
                                         </div>
                                     </div>

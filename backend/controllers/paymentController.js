@@ -940,7 +940,11 @@ export const generateBakongQR = asyncHandler(async (req, res) => {
     }
 
     const financialSettings = await getFinancialSettings();
-    const exchangeRate = financialSettings.usdToKhrRate || bakongConfig.exchangeRate;
+    const exchangeRate =
+        Number(order.exchangeRate) ||
+        Number(financialSettings.usdToKhrRate) ||
+        Number(bakongConfig.exchangeRate) ||
+        4100;
     const amountInKHR = Math.round(order.totalPrice * exchangeRate);
     const paymentAmount =
         requestedCurrency === "KHR"

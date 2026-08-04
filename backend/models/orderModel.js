@@ -62,6 +62,12 @@ const orderSchema = new mongoose.Schema(
             required: true,
             default: 0.0,
         },
+        exchangeRate: {
+            type: Number,
+            required: true,
+            default: 4100,
+            min: 1,
+        },
         orderStatus: {
             type: String,
             required: true,

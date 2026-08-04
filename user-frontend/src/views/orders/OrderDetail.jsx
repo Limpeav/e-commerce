@@ -51,6 +51,9 @@ const getLocalizedOrderItemName = (item, language) =>
     ? item.titleKm || item.product.titleKm
     : item.name;
 
+const formatKhrCurrency = (amount, exchangeRate) =>
+  `៛${Math.round((Number(amount) || 0) * (Number(exchangeRate) || 4100)).toLocaleString("en-US")} KHR`;
+
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -178,6 +181,7 @@ const OrderDetail = () => {
   const isPaidBakongOrder =
     order?.paymentMethod === "BAKONG_KHQR"
     && (order?.isPaid || order?.paymentStatus === "Paid");
+  const orderExchangeRate = Number(order?.exchangeRate) || 4100;
   const canCancelOrder = currentOrderStatus === "Pending" && !isPaidBakongOrder;
 
   const handleCancelOrder = () => {
@@ -431,11 +435,20 @@ const OrderDetail = () => {
                 </span>
               </div>
             )}
+            <div className="flex justify-between">
+              <span>Exchange Rate</span>
+              <span className="font-semibold text-text-main">
+                1 USD = {orderExchangeRate.toLocaleString("en-US")} KHR
+              </span>
+            </div>
             <div className={`h-px my-2 ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`} />
             <div className="flex justify-between text-base">
               <span className="font-semibold text-text-main">{t("orderDetail.total")}</span>
-              <span className="font-bold text-text-main">
-                {formatCurrency(order.totalPrice)}
+              <span className="flex flex-col items-end font-bold text-text-main">
+                <span>{formatCurrency(order.totalPrice)}</span>
+                <span className="text-xs text-text-muted">
+                  ({formatKhrCurrency(order.totalPrice, orderExchangeRate)})
+                </span>
               </span>
             </div>
           </div>

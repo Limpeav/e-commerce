@@ -9,6 +9,7 @@ import { useFinancialSettings } from "../../../context/useFinancialSettings";
 const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }) => {
   const { language, t } = useLanguage();
   const { settings } = useFinancialSettings();
+  const exchangeRate = Number(settings.usdToKhrRate) || 4100;
 
   return (
   <div className="lg:col-span-1">
@@ -82,6 +83,12 @@ const OrderSummaryPanel = ({ isDark, cartItems, totals, loading, paymentMethod }
         <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
           <span>Tax ({Number(settings.taxPercentage) || 0}%)</span>
           <DualCurrencyPrice amount={totals.taxPrice} className="flex flex-col items-end text-text-main font-bold" khrClassName="text-[10px] text-text-muted" separator="" />
+        </div>
+        <div className={`flex justify-between text-sm font-medium ${isDark ? "text-slate-400" : "text-text-muted"}`}>
+          <span>Exchange Rate</span>
+          <span className="text-right font-bold text-text-main">
+            1 USD = {exchangeRate.toLocaleString("en-US")} KHR
+          </span>
         </div>
 
         <div className={`h-px my-4 ${isDark ? "bg-slate-800" : "bg-stone-100"}`}></div>

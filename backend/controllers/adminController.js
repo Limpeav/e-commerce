@@ -50,8 +50,31 @@ const createReportError = (message, statusCode = 400) => {
   return error;
 };
 
+const DEFAULT_CASH_REPORT_EXCHANGE_RATE = 4100;
+
 const isReportDateValue = (value) =>
   /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+
+const getCashReportExchangeRate = (value) => {
+  const exchangeRate = Number(value);
+
+  return Number.isFinite(exchangeRate) && exchangeRate > 0
+    ? exchangeRate
+    : DEFAULT_CASH_REPORT_EXCHANGE_RATE;
+};
+
+const getCashReportRielValue = (amount, exchangeRate) =>
+  Math.round(Number(amount || 0) * getCashReportExchangeRate(exchangeRate));
+
+const formatExchangeRateLabel = (exchangeRates = []) => {
+  const rates = [...new Set(exchangeRates.map(getCashReportExchangeRate))]
+    .filter((rate) => Number.isFinite(rate) && rate > 0)
+    .sort((a, b) => a - b);
+
+  if (rates.length === 0) return "";
+  if (rates.length === 1) return rates[0];
+  return "Mixed";
+};
 
 const parseReportDateRange = (dateString, timezoneOffsetMinutes = 0) => {
   const selectedDate = isReportDateValue(dateString)
@@ -156,8 +179,11 @@ const buildDailyBreakdown = (start, end, rows, timezoneOffsetMinutes = 0) => {
       {
         date: row._id,
         totalCash: Number(row.totalCash || 0),
+        totalCashKhr: Number(row.totalCashKhr || 0),
         orderCount: Number(row.orderCount || 0),
         averageOrderValue: Number(row.averageOrderValue || 0),
+        exchangeRates: Array.isArray(row.exchangeRates) ? row.exchangeRates : [],
+        exchangeRateLabel: formatExchangeRateLabel(row.exchangeRates),
       },
     ])
   );
@@ -170,8 +196,11 @@ const buildDailyBreakdown = (start, end, rows, timezoneOffsetMinutes = 0) => {
       rowsByDate.get(date) || {
         date,
         totalCash: 0,
+        totalCashKhr: 0,
         orderCount: 0,
         averageOrderValue: 0,
+        exchangeRates: [],
+        exchangeRateLabel: "",
       }
     );
     cursor.setUTCDate(cursor.getUTCDate() + 1);
@@ -230,6 +259,19 @@ const buildCashReportPayload = async ({
         $group: {
           _id: null,
           totalCash: { $sum: "$totalPrice" },
+          totalCashKhr: {
+            $sum: {
+              $round: [
+                {
+                  $multiply: [
+                    "$totalPrice",
+                    { $ifNull: ["$exchangeRate", DEFAULT_CASH_REPORT_EXCHANGE_RATE] },
+                  ],
+                },
+                0,
+              ],
+            },
+          },
           orderCount: { $sum: 1 },
           averageOrderValue: { $avg: "$totalPrice" },
         },
@@ -249,8 +291,26 @@ const buildCashReportPayload = async ({
                 },
               },
               totalCash: { $sum: "$totalPrice" },
+              totalCashKhr: {
+                $sum: {
+                  $round: [
+                    {
+                      $multiply: [
+                        "$totalPrice",
+                        { $ifNull: ["$exchangeRate", DEFAULT_CASH_REPORT_EXCHANGE_RATE] },
+                      ],
+                    },
+                    0,
+                  ],
+                },
+              },
               orderCount: { $sum: 1 },
               averageOrderValue: { $avg: "$totalPrice" },
+              exchangeRates: {
+                $addToSet: {
+                  $ifNull: ["$exchangeRate", DEFAULT_CASH_REPORT_EXCHANGE_RATE],
+                },
+              },
             },
           },
           { $sort: { _id: 1 } },
@@ -268,6 +328,19 @@ const buildCashReportPayload = async ({
           _id: null,
           pendingCashCount: { $sum: 1 },
           pendingCashAmount: { $sum: "$totalPrice" },
+          pendingCashAmountKhr: {
+            $sum: {
+              $round: [
+                {
+                  $multiply: [
+                    "$totalPrice",
+                    { $ifNull: ["$exchangeRate", DEFAULT_CASH_REPORT_EXCHANGE_RATE] },
+                  ],
+                },
+                0,
+              ],
+            },
+          },
         },
       },
     ]),
@@ -275,12 +348,14 @@ const buildCashReportPayload = async ({
 
   const summary = summaryData[0] || {
     totalCash: 0,
+    totalCashKhr: 0,
     orderCount: 0,
     averageOrderValue: 0,
   };
   const pendingCash = pendingCashData[0] || {
     pendingCashCount: 0,
     pendingCashAmount: 0,
+    pendingCashAmountKhr: 0,
   };
 
   return {
@@ -305,10 +380,12 @@ const buildCashReportPayload = async ({
     },
     summary: {
       totalCash: Number(summary.totalCash || 0),
+      totalCashKhr: Number(summary.totalCashKhr || 0),
       orderCount: Number(summary.orderCount || 0),
       averageOrderValue: Number(summary.averageOrderValue || 0),
       pendingCashCount: Number(pendingCash.pendingCashCount || 0),
       pendingCashAmount: Number(pendingCash.pendingCashAmount || 0),
+      pendingCashAmountKhr: Number(pendingCash.pendingCashAmountKhr || 0),
     },
     dailyBreakdown:
       normalizedPeriod === "day"
@@ -324,53 +401,77 @@ const buildCashReportPayload = async ({
       orderStatus: order.orderStatus,
       paidAt: order.paidAt,
       totalPrice: Number(order.totalPrice || 0),
+      exchangeRate: getCashReportExchangeRate(order.exchangeRate),
+      totalPriceKhr: getCashReportRielValue(order.totalPrice, order.exchangeRate),
     })),
   };
 };
 
 const buildCashReportCsv = (report) => {
-  const rows = [
+  const rows = [];
+
+  rows.push(
     report.dateFrom && report.dateTo
       ? ["Date Range", `${report.dateFrom} to ${report.dateTo}`]
       : ["Date", report.date],
     ["Generated At", report.generatedAt],
-    ["Total Cash", report.summary.totalCash.toFixed(2)],
+    ["Total Cash USD", report.summary.totalCash.toFixed(2)],
+    ["Total Cash KHR", Math.round(Number(report.summary.totalCashKhr || 0))],
     ["Paid Cash Orders", report.summary.orderCount],
-    ["Average Order Value", report.summary.averageOrderValue.toFixed(2)],
+    ["Average Order Value USD", report.summary.averageOrderValue.toFixed(2)],
     ["Pending Cash Orders", report.summary.pendingCashCount],
-    ["Pending Cash Amount", report.summary.pendingCashAmount.toFixed(2)],
-    [],
-    ...(report.period === "day"
-      ? [
-          [
-            "Order ID",
-            "Customer",
-            "Phone",
-            "Paid At",
-            "Payment",
-            "Order Status",
-            "Total",
-          ],
-          ...report.orders.map((order) => [
-            `#${order.shortId}`,
-            order.customerName,
-            order.customerPhone,
-            order.paidAt ? new Date(order.paidAt).toISOString() : "",
-            order.paymentStatus,
-            order.orderStatus,
-            order.totalPrice.toFixed(2),
-          ]),
-        ]
-      : [
-          ["Date", "Paid Cash Orders", "Total Cash", "Average Order Value"],
-          ...report.dailyBreakdown.map((day) => [
-            day.date,
-            day.orderCount,
-            day.totalCash.toFixed(2),
-            day.averageOrderValue.toFixed(2),
-          ]),
-        ]),
-  ];
+    ["Pending Cash Amount USD", report.summary.pendingCashAmount.toFixed(2)],
+    ["Pending Cash Amount KHR", Math.round(Number(report.summary.pendingCashAmountKhr || 0))],
+    []
+  );
+
+  if (report.period === "day") {
+    rows.push([
+      "Order ID",
+      "Customer",
+      "Phone",
+      "Paid At",
+      "Payment",
+      "Order Status",
+      "Total USD",
+      "Exchange Rate",
+      "Total KHR",
+    ]);
+
+    report.orders.forEach((order) => {
+      rows.push([
+        `#${order.shortId}`,
+        order.customerName,
+        order.customerPhone,
+        order.paidAt ? new Date(order.paidAt).toISOString() : "",
+        order.paymentStatus,
+        order.orderStatus,
+        order.totalPrice.toFixed(2),
+        order.exchangeRate,
+        Math.round(Number(order.totalPriceKhr || 0)),
+      ]);
+    });
+  } else {
+    rows.push([
+      "Date",
+      "Paid Cash Orders",
+      "Exchange Rate",
+      "Total Cash USD",
+      "Total Cash KHR",
+      "Average Order Value USD",
+    ]);
+
+    report.dailyBreakdown.forEach((day) => {
+      rows.push([
+        day.date,
+        day.orderCount,
+        day.exchangeRateLabel,
+        day.totalCash.toFixed(2),
+        Math.round(Number(day.totalCashKhr || 0)),
+        day.averageOrderValue.toFixed(2),
+      ]);
+    });
+  }
 
   return rows
     .map((row) => row.map(formatCsvValue).join(","))

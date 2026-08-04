@@ -189,8 +189,6 @@ const AdminOrders = ({ renderDelivery }) => {
     }, [fetchOrders, hasCachedOrders]);
 
     useEffect(() => {
-        if (!isDelivery) return;
-
         adminService.getPublicFinancialSettings()
             .then((response) => {
                 const configuredRate = Number(response.data?.usdToKhrRate);
@@ -199,7 +197,7 @@ const AdminOrders = ({ renderDelivery }) => {
             .catch((settingsError) => {
                 console.error("Failed to load financial settings:", settingsError);
             });
-    }, [isDelivery]);
+    }, []);
 
     useEffect(() => {
         sessionStorage.setItem(cacheKeys.orders, JSON.stringify(orders));
@@ -259,6 +257,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                     taxPrice: payload.taxPrice,
                                     shippingPrice: payload.shippingPrice,
                                     totalPrice: payload.totalPrice,
+                                    exchangeRate: payload.exchangeRate,
                                     deliveryProof: payload.deliveryProof,
                                     updatedAt: payload.updatedAt,
                                 }).filter(([, value]) => value !== undefined)
@@ -473,6 +472,7 @@ const AdminOrders = ({ renderDelivery }) => {
             const deliveryFee = getDeliveryFee(order);
             const taxPrice = Number(order.taxPrice || 0);
             const displayedTotal = subtotal + taxPrice + deliveryFee;
+            const orderExchangeRate = Number(order.exchangeRate) || Number(usdToKhrRate) || 4100;
             const receiptImage = await createReceiptImageBlob({
                 displayOrderId: order._id.slice(-8),
                 customerName: order.shippingAddress?.fullName || order.user?.name || "N/A",
@@ -484,7 +484,9 @@ const AdminOrders = ({ renderDelivery }) => {
                 deliveryFee,
                 taxPrice,
                 displayedTotal,
+                exchangeRate: orderExchangeRate,
                 formatCurrency,
+                formatKhrCurrency,
             });
             const formData = new FormData();
             formData.append("receipt", receiptImage, `order-${order._id}-receipt.png`);
@@ -590,8 +592,8 @@ const AdminOrders = ({ renderDelivery }) => {
             : order?.paymentStatus || "Pending";
 
     const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
-    const formatKhrCurrency = (amount) =>
-        `៛${Math.round(Number(amount || 0) * usdToKhrRate).toLocaleString("en-US")} KHR`;
+    const formatKhrCurrency = (amount, exchangeRate = usdToKhrRate) =>
+        `៛${Math.round(Number(amount || 0) * (Number(exchangeRate) || 4100)).toLocaleString("en-US")} KHR`;
 
     const formatPhoneNumber = (phone) => {
         if (!phone) return "No phone";
