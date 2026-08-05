@@ -97,6 +97,24 @@ test("production support email links use configured frontend URLs", () => {
   );
 });
 
+test("production customer links do not use Render frontend host", () => {
+  withEnv(
+    {
+      NODE_ENV: "production",
+      FRONTEND_URL: "https://customer-frontend-728p.onrender.com",
+      ADMIN_FRONTEND_URL: "https://admin.cherishbabykhstore.store",
+      SUPPORT_CUSTOMER_FRONTEND_URL: undefined,
+      SUPPORT_FRONTEND_URL: undefined,
+      SUPPORT_ADMIN_FRONTEND_URL: undefined,
+      SUPPORT_ADMIN_URL: undefined,
+    },
+    () => {
+      assert.equal(getCustomerFrontendUrl(), "https://cherishbabykhstore.store");
+      assert.equal(getAdminFrontendUrl(), "https://admin.cherishbabykhstore.store");
+    }
+  );
+});
+
 test("customer support email links open the ticket detail route with a valid token", () => {
   withEnv(
     {

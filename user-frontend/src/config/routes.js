@@ -69,6 +69,8 @@ export const protectedRoutes = [
   { path: "/customer/orders/:id", component: "OrderDetail" },
   { path: "/orders/:id/review", component: "ReviewOrder" },
   { path: "/customer/orders/:id/review", component: "ReviewOrder" },
+  { path: "/orders/:id/:productId/review", component: "ReviewOrder" },
+  { path: "/customer/orders/:id/:productId/review", component: "ReviewOrder" },
   { path: "/support/tickets", component: "SupportTickets" },
   { path: "/customer/support/tickets", component: "SupportTickets" },
   { path: "/payment/bakong/:orderId", component: "BakongPayment" },

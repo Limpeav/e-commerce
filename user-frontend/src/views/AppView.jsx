@@ -142,7 +142,7 @@ export default function AppView() {
     location.pathname.startsWith("/seller/orders") ||
     location.pathname.startsWith("/seller/cash-report") ||
     location.pathname.startsWith("/delivery/orders");
-  const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+\/review\/?$/.test(
+  const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+(?:\/[^/]+)?\/review\/?$/.test(
     location.pathname
   );
   const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);

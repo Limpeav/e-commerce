@@ -16,6 +16,18 @@ const parseUrls = (value = "") =>
 const isLocalFrontendUrl = (url = "") =>
   /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(url);
 
+const isRenderCustomerFrontendUrl = (url = "") => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return (
+      hostname.endsWith(".onrender.com") &&
+      hostname.includes("customer-frontend")
+    );
+  } catch {
+    return false;
+  }
+};
+
 const isProduction = () => process.env.NODE_ENV === "production";
 
 const pickFrontendUrl = ({
@@ -42,8 +54,8 @@ const pickFrontendUrl = ({
   return configuredUrls[0] || productionFallback || localFallback;
 };
 
-export const getCustomerFrontendUrl = () =>
-  pickFrontendUrl({
+export const getCustomerFrontendUrl = () => {
+  const customerUrl = pickFrontendUrl({
     explicitUrl:
       process.env.SUPPORT_CUSTOMER_FRONTEND_URL ||
       process.env.SUPPORT_FRONTEND_URL,
@@ -51,6 +63,13 @@ export const getCustomerFrontendUrl = () =>
     localFallback: LOCAL_CUSTOMER_FRONTEND_URL,
     productionFallback: PRODUCTION_CUSTOMER_FRONTEND_URL,
   });
+
+  if (isProduction() && isRenderCustomerFrontendUrl(customerUrl)) {
+    return PRODUCTION_CUSTOMER_FRONTEND_URL;
+  }
+
+  return customerUrl;
+};
 
 export const getAdminFrontendUrl = () =>
   pickFrontendUrl({
