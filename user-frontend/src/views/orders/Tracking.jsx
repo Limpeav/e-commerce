@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Package, MapPin, CheckCircle, Search, Clock, Send, AlertCircle } from "lucide-react";
 import PageLayout from "../../components/ui/PageLayout";
 import { trackOrder } from "../../services/orderService";
+import { joinOrderRoom, subscribeOrderStatusUpdates } from "../../services/realtime";
 import { useLanguage } from "../../context/useLanguage";
+import { buildRealtimeOrderPatch, getRealtimeOrderId } from "../../utils/orderRealtime";
 import { getMatchingSearchSuggestions, uniqueSearchSuggestions } from "../../utils/searchSuggestions";
 
 const RECENT_TRACKING_SEARCHES_KEY = "recentTrackingOrderSearches";
@@ -89,6 +91,35 @@ export default function OrderTracking() {
     t(`orderDetail.status.${String(status || "Pending").trim().toLowerCase()}`, {
       defaultValue: status || pendingText,
     });
+
+  const patchTrackingStatusFromRealtime = useCallback((payload = {}) => {
+    const orderId = getRealtimeOrderId(payload);
+    const patch = buildRealtimeOrderPatch(payload);
+
+    if (!orderId || Object.keys(patch).length === 0) {
+      return;
+    }
+
+    setTrackingData((currentTrackingData) =>
+      currentTrackingData && String(currentTrackingData._id) === String(orderId)
+        ? { ...currentTrackingData, ...patch }
+        : currentTrackingData
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!trackingData?._id) {
+      return undefined;
+    }
+
+    const leaveOrderRoom = joinOrderRoom(trackingData._id);
+    const unsubscribeStatusUpdates = subscribeOrderStatusUpdates(patchTrackingStatusFromRealtime);
+
+    return () => {
+      unsubscribeStatusUpdates();
+      leaveOrderRoom();
+    };
+  }, [patchTrackingStatusFromRealtime, trackingData?._id]);
 
   const timeline = useMemo(() => {
     if (!trackingData) return [];

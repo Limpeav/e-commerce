@@ -45,6 +45,9 @@ export const subscribeRealtimeEvent = (eventName, handler) => {
   };
 };
 
+export const subscribeOrderStatusUpdates = (handler) =>
+  subscribeRealtimeEvent("order:status-updated", handler);
+
 export const publishLanguageChange = (language) => {
   const socket = getRealtimeSocket();
   const normalizedLanguage = language === "km" ? "kh" : language;
@@ -132,10 +135,15 @@ export const joinOrderRoom = (orderId) => {
     return () => {};
   }
 
-  socket.emit("join:order", orderId);
+  const normalizedOrderId = String(orderId);
+  const joinRoom = () => socket.emit("join:order", normalizedOrderId);
+
+  joinRoom();
+  socket.on("connect", joinRoom);
 
   return () => {
-    socket.emit("leave:order", orderId);
+    socket.off("connect", joinRoom);
+    socket.emit("leave:order", normalizedOrderId);
   };
 };
 

@@ -296,11 +296,27 @@ export const emitOrderUpdated = (order, details = {}) => {
     ...details,
   };
 
+  const statusPayload = {
+    orderId,
+    userId,
+    orderStatus: payload.orderStatus,
+    paymentStatus: payload.paymentStatus,
+    isPaid: payload.isPaid,
+    isDelivered: payload.isDelivered,
+    processedAt: payload.processedAt,
+    shippedAt: payload.shippedAt,
+    deliveredAt: payload.deliveredAt,
+    paidAt: payload.paidAt,
+    updatedAt: payload.updatedAt,
+  };
+
   if (userId) {
     emitToUser(userId, "order:updated", payload);
+    emitToUser(userId, "order:status-updated", statusPayload);
   }
 
   emitToRoles(["admin", "seller", "delivery"], "order:updated", payload);
+  emitToRoles(["admin", "seller", "delivery"], "order:status-updated", statusPayload);
   emitDomainChanged("orders", "updated", payload, {
     roles: ["admin", "seller", "delivery"],
     userId,
@@ -308,6 +324,7 @@ export const emitOrderUpdated = (order, details = {}) => {
 
   if (ioInstance && orderId) {
     ioInstance.to(`order:${orderId}`).emit("order:updated", payload);
+    ioInstance.to(`order:${orderId}`).emit("order:status-updated", statusPayload);
   }
 };
 

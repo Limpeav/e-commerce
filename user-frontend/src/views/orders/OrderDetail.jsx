@@ -24,7 +24,8 @@ import { config } from "../../config/index.js";
 import Loading from "../../components/common/Loading";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
-import { joinOrderRoom, subscribeRealtimeDomains } from "../../services/realtime";
+import { joinOrderRoom, subscribeOrderStatusUpdates, subscribeRealtimeDomains } from "../../services/realtime";
+import { buildRealtimeOrderPatch, getRealtimeOrderId } from "../../utils/orderRealtime";
 import { useDarkMode } from "../../hooks";
 
 const API_URL = config.API_BASE_URL;
@@ -100,24 +101,51 @@ const OrderDetail = () => {
     }
   }, [id, t]);
 
+  const patchOrderStatusFromRealtime = useCallback((payload = {}) => {
+    const orderId = getRealtimeOrderId(payload);
+
+    if (orderId && String(orderId) !== String(id)) {
+      return;
+    }
+
+    const patch = buildRealtimeOrderPatch(payload);
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+
+    setOrder((currentOrder) =>
+      currentOrder ? { ...currentOrder, ...patch } : currentOrder
+    );
+  }, [id]);
+
   useEffect(() => {
     if (!id || !user) return undefined;
     fetchOrderDetails();
     const leaveOrderRoom = joinOrderRoom(id);
-    const unsubscribe = subscribeRealtimeDomains(
+    const unsubscribeStatusUpdates = subscribeOrderStatusUpdates(patchOrderStatusFromRealtime);
+    const unsubscribeOrderChanges = subscribeRealtimeDomains(
       ["orders"],
-      (payload) => {
-        if (!payload?.orderId || String(payload.orderId) === String(id)) {
-          fetchOrderDetails({ silent: true });
+      (payload = {}) => {
+        const orderId = getRealtimeOrderId(payload);
+
+        if (orderId && String(orderId) !== String(id)) {
+          return;
         }
+
+        if (payload.action === "updated") {
+          return;
+        }
+
+        fetchOrderDetails({ silent: true });
       }
     );
 
     return () => {
-      unsubscribe();
+      unsubscribeStatusUpdates();
+      unsubscribeOrderChanges();
       leaveOrderRoom();
     };
-  }, [fetchOrderDetails, id, user]);
+  }, [fetchOrderDetails, id, patchOrderStatusFromRealtime, user]);
 
   const getStatusColor = (status) => {
     const colors = {

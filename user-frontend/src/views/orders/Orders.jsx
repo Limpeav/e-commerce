@@ -21,7 +21,8 @@ import { useLanguage } from "../../context/useLanguage";
 import Loading from "../../components/common/Loading";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { cancelOrder } from "../../services/orderService";
-import { subscribeRealtimeDomains } from "../../services/realtime";
+import { subscribeOrderStatusUpdates, subscribeRealtimeDomains } from "../../services/realtime";
+import { buildRealtimeOrderPatch, getRealtimeOrderId } from "../../utils/orderRealtime";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 
 const API_URL = config.API_BASE_URL;
@@ -72,14 +73,43 @@ const Orders = () => {
     }
   }, [t]);
 
+  const patchOrderStatusFromRealtime = useCallback((payload = {}) => {
+    const orderId = getRealtimeOrderId(payload);
+    const patch = buildRealtimeOrderPatch(payload);
+
+    if (!orderId || Object.keys(patch).length === 0) {
+      return;
+    }
+
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        String(order._id) === String(orderId)
+          ? { ...order, ...patch }
+          : order
+      )
+    );
+  }, []);
+
   useEffect(() => {
     if (!user) return undefined;
     fetchOrders();
-    return subscribeRealtimeDomains(
+    const unsubscribeStatusUpdates = subscribeOrderStatusUpdates(patchOrderStatusFromRealtime);
+    const unsubscribeOrderChanges = subscribeRealtimeDomains(
       ["orders"],
-      () => fetchOrders({ silent: true })
+      (payload = {}) => {
+        if (payload.action === "updated") {
+          return;
+        }
+
+        fetchOrders({ silent: true });
+      }
     );
-  }, [fetchOrders, user]);
+
+    return () => {
+      unsubscribeStatusUpdates();
+      unsubscribeOrderChanges();
+    };
+  }, [fetchOrders, patchOrderStatusFromRealtime, user]);
 
   useEffect(() => {
     let animationFrame = 0;
