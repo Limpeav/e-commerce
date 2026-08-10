@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle,
   Clock,
   Copy,
@@ -72,6 +73,8 @@ const StaffAccount = () => {
   );
   const forgotPasswordPath =
     profileRole === "delivery" ? "/delivery/forgot-password" : "/seller/forgot-password";
+  const accountBackPath =
+    profileRole === "delivery" ? "/delivery/orders" : "/seller/dashboard";
 
   useEffect(() => {
     let isMounted = true;
@@ -269,9 +272,18 @@ const StaffAccount = () => {
                   </p>
                 </div>
               </div>
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-black text-gray-700">
-                <User className="h-4 w-4 text-[var(--color-primary)]" />
-                {formData.name || "Staff User"}
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  to={accountBackPath}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Link>
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-black text-gray-700">
+                  <User className="h-4 w-4 text-[var(--color-primary)]" />
+                  {formData.name || "Staff User"}
+                </div>
               </div>
             </div>
           </div>

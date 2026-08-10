@@ -39,6 +39,7 @@ import { adminService } from "../../../services/adminService";
 import { config } from "../../../config";
 
 const DELIVERY_VISIBLE_STATUSES = ["Processing", "Delivered"];
+const DELIVERY_ACCEPTED_STATUS = "Accepted";
 const DELIVERY_ORDERS_CACHE_KEY = "adminDeliveryOrdersCache";
 const DELIVERY_ORDERS_VIEW_STATE_KEY = "adminDeliveryOrdersViewState";
 const ORDER_CACHE_KEYS_BY_ROLE = {
@@ -95,6 +96,19 @@ const normalizeOrderStatus = (status) => {
     if (normalized === "delivered") return "Delivered";
 
     return trimmedStatus;
+};
+
+const getDeliveryStatus = (order) => {
+    const normalizedStatus = normalizeOrderStatus(order?.orderStatus);
+
+    if (
+        normalizedStatus === "Processing" &&
+        order?.deliveryConfirmation?.confirmedAt
+    ) {
+        return DELIVERY_ACCEPTED_STATUS;
+    }
+
+    return normalizedStatus;
 };
 
 const getOrderDateKey = (createdAt) => {
@@ -162,6 +176,7 @@ const AdminOrders = ({ renderDelivery }) => {
         initialCachedViewState.expandedOrderDates || {}
     );
     const [confirmingOrderId, setConfirmingOrderId] = useState("");
+    const [deliveryConfirmingOrderId, setDeliveryConfirmingOrderId] = useState("");
     const [sendingReceiptOrderId, setSendingReceiptOrderId] = useState("");
     const [receiptNotice, setReceiptNotice] = useState("");
     const [deliveryBusyLabel, setDeliveryBusyLabel] = useState("");
@@ -259,6 +274,8 @@ const AdminOrders = ({ renderDelivery }) => {
                                     totalPrice: payload.totalPrice,
                                     exchangeRate: payload.exchangeRate,
                                     deliveryProof: payload.deliveryProof,
+                                    deliveryConfirmation: payload.deliveryConfirmation,
+                                    deliveryTelegramAlert: payload.deliveryTelegramAlert,
                                     updatedAt: payload.updatedAt,
                                 }).filter(([, value]) => value !== undefined)
                             ),
@@ -293,7 +310,13 @@ const AdminOrders = ({ renderDelivery }) => {
             : orders;
 
         if (statusFilter !== "All") {
-            filtered = filtered.filter((order) => normalizeOrderStatus(order.orderStatus) === statusFilter);
+            filtered = filtered.filter((order) => {
+                const comparableStatus = isDelivery
+                    ? getDeliveryStatus(order)
+                    : normalizeOrderStatus(order.orderStatus);
+
+                return comparableStatus === statusFilter;
+            });
         }
 
         if (selectedOrderDate) {
@@ -459,6 +482,34 @@ const AdminOrders = ({ renderDelivery }) => {
         }
 
         setConfirmingOrderId("");
+    };
+
+    const handleDeliveryConfirmOrder = async (orderId) => {
+        if (!window.confirm("Confirm you accepted this order for delivery?")) {
+            return;
+        }
+
+        setDeliveryConfirmingOrderId(orderId);
+        try {
+            const response = await OrderController.confirmDeliveryOrder(orderId);
+            const updatedOrder = response.data;
+
+            setOrders((currentOrders) =>
+                currentOrders.map((order) =>
+                    order._id === orderId
+                        ? {
+                            ...order,
+                            ...updatedOrder,
+                            user: updatedOrder?.user || order.user,
+                        }
+                        : order
+                )
+            );
+        } catch (err) {
+            alert(err.response?.data?.message || "Failed to confirm delivery order");
+        } finally {
+            setDeliveryConfirmingOrderId("");
+        }
     };
 
     const handleSendReceipt = async (order) => {
@@ -704,9 +755,18 @@ const AdminOrders = ({ renderDelivery }) => {
         {
             label: "Processing",
             value: todayDeliveryOrders.filter((order) =>
-                normalizeOrderStatus(order.orderStatus) === "Processing"
+                normalizeOrderStatus(order.orderStatus) === "Processing" &&
+                !order.deliveryConfirmation?.confirmedAt
             ).length,
             className: "bg-blue-50 text-blue-800",
+        },
+        {
+            label: "Accepted",
+            value: todayDeliveryOrders.filter((order) =>
+                normalizeOrderStatus(order.orderStatus) === "Processing" &&
+                order.deliveryConfirmation?.confirmedAt
+            ).length,
+            className: "bg-emerald-50 text-emerald-800",
         },
         {
             label: "Done",
@@ -720,7 +780,7 @@ const AdminOrders = ({ renderDelivery }) => {
     }
 
     if (error) {
-  return (
+        return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
                     <p className="text-red-800">{error}</p>
@@ -730,8 +790,8 @@ const AdminOrders = ({ renderDelivery }) => {
                     >
                         ← Back to Dashboard
                     </button>
-      </div>
-    </div>
+                </div>
+            </div>
         );
     }
 
@@ -754,8 +814,10 @@ const AdminOrders = ({ renderDelivery }) => {
             handleDeliveryLogout,
             handleDatePickerKeyDown,
             handleOpenGoogleMaps,
+            handleDeliveryConfirmOrder,
             handleRowNavigation,
             deliveryBusyLabel,
+            deliveryConfirmingOrderId,
             deliveryMapOrderId,
             deliveryNavigatingOrderId,
             normalizeOrderStatus,
@@ -846,6 +908,7 @@ const AdminOrders = ({ renderDelivery }) => {
                                 >
                                     <option value="All">All status</option>
                                     <option value="Processing">Processing</option>
+                                    <option value="Accepted">Accepted</option>
                                     <option value="Delivered">Delivered</option>
                                 </select>
                             </div>
@@ -895,6 +958,9 @@ const AdminOrders = ({ renderDelivery }) => {
                                             const mapUrl = getMapUrl(order.shippingAddress);
                                             const phone = order.shippingAddress?.phone;
                                             const status = normalizeOrderStatus(order.orderStatus);
+                                            const deliveryConfirmed = Boolean(order.deliveryConfirmation?.confirmedAt);
+                                            const canConfirmDelivery =
+                                                status === "Processing" && !deliveryConfirmed;
 
                                             return (
                                                 <article
@@ -918,7 +984,9 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                 className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${getStatusColor(order.orderStatus)}`}
                                                                 style={getStatusStyle(order.orderStatus)}
                                                             >
-                                                                {getStatusLabel(status)}
+                                                                {deliveryConfirmed && status === "Processing"
+                                                                    ? "Accepted"
+                                                                    : getStatusLabel(status)}
                                                             </span>
                                                         </div>
 
@@ -946,6 +1014,24 @@ const AdminOrders = ({ renderDelivery }) => {
                                                             </div>
                                                         </div>
                                                     </button>
+
+                                                    {canConfirmDelivery && (
+                                                        <div className="border-t border-gray-100 p-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeliveryConfirmOrder(order._id)}
+                                                                disabled={Boolean(deliveryBusyLabel) || deliveryConfirmingOrderId === order._id}
+                                                                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                                                            >
+                                                                {deliveryConfirmingOrderId === order._id ? (
+                                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                                ) : (
+                                                                    <CheckCircle className="h-5 w-5" />
+                                                                )}
+                                                                {deliveryConfirmingOrderId === order._id ? "Confirming..." : "Confirm Order"}
+                                                            </button>
+                                                        </div>
+                                                    )}
 
                                                     <div className="grid grid-cols-2 border-t border-gray-100">
                                                         {mapUrl ? (
@@ -1055,9 +1141,9 @@ const AdminOrders = ({ renderDelivery }) => {
                             .filter((o) =>
                                 isDelivery
                                     ? o.paymentMethod === "Cash on Delivery" &&
-                                      o.paymentStatus !== "Paid" &&
-                                      o.orderStatus !== "Delivered" &&
-                                      normalizeOrderStatus(o.orderStatus) !== "Cancelled"
+                                    o.paymentStatus !== "Paid" &&
+                                    o.orderStatus !== "Delivered" &&
+                                    normalizeOrderStatus(o.orderStatus) !== "Cancelled"
                                     : o.paymentStatus === "Paid"
                             )
                             .reduce((acc, order) => acc + (order.totalPrice || 0), 0)
@@ -1230,6 +1316,12 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                     </span>
                                                                 )}
                                                             <span>#{order._id.slice(-8)}</span>
+                                                            {normalizeOrderStatus(order.orderStatus) === "Processing" &&
+                                                                order.deliveryConfirmation?.confirmedAt && (
+                                                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-800">
+                                                                        Accepted
+                                                                    </span>
+                                                                )}
                                                         </span>
                                                     </td>
                                                     <td className="border-b border-[var(--color-border)] px-6 py-4 whitespace-nowrap">
@@ -1309,16 +1401,32 @@ const AdminOrders = ({ renderDelivery }) => {
                                                                     </button>
                                                                 ))}
                                                             {isDelivery ? (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleRowNavigation(order._id);
-                                                                    }}
-                                                                    className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                                                                    title="View Details"
-                                                                >
-                                                                    View Details
-                                                                </button>
+                                                                <>
+                                                                    {normalizeOrderStatus(order.orderStatus) === "Processing" &&
+                                                                        !order.deliveryConfirmation?.confirmedAt && (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleDeliveryConfirmOrder(order._id);
+                                                                                }}
+                                                                                disabled={deliveryConfirmingOrderId === order._id}
+                                                                                className="inline-flex items-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                                                title="Confirm delivery order"
+                                                                            >
+                                                                                {deliveryConfirmingOrderId === order._id ? "Confirming..." : "Confirm Order"}
+                                                                            </button>
+                                                                        )}
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleRowNavigation(order._id);
+                                                                        }}
+                                                                        className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
+                                                                        title="View Details"
+                                                                    >
+                                                                        View Details
+                                                                    </button>
+                                                                </>
                                                             ) : adminUser?.role === "admin" && canAdminCancelOrder(order) ? (
                                                                 <button
                                                                     onClick={(e) => {

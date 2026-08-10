@@ -13,6 +13,7 @@ import {
     deleteOrder,
     getOrderStats,
     uploadDeliveryProof,
+    confirmDeliveryOrder,
     sendOrderReceiptToTelegram,
     sendOrderReviewRequestEmail,
 } from "../controllers/orderController.js";
@@ -49,6 +50,7 @@ router.route("/:id/payment-status").put(protect, portalAccess, updatePaymentStat
 router
     .route("/:id/delivery-proof")
     .put(protect, portalAccess, deliveryProofUpload.single("proofPhoto"), uploadDeliveryProof);
+router.route("/:id/delivery-confirmation").put(protect, portalAccess, confirmDeliveryOrder);
 router
     .route("/:id/receipt-telegram")
     .post(protect, portalAccess, receiptTelegramUpload.single("receipt"), sendOrderReceiptToTelegram);

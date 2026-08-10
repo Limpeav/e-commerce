@@ -121,6 +121,7 @@ export const adminService = {
   getOrderById: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { orderStatus: status }),
   updatePaymentStatus: (orderId, paymentStatus) => api.put(`/orders/${orderId}/payment-status`, { paymentStatus }),
+  confirmDeliveryOrder: (orderId) => api.put(`/orders/${orderId}/delivery-confirmation`),
   uploadDeliveryProof: (orderId, fileData) =>
     api.put(`/orders/${orderId}/delivery-proof`, fileData),
   sendOrderReceiptToTelegram: (orderId, fileData, options = {}) =>

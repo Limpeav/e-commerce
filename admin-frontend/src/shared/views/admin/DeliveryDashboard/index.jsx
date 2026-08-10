@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   CalendarDays,
   ChevronDown,
+  CheckCircle,
   Eye,
   Filter,
   Loader2,
@@ -32,11 +33,13 @@ const DeliveryDashboardView = ({ dashboard }) => {
     getStatusLabel,
     getStatusStyle,
     groupedOrders,
+    handleDeliveryConfirmOrder,
     handleDeliveryLogout,
     handleOpenGoogleMaps,
     handleRowNavigation,
     handleDatePickerKeyDown,
     deliveryBusyLabel,
+    deliveryConfirmingOrderId,
     deliveryMapOrderId,
     deliveryNavigatingOrderId,
     normalizeOrderStatus,
@@ -143,6 +146,7 @@ const DeliveryDashboardView = ({ dashboard }) => {
               >
                 <option value="All">All status</option>
                 <option value="Processing">Processing</option>
+                <option value="Accepted">Accepted</option>
                 <option value="Delivered">Delivered</option>
               </select>
             </label>
@@ -189,9 +193,8 @@ const DeliveryDashboardView = ({ dashboard }) => {
                       </span>
                     </span>
                     <ChevronDown
-                      className={`h-5 w-5 text-gray-500 transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
+                      className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -200,6 +203,9 @@ const DeliveryDashboardView = ({ dashboard }) => {
                       const mapUrl = getMapUrl(order.shippingAddress);
                       const phone = order.shippingAddress?.phone;
                       const status = normalizeOrderStatus(order.orderStatus);
+                      const deliveryConfirmed = Boolean(order.deliveryConfirmation?.confirmedAt);
+                      const canConfirmDelivery =
+                        status === "Processing" && !deliveryConfirmed;
 
                       return (
                         <article
@@ -229,7 +235,9 @@ const DeliveryDashboardView = ({ dashboard }) => {
                                 )}`}
                                 style={getStatusStyle(order.orderStatus)}
                               >
-                                {getStatusLabel(status)}
+                                {deliveryConfirmed && status === "Processing"
+                                  ? "Accepted"
+                                  : getStatusLabel(status)}
                               </span>
                             </div>
 
@@ -274,6 +282,50 @@ const DeliveryDashboardView = ({ dashboard }) => {
                               </div>
                             </div>
                           </button>
+
+                          {canConfirmDelivery && (
+                            <div className="border-t border-gray-100 p-3">
+                              <button
+                                type="button"
+                                onClick={() => handleDeliveryConfirmOrder(order._id)}
+                                disabled={
+                                  Boolean(deliveryBusyLabel) ||
+                                  deliveryConfirmingOrderId === order._id
+                                }
+                                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                              >
+                                {deliveryConfirmingOrderId === order._id ? (
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-5 w-5" />
+                                )}
+                                {deliveryConfirmingOrderId === order._id
+                                  ? "Confirming..."
+                                  : "Confirm Order"}
+                              </button>
+                            </div>
+                          )}
+
+                          {deliveryConfirmed && (
+                            <div className="flex items-center gap-2 border-t border-emerald-100 bg-emerald-50 px-4 py-2.5">
+                              <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                              <p className="text-xs font-semibold text-emerald-800">
+                                Accepted by{" "}
+                                <span className="font-black">
+                                  {order.deliveryConfirmation?.confirmedBy?.name || "Delivery staff"}
+                                </span>
+                                {order.deliveryConfirmation?.confirmedAt && (
+                                  <span className="ml-1 font-medium text-emerald-600">
+                                    ·{" "}
+                                    {new Date(order.deliveryConfirmation.confirmedAt).toLocaleTimeString(
+                                      [],
+                                      { hour: "2-digit", minute: "2-digit" }
+                                    )}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 border-t border-gray-100">
                             {mapUrl ? (

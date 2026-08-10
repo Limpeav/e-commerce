@@ -111,6 +111,13 @@ const orderSchema = new mongoose.Schema(
             },
             publicId: { type: String },
         },
+        deliveryConfirmation: {
+            confirmedAt: { type: Date },
+            confirmedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        },
         receiptSent: {
             sentAt: { type: Date },
             sentBy: {
@@ -120,6 +127,9 @@ const orderSchema = new mongoose.Schema(
             channel: { type: String },
         },
         sellerTelegramAlert: {
+            sentAt: { type: Date },
+        },
+        deliveryTelegramAlert: {
             sentAt: { type: Date },
         },
         reviewRequestEmail: {

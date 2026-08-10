@@ -85,6 +85,7 @@ const OrderDetails = () => {
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [uploadingProof, setUploadingProof] = useState(false);
+    const [confirmingDeliveryOrder, setConfirmingDeliveryOrder] = useState(false);
     const [sendingReceipt, setSendingReceipt] = useState(false);
     const [receiptNotice, setReceiptNotice] = useState("");
     const [usdToKhrRate, setUsdToKhrRate] = useState(config.USD_TO_KHR_RATE);
@@ -99,8 +100,8 @@ const OrderDetails = () => {
     const shouldReturnToDeliveryHistory = isDelivery && location.state?.fromDeliveryOrders;
     const returnTo =
         typeof location.state?.returnTo === "string" &&
-        (location.state.returnTo === "/admin" ||
-            location.state.returnTo.startsWith(ordersPath))
+            (location.state.returnTo === "/admin" ||
+                location.state.returnTo.startsWith(ordersPath))
             ? location.state.returnTo
             : ordersPath;
     const returnState = getSafeReturnState(location.state);
@@ -189,6 +190,8 @@ const OrderDetails = () => {
                             totalPrice: payload.totalPrice,
                             exchangeRate: payload.exchangeRate,
                             deliveryProof: payload.deliveryProof,
+                            deliveryConfirmation: payload.deliveryConfirmation,
+                            deliveryTelegramAlert: payload.deliveryTelegramAlert,
                             updatedAt: payload.updatedAt,
                         }).filter(([, value]) => value !== undefined)
                     ),
@@ -222,6 +225,11 @@ const OrderDetails = () => {
     const handleStatusUpdate = async (newStatus) => {
         if (newStatus === "Delivered" && !order?.deliveryProof?.imageUrl) {
             alert("Please take or upload a delivery proof photo before marking this order as delivered.");
+            return;
+        }
+
+        if (newStatus === "Delivered" && isDelivery && !order?.deliveryConfirmation?.confirmedAt) {
+            alert("Please confirm this order before marking it as delivered.");
             return;
         }
 
@@ -283,6 +291,33 @@ const OrderDetails = () => {
         await fetchOrderDetails();
         window.dispatchEvent(new Event("admin-orders-updated"));
         setUpdating(false);
+    };
+
+    const handleDeliveryConfirmOrder = async () => {
+        if (!window.confirm("Confirm you accepted this order for delivery?")) {
+            return;
+        }
+
+        setConfirmingDeliveryOrder(true);
+        const result = await AdminController.confirmDeliveryOrder(id);
+
+        if (!result.success) {
+            alert(result.error || "Failed to confirm delivery order");
+            setConfirmingDeliveryOrder(false);
+            return;
+        }
+
+        setOrder((currentOrder) => {
+            const updatedOrder = {
+                ...currentOrder,
+                ...result.data,
+                user: result.data?.user || currentOrder?.user,
+            };
+            cacheOrderInSession(orderCacheKeyRef.current, updatedOrder);
+            return updatedOrder;
+        });
+        window.dispatchEvent(new Event("admin-orders-updated"));
+        setConfirmingDeliveryOrder(false);
     };
 
     const handleDeliveryProofCapture = async (event) => {
@@ -476,11 +511,13 @@ const OrderDetails = () => {
     const deliveryBusyMessage =
         isDelivery && uploadingProof
             ? "Uploading delivery proof..."
-            : isDelivery && updating
-                ? "Saving delivery update..."
-                : isDelivery && sendingReceipt
-                    ? "Sending receipt..."
-                    : "";
+            : isDelivery && confirmingDeliveryOrder
+                ? "Confirming delivery order..."
+                : isDelivery && updating
+                    ? "Saving delivery update..."
+                    : isDelivery && sendingReceipt
+                        ? "Sending receipt..."
+                        : "";
     const summaryRows = [
         ["Order ID", `#${displayOrderId}`],
         ["Customer Name", customerName],
@@ -564,13 +601,12 @@ const OrderDetails = () => {
                 Update Order Status
             </h2>
             <div
-                className={`mb-5 grid gap-2 ${
-                    orderProgressStatuses.length === 2
+                className={`mb-5 grid gap-2 ${orderProgressStatuses.length === 2
                         ? "grid-cols-2"
                         : orderProgressStatuses.length === 5
                             ? "grid-cols-5"
                             : "grid-cols-4"
-                }`}
+                    }`}
             >
                 {orderProgressStatuses.map((status, index) => {
                     const isActive = currentProgressStatus === status;
@@ -602,49 +638,49 @@ const OrderDetails = () => {
                         const isDisabled = updating || isCurrent || isCompletedStage || requiresDeliveryProof;
 
                         return (
-                        <button
-                            key={label}
-                            onClick={() => handleStatusUpdate(value)}
-                            disabled={isDisabled}
-                            aria-label={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : isCompletedStage
-                                        ? `${label} is already completed`
-                                    : requiresDeliveryProof
-                                        ? "Upload a delivery proof photo before marking as delivered"
-                                    : `Mark order as ${label}`
-                            }
-                            title={
-                                isCurrent
-                                    ? `Current order status: ${label}`
-                                    : isCompletedStage
-                                        ? `${label} is already completed and cannot be selected again`
-                                    : requiresDeliveryProof
-                                        ? "Take or upload a delivery proof photo first"
-                                    : `Mark as ${label}`
-                            }
-                            className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || isCompletedStage || requiresDeliveryProof
-                                ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
-                                : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                }`}
-                        >
-                            {isCurrent || isCompletedStage ? (
-                                <span className="flex items-center justify-center">
-                                    <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
-                                    {isCurrent ? label : `${label} Completed`}
-                                </span>
-                            ) : updating ? (
-                                <span className="flex items-center justify-center">
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-                                    Updating...
-                                </span>
-                            ) : requiresDeliveryProof ? (
-                                "Photo Required"
-                            ) : (
-                                `Mark as ${label}`
-                            )}
-                        </button>
+                            <button
+                                key={label}
+                                onClick={() => handleStatusUpdate(value)}
+                                disabled={isDisabled}
+                                aria-label={
+                                    isCurrent
+                                        ? `Current order status: ${label}`
+                                        : isCompletedStage
+                                            ? `${label} is already completed`
+                                            : requiresDeliveryProof
+                                                ? "Upload a delivery proof photo before marking as delivered"
+                                                : `Mark order as ${label}`
+                                }
+                                title={
+                                    isCurrent
+                                        ? `Current order status: ${label}`
+                                        : isCompletedStage
+                                            ? `${label} is already completed and cannot be selected again`
+                                            : requiresDeliveryProof
+                                                ? "Take or upload a delivery proof photo first"
+                                                : `Mark as ${label}`
+                                }
+                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${isCurrent || isCompletedStage || requiresDeliveryProof
+                                    ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
+                                    : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+                                    }`}
+                            >
+                                {isCurrent || isCompletedStage ? (
+                                    <span className="flex items-center justify-center">
+                                        <CheckCircle className="w-5 h-5 mr-2" aria-hidden="true" />
+                                        {isCurrent ? label : `${label} Completed`}
+                                    </span>
+                                ) : updating ? (
+                                    <span className="flex items-center justify-center">
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                                        Updating...
+                                    </span>
+                                ) : requiresDeliveryProof ? (
+                                    "Photo Required"
+                                ) : (
+                                    `Mark as ${label}`
+                                )}
+                            </button>
                         );
                     }
                 )}
@@ -670,8 +706,8 @@ const OrderDetails = () => {
                     {isWaitingForBakongPayment
                         ? "Waiting for the customer's BAKONG payment to be verified."
                         : receiptWasSent
-                        ? "The receipt was sent. Confirm this order to hand it to delivery."
-                        : "Print and send the receipt before confirming this order."}
+                            ? "The receipt was sent. Confirm this order to hand it to delivery."
+                            : "Print and send the receipt before confirming this order."}
                 </p>
                 {isWaitingForBakongPayment ? (
                     <button
@@ -736,6 +772,59 @@ const OrderDetails = () => {
         );
     };
 
+    const renderDeliveryConfirmationSection = () => {
+        if (!isDelivery || currentOrderStatus !== "Processing") {
+            return null;
+        }
+
+        const confirmedAt = order.deliveryConfirmation?.confirmedAt;
+
+        return (
+            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-sm">
+                <h2 className="mb-2 flex items-center text-lg font-semibold text-[var(--color-text-main)]">
+                    <CheckCircle className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                    Delivery Confirmation
+                </h2>
+                {confirmedAt ? (
+                    <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 space-y-1.5">
+                        <p className="flex items-center gap-2 font-bold">
+                            <CheckCircle className="h-4 w-4 shrink-0" />
+                            Order accepted for delivery
+                        </p>
+                        <p className="text-emerald-700 font-medium">
+                            By:{" "}
+                            <span className="font-bold">
+                                {order.deliveryConfirmation?.confirmedBy?.name || "Delivery staff"}
+                            </span>
+                        </p>
+                        <p className="text-xs text-emerald-600">
+                            {new Date(confirmedAt).toLocaleString()}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <p className="mb-4 text-sm font-medium text-[var(--color-text-muted)]">
+                            Confirm that you accepted this order from the seller before completing delivery.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleDeliveryConfirmOrder}
+                            disabled={confirmingDeliveryOrder}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {confirmingDeliveryOrder ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <CheckCircle className="h-5 w-5" />
+                            )}
+                            {confirmingDeliveryOrder ? "Confirming..." : "Confirm Order"}
+                        </button>
+                    </>
+                )}
+            </section>
+        );
+    };
+
     return (
         <div className={`min-h-screen bg-[var(--color-bg-base)] ${isDelivery ? "pb-24 lg:pb-0" : ""}`}>
             {deliveryBusyMessage && (
@@ -755,12 +844,10 @@ const OrderDetails = () => {
                 </div>
             )}
             {/* Header */}
-            <div className={`border-b border-[var(--color-border)] bg-[var(--color-bg-card)] ${
-                isDelivery ? "sticky top-0 z-30 shadow-sm" : ""
-            }`}>
-                <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${
-                    isDelivery ? "py-3" : "pb-5 pt-20 lg:pt-5"
+            <div className={`border-b border-[var(--color-border)] bg-[var(--color-bg-card)] ${isDelivery ? "sticky top-0 z-30 shadow-sm" : ""
                 }`}>
+                <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${isDelivery ? "py-3" : "pb-5 pt-20 lg:pt-5"
+                    }`}>
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-4">
                             <button
@@ -1071,11 +1158,10 @@ const OrderDetails = () => {
                                     Customer
                                 </h2>
                                 <div className="flex items-center gap-3">
-                                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
-                                        order.user
+                                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${order.user
                                             ? "bg-[var(--color-primary)] text-white"
                                             : "bg-gray-100 text-gray-500"
-                                    }`}>
+                                        }`}>
                                         {order.user
                                             ? (order.user.name || customerName || "C").charAt(0).toUpperCase()
                                             : "D"}
@@ -1107,6 +1193,7 @@ const OrderDetails = () => {
 
                         {/* Update Order Status */}
                         {canManageOrderStatus && !isDelivery && currentOrderStatus !== "Pending" && renderOrderStatusSection()}
+                        {renderDeliveryConfirmationSection()}
                         {renderOrderConfirmationSection()}
                         {renderReceiptRecoverySection()}
 
@@ -1134,11 +1221,10 @@ const OrderDetails = () => {
                                                         ? `Current payment status: ${paymentStatus}`
                                                         : `Mark as ${paymentStatus}`
                                                 }
-                                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${
-                                                    order.paymentStatus === paymentStatus
+                                                className={`inline-flex h-11 w-full items-center justify-center rounded-lg px-4 font-bold transition-colors ${order.paymentStatus === paymentStatus
                                                         ? "cursor-not-allowed bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                                         : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {order.paymentStatus === paymentStatus ? (
                                                     <span className="flex items-center justify-center">
@@ -1246,11 +1332,10 @@ const OrderDetails = () => {
                             )}
 
                             {isDelivery && (
-                                <label className={`mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 font-bold transition-colors ${
-                                    uploadingProof
+                                <label className={`mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 font-bold transition-colors ${uploadingProof
                                         ? "cursor-wait bg-[var(--color-surface-soft)] text-[var(--color-text-muted)]"
                                         : "cursor-pointer bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
-                                }`}>
+                                    }`}>
                                     {uploadingProof ? (
                                         <Loader2 className="h-5 w-5 animate-spin" />
                                     ) : (
@@ -1337,11 +1422,10 @@ const OrderDetails = () => {
                                 View Map
                             </button>
                         )}
-                        <label className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
-                            uploadingProof
+                        <label className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${uploadingProof
                                 ? "bg-gray-100 text-gray-400"
                                 : "bg-gray-950 text-white"
-                        }`}>
+                            }`}>
                             {uploadingProof ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
@@ -1370,13 +1454,12 @@ const OrderDetails = () => {
                                     ? "Take or upload a delivery proof photo first"
                                     : "Mark order as delivered"
                             }
-                            className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${
-                                currentOrderStatus === "Delivered"
+                            className={`inline-flex h-[54px] flex-col items-center justify-center gap-1 rounded-xl text-xs font-black ${currentOrderStatus === "Delivered"
                                     ? "bg-green-100 text-green-700"
                                     : !order.deliveryProof?.imageUrl
                                         ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                    : "bg-green-600 text-white"
-                            }`}
+                                        : "bg-green-600 text-white"
+                                }`}
                         >
                             {updating ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />

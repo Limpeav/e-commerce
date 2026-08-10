@@ -66,6 +66,30 @@ const getTelegramConfig = (type = "default") => {
     };
   }
 
+  if (type === "delivery") {
+    const botToken =
+      process.env.TELEGRAM_DELIVERY_BOT_TOKEN ||
+      process.env.TELEGRAM_BOT_TOKEN_3 ||
+      process.env.TELEGRAM_BOT_TOKEN_2 ||
+      process.env.TELEGRAM_BOT_TOKEN;
+    const chatId =
+      process.env.TELEGRAM_DELIVERY_CHAT_ID ||
+      process.env.TELEGRAM_CHAT_ID_3 ||
+      process.env.TELEGRAM_CHAT_ID_2 ||
+      process.env.TELEGRAM_CHAT_ID;
+
+    return {
+      botToken,
+      chatId,
+      threadId:
+        process.env.TELEGRAM_DELIVERY_THREAD_ID ||
+        process.env.TELEGRAM_THREAD_ID_3 ||
+        process.env.TELEGRAM_THREAD_ID_2 ||
+        process.env.TELEGRAM_THREAD_ID,
+      enabled: Boolean(botToken && chatId),
+    };
+  }
+
   if (type === "expiry") {
     const botToken =
       process.env.TELEGRAM_BOT_TOKEN_5 || process.env.TELEGRAM_BOT_TOKEN;
@@ -264,6 +288,48 @@ export const buildOrderTelegramMessage = ({
   if (safeMapsLink) {
     lines.push(`<b>Map</b>: ${safeMapsLink}`);
   }
+
+  return lines.join("\n");
+};
+
+export const buildDeliveryHandoffTelegramMessage = ({
+  orderId,
+  customerName,
+  customerPhone,
+  totalPrice,
+  paymentMethod,
+  paymentStatus,
+  shippingAddress,
+  googleMapsLink,
+  confirmedBy,
+}) => {
+  const safeOrderId = orderId ? escapeHtml(orderId) : "N/A";
+  const safeCustomerName = customerName ? escapeHtml(customerName) : "Unknown";
+  const safeCustomerPhone = customerPhone ? escapeHtml(customerPhone) : "N/A";
+  const safePaymentMethod = paymentMethod ? escapeHtml(paymentMethod) : "N/A";
+  const safePaymentStatus = paymentStatus ? escapeHtml(paymentStatus) : "N/A";
+  const safeAddress = shippingAddress ? escapeHtml(shippingAddress) : "N/A";
+  const safeMapsLink = googleMapsLink ? escapeHtml(googleMapsLink) : null;
+  const safeConfirmedBy = confirmedBy ? escapeHtml(confirmedBy) : "Seller";
+
+  const lines = [
+    "<b>ORDER READY FOR DELIVERY</b>",
+    "",
+    `<b>Order</b>: <code>${safeOrderId}</code>`,
+    `<b>Confirmed By</b>: ${safeConfirmedBy}`,
+    `<b>Customer</b>: ${safeCustomerName}`,
+    `<b>Phone</b>: ${safeCustomerPhone}`,
+    `<b>Total</b>: $${Number(totalPrice || 0).toFixed(2)}`,
+    `<b>Payment</b>: ${safePaymentMethod}`,
+    `<b>Payment Status</b>: ${safePaymentStatus}`,
+    `<b>Address</b>: ${safeAddress}`,
+  ];
+
+  if (safeMapsLink) {
+    lines.push(`<b>Map</b>: ${safeMapsLink}`);
+  }
+
+  lines.push("", "<i>Please confirm this order in the delivery dashboard.</i>");
 
   return lines.join("\n");
 };
@@ -492,6 +558,66 @@ export const sendOrderTelegramAlert = async ({
     itemCount,
     shippingAddress,
     googleMapsLink,
+  });
+
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      buildTelegramPayload({
+        chatId,
+        threadId,
+        text: message,
+        parse_mode: "HTML",
+      }),
+      {
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return { sent: true, type: "message" };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const sendDeliveryHandoffTelegramAlert = async ({
+  orderId,
+  customerName,
+  customerPhone,
+  totalPrice,
+  paymentMethod,
+  paymentStatus,
+  shippingAddress,
+  googleMapsLink,
+  confirmedBy,
+}) => {
+  const { botToken, chatId, threadId, enabled } = getTelegramConfig("delivery");
+
+  if (!enabled) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  const message = buildDeliveryHandoffTelegramMessage({
+    orderId,
+    customerName,
+    customerPhone,
+    totalPrice,
+    paymentMethod,
+    paymentStatus,
+    shippingAddress,
+    googleMapsLink,
+    confirmedBy,
   });
 
   try {

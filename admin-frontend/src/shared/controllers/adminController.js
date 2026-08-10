@@ -74,6 +74,18 @@ export class AdminController {
     }
   }
 
+  static async confirmDeliveryOrder(orderId) {
+    try {
+      const response = await adminService.confirmDeliveryOrder(orderId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
+
   static async uploadDeliveryProof(orderId, proofPhoto) {
     try {
       const formData = new FormData();

@@ -24,6 +24,13 @@ export const OrderController = {
     );
   },
 
+  async confirmDeliveryOrder(id) {
+    return modelResponse(
+      await adminService.confirmDeliveryOrder(id),
+      AdminModels.order
+    );
+  },
+
   async delete(id) {
     return adminService.deleteOrder(id);
   },

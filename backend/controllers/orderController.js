@@ -15,6 +15,7 @@ import {
     syncLowStockAlertFlag,
 } from "../utils/stockAlerts.js";
 import {
+    sendDeliveryHandoffTelegramAlert,
     sendOrderTelegramAlert,
     sendOrderReceiptTelegramPhoto,
 } from "../utils/sendTelegramMessage.js";
@@ -176,7 +177,7 @@ const reduceReservedOrderStockIfNeeded = async (order, session) => {
             return [
                 productId,
                 getAvailableStock(product)
-                    + Number(quantityByProduct.get(productId) || 0),
+                + Number(quantityByProduct.get(productId) || 0),
             ];
         })
     );
@@ -367,6 +368,86 @@ const dispatchOrderAlerts = ({
             } catch (telegramError) {
                 console.error("Telegram order alert failed:", telegramError.message);
             }
+        }
+    });
+};
+
+const formatOrderAddress = (shippingAddress = {}) =>
+    [
+        shippingAddress.street,
+        shippingAddress.address,
+        shippingAddress.city,
+        shippingAddress.postalCode,
+        shippingAddress.country,
+    ]
+        .filter(Boolean)
+        .join(", ");
+
+const getOrderGoogleMapsLink = (shippingAddress = {}) =>
+    shippingAddress.latitude && shippingAddress.longitude
+        ? `https://www.google.com/maps?q=${shippingAddress.latitude},${shippingAddress.longitude}`
+        : "";
+
+const dispatchDeliveryHandoffTelegramAlert = (orderId, { confirmedBy } = {}) => {
+    setImmediate(async () => {
+        let claimedOrderId;
+        let claimedSentAt;
+
+        try {
+            const sentAt = new Date();
+            const order = await Order.findOneAndUpdate(
+                {
+                    _id: orderId,
+                    orderStatus: "Processing",
+                    "deliveryTelegramAlert.sentAt": { $exists: false },
+                },
+                { $set: { "deliveryTelegramAlert.sentAt": sentAt } },
+                { new: true }
+            ).populate("user", "name");
+
+            if (!order) {
+                return;
+            }
+
+            claimedOrderId = order._id;
+            claimedSentAt = sentAt;
+
+            const shippingAddress = order.shippingAddress || {};
+            const result = await sendDeliveryHandoffTelegramAlert({
+                orderId: order._id.toString().slice(-8).toUpperCase(),
+                customerName: order.user?.name || shippingAddress.fullName,
+                customerPhone: shippingAddress.phone,
+                totalPrice: order.totalPrice,
+                paymentMethod: order.paymentMethod,
+                paymentStatus: order.paymentStatus,
+                shippingAddress: formatOrderAddress(shippingAddress),
+                googleMapsLink: getOrderGoogleMapsLink(shippingAddress),
+                confirmedBy,
+            });
+
+            if (!result.sent) {
+                await Order.updateOne(
+                    { _id: order._id, "deliveryTelegramAlert.sentAt": sentAt },
+                    { $unset: { deliveryTelegramAlert: "" } }
+                );
+            }
+        } catch (error) {
+            if (claimedOrderId && claimedSentAt) {
+                await Order.updateOne(
+                    {
+                        _id: claimedOrderId,
+                        "deliveryTelegramAlert.sentAt": claimedSentAt,
+                    },
+                    { $unset: { deliveryTelegramAlert: "" } }
+                ).catch((rollbackError) => {
+                    console.error(
+                        "Delivery handoff Telegram alert rollback failed:",
+                        rollbackError.message
+                    );
+                });
+            }
+
+            console.error("Delivery handoff Telegram alert failed:", error.message);
         }
     });
 };
@@ -567,7 +648,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                     const existingTotalWithoutShipping = Math.max(
                         0,
                         Number(existingPendingOrder.totalPrice || 0)
-                            - Math.max(0, Number(existingPendingOrder.shippingPrice || 0))
+                        - Math.max(0, Number(existingPendingOrder.shippingPrice || 0))
                     );
                     existingPendingOrder.orderItems = mergeOrderItems(
                         existingPendingOrder.orderItems,
@@ -711,6 +792,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         ],
     })
         .populate("user", "name email")
+        .populate("deliveryConfirmation.confirmedBy", "name")
         .sort({ createdAt: -1 });
 
     if (req.user?.role === "admin") {
@@ -727,7 +809,8 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 export const getOrderById = asyncHandler(async (req, res) => {
     const orderQuery = Order.findById(req.params.id)
         .populate("user", "name email")
-        .populate("orderItems.product", "title titleKm name reviews");
+        .populate("orderItems.product", "title titleKm name reviews")
+        .populate("deliveryConfirmation.confirmedBy", "name");
 
     if (req.user?.role === "admin") {
         orderQuery.select("+orderItems.costPrice");
@@ -765,7 +848,7 @@ export const trackOrder = asyncHandler(async (req, res) => {
 
     const query =
         mongoose.Types.ObjectId.isValid(normalizedOrderNumber) &&
-        normalizedOrderNumber.length === 24
+            normalizedOrderNumber.length === 24
             ? { _id: normalizedOrderNumber }
             : { user: req.user._id };
 
@@ -828,6 +911,15 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             if (nextStatus === "Delivered" && !order.deliveryProof?.imageUrl) {
                 res.status(400);
                 throw new Error("Please take or upload a delivery proof photo before marking this order as delivered");
+            }
+
+            if (
+                req.user?.role === "delivery" &&
+                nextStatus === "Delivered" &&
+                !order.deliveryConfirmation?.confirmedAt
+            ) {
+                res.status(400);
+                throw new Error("Please confirm this order before marking it as delivered");
             }
 
             if (order.orderStatus === "Delivered" && nextStatus !== "Delivered") {
@@ -932,6 +1024,8 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             shippedAt: updatedOrder.shippedAt,
             deliveredAt: updatedOrder.deliveredAt,
             isDelivered: updatedOrder.isDelivered,
+            deliveryConfirmation: updatedOrder.deliveryConfirmation,
+            deliveryTelegramAlert: updatedOrder.deliveryTelegramAlert,
         });
         if (updatedOrder.stockRestored) {
             emitDomainChanged(
@@ -974,6 +1068,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             } catch (notificationError) {
                 console.error("Delivery handoff notification failed:", notificationError.message);
             }
+
+            dispatchDeliveryHandoffTelegramAlert(updatedOrder._id, {
+                confirmedBy: req.user.name || "Seller",
+            });
         }
 
         if (
@@ -996,6 +1094,62 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
     } finally {
         await session.endSession();
+    }
+});
+
+// @desc    Confirm that delivery accepted the order after seller handoff
+// @route   PUT /api/orders/:id/delivery-confirmation
+// @access  Private/Delivery
+export const confirmDeliveryOrder = asyncHandler(async (req, res) => {
+    if (req.user?.role !== "delivery") {
+        res.status(403);
+        throw new Error("Only delivery accounts can confirm delivery orders");
+    }
+
+    const order = await Order.findById(req.params.id).populate("user", "name email");
+
+    if (!order) {
+        res.status(404);
+        throw new Error("Order not found");
+    }
+
+    if (order.orderStatus !== "Processing") {
+        res.status(400);
+        throw new Error("Delivery can only confirm orders after the seller confirms them");
+    }
+
+    if (!order.deliveryConfirmation?.confirmedAt) {
+        order.deliveryConfirmation = {
+            confirmedAt: new Date(),
+            confirmedBy: req.user._id,
+        };
+        await order.save();
+    }
+
+    const updatedOrder = await Order.findById(order._id)
+        .populate("user", "name email")
+        .populate("deliveryConfirmation.confirmedBy", "name email");
+
+    res.json(updatedOrder);
+
+    emitOrderUpdated(updatedOrder, {
+        deliveryConfirmation: updatedOrder.deliveryConfirmation,
+        updatedAt: updatedOrder.updatedAt,
+    });
+
+    try {
+        const notification = await Notification.create({
+            type: "order",
+            title: "Delivery confirmed order",
+            message: `${req.user.name || "Delivery rider"} confirmed order #${updatedOrder._id.toString().slice(-8).toUpperCase()} for delivery.`,
+            orderId: updatedOrder._id,
+            userId: req.user._id,
+            link: `/admin/orders/${updatedOrder._id}`,
+        });
+
+        emitNotificationCreated(notification);
+    } catch (notificationError) {
+        console.error("Delivery confirmation notification failed:", notificationError.message);
     }
 });
 
