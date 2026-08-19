@@ -13,6 +13,12 @@ const getProductId = (item) => {
 const getProductName = (item, fallback = "Delivered Product") =>
   item?.product?.title || item?.product?.name || item?.name || fallback;
 
+const defaultReviewForm = {
+  rating: 5,
+  comment: "",
+  error: "",
+};
+
 export default function PendingRatingGate({
   pendingOrders = [],
   user = null,
@@ -47,24 +53,6 @@ export default function PendingRatingGate({
     return list;
   }, [pendingOrders]);
 
-  useEffect(() => {
-    if (!itemsToRate.length) return;
-
-    setForms((current) => {
-      const next = { ...current };
-      itemsToRate.forEach((item) => {
-        if (!next[item.productId]) {
-          next[item.productId] = {
-            rating: 5,
-            comment: "",
-            error: "",
-          };
-        }
-      });
-      return next;
-    });
-  }, [itemsToRate]);
-
   // Lock body scroll while modal is active
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -77,7 +65,7 @@ export default function PendingRatingGate({
     setForms((prev) => ({
       ...prev,
       [productId]: {
-        ...prev[productId],
+        ...(prev[productId] || defaultReviewForm),
         rating,
         error: "",
       },
@@ -88,7 +76,7 @@ export default function PendingRatingGate({
     setForms((prev) => ({
       ...prev,
       [productId]: {
-        ...prev[productId],
+        ...(prev[productId] || defaultReviewForm),
         comment,
       },
     }));
@@ -103,7 +91,7 @@ export default function PendingRatingGate({
     const updatedForms = { ...forms };
 
     itemsToRate.forEach((item) => {
-      const form = updatedForms[item.productId] || {};
+      const form = updatedForms[item.productId] || defaultReviewForm;
       if (!form.rating || form.rating < 1) {
         hasError = true;
         updatedForms[item.productId] = {
@@ -127,7 +115,7 @@ export default function PendingRatingGate({
     try {
       const results = await Promise.all(
         itemsToRate.map(async (item) => {
-          const form = forms[item.productId] || { rating: 5, comment: "" };
+          const form = forms[item.productId] || defaultReviewForm;
           return ProductController.submitReview(item.productId, user, {
             rating: Number(form.rating || 5),
             comment: String(form.comment || "").trim(),
@@ -213,7 +201,7 @@ export default function PendingRatingGate({
             {/* Product items list */}
             <div className="p-6 sm:p-8 max-h-[55vh] overflow-y-auto space-y-6 divide-y divide-stone-100 dark:divide-slate-800">
               {itemsToRate.map((item, idx) => {
-                const form = forms[item.productId] || { rating: 5, comment: "" };
+                const form = forms[item.productId] || defaultReviewForm;
 
                 return (
                   <div

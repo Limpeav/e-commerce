@@ -72,18 +72,52 @@ const getSafeAuthRedirect = (requestedRedirect, fallback = "/customer") => {
 export default function AppView() {
   const location = useLocation();
   const [isStandalonePaymentScreen, setIsStandalonePaymentScreen] = useState(false);
-  const [pendingRatingOrders, setPendingRatingOrders] = useState([]);
+  const [pendingRatingState, setPendingRatingState] = useState({
+    userId: null,
+    orders: [],
+  });
   const { user } = useAuth();
   const [isDark] = useDarkMode();
   const { language } = useLanguage();
+  const activeUserId = user?._id || user?.id || null;
   const authenticatedRedirect = user?.phone
     ? getSafeAuthRedirect(location.state?.from)
     : "/complete-profile";
   const isPortalRoute = isPortalPath(location.pathname);
 
+  const isAdminRoute =
+    (location.pathname.startsWith("/admin") &&
+      location.pathname !== "/admin/login") ||
+    location.pathname.startsWith("/seller/dashboard") ||
+    location.pathname.startsWith("/seller/payment-queue") ||
+    location.pathname.startsWith("/seller/orders") ||
+    location.pathname.startsWith("/seller/cash-report") ||
+    location.pathname.startsWith("/delivery/orders");
+  const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+(?:\/[^/]+)?\/review\/?$/.test(
+    location.pathname
+  );
+  const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);
+  const isProfileRoute = /^\/(?:customer\/)?profile\/?$/.test(location.pathname);
+  const shouldShowNav =
+    !isStandalonePaymentScreen
+    && !hideNavFooterPaths.includes(location.pathname)
+    && !isAdminRoute
+    && !isOrderReviewRoute;
+  const shouldShowFooter = shouldShowNav && !isWishlistRoute && !isProfileRoute;
+
+  const needsPhone =
+    user &&
+    !user.phone &&
+    !phoneExemptPaths.includes(location.pathname) &&
+    !isAdminRoute;
+  const shouldCheckPendingRatings = Boolean(user && !isAdminRoute && !isPortalRoute);
+  const pendingRatingOrders =
+    shouldCheckPendingRatings && pendingRatingState.userId === activeUserId
+      ? pendingRatingState.orders
+      : [];
+
   useEffect(() => {
-    if (!user || isAdminRoute || isPortalRoute) {
-      setPendingRatingOrders([]);
+    if (!shouldCheckPendingRatings) {
       return;
     }
 
@@ -92,7 +126,10 @@ export default function AppView() {
       getPendingReviewOrders()
         .then((orders) => {
           if (isMounted && Array.isArray(orders)) {
-            setPendingRatingOrders(orders);
+            setPendingRatingState({
+              userId: activeUserId,
+              orders,
+            });
           }
         })
         .catch((err) => {
@@ -125,7 +162,7 @@ export default function AppView() {
       unsubscribeStatus();
       unsubscribeUpdated();
     };
-  }, [user, location.pathname, isAdminRoute, isPortalRoute]);
+  }, [shouldCheckPendingRatings, activeUserId]);
 
   useEffect(() => {
     if (isCustomerPortal() && isPortalRoute) {
@@ -186,32 +223,6 @@ export default function AppView() {
     html.lang = language;
     html.dataset.language = language;
   }, [isPortalRoute, isDark, language]);
-
-  const isAdminRoute =
-    (location.pathname.startsWith("/admin") &&
-      location.pathname !== "/admin/login") ||
-    location.pathname.startsWith("/seller/dashboard") ||
-    location.pathname.startsWith("/seller/payment-queue") ||
-    location.pathname.startsWith("/seller/orders") ||
-    location.pathname.startsWith("/seller/cash-report") ||
-    location.pathname.startsWith("/delivery/orders");
-  const isOrderReviewRoute = /^\/(?:customer\/)?orders\/[^/]+(?:\/[^/]+)?\/review\/?$/.test(
-    location.pathname
-  );
-  const isWishlistRoute = /^\/(?:customer\/)?wishlist\/?$/.test(location.pathname);
-  const isProfileRoute = /^\/(?:customer\/)?profile\/?$/.test(location.pathname);
-  const shouldShowNav =
-    !isStandalonePaymentScreen
-    && !hideNavFooterPaths.includes(location.pathname)
-    && !isAdminRoute
-    && !isOrderReviewRoute;
-  const shouldShowFooter = shouldShowNav && !isWishlistRoute && !isProfileRoute;
-
-  const needsPhone =
-    user &&
-    !user.phone &&
-    !phoneExemptPaths.includes(location.pathname) &&
-    !isAdminRoute;
 
   const currentRouteMeta = useMemo(() => {
     const path = location.pathname
@@ -300,7 +311,12 @@ export default function AppView() {
           <PendingRatingGate
             pendingOrders={pendingRatingOrders}
             user={user}
-            onComplete={() => setPendingRatingOrders([])}
+            onComplete={() =>
+              setPendingRatingState({
+                userId: activeUserId,
+                orders: [],
+              })
+            }
           />
         )}
         {shouldShowNav && <Navbar />}
