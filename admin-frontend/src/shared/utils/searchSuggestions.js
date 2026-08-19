@@ -40,6 +40,8 @@ export const getMatchingSearchSuggestions = (values = [], query = "", limit = 8)
 export const buildProductSearchSuggestionValues = (products = [], categories = []) =>
   uniqueSearchSuggestions([
     ...products.flatMap((product) => [
+      product?.sku,
+      product?.supplierSku,
       product?.title,
       product?.titleKm,
       product?.category,

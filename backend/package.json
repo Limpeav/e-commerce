@@ -12,6 +12,7 @@
     "backfill:support-tickets": "node scripts/backfillSupportTickets.js",
     "normalize:categories": "node scripts/normalizeProductCategories.js",
     "backfill:expiry": "node scripts/backfillExpiryDates.js",
+    "backfill:skus": "node scripts/backfillProductSkus.js",
     "backfill:sentiment": "node scripts/backfillReviewSentiment.js",
     "translate:khmer": "node scripts/translateMissingProductsToKhmer.js",
     "seed:khmer-customers": "node scripts/seedTenKhmerCustomersOrdersReviews.js"

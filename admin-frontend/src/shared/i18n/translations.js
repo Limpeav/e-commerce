@@ -253,6 +253,19 @@ export const translations = {
       bathSkin: "Bath & Skin",
       toyPlay: "Toy & Play",
     },
+    supplier: {
+      suppliers: "Suppliers",
+      purchaseOrders: "Purchase Orders",
+      addSupplier: "Add Supplier",
+      createPO: "Create Purchase Order",
+      receiveStock: "Receive Stock",
+      recordPayment: "Record Payment",
+      reorderStock: "Reorder Stock",
+      companyName: "Company Name",
+      contactPerson: "Contact Person",
+      paymentTerms: "Payment Terms",
+      balanceDue: "Balance Due",
+    },
   },
   km: {
     language: {
@@ -808,7 +821,20 @@ export const staticTextTranslations = {
     "Our liability is limited to the maximum extent permitted by law. We are not liable for indirect, incidental, or consequential damages arising from your use of our services. In any case, our total liability is capped at the purchase price of the product in question.": "ការទទួលខុសត្រូវរបស់យើងត្រូវបានកំណត់ចំពោះកម្រិតអតិបរមាដែលច្បាប់អនុញ្ញាត។ យើងមិនទទួលខុសត្រូវចំពោះការខូចខាតដោយប្រយោល ចៃដន្យ ឬជាផលវិបាកដែលកើតចេញពីការប្រើប្រាស់សេវាកម្មរបស់យើងនោះឡើយ។ ក្នុងករណីណាក៏ដោយ ការទទួលខុសត្រូវសរុបរបស់យើងត្រូវបានកំណត់ត្រឹមតម្លៃទិញផលិតផលដែលមានបញ្ហានោះ។",
     "For questions about these terms, please reach out to us:": "សម្រាប់សំណួរអំពីលក្ខខណ្ឌទាំងនេះ សូមទាក់ទងមកយើងខ្ញុំ៖",
     "Version": "កំណែ",
-    "Last Updated": "ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ"
+    "Last Updated": "ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ",
+    supplier: {
+      suppliers: "អ្នកផ្គត់ផ្គង់",
+      purchaseOrders: "ការបញ្ជាទិញទំនិញចូល (PO)",
+      addSupplier: "បន្ថែមអ្នកផ្គត់ផ្គង់",
+      createPO: "បង្កើតការបញ្ជាទិញទំនិញចូល",
+      receiveStock: "ទទួលទំនិញចូលស្តុក",
+      recordPayment: "កត់ត្រាការទូទាត់ប្រាក់",
+      reorderStock: "បញ្ជាទិញទំនិញបន្ថែម",
+      companyName: "ឈ្មោះក្រុមហ៊ុន / ហាង",
+      contactPerson: "អ្នកទំនាក់ទំនង",
+      paymentTerms: "លក្ខខណ្ឌទូទាត់",
+      balanceDue: "សមតុល្យត្រូវបង់",
+    },
   },
 };
 

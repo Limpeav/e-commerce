@@ -2,8 +2,8 @@ import { adminService } from "../services/adminService.js";
 import { AdminModels, modelResponse } from "../models/adminModels.js";
 
 export const ProductController = {
-  async getProducts() {
-    return modelResponse(await adminService.getProducts(), AdminModels.products);
+  async getProducts(params) {
+    return modelResponse(await adminService.getProducts(params), AdminModels.products);
   },
 
   async getById(id) {

@@ -2,6 +2,7 @@ import {
   isRemovedProductCategory,
   normalizeProductCategory,
 } from "../constants/productCategories.js";
+import { getProductSku, normalizeSku } from "./productSku.js";
 
 export const PRODUCT_LOW_STOCK_THRESHOLD = 5;
 export const VARIANT_LOW_STOCK_THRESHOLD = 2;
@@ -137,6 +138,8 @@ export const filterAdminProducts = (
     const category = normalizeProductCategory(product.category);
     const matchesSearch =
       !normalizedSearch ||
+      getProductSku(product).toLowerCase().includes(normalizedSearch) ||
+      normalizeSku(product.supplierSku).toLowerCase().includes(normalizedSearch) ||
       product.title?.toLowerCase().includes(normalizedSearch) ||
       product.titleKm?.toLowerCase().includes(normalizedSearch) ||
       product.descriptionKm?.toLowerCase().includes(normalizedSearch) ||

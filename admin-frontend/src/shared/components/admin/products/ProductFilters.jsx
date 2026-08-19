@@ -18,7 +18,7 @@ const ProductFilters = ({
         <input
           type="text"
           list="admin-product-search-suggestions"
-          placeholder="Search products by name or category..."
+          placeholder="Search products by SKU, name, or category..."
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
           className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"

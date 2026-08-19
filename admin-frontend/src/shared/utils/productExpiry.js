@@ -108,6 +108,7 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
     .filter((entry) => entry.images.length > 0);
 
   const productData = {
+    sku: form.sku || "",
     title: form.title,
     price: form.price,
     discountPrice: form.discountPrice || "",
@@ -137,6 +138,10 @@ export const buildProductRequestData = (form, { includeImage = false } = {}) => 
       ? getExpiryDateInputValue(form.expiryDate)
       : "",
     imageUrl: form.imageUrl || "",
+    supplier: form.supplier || "",
+    supplierSku: form.supplierSku || "",
+    minOrderQuantity: form.minOrderQuantity || 1,
+    leadTimeDays: form.leadTimeDays || 0,
   };
 
   if (!includeImage) {

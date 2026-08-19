@@ -1,5 +1,5 @@
 import { createElement, useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
   Tag,
   Trash2,
   TrendingUp,
+  Building2,
+  Truck,
 } from "lucide-react";
 import Loading from "../../../components/common/Loading";
 import { AdminProductController } from "../../../controllers/adminProductController";
@@ -36,6 +38,7 @@ import {
   formatExpiryDate,
   productSupportsExpiry,
 } from "../../../utils/productExpiry";
+import { getProductSku } from "../../../utils/productSku";
 import { subscribeRealtimeDomains } from "../../../services/realtime";
 
 const colorSwatches = {
@@ -369,6 +372,17 @@ const AdminProductDetails = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => {
+                const supplierId = product.supplier?._id || product.supplier || "";
+                navigate(`/admin/purchase-orders/new?supplierId=${supplierId}&productId=${product._id}`);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+            >
+              <Truck className="h-4 w-4" />
+              Reorder Stock
+            </button>
+            <button
+              type="button"
               onClick={handleEdit}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-colors hover:bg-blue-700"
             >
@@ -395,6 +409,12 @@ const AdminProductDetails = () => {
                 <StatusBadge className="border-blue-200 bg-blue-50 text-blue-700">
                   {category}
                 </StatusBadge>
+                {product.supplier ? (
+                  <StatusBadge className="border-indigo-200 bg-indigo-50 text-indigo-700 flex items-center gap-1 font-semibold">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Supplier: {product.supplier.name || "Assigned"}
+                  </StatusBadge>
+                ) : null}
                 <StatusBadge
                   className={
                     isOutOfStock
@@ -519,6 +539,7 @@ const AdminProductDetails = () => {
               </div>
               <dl>
                 <InfoRow label="Title" value={product.title} />
+                <InfoRow label="Product SKU" value={getProductSku(product)} />
                 <InfoRow label="Category" value={category} />
                 <InfoRow label="Created" value={formatDateTime(product.createdAt)} />
                 <InfoRow label="Updated" value={formatDateTime(product.updatedAt)} />
@@ -528,6 +549,43 @@ const AdminProductDetails = () => {
                     productSupportsExpiry(category) && product.expiryDate
                       ? formatExpiryDate(product.expiryDate, { long: true })
                       : ""
+                  }
+                />
+              </dl>
+            </section>
+
+            <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
+              <div className="mb-4 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-indigo-600" />
+                <h2 className="text-lg font-black text-gray-900">Supplier & Reorder</h2>
+              </div>
+              <dl>
+                <InfoRow
+                  label="Primary Supplier"
+                  value={
+                    product.supplier?._id ? (
+                      <Link
+                        to={`/admin/suppliers/${product.supplier._id}`}
+                        className="text-blue-700 hover:underline"
+                      >
+                        {product.supplier.name || product.supplier.code || "View supplier"}
+                      </Link>
+                    ) : (
+                      product.supplier?.name || ""
+                    )
+                  }
+                />
+                <InfoRow label="Supplier SKU" value={product.supplierSku} />
+                <InfoRow
+                  label="Min Order Qty"
+                  value={product.minOrderQuantity ? formatNumber(product.minOrderQuantity) : ""}
+                />
+                <InfoRow
+                  label="Lead Time"
+                  value={
+                    product.leadTimeDays
+                      ? `${formatNumber(product.leadTimeDays)} day${Number(product.leadTimeDays) === 1 ? "" : "s"}`
+                      : "Same day / not set"
                   }
                 />
               </dl>

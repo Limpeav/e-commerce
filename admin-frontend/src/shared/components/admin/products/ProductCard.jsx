@@ -14,6 +14,7 @@ import {
   isOutOfStockProduct,
   isProductIssue,
 } from "../../../utils/adminProducts";
+import { getProductSku } from "../../../utils/productSku";
 
 const ProductCard = ({ product, onEdit, onDelete, detailsState }) => {
   const price = Number(product.price) || 0;
@@ -27,6 +28,7 @@ const ProductCard = ({ product, onEdit, onDelete, detailsState }) => {
   const normalizedCategory = normalizeProductCategory(product.category);
   const showExpiry = productSupportsExpiry(normalizedCategory) && product.expiryDate;
   const detailsPath = `/admin/products/${product._id}`;
+  const displaySku = getProductSku(product);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 group hover:-translate-y-1">
@@ -69,6 +71,11 @@ const ProductCard = ({ product, onEdit, onDelete, detailsState }) => {
           <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors duration-200">
             {product.title}
           </h3>
+          {displaySku && (
+            <p className="mb-2 font-mono text-xs font-black uppercase tracking-wide text-gray-500">
+              SKU: {displaySku}
+            </p>
+          )}
           <p className="text-sm text-gray-600 mb-4 line-clamp-2">
             {product.description || "No description available"}
           </p>

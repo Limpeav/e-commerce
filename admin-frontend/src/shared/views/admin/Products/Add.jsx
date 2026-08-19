@@ -42,15 +42,22 @@ import {
   Boxes,
   CalendarDays,
   Plus,
+  Building2,
   X,
 } from "lucide-react";
+import { SupplierController } from "../../../controllers/supplierController";
 
 const emptyProductForm = {
+  sku: "",
   title: "",
   price: "",
   discountPrice: "",
   costPrice: "",
   category: "",
+  supplier: "",
+  supplierSku: "",
+  minOrderQuantity: "1",
+  leadTimeDays: "0",
   image: null,
   imageUrl: "",
   description: "",
@@ -189,6 +196,15 @@ const AddProduct = () => {
   const [detailImageUploading, setDetailImageUploading] = useState({});
   const [formMessage, setFormMessage] = useState(null);
   const [customColor, setCustomColor] = useState("");
+  const [suppliersList, setSuppliersList] = useState([]);
+
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      const res = await SupplierController.getSuppliers({ status: "active", limit: 100 });
+      if (res.success) setSuppliersList(res.data);
+    };
+    loadSuppliers();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -612,7 +628,7 @@ const AddProduct = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Product Title */}
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Product Title *
                 </label>
@@ -625,6 +641,32 @@ const AddProduct = () => {
                     onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
                     required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Product SKU
+                  <span className="text-xs text-gray-500 ml-2">(Auto if empty)</span>
+                </label>
+                <div className="relative">
+                  <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="sku"
+                    placeholder="e.g. PRD-ROMPER-NB-001"
+                    value={form.sku}
+                    onChange={(event) =>
+                      handleChange({
+                        ...event,
+                        target: {
+                          ...event.target,
+                          name: "sku",
+                          value: event.target.value.toUpperCase(),
+                        },
+                      })
+                    }
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400 uppercase"
                   />
                 </div>
               </div>
@@ -758,6 +800,85 @@ const AddProduct = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Supplier Partner */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Primary Supplier Partner (Optional)
+                </label>
+                <div className="relative">
+                  <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <select
+                    name="supplier"
+                    value={form.supplier || ""}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-50 focus:bg-white transition-all duration-200 cursor-pointer font-medium text-gray-900"
+                  >
+                    <option value="">No Supplier Assigned</option>
+                    {suppliersList.map((sup) => (
+                      <option key={sup._id} value={sup._id}>
+                        {sup.name} ({sup.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Supplier SKU
+                  <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="supplierSku"
+                    type="text"
+                    placeholder="Supplier item code"
+                    value={form.supplierSku}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Min Order Quantity
+                </label>
+                <div className="relative">
+                  <Boxes className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="minOrderQuantity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="1"
+                    value={form.minOrderQuantity}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Lead Time (Days)
+                </label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="leadTimeDays"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={form.leadTimeDays}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white font-medium text-gray-900 placeholder:text-gray-400"
+                  />
                 </div>
               </div>
 

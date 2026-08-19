@@ -7,5 +7,7 @@ export { DashboardController } from "./dashboardController.js";
 export { NotificationController } from "./notificationController.js";
 export { OrderController } from "./orderController.js";
 export { ProductController } from "./productController.js";
+export { PurchaseOrderController } from "./purchaseOrderController.js";
 export { ReviewController } from "./reviewController.js";
+export { SupplierController } from "./supplierController.js";
 export { UserController } from "./userController.js";

@@ -15,6 +15,8 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
+import supplierRoutes from "./routes/supplierRoutes.js";
+import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
 import { assertSecurityConfig } from "./config/security.js";
 
 import helmet from "helmet";
@@ -205,6 +207,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/admin/suppliers", supplierRoutes);
+app.use("/api/admin/purchase-orders", purchaseOrderRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

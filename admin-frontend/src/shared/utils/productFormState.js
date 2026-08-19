@@ -19,6 +19,8 @@ const NUMERIC_PRODUCT_FIELD_NAMES = new Set([
   "costPrice",
   "stock",
   "issueQuantity",
+  "minOrderQuantity",
+  "leadTimeDays",
 ]);
 
 export const getDetailImageGridClassName = (imageCount, marginClassName = "mt-3") =>

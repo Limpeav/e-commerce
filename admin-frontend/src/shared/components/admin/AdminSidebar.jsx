@@ -17,6 +17,8 @@ import {
   User,
   Settings,
   LifeBuoy,
+  Building2,
+  Boxes,
   X,
 } from 'lucide-react'
 import { subscribeRealtimeDomains } from '../../services/realtime'
@@ -103,6 +105,18 @@ const AdminSidebar = () => {
       path: '/admin/products',
       name: 'Products',
       icon: Package,
+      adminOnly: true
+    },
+    {
+      path: '/admin/suppliers',
+      name: 'Suppliers',
+      icon: Building2,
+      adminOnly: true
+    },
+    {
+      path: '/admin/purchase-orders',
+      name: 'Purchase Orders',
+      icon: Boxes,
       adminOnly: true
     },
     {
@@ -223,6 +237,10 @@ const AdminSidebar = () => {
                 (item.path === ordersPath && location.pathname.startsWith(`${ordersPath}/`)) ||
                 (item.path === '/admin/products' &&
                   location.pathname.startsWith('/admin/products/')) ||
+                (item.path === '/admin/suppliers' &&
+                  location.pathname.startsWith('/admin/suppliers/')) ||
+                (item.path === '/admin/purchase-orders' &&
+                  location.pathname.startsWith('/admin/purchase-orders/')) ||
                 (item.path === '/admin/reviews' &&
                   location.pathname.startsWith('/admin/reviews/')) ||
                 (item.path === '/admin/support/tickets' &&

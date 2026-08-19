@@ -40,6 +40,8 @@ import { dispatchProductExpiryAlertForProduct } from "../services/productExpiryA
 
 const REQUIRED_CSV_COLUMNS = ["title", "price", "category", "image"];
 const CSV_HEADER_ALIASES = {
+  productsku: "sku",
+  sku: "sku",
   colorimages: "colorImages",
   productdetailimages: "productDetailImages",
   discountprice: "discountPrice",
@@ -66,6 +68,15 @@ const parseOptionalNumber = (value) => {
   const parsedValue = Number.parseFloat(stringValue);
   return Number.isFinite(parsedValue) ? parsedValue : null;
 };
+
+const normalizeSku = (value = "") =>
+  String(value || "").trim().toUpperCase();
+
+const getGeneratedProductSku = (product = {}) =>
+  product?._id ? `PRD-${product._id.toString().slice(-8).toUpperCase()}` : "";
+
+const getProductSku = (product = {}) =>
+  normalizeSku(product.sku) || getGeneratedProductSku(product);
 
 const parseBoolean = (value) =>
   value === true || value === "true" || value === "1" || value === 1;
@@ -148,6 +159,8 @@ const getProductSearchFilter = (keyword = "") => {
       { description: keywordRegex },
       { descriptionKm: keywordRegex },
       { category: keywordRegex },
+      { sku: keywordRegex },
+      { supplierSku: keywordRegex },
     ],
   };
 };
@@ -763,6 +776,7 @@ const parseCsv = (content = "") => {
 };
 
 const validateAndBuildProductRow = ({ data, rowNumber }) => {
+  const sku = normalizeSku(data.sku);
   const title = data.title?.trim();
   const titleKm = data.titleKm?.trim() || "";
   const category = normalizeProductCategory(data.category);
@@ -842,6 +856,7 @@ const validateAndBuildProductRow = ({ data, rowNumber }) => {
   }
 
   return {
+    sku,
     title,
     titleKm,
     price,
@@ -911,11 +926,16 @@ export const createProduct = async (req, res) => {
     }
 
     const productData = await applyAutoKhmerTranslation({
+      sku: normalizeSku(req.body.sku),
       title,
       price,
       discountPrice: parseOptionalNumber(discountPrice),
       costPrice: submittedCostPrice,
       category: normalizedCategory,
+      supplier: mongoose.Types.ObjectId.isValid(req.body.supplier) ? req.body.supplier : null,
+      supplierSku: String(req.body.supplierSku || "").trim(),
+      minOrderQuantity: Math.max(1, Number.parseInt(req.body.minOrderQuantity, 10) || 1),
+      leadTimeDays: Math.max(0, Number.parseInt(req.body.leadTimeDays, 10) || 0),
       description,
       stock: submittedStock,
       sizes: sizeStockData.sizes,
@@ -1330,7 +1350,12 @@ export const importProductsFromCsv = async (req, res) => {
     const translatedProducts = await Promise.all(
       productsToInsert.map((productData) => applyAutoKhmerTranslation(productData))
     );
-    const createdProducts = await Product.insertMany(translatedProducts);
+    const productDocuments = translatedProducts.map((productData) => {
+      const product = new Product(productData);
+      product.sku = getProductSku(product);
+      return product;
+    });
+    const createdProducts = await Product.insertMany(productDocuments);
     createdProducts.forEach((product) =>
       dispatchProductExpiryAlertForProduct(product._id)
     );
@@ -1412,6 +1437,10 @@ export const upsertProductsFromCsv = async (req, res) => {
         const previousExpiryDate = existingProduct.expiryDate;
 
         existingProduct.price = translatedProductData.price;
+        existingProduct.sku = getProductSku({
+          ...existingProduct.toObject(),
+          sku: translatedProductData.sku || existingProduct.sku,
+        });
         existingProduct.discountPrice = translatedProductData.discountPrice;
         existingProduct.costPrice = translatedProductData.costPrice;
         existingProduct.category = translatedProductData.category;
@@ -1466,6 +1495,7 @@ export const upsertProductsFromCsv = async (req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
+      .populate("supplier", "name code phone email contactPerson")
       .select(req.user?.role === "admin" ? "+costPrice" : "");
     if (!product)
       return res.status(404).json({ message: "Product not found" });
@@ -1670,6 +1700,7 @@ export const updateProduct = async (req, res) => {
 
     const translatedProductData = await applyAutoKhmerTranslation(
       {
+        sku: normalizeSku(req.body.sku),
         title: req.body.title,
         price: req.body.price,
         discountPrice: parseOptionalNumber(req.body.discountPrice),
@@ -1691,6 +1722,7 @@ export const updateProduct = async (req, res) => {
     );
 
     product.title = translatedProductData.title;
+    product.sku = translatedProductData.sku || product.sku;
     product.titleKm = translatedProductData.titleKm;
     product.price = translatedProductData.price;
     product.discountPrice = translatedProductData.discountPrice;
@@ -1708,6 +1740,23 @@ export const updateProduct = async (req, res) => {
     product.hasProductIssue = translatedProductData.hasProductIssue;
     product.issueQuantity = translatedProductData.issueQuantity;
     product.expiryDate = translatedProductData.expiryDate;
+
+    if (req.body.supplier !== undefined) {
+      product.supplier = mongoose.Types.ObjectId.isValid(req.body.supplier) ? req.body.supplier : null;
+    }
+    if (req.body.sku !== undefined) {
+      product.sku = normalizeSku(req.body.sku) || product.sku;
+    }
+    if (req.body.supplierSku !== undefined) {
+      product.supplierSku = String(req.body.supplierSku || "").trim();
+    }
+    if (req.body.minOrderQuantity !== undefined) {
+      product.minOrderQuantity = Math.max(1, Number.parseInt(req.body.minOrderQuantity, 10) || 1);
+    }
+    if (req.body.leadTimeDays !== undefined) {
+      product.leadTimeDays = Math.max(0, Number.parseInt(req.body.leadTimeDays, 10) || 0);
+    }
+
     syncTotalStockFromSizes(product);
 
     // 🔥 update image ONLY if new one uploaded

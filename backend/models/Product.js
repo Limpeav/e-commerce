@@ -105,6 +105,13 @@ const productDetailImageSchema = mongoose.Schema(
 
 const productSchema = mongoose.Schema(
   {
+    sku: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+    },
     title: {
       type: String,
       required: true,
@@ -131,6 +138,26 @@ const productSchema = mongoose.Schema(
       type: String,
       required: true,
       set: normalizeProductCategory,
+    },
+    supplier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Supplier",
+      default: null,
+    },
+    supplierSku: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    minOrderQuantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    leadTimeDays: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     image: {
       type: String,
@@ -237,6 +264,12 @@ const productSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+productSchema.pre("validate", function () {
+  if (!this.sku && this._id) {
+    this.sku = `PRD-${this._id.toString().slice(-8).toUpperCase()}`;
+  }
+});
+
 productSchema.index({ stock: 1, createdAt: -1, _id: -1 });
 productSchema.index({ category: 1, stock: 1, createdAt: -1 });
 productSchema.index({ isNewArrival: 1, stock: 1, createdAt: -1 });
@@ -246,6 +279,7 @@ productSchema.index({ totalSold: -1, rating: -1 });
 productSchema.index({ "sizeStocks.size": 1 });
 productSchema.index({ "sizeStocks.size": 1, "sizeStocks.color": 1 });
 productSchema.index({ colors: 1 });
+productSchema.index({ supplier: 1 });
 
 const Product = mongoose.model("Product", productSchema);
 

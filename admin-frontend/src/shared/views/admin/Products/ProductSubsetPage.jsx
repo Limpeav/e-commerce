@@ -15,6 +15,7 @@ import {
   buildProductSearchSuggestionValues,
   getMatchingSearchSuggestions,
 } from "../../../utils/searchSuggestions";
+import { getProductSku, normalizeSku } from "../../../utils/productSku";
 
 const accentStyles = {
   emerald: {
@@ -180,6 +181,8 @@ const ProductSubsetPage = ({
       const availableText = String(getAvailableStock(product));
 
       return (
+        getProductSku(product).toLowerCase().includes(normalizedSearch) ||
+        normalizeSku(product.supplierSku).toLowerCase().includes(normalizedSearch) ||
         product.title?.toLowerCase().includes(normalizedSearch) ||
         product.titleKm?.toLowerCase().includes(normalizedSearch) ||
         product.category?.toLowerCase().includes(normalizedSearch) ||
@@ -460,6 +463,9 @@ const ProductSubsetPage = ({
                             <div>
                               <p className="max-w-xs font-semibold text-gray-900">
                                 {product.title}
+                              </p>
+                              <p className="mt-1 font-mono text-xs font-black uppercase text-gray-500">
+                                SKU: {getProductSku(product)}
                               </p>
                             </div>
                           </div>
