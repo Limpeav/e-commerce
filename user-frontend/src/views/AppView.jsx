@@ -29,6 +29,12 @@ import {
   isPortalPath,
   portalConfig,
 } from "../utils/portalConfig";
+import { getPendingReviewOrders } from "../services/orderService";
+import {
+  subscribeRealtimeDomains,
+  subscribeRealtimeEvent,
+} from "../services/realtime";
+import PendingRatingGate from "../components/ui/PendingRatingGate";
 
 const LazyComponents = {};
 Object.keys(userLazyComponents).forEach((key) => {
@@ -66,6 +72,7 @@ const getSafeAuthRedirect = (requestedRedirect, fallback = "/customer") => {
 export default function AppView() {
   const location = useLocation();
   const [isStandalonePaymentScreen, setIsStandalonePaymentScreen] = useState(false);
+  const [pendingRatingOrders, setPendingRatingOrders] = useState([]);
   const { user } = useAuth();
   const [isDark] = useDarkMode();
   const { language } = useLanguage();
@@ -73,6 +80,52 @@ export default function AppView() {
     ? getSafeAuthRedirect(location.state?.from)
     : "/complete-profile";
   const isPortalRoute = isPortalPath(location.pathname);
+
+  useEffect(() => {
+    if (!user || isAdminRoute || isPortalRoute) {
+      setPendingRatingOrders([]);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchPendingOrders = () => {
+      getPendingReviewOrders()
+        .then((orders) => {
+          if (isMounted && Array.isArray(orders)) {
+            setPendingRatingOrders(orders);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to check pending review orders:", err);
+        });
+    };
+
+    fetchPendingOrders();
+
+    // Listen for real-time order delivery updates via socket
+    const unsubscribeOrders = subscribeRealtimeDomains(["orders"], () => {
+      fetchPendingOrders();
+    });
+
+    const unsubscribeStatus = subscribeRealtimeEvent("order:status-updated", (payload) => {
+      if (payload?.orderStatus === "Delivered" || payload?.isDelivered) {
+        fetchPendingOrders();
+      }
+    });
+
+    const unsubscribeUpdated = subscribeRealtimeEvent("order:updated", (payload) => {
+      if (payload?.orderStatus === "Delivered" || payload?.isDelivered) {
+        fetchPendingOrders();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribeOrders();
+      unsubscribeStatus();
+      unsubscribeUpdated();
+    };
+  }, [user, location.pathname, isAdminRoute, isPortalRoute]);
 
   useEffect(() => {
     if (isCustomerPortal() && isPortalRoute) {
@@ -243,6 +296,13 @@ export default function AppView() {
             : "bg-stone-50 text-text-main transition-colors duration-300"
         }
       >
+        {pendingRatingOrders.length > 0 && !isAdminRoute && !isPortalRoute && (
+          <PendingRatingGate
+            pendingOrders={pendingRatingOrders}
+            user={user}
+            onComplete={() => setPendingRatingOrders([])}
+          />
+        )}
         {shouldShowNav && <Navbar />}
         <StaticTextTranslator disabled={isPortalRoute} />
 

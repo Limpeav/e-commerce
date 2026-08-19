@@ -78,3 +78,13 @@ export const trackOrder = async (orderNumber) => {
   );
   return response.data;
 };
+
+export const getPendingReviewOrders = async () => {
+  const token = getUserToken();
+  if (!token) return [];
+
+  const response = await axios.get(`${API_BASE_URL}/orders/pending-reviews`, {
+    headers: withAuthHeaders(token),
+  });
+  return response.data;
+};
