@@ -24,7 +24,6 @@ import {
     dispatchInventoryStockAlerts,
 } from "../utils/inventoryNotifications.js";
 import { createPaymentSuccessNotification } from "../utils/paymentNotifications.js";
-import { sendDeliveryReviewRequestEmail } from "../utils/sendEmail.js";
 import {
     normalizeSelectedColor,
     getProductImageForColor,
@@ -109,6 +108,7 @@ const applyOrderStatusTimestamps = (order, nextStatus, now = new Date()) => {
         order.processedAt = order.processedAt || now;
         order.isDelivered = true;
         order.deliveredAt = order.deliveredAt || now;
+        order.pendingRating = true;
     }
 };
 
@@ -257,80 +257,6 @@ const reduceReservedOrderStockIfNeeded = async (order, session) => {
     order.stockRestored = false;
 
     return { productIds, stockAlerts };
-};
-
-const sendAndRecordDeliveryReviewRequest = async (orderId, { force = false } = {}) => {
-    const deliveredOrder = await Order.findById(orderId).populate("user", "name email");
-
-    if (!deliveredOrder) {
-        throw createHttpError(404, "Order not found");
-    }
-
-    if (deliveredOrder.orderStatus !== "Delivered") {
-        throw createHttpError(400, "Review request email can only be sent after delivery");
-    }
-
-    const customerEmail = deliveredOrder.user?.email;
-
-    if (!customerEmail) {
-        throw createHttpError(400, "Customer email is missing");
-    }
-
-    if (!force && deliveredOrder.reviewRequestEmail?.sentAt) {
-        return {
-            sent: false,
-            skipped: true,
-            reason: "already-sent",
-            order: deliveredOrder,
-        };
-    }
-
-    let emailResult;
-
-    try {
-        emailResult = await sendDeliveryReviewRequestEmail({
-            email: customerEmail,
-            customerName:
-                deliveredOrder.user?.name ||
-                deliveredOrder.shippingAddress?.fullName,
-            orderId: deliveredOrder._id,
-            orderItems: deliveredOrder.orderItems,
-        });
-    } catch (error) {
-        const errorMessage = error.message || "Failed to send review request email";
-        await Order.updateOne(
-            { _id: deliveredOrder._id },
-            {
-                $set: {
-                    "reviewRequestEmail.failedAt": new Date(),
-                    "reviewRequestEmail.lastError": errorMessage,
-                },
-            }
-        );
-        throw createHttpError(error.statusCode || 500, errorMessage);
-    }
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-        deliveredOrder._id,
-        {
-            $set: {
-                "reviewRequestEmail.sentAt": new Date(),
-                "reviewRequestEmail.messageId": emailResult?.id || "",
-            },
-            $unset: {
-                "reviewRequestEmail.failedAt": "",
-                "reviewRequestEmail.lastError": "",
-            },
-        },
-        { new: true }
-    ).populate("user", "name email");
-
-    return {
-        sent: true,
-        skipped: false,
-        messageId: emailResult?.id || "",
-        order: updatedOrder,
-    };
 };
 
 const dispatchOrderAlerts = ({
@@ -1079,16 +1005,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             previousStatus !== "Delivered" &&
             updatedOrder?.orderStatus === "Delivered"
         ) {
+            // Set pendingRating flag so the customer sees the rating gate on next visit
             setImmediate(async () => {
                 try {
-                    const result = await sendAndRecordDeliveryReviewRequest(updatedOrder._id);
-                    if (result.skipped) {
-                        console.log(
-                            `Skipped review request email for order ${updatedOrder._id}: ${result.reason}`
-                        );
-                    }
-                } catch (emailError) {
-                    console.error("Review request email failed:", emailError.message);
+                    await Order.findByIdAndUpdate(updatedOrder._id, { $set: { pendingRating: true } });
+                } catch (flagError) {
+                    console.error("Failed to set pendingRating flag:", flagError.message);
                 }
             });
         }
@@ -1213,23 +1135,45 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Send or resend delivery review request email
-// @route   POST /api/orders/:id/review-request-email
-// @access  Private/Portal
-export const sendOrderReviewRequestEmail = asyncHandler(async (req, res) => {
-    const force = req.body?.force !== false;
-    const result = await sendAndRecordDeliveryReviewRequest(req.params.id, { force });
+// @desc    Get all delivered orders with pendingRating=true for the logged-in customer
+// @route   GET /api/orders/pending-reviews
+// @access  Private
+export const getPendingReviewOrders = asyncHandler(async (req, res) => {
+    const orders = await Order.find({
+        user: req.user._id,
+        $or: [{ orderStatus: "Delivered" }, { isDelivered: true }],
+        pendingRating: { $ne: false },
+    })
+        .populate("orderItems.product", "title name image reviews")
+        .select("orderItems pendingRating deliveredAt isDelivered orderStatus")
+        .sort({ deliveredAt: -1, updatedAt: -1 })
+        .lean();
 
-    res.json({
-        message: result.sent
-            ? "Review request email sent"
-            : "Review request email was already sent",
-        sent: result.sent,
-        skipped: result.skipped,
-        reason: result.reason,
-        messageId: result.messageId,
-        order: result.order,
-    });
+    const userId = req.user._id.toString();
+    const pendingOrders = [];
+
+    for (const order of orders) {
+        const unreviewedItems = (order.orderItems || []).filter((item) => {
+            const prod = item.product;
+            if (!prod) return false;
+            const reviews = Array.isArray(prod.reviews) ? prod.reviews : [];
+            const userReviewed = reviews.some(
+                (r) => (r.user?._id?.toString?.() || r.user?.toString?.()) === userId
+            );
+            return !userReviewed;
+        });
+
+        if (unreviewedItems.length > 0) {
+            pendingOrders.push({
+                ...order,
+                orderItems: unreviewedItems,
+            });
+        } else {
+            await Order.updateOne({ _id: order._id }, { $set: { pendingRating: false } });
+        }
+    }
+
+    res.json(pendingOrders);
 });
 
 // @desc    Update payment status

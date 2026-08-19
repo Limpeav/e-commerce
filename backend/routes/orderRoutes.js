@@ -15,7 +15,7 @@ import {
     uploadDeliveryProof,
     confirmDeliveryOrder,
     sendOrderReceiptToTelegram,
-    sendOrderReviewRequestEmail,
+    getPendingReviewOrders,
 } from "../controllers/orderController.js";
 import { protect, admin, portalAccess } from "../middleware/authMiddleware.js";
 import { createUpload } from "../middleware/upload.js";
@@ -42,6 +42,7 @@ router.route("/").post(protect, createOrder).get(protect, portalAccess, getAllOr
 router.route("/myorders").get(protect, getUserOrders);
 router.route("/stats").get(protect, portalAccess, getOrderStats);
 router.route("/track/:orderNumber").get(protect, trackOrder);
+router.route("/pending-reviews").get(protect, getPendingReviewOrders);
 router.route("/:id").get(protect, getOrderById).delete(protect, admin, deleteOrder);
 router.route("/:id/pay").put(protect, updateOrderToPaid);
 router.route("/:id/cancel").put(protect, cancelUserOrder);
@@ -54,8 +55,5 @@ router.route("/:id/delivery-confirmation").put(protect, portalAccess, confirmDel
 router
     .route("/:id/receipt-telegram")
     .post(protect, portalAccess, receiptTelegramUpload.single("receipt"), sendOrderReceiptToTelegram);
-router
-    .route("/:id/review-request-email")
-    .post(protect, portalAccess, sendOrderReviewRequestEmail);
 
 export default router;

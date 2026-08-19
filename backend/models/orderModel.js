@@ -132,11 +132,9 @@ const orderSchema = new mongoose.Schema(
         deliveryTelegramAlert: {
             sentAt: { type: Date },
         },
-        reviewRequestEmail: {
-            sentAt: { type: Date },
-            messageId: { type: String },
-            failedAt: { type: Date },
-            lastError: { type: String },
+        pendingRating: {
+            type: Boolean,
+            default: false,
         },
         stockReduced: {
             type: Boolean,

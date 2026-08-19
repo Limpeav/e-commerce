@@ -1853,6 +1853,44 @@ export const createProductReview = async (req, res) => {
       syncProductReviewStats(product);
 
       await product.save();
+
+      // Clear pendingRating on the order once all distinct products are reviewed by this user
+      if (reviewedOrder) {
+        const fullOrder = await Order.findById(reviewedOrder._id).populate(
+          "orderItems.product",
+          "reviews"
+        );
+        if (fullOrder) {
+          const userId = req.user._id.toString();
+          const uniqueProductIds = [
+            ...new Set(
+              fullOrder.orderItems
+                .map((item) => String(item.product?._id || item.product))
+                .filter(Boolean)
+            ),
+          ];
+          // For each unique product in the order, find if current product has a review from this user
+          // We reload from the updated product in memory for the current one
+          const allReviewed = uniqueProductIds.every((pid) => {
+            if (pid === String(product._id)) {
+              // We just saved a review for this product — it's now reviewed
+              return true;
+            }
+            const otherProduct = fullOrder.orderItems.find(
+              (i) => String(i.product?._id || i.product) === pid
+            )?.product;
+            return (
+              Array.isArray(otherProduct?.reviews) &&
+              otherProduct.reviews.some((r) => String(r.user) === userId)
+            );
+          });
+          if (allReviewed) {
+            await Order.findByIdAndUpdate(reviewedOrder._id, {
+              $set: { pendingRating: false },
+            });
+          }
+        }
+      }
       emitDomainChanged(
         "reviews",
         alreadyReviewed ? "updated" : "created",
