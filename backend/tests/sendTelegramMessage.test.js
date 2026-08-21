@@ -5,6 +5,7 @@ import {
     buildLowStockMessage,
     buildOrderReceiptCaption,
     buildPaymentTelegramMessage,
+    buildSupplierPurchaseOrderDecisionReplyMarkup,
     buildSupplierPurchaseOrderReplyMarkup,
     buildSupplierPurchaseOrderTelegramMessage,
 } from "../utils/sendTelegramMessage.js";
@@ -145,6 +146,25 @@ test("buildSupplierPurchaseOrderReplyMarkup adds supplier action buttons", () =>
                     callback_data: "supplier_po:cancel:64def45664def45664def456",
                 },
             ],
+            [
+                {
+                    text: "Contact 016568335",
+                    callback_data: "supplier_po:contact:64def45664def45664def456",
+                },
+            ],
+        ],
+    });
+});
+
+test("buildSupplierPurchaseOrderDecisionReplyMarkup removes accept and cancel actions", () => {
+    const replyMarkup = buildSupplierPurchaseOrderDecisionReplyMarkup({
+        purchaseOrder: {
+            _id: "64def45664def45664def456",
+        },
+    });
+
+    assert.deepEqual(replyMarkup, {
+        inline_keyboard: [
             [
                 {
                     text: "Contact 016568335",

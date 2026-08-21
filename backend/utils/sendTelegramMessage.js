@@ -1,5 +1,6 @@
 import axios from "axios";
 import FormData from "form-data";
+import { createPurchaseOrderVoucherImage } from "./purchaseOrderVoucherImage.js";
 
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15000;
 const DEFAULT_SUPPLIER_CONTACT_PHONE = "016568335";
@@ -219,6 +220,80 @@ export const sendTelegramTextToChat = async ({
   }
 };
 
+export const sendTelegramPhotoToChat = async ({
+  chatId,
+  imageBuffer,
+  fileName,
+  mimeType,
+  caption,
+  type = "default",
+  threadId,
+  replyMarkup,
+}) => {
+  const config = getTelegramConfig(type);
+  const botToken = config.botToken;
+  const resolvedThreadId = threadId || config.threadId;
+
+  if (!botToken) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  if (!chatId) {
+    return { sent: false, reason: "missing-chat-id" };
+  }
+
+  if (!imageBuffer) {
+    return { sent: false, reason: "missing-image" };
+  }
+
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  if (resolvedThreadId) {
+    form.append("message_thread_id", String(resolvedThreadId));
+  }
+  if (caption) {
+    form.append("caption", caption);
+    form.append("parse_mode", "HTML");
+  }
+  if (replyMarkup) {
+    form.append("reply_markup", JSON.stringify(replyMarkup));
+  }
+  form.append("photo", imageBuffer, {
+    filename: fileName || "purchase-order-voucher.png",
+    contentType: mimeType || "image/png",
+  });
+
+  try {
+    const response = await axios.post(
+      `https://api.telegram.org/bot${botToken}/sendPhoto`,
+      form,
+      {
+        headers: form.getHeaders(),
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return {
+      sent: true,
+      type: "photo",
+      messageId: response.data?.result?.message_id,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
 export const answerTelegramCallbackQuery = async ({
   callbackQueryId,
   text,
@@ -243,6 +318,52 @@ export const answerTelegramCallbackQuery = async ({
         ...(text ? { text } : {}),
         show_alert: Boolean(showAlert),
       },
+      {
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return { sent: true };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const editTelegramMessageReplyMarkup = async ({
+  chatId,
+  messageId,
+  replyMarkup,
+  type = "default",
+}) => {
+  const { botToken } = getTelegramConfig(type);
+
+  if (!botToken) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  if (!chatId || !messageId) {
+    return { sent: false, reason: "missing-message" };
+  }
+
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`,
+      buildTelegramPayload({
+        chatId,
+        reply_markup: replyMarkup,
+        message_id: messageId,
+      }),
       {
         timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
       }
@@ -486,6 +607,26 @@ export const buildSupplierPurchaseOrderReplyMarkup = ({ purchaseOrder } = {}) =>
   };
 };
 
+export const buildSupplierPurchaseOrderDecisionReplyMarkup = ({
+  purchaseOrder,
+} = {}) => {
+  const poId = String(purchaseOrder?._id || purchaseOrder?.id || "").trim();
+  const contactPhone = getSupplierContactPhone();
+
+  if (!poId) return null;
+
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: `Contact ${contactPhone}`,
+          callback_data: `supplier_po:contact:${poId}`,
+        },
+      ],
+    ],
+  };
+};
+
 export const buildSupplierPurchaseOrderTelegramMessage = ({
   purchaseOrder,
   supplier,
@@ -555,15 +696,17 @@ export const sendSupplierPurchaseOrderTelegramAlert = async ({
     return { sent: false, reason: "missing-supplier-chat-id" };
   }
 
-  const text = buildSupplierPurchaseOrderTelegramMessage({
+  const imageBuffer = await createPurchaseOrderVoucherImage({
     purchaseOrder,
     supplier,
   });
   const replyMarkup = buildSupplierPurchaseOrderReplyMarkup({ purchaseOrder });
+  const poNumber = purchaseOrder?.poNumber || purchaseOrder?._id || "purchase-order";
 
-  return sendTelegramTextToChat({
+  return sendTelegramPhotoToChat({
     chatId,
-    text,
+    imageBuffer,
+    fileName: `${String(poNumber).replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}-voucher.png`,
     type: "supplier-po",
     replyMarkup,
   });

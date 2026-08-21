@@ -3,6 +3,8 @@ import PurchaseOrder from "../models/PurchaseOrder.js";
 import Supplier from "../models/Supplier.js";
 import {
   answerTelegramCallbackQuery,
+  buildSupplierPurchaseOrderDecisionReplyMarkup,
+  editTelegramMessageReplyMarkup,
   getSupplierContactPhone,
   sendTelegramTextToChat,
 } from "../utils/sendTelegramMessage.js";
@@ -98,6 +100,7 @@ const replyToSupplierCallback = async ({
 const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
   const callbackQueryId = callbackQuery?.id;
   const chatId = callbackQuery?.message?.chat?.id;
+  const messageId = callbackQuery?.message?.message_id;
   const from = callbackQuery?.from || {};
   const parsed = parseSupplierPurchaseOrderCallbackData(callbackQuery?.data);
 
@@ -170,8 +173,12 @@ const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
   }
 
   if (parsed.action === "contact") {
-    responseFields["supplierTelegramOrder.responseStatus"] = "contact_requested";
-    responseFields["supplierTelegramOrder.respondedAt"] = now;
+    const currentResponseStatus =
+      purchaseOrder.supplierTelegramOrder?.responseStatus || "";
+    if (!["accepted", "cancelled"].includes(currentResponseStatus)) {
+      responseFields["supplierTelegramOrder.responseStatus"] = "contact_requested";
+      responseFields["supplierTelegramOrder.respondedAt"] = now;
+    }
     responseFields["supplierTelegramOrder.contactRequestedAt"] = now;
     replyText = `Please contact the store at ${escapeTelegramHtml(getSupplierContactPhone())}.`;
   }
@@ -180,6 +187,19 @@ const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
     { _id: purchaseOrder._id },
     { $set: responseFields }
   );
+
+  if (parsed.action === "accept" || parsed.action === "cancel") {
+    await editTelegramMessageReplyMarkup({
+      chatId,
+      messageId,
+      type: "supplier-po",
+      replyMarkup: buildSupplierPurchaseOrderDecisionReplyMarkup({
+        purchaseOrder,
+      }),
+    }).catch((error) => {
+      console.error("Telegram supplier button update failed:", error.message);
+    });
+  }
 
   await replyToSupplierCallback({
     callbackQueryId,
