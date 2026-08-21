@@ -8,6 +8,7 @@ import {
   deleteSupplier,
   getSupplierProducts,
 } from "../controllers/supplierController.js";
+import { getSupplierTelegramSetupLink } from "../controllers/telegramSupplierController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -19,6 +20,8 @@ router.route("/")
   .post(createSupplier);
 
 router.get("/metrics", getSupplierMetrics);
+
+router.get("/:id/telegram-setup-link", getSupplierTelegramSetupLink);
 
 router.route("/:id")
   .get(getSupplierById)

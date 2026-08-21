@@ -40,6 +40,20 @@ const supplierSchema = mongoose.Schema(
       default: "",
       trim: true,
     },
+    telegramChatId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    telegramUserId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    telegramConnectedAt: {
+      type: Date,
+      default: null,
+    },
     address: {
       street: { type: String, default: "" },
       city: { type: String, default: "Phnom Penh" },

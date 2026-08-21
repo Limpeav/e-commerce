@@ -1330,6 +1330,7 @@ const DashboardPage = ({
             }
             icon={DollarSign}
             tone="sage"
+            onClick={() => navigateFromDashboard("/admin/net-revenue")}
           />
           <MetricCard
             title="Orders"

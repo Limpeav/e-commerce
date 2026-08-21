@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import PurchaseOrder from "../models/PurchaseOrder.js";
 import Supplier from "../models/Supplier.js";
 import Product from "../models/Product.js";
+import { sendSupplierPurchaseOrderTelegramAlert } from "../utils/sendTelegramMessage.js";
 
 const normalizeSku = (value = "") =>
   String(value || "").trim().toUpperCase();
@@ -10,6 +11,87 @@ const getProductSku = (product = {}) =>
   normalizeSku(product.sku) ||
   normalizeSku(product.supplierSku) ||
   (product._id ? `PRD-${product._id.toString().slice(-8).toUpperCase()}` : "");
+
+const describeSupplierTelegramResult = (result = {}) => {
+  if (result.sent) return "Telegram sent to supplier";
+
+  switch (result.reason) {
+    case "missing-supplier-chat-id":
+      return "Telegram not sent: supplier has not connected the bot";
+    case "missing-config":
+      return "Telegram not sent: supplier bot token is not configured";
+    case "already-sent":
+      return "Telegram was already sent to supplier";
+    default:
+      return result.error
+        ? `Telegram not sent: ${result.error}`
+        : "Telegram not sent";
+  }
+};
+
+const sendPurchaseOrderToSupplierTelegram = async (poId) => {
+  const po = await PurchaseOrder.findById(poId).populate("supplier");
+  if (!po) {
+    return { sent: false, reason: "purchase-order-not-found" };
+  }
+
+  if (po.supplierTelegramOrder?.sentAt) {
+    return { sent: true, reason: "already-sent" };
+  }
+
+  const lastAttemptAt = new Date();
+
+  try {
+    const result = await sendSupplierPurchaseOrderTelegramAlert({
+      purchaseOrder: po,
+      supplier: po.supplier,
+    });
+
+    if (!result.sent) {
+      await PurchaseOrder.updateOne(
+        { _id: po._id },
+        {
+          $set: {
+            "supplierTelegramOrder.lastAttemptAt": lastAttemptAt,
+            "supplierTelegramOrder.error": describeSupplierTelegramResult(result),
+          },
+        }
+      );
+      return result;
+    }
+
+    await PurchaseOrder.updateOne(
+      { _id: po._id },
+      {
+        $set: {
+          "supplierTelegramOrder.sentAt": new Date(),
+          "supplierTelegramOrder.lastAttemptAt": lastAttemptAt,
+          "supplierTelegramOrder.error": "",
+        },
+      }
+    );
+
+    return result;
+  } catch (error) {
+    const result = {
+      sent: false,
+      reason: "telegram-send-failed",
+      error: error.message,
+    };
+
+    await PurchaseOrder.updateOne(
+      { _id: po._id },
+      {
+        $set: {
+          "supplierTelegramOrder.lastAttemptAt": lastAttemptAt,
+          "supplierTelegramOrder.error": describeSupplierTelegramResult(result),
+        },
+      }
+    );
+
+    return result;
+  }
+};
 
 // @desc    Get all purchase orders with filters
 // @route   GET /api/admin/purchase-orders
@@ -213,11 +295,17 @@ export const createPO = async (req, res) => {
     });
 
     const savedPO = await po.save();
+    const telegram = savedPO.status === "ordered"
+      ? await sendPurchaseOrderToSupplierTelegram(savedPO._id)
+      : null;
 
     res.status(201).json({
       success: true,
-      message: "Purchase order created successfully",
+      message: telegram
+        ? `Purchase order created successfully. ${describeSupplierTelegramResult(telegram)}.`
+        : "Purchase order created successfully",
       data: savedPO,
+      telegram,
     });
   } catch (error) {
     console.error("Error creating purchase order:", error);
@@ -306,6 +394,11 @@ export const updatePO = async (req, res) => {
       po.expectedDeliveryDate = expectedDeliveryDate ? new Date(expectedDeliveryDate) : null;
     }
 
+    const shouldSendSupplierTelegram =
+      status === "ordered" &&
+      po.status === "draft" &&
+      !po.supplierTelegramOrder?.sentAt;
+
     if (status !== undefined) {
       if (status === "ordered" && po.status === "draft") {
         po.orderedAt = new Date();
@@ -318,11 +411,17 @@ export const updatePO = async (req, res) => {
     );
 
     const savedPO = await po.save();
+    const telegram = shouldSendSupplierTelegram
+      ? await sendPurchaseOrderToSupplierTelegram(savedPO._id)
+      : null;
 
     res.json({
       success: true,
-      message: "Purchase order updated successfully",
+      message: telegram
+        ? `Purchase order updated successfully. ${describeSupplierTelegramResult(telegram)}.`
+        : "Purchase order updated successfully",
       data: savedPO,
+      telegram,
     });
   } catch (error) {
     console.error("Error updating purchase order:", error);

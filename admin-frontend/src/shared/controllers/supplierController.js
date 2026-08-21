@@ -87,4 +87,16 @@ export class SupplierController {
       };
     }
   }
+
+  static async getTelegramSetupLink(id) {
+    try {
+      const response = await supplierService.getTelegramSetupLink(id);
+      return { success: true, data: response.data?.data || response.data || {} };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Failed to create Telegram setup link",
+      };
+    }
+  }
 }

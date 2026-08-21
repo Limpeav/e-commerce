@@ -7,5 +7,6 @@ export const supplierService = {
   createSupplier: (data) => api.post("/admin/suppliers", data),
   updateSupplier: (id, data) => api.put(`/admin/suppliers/${id}`, data),
   deleteSupplier: (id) => api.delete(`/admin/suppliers/${id}`),
+  getTelegramSetupLink: (id) => api.get(`/admin/suppliers/${id}/telegram-setup-link`),
   getSupplierProducts: (id) => api.get(`/admin/suppliers/${id}/products`),
 };

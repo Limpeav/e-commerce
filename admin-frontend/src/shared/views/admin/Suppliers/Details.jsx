@@ -24,6 +24,7 @@ import {
   Calendar,
   ChevronRight,
   ExternalLink,
+  Clipboard,
 } from "lucide-react";
 import { SupplierController } from "../../../controllers/supplierController";
 import AddEditModal from "./AddEditModal";
@@ -92,6 +93,27 @@ const SupplierDetails = () => {
       navigate("/admin/suppliers");
     } else {
       alert(res.error || "Failed to delete supplier");
+    }
+  };
+
+  const handleCopyTelegramSetupLink = async () => {
+    const res = await SupplierController.getTelegramSetupLink(id);
+    if (!res.success) {
+      alert(res.error || "Failed to create Telegram setup link");
+      return;
+    }
+
+    const link = res.data?.link;
+    if (!link) {
+      alert("Telegram setup link was not returned");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast("Telegram setup link copied");
+    } catch {
+      window.prompt("Copy Telegram setup link", link);
     }
   };
 
@@ -241,6 +263,18 @@ const SupplierDetails = () => {
                 Telegram
               </a>
             )}
+            <button
+              type="button"
+              onClick={handleCopyTelegramSetupLink}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border ${
+                supplier.telegramChatId
+                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+                  : "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+              }`}
+            >
+              <Clipboard className="w-3.5 h-3.5" />
+              {supplier.telegramChatId ? "Telegram Connected" : "Copy Bot Link"}
+            </button>
             {supplier.email && (
               <a
                 href={`mailto:${supplier.email}`}

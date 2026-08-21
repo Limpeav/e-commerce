@@ -198,6 +198,11 @@ const purchaseOrderSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    supplierTelegramOrder: {
+      sentAt: { type: Date, default: null },
+      lastAttemptAt: { type: Date, default: null },
+      error: { type: String, default: "" },
+    },
     receivingLogs: {
       type: [receivingLogSchema],
       default: [],

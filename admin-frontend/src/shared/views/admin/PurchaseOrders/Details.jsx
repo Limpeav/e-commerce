@@ -102,7 +102,7 @@ const PurchaseOrderDetails = () => {
     if (!window.confirm("Mark this purchase order as ordered and sent to supplier?")) return;
     const res = await PurchaseOrderController.updatePO(id, { status: "ordered" });
     if (res.success) {
-      showToast("PO status updated to Ordered");
+      showToast(res.message || "PO status updated to Ordered");
       loadPO();
     } else {
       alert(res.error || "Failed to update status");
@@ -502,7 +502,16 @@ const PurchaseOrderDetails = () => {
                 {po.supplier?.telegram && (
                   <span className="text-blue-600 font-semibold">• {po.supplier.telegram}</span>
                 )}
+                {po.supplier?.telegramChatId && (
+                  <span className="text-emerald-600 font-semibold">• Bot connected</span>
+                )}
               </div>
+              {po.supplierTelegramOrder?.error && !po.supplierTelegramOrder?.sentAt && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {po.supplierTelegramOrder.error}
+                </div>
+              )}
               {po.supplier?.address?.city && (
                 <div>Address: {po.supplier.address.street ? `${po.supplier.address.street}, ` : ""}{po.supplier.address.city}</div>
               )}

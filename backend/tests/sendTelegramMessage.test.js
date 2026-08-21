@@ -5,6 +5,7 @@ import {
     buildLowStockMessage,
     buildOrderReceiptCaption,
     buildPaymentTelegramMessage,
+    buildSupplierPurchaseOrderTelegramMessage,
 } from "../utils/sendTelegramMessage.js";
 
 test("buildPaymentTelegramMessage formats and escapes a confirmed KHQR payment", () => {
@@ -85,6 +86,37 @@ test("buildLowStockMessage formats product stock alerts without variant", () => 
             "<i>Restock this item soon.</i>",
         ].join("\n")
     );
+});
+
+test("buildSupplierPurchaseOrderTelegramMessage formats and escapes purchase order details", () => {
+    const message = buildSupplierPurchaseOrderTelegramMessage({
+        supplier: { name: "ACME <Supplier>" },
+        purchaseOrder: {
+            poNumber: "PO-20260821-0001",
+            totalAmount: 42.5,
+            expectedDeliveryDate: "2026-08-25T00:00:00.000Z",
+            notes: "Call before delivery & confirm",
+            items: [
+                {
+                    title: "Baby Shirt <Blue>",
+                    sku: "BSHIRT-1",
+                    size: "M",
+                    color: "Blue",
+                    orderedQuantity: 5,
+                    unitCost: 4,
+                    totalCost: 20,
+                },
+            ],
+        },
+    });
+
+    assert.match(message, /PURCHASE ORDER/);
+    assert.match(message, /ACME &lt;Supplier&gt;/);
+    assert.match(message, /PO-20260821-0001/);
+    assert.match(message, /\$42\.50/);
+    assert.match(message, /Baby Shirt &lt;Blue&gt;/);
+    assert.match(message, /Qty: 5 x \$4\.00 = \$20\.00/);
+    assert.match(message, /Call before delivery &amp; confirm/);
 });
 
 test("buildProductExpiryMessage formats near-expiry promotion alerts", () => {

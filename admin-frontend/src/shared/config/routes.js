@@ -33,6 +33,7 @@ export const adminLazyComponents = {
   SellerDashboard: () => import("../views/admin/SellerDashboard"),
   DeliveryDashboard: () => import("../views/admin/DeliveryDashboard"),
   StaffAccount: () => import("../views/admin/StaffAccount"),
+  AdminNetRevenue: () => import("../views/admin/NetRevenue"),
 };
 
 export const adminRoutes = [
@@ -73,4 +74,5 @@ export const adminRoutes = [
   { path: "/admin/seller", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/staff", component: "AdminStaff", allowedRoles: ["admin"] },
   { path: "/admin/financial-settings", component: "AdminFinancialSettings", allowedRoles: ["admin"] },
+  { path: "/admin/net-revenue", component: "AdminNetRevenue", allowedRoles: ["admin"] },
 ];

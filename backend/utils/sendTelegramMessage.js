@@ -105,6 +105,18 @@ const getTelegramConfig = (type = "default") => {
     };
   }
 
+  if (type === "supplier-po") {
+    const botToken =
+      process.env.TELEGRAM_SUPPLIER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+
+    return {
+      botToken,
+      chatId: "",
+      threadId: "",
+      enabled: Boolean(botToken),
+    };
+  }
+
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -149,6 +161,59 @@ export const sendTelegramMessage = async (message) => {
   }
 
   return { sent: true };
+};
+
+export const sendTelegramTextToChat = async ({
+  chatId,
+  text,
+  type = "default",
+  threadId,
+}) => {
+  const config = getTelegramConfig(type);
+  const botToken = config.botToken;
+  const resolvedThreadId = threadId || config.threadId;
+
+  if (!botToken) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  if (!chatId) {
+    return { sent: false, reason: "missing-chat-id" };
+  }
+
+  try {
+    const response = await axios.post(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      buildTelegramPayload({
+        chatId,
+        threadId: resolvedThreadId,
+        text,
+        parse_mode: "HTML",
+      }),
+      {
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return {
+      sent: true,
+      type: "message",
+      messageId: response.data?.result?.message_id,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
 };
 
 const sendTelegramPhotoOrMessage = async ({
@@ -332,6 +397,87 @@ export const buildDeliveryHandoffTelegramMessage = ({
   lines.push("", "<i>Please confirm this order in the delivery dashboard.</i>");
 
   return lines.join("\n");
+};
+
+const formatTelegramMoney = (value) => `$${Number(value || 0).toFixed(2)}`;
+
+const formatTelegramDate = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
+export const buildSupplierPurchaseOrderTelegramMessage = ({
+  purchaseOrder,
+  supplier,
+}) => {
+  const poNumber = purchaseOrder?.poNumber || purchaseOrder?._id || "N/A";
+  const supplierName = supplier?.name || "Supplier";
+  const expectedDate = formatTelegramDate(purchaseOrder?.expectedDeliveryDate);
+  const items = Array.isArray(purchaseOrder?.items) ? purchaseOrder.items : [];
+  const visibleItems = items.slice(0, 25);
+
+  const lines = [
+    "<b>PURCHASE ORDER</b>",
+    "",
+    `Hello ${escapeHtml(supplierName)},`,
+    "Please prepare the following order:",
+    "",
+    `<b>PO Number</b>: <code>${escapeHtml(poNumber)}</code>`,
+    `<b>Total</b>: ${formatTelegramMoney(purchaseOrder?.totalAmount)}`,
+  ];
+
+  if (expectedDate) {
+    lines.push(`<b>Expected Delivery</b>: ${escapeHtml(expectedDate)}`);
+  }
+
+  lines.push("", "<b>Items</b>:");
+
+  visibleItems.forEach((item, index) => {
+    const parts = [item.size, item.color].filter(Boolean).join(" / ");
+    const sku = item.sku ? ` [${item.sku}]` : "";
+    const variant = parts ? ` (${parts})` : "";
+    lines.push(
+      `${index + 1}. ${escapeHtml(item.title || "Item")}${escapeHtml(sku)}${escapeHtml(variant)}`,
+      `   Qty: ${Number(item.orderedQuantity || 0)} x ${formatTelegramMoney(item.unitCost)} = ${formatTelegramMoney(item.totalCost)}`
+    );
+  });
+
+  if (items.length > visibleItems.length) {
+    lines.push(`...and ${items.length - visibleItems.length} more item(s).`);
+  }
+
+  const notes = String(purchaseOrder?.notes || "").trim();
+  if (notes) {
+    lines.push("", `<b>Notes</b>: ${escapeHtml(notes)}`);
+  }
+
+  lines.push("", "Please reply here to confirm availability and delivery date.");
+
+  return lines.join("\n");
+};
+
+export const sendSupplierPurchaseOrderTelegramAlert = async ({
+  purchaseOrder,
+  supplier,
+}) => {
+  const chatId = supplier?.telegramChatId;
+
+  if (!chatId) {
+    return { sent: false, reason: "missing-supplier-chat-id" };
+  }
+
+  const text = buildSupplierPurchaseOrderTelegramMessage({
+    purchaseOrder,
+    supplier,
+  });
+
+  return sendTelegramTextToChat({
+    chatId,
+    text,
+    type: "supplier-po",
+  });
 };
 
 export const sendLowStockTelegramAlert = async ({

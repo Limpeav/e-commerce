@@ -385,6 +385,12 @@ const SuppliersList = () => {
                             {s.telegram}
                           </a>
                         )}
+                        {s.telegramChatId && (
+                          <div className="inline-flex items-center gap-1 text-emerald-600 text-[11px] font-semibold">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Bot connected
+                          </div>
+                        )}
                       </div>
                     </td>
 

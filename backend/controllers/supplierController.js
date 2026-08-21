@@ -244,6 +244,7 @@ export const createSupplier = async (req, res) => {
       phone,
       altPhone,
       telegram,
+      telegramChatId,
       address,
       categories,
       paymentTerms,
@@ -279,6 +280,7 @@ export const createSupplier = async (req, res) => {
       phone: phone.trim(),
       altPhone: altPhone?.trim() || "",
       telegram: telegram?.trim() || "",
+      telegramChatId: telegramChatId?.trim() || "",
       address: address || {},
       categories: Array.isArray(categories) ? categories : [],
       paymentTerms: paymentTerms || "Cash on Delivery",
@@ -326,6 +328,7 @@ export const updateSupplier = async (req, res) => {
       phone,
       altPhone,
       telegram,
+      telegramChatId,
       address,
       categories,
       paymentTerms,
@@ -351,6 +354,12 @@ export const updateSupplier = async (req, res) => {
     if (phone !== undefined) supplier.phone = phone.trim();
     if (altPhone !== undefined) supplier.altPhone = altPhone.trim();
     if (telegram !== undefined) supplier.telegram = telegram.trim();
+    if (telegramChatId !== undefined) {
+      supplier.telegramChatId = telegramChatId.trim();
+      supplier.telegramConnectedAt = telegramChatId.trim()
+        ? supplier.telegramConnectedAt || new Date()
+        : null;
+    }
     if (address !== undefined) supplier.address = address;
     if (categories !== undefined) supplier.categories = categories;
     if (paymentTerms !== undefined) supplier.paymentTerms = paymentTerms;

@@ -28,6 +28,7 @@ export const MetricCard = ({
   note,
   icon,
   tone = "sage",
+  onClick,
 }) => {
   const MetricIcon = icon;
   const tones = {
@@ -37,8 +38,22 @@ export const MetricCard = ({
     blue: "bg-[#ebf1f4] text-[#668698]",
   };
 
+  const clickableProps = onClick
+    ? {
+        role: "button",
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } },
+        className:
+          "rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)] cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-[var(--color-primary)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
+      }
+    : {
+        className:
+          "rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]",
+      };
+
   return (
-    <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[0_8px_30px_rgba(61,66,62,0.05)]">
+    <article {...clickableProps}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-[var(--color-text-muted)]">{title}</p>
