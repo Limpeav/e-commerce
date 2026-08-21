@@ -110,9 +110,15 @@ const SuppliersList = () => {
       } else {
         const res = await SupplierController.createSupplier(formData);
         if (res.success) {
-          showToast("New supplier registered successfully!");
           setIsModalOpen(false);
-          loadData();
+          // The detail page contains the supplier-specific Telegram setup link.
+          // Send the admin there immediately after creation so it can be copied.
+          if (res.data?._id) {
+            navigate(`/admin/suppliers/${res.data._id}`);
+          } else {
+            showToast("New supplier registered successfully!");
+            loadData();
+          }
         } else {
           alert(res.error || "Failed to create supplier");
         }
