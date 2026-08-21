@@ -29,6 +29,25 @@ const parseSupplierStartPayload = (text = "") => {
   return payload.replace(/^supplier_/, "");
 };
 
+const normalizeTelegramUsername = (value = "") =>
+  String(value || "").trim().replace(/^@/, "").toLowerCase();
+
+const findSupplierForTelegramStart = async ({ supplierId, username }) => {
+  if (supplierId) {
+    if (!mongoose.Types.ObjectId.isValid(supplierId)) return null;
+    return Supplier.findById(supplierId);
+  }
+
+  const normalizedUsername = normalizeTelegramUsername(username);
+  if (!normalizedUsername) return null;
+
+  const suppliers = await Supplier.find({
+    telegram: { $in: [normalizedUsername, `@${normalizedUsername}`] },
+  }).limit(2);
+
+  return suppliers.length === 1 ? suppliers[0] : null;
+};
+
 export const getSupplierTelegramSetupLink = async (req, res) => {
   try {
     const { id } = req.params;
@@ -72,12 +91,13 @@ export const handleSupplierTelegramWebhook = async (req, res) => {
   const message = req.body?.message;
   const chatId = message?.chat?.id;
   const supplierId = parseSupplierStartPayload(message?.text);
+  const telegramUsername = message?.from?.username || "";
 
-  if (!chatId || !supplierId) {
+  if (!chatId || !message?.text?.startsWith("/start")) {
     return res.json({ success: true, ignored: true });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(supplierId)) {
+  if (supplierId && !mongoose.Types.ObjectId.isValid(supplierId)) {
     await sendTelegramTextToChat({
       chatId,
       type: "supplier-po",
@@ -91,13 +111,16 @@ export const handleSupplierTelegramWebhook = async (req, res) => {
 
   try {
     const from = message.from || {};
-    const supplier = await Supplier.findById(supplierId);
+    const supplier = await findSupplierForTelegramStart({
+      supplierId,
+      username: telegramUsername,
+    });
 
     if (!supplier) {
       await sendTelegramTextToChat({
         chatId,
         type: "supplier-po",
-        text: "Supplier was not found. Please ask the store admin for a new setup link.",
+        text: "Supplier was not found. Please ask the store admin for the Telegram setup link.",
       }).catch((error) => {
         console.error("Telegram supplier missing-supplier reply failed:", error.message);
       });
