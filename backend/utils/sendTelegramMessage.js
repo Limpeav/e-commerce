@@ -2,6 +2,7 @@ import axios from "axios";
 import FormData from "form-data";
 
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15000;
+const DEFAULT_SUPPLIER_CONTACT_PHONE = "016568335";
 
 const buildTelegramPayload = ({ chatId, threadId, ...payload }) => ({
   chat_id: chatId,
@@ -168,6 +169,7 @@ export const sendTelegramTextToChat = async ({
   text,
   type = "default",
   threadId,
+  replyMarkup,
 }) => {
   const config = getTelegramConfig(type);
   const botToken = config.botToken;
@@ -189,6 +191,7 @@ export const sendTelegramTextToChat = async ({
         threadId: resolvedThreadId,
         text,
         parse_mode: "HTML",
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       }),
       {
         timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
@@ -200,6 +203,52 @@ export const sendTelegramTextToChat = async ({
       type: "message",
       messageId: response.data?.result?.message_id,
     };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const description = error.response?.data?.description;
+
+      throw new Error(
+        description
+          ? `Telegram API ${status}: ${description}`
+          : `Telegram API ${status || "error"}`
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const answerTelegramCallbackQuery = async ({
+  callbackQueryId,
+  text,
+  type = "default",
+  showAlert = false,
+}) => {
+  const { botToken } = getTelegramConfig(type);
+
+  if (!botToken) {
+    return { sent: false, reason: "missing-config" };
+  }
+
+  if (!callbackQueryId) {
+    return { sent: false, reason: "missing-callback-query-id" };
+  }
+
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${botToken}/answerCallbackQuery`,
+      {
+        callback_query_id: callbackQueryId,
+        ...(text ? { text } : {}),
+        show_alert: Boolean(showAlert),
+      },
+      {
+        timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return { sent: true };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
@@ -408,6 +457,35 @@ const formatTelegramDate = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
+export const getSupplierContactPhone = () =>
+  String(
+    process.env.TELEGRAM_SUPPLIER_CONTACT_PHONE ||
+      process.env.SUPPLIER_CONTACT_PHONE ||
+      DEFAULT_SUPPLIER_CONTACT_PHONE
+  ).trim();
+
+export const buildSupplierPurchaseOrderReplyMarkup = ({ purchaseOrder } = {}) => {
+  const poId = String(purchaseOrder?._id || purchaseOrder?.id || "").trim();
+  const contactPhone = getSupplierContactPhone();
+
+  if (!poId) return null;
+
+  return {
+    inline_keyboard: [
+      [
+        { text: "Accept", callback_data: `supplier_po:accept:${poId}` },
+        { text: "Cancel", callback_data: `supplier_po:cancel:${poId}` },
+      ],
+      [
+        {
+          text: `Contact ${contactPhone}`,
+          callback_data: `supplier_po:contact:${poId}`,
+        },
+      ],
+    ],
+  };
+};
+
 export const buildSupplierPurchaseOrderTelegramMessage = ({
   purchaseOrder,
   supplier,
@@ -453,7 +531,16 @@ export const buildSupplierPurchaseOrderTelegramMessage = ({
     lines.push("", `<b>Notes</b>: ${escapeHtml(notes)}`);
   }
 
-  lines.push("", "Please reply here to confirm availability and delivery date.");
+  const contactPhone = getSupplierContactPhone();
+  lines.push(
+    "",
+    "<b>Options</b>:",
+    "Accept - confirm availability for this order.",
+    "Cancel - tell us you cannot fulfill this order.",
+    `Contact - call or message ${escapeHtml(contactPhone)}.`,
+    "",
+    "Please use the buttons below or reply here with your delivery date."
+  );
 
   return lines.join("\n");
 };
@@ -472,11 +559,13 @@ export const sendSupplierPurchaseOrderTelegramAlert = async ({
     purchaseOrder,
     supplier,
   });
+  const replyMarkup = buildSupplierPurchaseOrderReplyMarkup({ purchaseOrder });
 
   return sendTelegramTextToChat({
     chatId,
     text,
     type: "supplier-po",
+    replyMarkup,
   });
 };
 

@@ -5,8 +5,12 @@ import {
     buildLowStockMessage,
     buildOrderReceiptCaption,
     buildPaymentTelegramMessage,
+    buildSupplierPurchaseOrderReplyMarkup,
     buildSupplierPurchaseOrderTelegramMessage,
 } from "../utils/sendTelegramMessage.js";
+
+delete process.env.TELEGRAM_SUPPLIER_CONTACT_PHONE;
+delete process.env.SUPPLIER_CONTACT_PHONE;
 
 test("buildPaymentTelegramMessage formats and escapes a confirmed KHQR payment", () => {
     const message = buildPaymentTelegramMessage({
@@ -117,6 +121,38 @@ test("buildSupplierPurchaseOrderTelegramMessage formats and escapes purchase ord
     assert.match(message, /Baby Shirt &lt;Blue&gt;/);
     assert.match(message, /Qty: 5 x \$4\.00 = \$20\.00/);
     assert.match(message, /Call before delivery &amp; confirm/);
+    assert.match(message, /Accept - confirm availability/);
+    assert.match(message, /Cancel - tell us you cannot fulfill/);
+    assert.match(message, /Contact - call or message 016568335/);
+});
+
+test("buildSupplierPurchaseOrderReplyMarkup adds supplier action buttons", () => {
+    const replyMarkup = buildSupplierPurchaseOrderReplyMarkup({
+        purchaseOrder: {
+            _id: "64def45664def45664def456",
+        },
+    });
+
+    assert.deepEqual(replyMarkup, {
+        inline_keyboard: [
+            [
+                {
+                    text: "Accept",
+                    callback_data: "supplier_po:accept:64def45664def45664def456",
+                },
+                {
+                    text: "Cancel",
+                    callback_data: "supplier_po:cancel:64def45664def45664def456",
+                },
+            ],
+            [
+                {
+                    text: "Contact 016568335",
+                    callback_data: "supplier_po:contact:64def45664def45664def456",
+                },
+            ],
+        ],
+    });
 });
 
 test("buildProductExpiryMessage formats near-expiry promotion alerts", () => {

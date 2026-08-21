@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
+import PurchaseOrder from "../models/PurchaseOrder.js";
 import Supplier from "../models/Supplier.js";
-import { sendTelegramTextToChat } from "../utils/sendTelegramMessage.js";
+import {
+  answerTelegramCallbackQuery,
+  getSupplierContactPhone,
+  sendTelegramTextToChat,
+} from "../utils/sendTelegramMessage.js";
 
 const getExpectedWebhookSecret = () =>
   process.env.TELEGRAM_SUPPLIER_WEBHOOK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || "";
@@ -32,6 +37,22 @@ const parseSupplierStartPayload = (text = "") => {
 const normalizeTelegramUsername = (value = "") =>
   String(value || "").trim().replace(/^@/, "").toLowerCase();
 
+const escapeTelegramHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
+const parseSupplierPurchaseOrderCallbackData = (data = "") => {
+  const match = String(data || "").match(/^supplier_po:(accept|cancel|contact):(.+)$/);
+  if (!match) return null;
+
+  return {
+    action: match[1],
+    purchaseOrderId: match[2],
+  };
+};
+
 const findSupplierForTelegramStart = async ({ supplierId, username }) => {
   if (supplierId) {
     if (!mongoose.Types.ObjectId.isValid(supplierId)) return null;
@@ -46,6 +67,125 @@ const findSupplierForTelegramStart = async ({ supplierId, username }) => {
   }).limit(2);
 
   return suppliers.length === 1 ? suppliers[0] : null;
+};
+
+const replyToSupplierCallback = async ({
+  callbackQueryId,
+  chatId,
+  text,
+  showAlert = false,
+}) => {
+  await answerTelegramCallbackQuery({
+    callbackQueryId,
+    type: "supplier-po",
+    text,
+    showAlert,
+  }).catch((error) => {
+    console.error("Telegram supplier callback answer failed:", error.message);
+  });
+
+  if (!chatId) return;
+
+  await sendTelegramTextToChat({
+    chatId,
+    type: "supplier-po",
+    text,
+  }).catch((error) => {
+    console.error("Telegram supplier callback reply failed:", error.message);
+  });
+};
+
+const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
+  const callbackQueryId = callbackQuery?.id;
+  const chatId = callbackQuery?.message?.chat?.id;
+  const from = callbackQuery?.from || {};
+  const parsed = parseSupplierPurchaseOrderCallbackData(callbackQuery?.data);
+
+  if (!parsed) {
+    await replyToSupplierCallback({
+      callbackQueryId,
+      chatId,
+      text: "This button is no longer valid. Please ask the store admin to resend the purchase order.",
+      showAlert: true,
+    });
+    return;
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(parsed.purchaseOrderId)) {
+    await replyToSupplierCallback({
+      callbackQueryId,
+      chatId,
+      text: "This purchase order link is invalid. Please ask the store admin to resend it.",
+      showAlert: true,
+    });
+    return;
+  }
+
+  const purchaseOrder = await PurchaseOrder.findById(parsed.purchaseOrderId).populate(
+    "supplier",
+    "name telegramChatId"
+  );
+
+  if (!purchaseOrder) {
+    await replyToSupplierCallback({
+      callbackQueryId,
+      chatId,
+      text: "This purchase order was not found. Please ask the store admin to resend it.",
+      showAlert: true,
+    });
+    return;
+  }
+
+  const supplierChatId = purchaseOrder.supplier?.telegramChatId;
+  if (supplierChatId && chatId && String(supplierChatId) !== String(chatId)) {
+    await replyToSupplierCallback({
+      callbackQueryId,
+      chatId,
+      text: "This purchase order belongs to another supplier chat.",
+      showAlert: true,
+    });
+    return;
+  }
+
+  const now = new Date();
+  const poNumber = purchaseOrder.poNumber || purchaseOrder._id;
+  const responseFields = {
+    "supplierTelegramOrder.responseTelegramUserId": from.id ? String(from.id) : "",
+    "supplierTelegramOrder.responseTelegramUsername": from.username
+      ? `@${from.username}`
+      : "",
+  };
+  let replyText = "";
+
+  if (parsed.action === "accept") {
+    responseFields["supplierTelegramOrder.responseStatus"] = "accepted";
+    responseFields["supplierTelegramOrder.respondedAt"] = now;
+    replyText = `Purchase order ${escapeTelegramHtml(poNumber)} accepted. Thank you. Please reply with the delivery date when ready.`;
+  }
+
+  if (parsed.action === "cancel") {
+    responseFields["supplierTelegramOrder.responseStatus"] = "cancelled";
+    responseFields["supplierTelegramOrder.respondedAt"] = now;
+    replyText = `Purchase order ${escapeTelegramHtml(poNumber)} marked as unavailable. The store team will follow up.`;
+  }
+
+  if (parsed.action === "contact") {
+    responseFields["supplierTelegramOrder.responseStatus"] = "contact_requested";
+    responseFields["supplierTelegramOrder.respondedAt"] = now;
+    responseFields["supplierTelegramOrder.contactRequestedAt"] = now;
+    replyText = `Please contact the store at ${escapeTelegramHtml(getSupplierContactPhone())}.`;
+  }
+
+  await PurchaseOrder.updateOne(
+    { _id: purchaseOrder._id },
+    { $set: responseFields }
+  );
+
+  await replyToSupplierCallback({
+    callbackQueryId,
+    chatId,
+    text: replyText,
+  });
 };
 
 export const getSupplierTelegramSetupLink = async (req, res) => {
@@ -86,6 +226,17 @@ export const getSupplierTelegramSetupLink = async (req, res) => {
 export const handleSupplierTelegramWebhook = async (req, res) => {
   if (!isWebhookAuthorized(req)) {
     return res.status(403).json({ message: "Invalid Telegram webhook secret" });
+  }
+
+  const callbackQuery = req.body?.callback_query;
+  if (callbackQuery) {
+    try {
+      await handleSupplierPurchaseOrderCallback(callbackQuery);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Supplier Telegram callback failed:", error);
+      return res.status(500).json({ message: "Failed to handle Telegram callback", error: error.message });
+    }
   }
 
   const message = req.body?.message;

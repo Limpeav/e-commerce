@@ -202,6 +202,15 @@ const purchaseOrderSchema = mongoose.Schema(
       sentAt: { type: Date, default: null },
       lastAttemptAt: { type: Date, default: null },
       error: { type: String, default: "" },
+      responseStatus: {
+        type: String,
+        enum: ["", "accepted", "cancelled", "contact_requested"],
+        default: "",
+      },
+      respondedAt: { type: Date, default: null },
+      contactRequestedAt: { type: Date, default: null },
+      responseTelegramUserId: { type: String, default: "" },
+      responseTelegramUsername: { type: String, default: "" },
     },
     receivingLogs: {
       type: [receivingLogSchema],
