@@ -126,7 +126,7 @@ const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
 
   const purchaseOrder = await PurchaseOrder.findById(parsed.purchaseOrderId).populate(
     "supplier",
-    "name telegramChatId"
+    "name telegramChatId telegramUserId"
   );
 
   if (!purchaseOrder) {
@@ -140,7 +140,17 @@ const handleSupplierPurchaseOrderCallback = async (callbackQuery) => {
   }
 
   const supplierChatId = purchaseOrder.supplier?.telegramChatId;
-  if (supplierChatId && chatId && String(supplierChatId) !== String(chatId)) {
+  const supplierUserId = purchaseOrder.supplier?.telegramUserId;
+  const callbackUserId = from.id ? String(from.id) : "";
+  const isSupplierChat =
+    supplierChatId && chatId && String(supplierChatId) === String(chatId);
+  const isConnectedSupplierUser =
+    supplierUserId && callbackUserId && String(supplierUserId) === callbackUserId;
+
+  // A supplier may reconnect the bot and receive a new chat ID after a PO was
+  // sent. Their Telegram user ID remains stable, so accept their response while
+  // still rejecting clicks from a different supplier account.
+  if (!isSupplierChat && !isConnectedSupplierUser) {
     await replyToSupplierCallback({
       callbackQueryId,
       chatId,
