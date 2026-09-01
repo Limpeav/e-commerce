@@ -522,7 +522,7 @@ const AdminOrders = ({ renderDelivery }) => {
             );
             const deliveryFee = getDeliveryFee(order);
             const taxPrice = Number(order.taxPrice || 0);
-            const displayedTotal = subtotal + taxPrice + deliveryFee;
+            const displayedTotal = order.totalPrice != null ? Number(order.totalPrice) : subtotal + taxPrice + deliveryFee;
             const orderExchangeRate = Number(order.exchangeRate) || Number(usdToKhrRate) || 4100;
             const receiptImage = await createReceiptImageBlob({
                 displayOrderId: order._id.slice(-8),
@@ -647,13 +647,15 @@ const AdminOrders = ({ renderDelivery }) => {
         `៛${Math.round(Number(amount || 0) * (Number(exchangeRate) || 4100)).toLocaleString("en-US")} KHR`;
 
     const formatPhoneNumber = (phone) => {
-        if (!phone) return "No phone";
+        if (!phone) return "N/A";
 
         const digits = String(phone).replace(/\D/g, "");
         const localDigits = digits.startsWith("855") ? `0${digits.slice(3)}` : digits;
 
         if (localDigits.length <= 3) return localDigits;
-        if (localDigits.length <= 6) return `${localDigits.slice(0, 3)} ${localDigits.slice(3)}`;
+        if (localDigits.length <= 6) {
+            return `${localDigits.slice(0, 3)} ${localDigits.slice(3)}`;
+        }
 
         return `${localDigits.slice(0, 3)} ${localDigits.slice(3, 6)} ${localDigits.slice(6)}`;
     };
@@ -661,7 +663,7 @@ const AdminOrders = ({ renderDelivery }) => {
     const formatDeliveryAddress = (shippingAddress = {}) =>
         [shippingAddress.street, shippingAddress.address, shippingAddress.city]
             .filter(Boolean)
-            .join(", ") || "Address not set";
+            .join(", ") || "N/A";
 
     const formatFullAddress = (shippingAddress = {}) =>
         [
@@ -675,8 +677,7 @@ const AdminOrders = ({ renderDelivery }) => {
             .join(", ") || "N/A";
 
     const getDeliveryFee = (order) => {
-        const storedFee = Number(order?.shippingPrice || 0);
-        return storedFee > 0 ? storedFee : 2;
+        return Number(order?.shippingPrice || 0);
     };
 
     const getMapUrl = (shippingAddress = {}) => {

@@ -26,8 +26,11 @@ export const getRealtimeSocket = () => {
 
   socketInstance = io(resolveSocketBaseUrl(), {
     auth: token ? { token } : {},
-    transports: ["websocket", "polling"],
+    transports: ["polling"],
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
   });
+  socketInstance.on("connect_error", () => {});
   activeToken = connectionKey;
   return socketInstance;
 };

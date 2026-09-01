@@ -416,8 +416,7 @@ const OrderDetails = () => {
         `៛${Math.round(Number(amount || 0) * (Number(exchangeRate) || 4100)).toLocaleString("en-US")} KHR`;
 
     const getDeliveryFee = (currentOrder) => {
-        const storedFee = Number(currentOrder?.shippingPrice || 0);
-        return storedFee > 0 ? storedFee : 2;
+        return Number(currentOrder?.shippingPrice || 0);
     };
 
     const formatAddress = (shippingAddress = {}) =>
@@ -471,7 +470,7 @@ const OrderDetails = () => {
     );
     const deliveryFee = getDeliveryFee(order);
     const taxPrice = Number(order.taxPrice || 0);
-    const displayedTotal = subtotal + taxPrice + deliveryFee;
+    const displayedTotal = order.totalPrice != null ? Number(order.totalPrice) : subtotal + taxPrice + deliveryFee;
     const orderExchangeRate = Number(order.exchangeRate) || Number(usdToKhrRate) || 4100;
     const customerName = order.shippingAddress?.fullName || order.user?.name || "N/A";
     const customerPhone = formatPhoneNumber(order.shippingAddress?.phone);
