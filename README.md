@@ -11,11 +11,6 @@
 [![Socket.io](https://img.shields.io/badge/RealTime-Socket.io-black.svg?style=flat-square&logo=socket.io)](https://socket.io)
 [![License](https://img.shields.io/badge/License-ISC-brightgreen.svg?style=flat-square)](#license)
 
-> **Design and Development of an E-Commerce Platform for Baby Products with AI-Based Customer Sentiment Analysis**  
-> *Case Study: PCHUNCHANACSAMAI CO., LTD. (Cherish Baby Store)*  
-> Production Domain: [cherishbabykhstore.store](https://cherishbabykhstore.store)
-
-
 ## 🌟 Overview
 
 Ensuring infant safety, product authenticity, and customer trust is paramount when shopping for baby essentials (such as infant formula, diapers, skincare, feeding accessories, and educational toys). Traditional e-commerce platforms often fail to capture subtle feedback or alert business owners in time when baby products receive complaints regarding irritations, defective seals, or delivery delays.
