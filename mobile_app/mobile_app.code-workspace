@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "mobile_app",
+			"path": "."
+		},
+		{
+			"name": "routes",
+			"path": "../../../Desktop/ecommerce-website/backend/routes"
+		}
+	],
+	"settings": {}
+}
