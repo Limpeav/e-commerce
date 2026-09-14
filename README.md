@@ -15,37 +15,6 @@
 > *Case Study: PCHUNCHANACSAMAI CO., LTD. (Cherish Baby Store)*  
 > Production Domain: [cherishbabykhstore.store](https://cherishbabykhstore.store)
 
----
-
-## 📑 Table of Contents
-
-- [Overview](#-overview)
-- [System Architecture](#-system-architecture)
-- [Key Features](#-key-features)
-  - [🤖 AI-Powered Bilingual Sentiment Analysis](#1-ai-powered-bilingual-sentiment-analysis)
-  - [🇰🇭 NBC Bakong KHQR Payment & Telegram Alerts](#2-nbc-bakong-khqr-payment--telegram-alerts)
-  - [🗺️ Google Maps Location Pinning & Geocoding](#3-google-maps-location-pinning--geocoding)
-  - [📱 Cross-Platform Mobile App (Flutter)](#4-cross-platform-mobile-app-flutter)
-  - [🛒 Customer Web Storefront](#5-customer-web-storefront)
-  - [📊 Comprehensive Admin Management Dashboard](#6-comprehensive-admin-management-dashboard)
-  - [📦 Inventory, Batches & Supplier Purchase Orders](#7-inventory-batches--supplier-purchase-orders)
-  - [🌐 Bilingual Localization (Khmer & English)](#8-bilingual-localization-khmer--english)
-  - [⚡ Real-Time Socket.io Synchronization](#9-real-time-socketio-synchronization)
-- [Technology Stack](#-technology-stack)
-- [Repository Structure](#-repository-structure)
-- [Getting Started & Local Development](#-getting-started--local-development)
-  - [Prerequisites](#prerequisites)
-  - [1. Backend Setup](#1-backend-setup)
-  - [2. User Web Frontend Setup](#2-user-web-frontend-setup)
-  - [3. Admin Web Frontend Setup](#3-admin-web-frontend-setup)
-  - [4. Flutter Mobile App Setup](#4-flutter-mobile-app-setup)
-- [Environment Variables Guide](#-environment-variables-guide)
-- [Testing & Payment Simulation](#-testing--payment-simulation)
-- [Deployment Guide](#-deployment-guide)
-- [Academic Research & Case Study](#-academic-research--case-study)
-- [Contributing & License](#-contributing--license)
-
----
 
 ## 🌟 Overview
 
