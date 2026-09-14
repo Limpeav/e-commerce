@@ -1,4 +1,4 @@
-# 🍼 Cherish Baby — AI-Powered E-Commerce Platform for Baby Products
+# Cherish Baby — AI-Powered E-Commerce Platform for Baby Products
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg?style=flat-square&logo=node.js)](https://nodejs.org)
 [![Express](https://img.shields.io/badge/Express-5.x-lightgrey.svg?style=flat-square&logo=express)](https://expressjs.com)
@@ -58,73 +58,6 @@ Ensuring infant safety, product authenticity, and customer trust is paramount wh
 4. **End-to-End Supply Chain Management** including batch tracking, supplier purchase orders (PO), and automated 60-day product expiry warning alerts.
 5. **Omnichannel Access**: Customer Web (`React 19`), Admin Web (`React 19`), and Cross-Platform Native Mobile App (`Flutter 3.x` with BLoC).
 
----
-
-## 🏛 System Architecture
-
-The project adheres to a clean **MVC (Model-View-Controller)** pattern across both the backend and frontend client architectures.
-
-```mermaid
-flowchart TD
-    subgraph Clients["Omnichannel Clients"]
-        UW["User Web (React 19 + Vite)\nPort: 5173"]
-        AW["Admin Web (React 19 + Vite)\nPort: 5174"]
-        MA["Mobile App (Flutter / Dart)\niOS & Android"]
-    end
-
-    subgraph Gateway["API & Security Layer"]
-        CORS["CORS & Origin Validation"]
-        SEC["Helmet + Mongo Sanitize + Rate Limiter"]
-        AUTH["JWT & Google OAuth 2.0"]
-    end
-
-    subgraph Backend["Express 5 MVC Backend (Port: 4000)"]
-        Routes["Express Routes (/api/...)"]
-        Controllers["Controllers Layer"]
-        Services["Services Layer (Business Logic)"]
-        Models["Mongoose Models"]
-        
-        subgraph CoreEngines["Core Automated Engines"]
-            AI["AI Sentiment Analysis Engine\n(Khmer & English NLP)"]
-            BakongSvc["Bakong KHQR Engine &\nReconciliation Service"]
-            ExpirySvc["60-Day Expiry Alert Service"]
-            SupportSvc["Support Ticket Workflow Engine"]
-        end
-    end
-
-    subgraph Realtime["Real-time Streaming"]
-        SIO["Socket.io Server\n(Order status, alerts, notifications)"]
-    end
-
-    subgraph External["External Integrations"]
-        DB[(MongoDB Database)]
-        NBC["NBC Bakong Payment Gateway"]
-        TG["Telegram Bot Alerts (Topics)"]
-        GMaps["Google Maps & Places API"]
-        Cloudinary["Cloudinary + Sharp Image CDN"]
-        Resend["Resend / Gmail SMTP"]
-    end
-
-    UW --> Gateway
-    AW --> Gateway
-    MA --> Gateway
-
-    Gateway --> CORS --> SEC --> AUTH --> Routes
-    Routes --> Controllers --> Services --> Models --> DB
-    Services --> CoreEngines
-
-    BakongSvc <--> NBC
-    BakongSvc --> TG
-    ExpirySvc --> TG
-    AI --> Models
-    Backend <--> SIO
-    SIO -.-> Clients
-    Services --> Cloudinary
-    Services --> Resend
-    Clients <--> GMaps
-```
-
----
 
 ## 🚀 Key Features
 
@@ -339,59 +272,6 @@ flutter run
 
 ---
 
-## ⚙️ Environment Variables Guide
-
-### Backend (`backend/.env`)
-
-```ini
-# Core Configuration
-NODE_ENV=development
-PORT=4000
-MONGO_URI=mongodb://127.0.0.1:27017/ecommerce
-JWT_SECRET=your_super_secret_jwt_key_at_least_32_characters_long
-ADMIN_BOOTSTRAP_PASSWORD=AdminSecurePassword123!
-FRONTEND_URL=http://localhost:5173
-ADMIN_FRONTEND_URL=http://localhost:5174
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
-ALLOW_LOCAL_DEV_ORIGINS=true
-
-# National Bank of Cambodia (NBC) Bakong KHQR
-BAKONG_ENABLED=true
-BAKONG_ACCOUNT_TYPE=INDIVIDUAL
-BAKONG_ACCOUNT_ID=your-account@your-bank
-BAKONG_ACCOUNT_USERNAME=Cherish Baby Store
-BAKONG_MERCHANT_CITY=Phnom Penh
-BAKONG_PHONE_NUMBER=85512345678
-BAKONG_TOKEN=your-production-bakong-api-token
-BAKONG_API_URL=https://api-bakong.nbc.gov.kh
-USD_TO_KHR_RATE=4100
-BAKONG_RECONCILIATION_INTERVAL_MS=15000
-
-# Telegram KHQR Alerts
-TELEGRAM_BOT_TOKEN_4=your_telegram_bot_token
-TELEGRAM_CHAT_ID_4=your_telegram_chat_id
-
-# Cloudinary & Image Processing
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_oauth_secret
-```
-
-### Web Frontends (`.env`)
-
-```ini
-# user-frontend & admin-frontend
-VITE_API_URL=http://localhost:4000/api
-VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_browser_api_key
-```
-
----
-
 ## 💳 Testing & Payment Simulation
 
 You can test the entire Bakong KHQR payment lifecycle in development without a live banking debit:
@@ -412,6 +292,12 @@ You can test the entire Bakong KHQR payment lifecycle in development without a l
      }'
    ```
 4. **Auto-Confirmation**: The client will immediately detect payment completion via Socket.io/polling and redirect to the order invoice!
+
+> [!CAUTION]
+> **Production Security**: The `/api/payments/bakong/verify` webhook endpoint **MUST** be
+> protected by HMAC signature verification or restricted to NBC Bakong's server IP ranges
+> before going live. Never expose an unauthenticated `status: "SUCCESS"` endpoint in production,
+> as it can be replayed to fraudulently confirm unpaid orders.
 
 ---
 
@@ -437,6 +323,25 @@ This platform was developed as part of an applied research thesis:
 > - Solving unstructured review analysis using contextual NLP in bilingual environments (Khmer/English).
 > - Eliminating manual inventory tracking challenges through automated 60-day batch expiry alarms.
 > - Enabling financial inclusion using the National Bank of Cambodia's Bakong KHQR framework.
+
+---
+
+## 🔒 Security
+
+If you discover a security vulnerability in this project, please **do not open a public issue**. Instead, report it responsibly:
+
+- **Email**: contact the maintainer privately via the repository profile.
+- **Scope**: Includes authentication bypasses, payment flow exploits, injection vulnerabilities, and exposed secrets.
+- We aim to acknowledge reports within **48 hours** and release a patch within **7 days** for critical issues.
+
+> [!IMPORTANT]
+> Before deploying to production, ensure the following checklist is satisfied:
+> - `NODE_ENV=production` is set.
+> - `ALLOW_LOCAL_DEV_ORIGINS` is set to `false`.
+> - `JWT_SECRET` is a cryptographically random string of at least 64 characters.
+> - The Bakong webhook endpoint is protected by signature verification or IP allowlist.
+> - All `.env` files are excluded from version control (`.gitignore`).
+> - MongoDB connection uses authentication credentials, not an open local URI.
 
 ---
 
